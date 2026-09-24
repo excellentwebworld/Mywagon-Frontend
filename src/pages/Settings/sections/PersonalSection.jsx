@@ -216,7 +216,7 @@ export default function PersonalSection() {
   const roleAccess = data.role_access ?? {
     role_key: 'admin',
     role_name: 'Admin',
-    role_color: '#7C3AED',
+    role_color: '#9B51E0',
     assigned_by: t('settings.profileSection.role.system', { defaultValue: 'System' }),
     since: data.account?.member_since ?? null,
     module_access: [],
@@ -452,7 +452,7 @@ export default function PersonalSection() {
 
       <Card
         title={t('settings.profileSection.roleAccess')}
-        icon={<Shield size={16} style={{ color: '#7C3AED' }} />}
+        icon={<Shield size={16} style={{ color: '#9B51E0' }} />}
       >
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <RoleBox

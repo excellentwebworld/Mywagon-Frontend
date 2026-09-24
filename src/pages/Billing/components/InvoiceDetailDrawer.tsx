@@ -16,7 +16,31 @@ import {
 import { useTranslation } from 'react-i18next';
 import type { Invoice, LineItem } from '../types';
 import { formatCurrency, formatDate } from '../mockData';
+import { Money, MvButton, RecordStatusBadge, Tag } from '../../../components/ui/mv';
 import { BillingDrawerSkeleton } from './BillingSkeleton';
+
+function invoiceStatusTone(status: string): 'success' | 'warning' | 'danger' | 'neutral' {
+  switch (status) {
+    case 'Paid':
+      return 'success';
+    case 'Overdue':
+      return 'danger';
+    case 'Unpaid':
+      return 'warning';
+    default:
+      return 'neutral';
+  }
+}
+
+function invoiceTypeVariant(type: string): 'outline' | 'brand' | 'navy' {
+  if (type === 'Subscription' || type === 'Add-on') return 'brand';
+  if (type === 'Penalty' || type === 'Commission with penalty') return 'navy';
+  return 'outline';
+}
+
+function lineTypeVariant(type: string): 'outline' | 'brand' | 'navy' {
+  return invoiceTypeVariant(type);
+}
 
 interface InvoiceDetailDrawerProps {
   isOpen: boolean;
@@ -78,25 +102,8 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
 
   if (!isOpen || !invoice) return null;
 
-  const typeBadgeClass =
-    invoice.type === 'Subscription'
-      ? 'b-subscription'
-      : invoice.type === 'Commission'
-      ? 'b-commission'
-      : invoice.type === 'Penalty' || invoice.type === 'Commission with penalty'
-      ? 'b-penalty'
-      : invoice.type === 'Add-on'
-      ? 'b-addon'
-      : 'b-credit';
-
-  const statusBadgeClass =
-    invoice.status === 'Paid'
-      ? 'b-paid'
-      : invoice.status === 'Overdue'
-      ? 'b-overdue'
-      : invoice.status === 'Unpaid'
-      ? 'b-unpaid'
-      : 'b-draft';
+  const typeVariant = invoiceTypeVariant(invoice.type);
+  const statusTone = invoiceStatusTone(invoice.status);
 
   const copyInvoiceId = () => {
     navigator.clipboard.writeText(invoice.id);
@@ -121,17 +128,6 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
     return { sid: null, shipmentId: null };
   };
 
-  const lineTypeBadgeClass = (type: string) =>
-    type === 'Subscription'
-      ? 'b-subscription'
-      : type === 'Commission'
-        ? 'b-commission'
-        : type === 'Penalty' || type === 'Commission with penalty'
-          ? 'b-penalty'
-          : type === 'Add-on'
-            ? 'b-addon'
-            : 'b-credit';
-
   const lineRateLabel = (li: LineItem) =>
     li.rate || formatCurrency(li.unit ?? li.amt, invoice.cur);
 
@@ -151,10 +147,10 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                 </button>
               </div>
               <div className="flex gap-2">
-                <span className={`b-badge ${typeBadgeClass}`}>{invoice.type}</span>
-                <span className={`b-badge ${statusBadgeClass}`}>{invoice.status}</span>
+                <Tag variant={typeVariant}>{invoice.type}</Tag>
+                <RecordStatusBadge status={invoice.status} tone={statusTone} />
                 {invoice.under_process ? (
-                  <span className="b-badge b-unpaid">{t('billingPage.receiptUnderReview', 'Receipt under review')}</span>
+                  <RecordStatusBadge status={t('billingPage.receiptUnderReview', 'Receipt under review')} tone="warning" />
                 ) : null}
               </div>
             </div>
@@ -169,7 +165,7 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                 {t('billingPage.subtotal', 'Subtotal')}
               </div>
               <div className="billing-mono dr-summary-value">
-                {formatCurrency(invoice.subt, invoice.cur)}
+                <Money value={invoice.subt} currency={invoice.cur} />
               </div>
             </div>
             <div>
@@ -177,19 +173,19 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                 {t('billingPage.taxVat', 'Tax / VAT')}
               </div>
               <div className="billing-mono dr-summary-value">
-                {formatCurrency(invoice.tax, invoice.cur)}
+                <Money value={invoice.tax} currency={invoice.cur} />
               </div>
             </div>
             <div>
               <div className="dr-summary-label">{t('billingPage.total', 'Total')}</div>
               <div className="billing-mono dr-summary-value">
-                {formatCurrency(invoice.tot, invoice.cur)}
+                <Money value={invoice.tot} currency={invoice.cur} />
               </div>
             </div>
             <div>
               <div className="dr-summary-label">{t('billingPage.credits', 'Credits')}</div>
               <div className="billing-mono dr-summary-value">
-                {formatCurrency(invoice.cred, invoice.cur)}
+                <Money value={invoice.cred} currency={invoice.cur} />
               </div>
             </div>
             <div>
@@ -197,7 +193,7 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                 {t('billingPage.remaining', 'Remaining')}
               </div>
               <div className="billing-mono dr-summary-value dr-summary-value--remain">
-                {formatCurrency(invoice.rem, invoice.cur)}
+                <Money value={invoice.rem} currency={invoice.cur} overdue={invoice.rem > 0 && invoice.status === 'Overdue'} />
               </div>
             </div>
           </div>
@@ -212,17 +208,16 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
             {invoice.pDate && (
               <span>
                 {t('billingPage.paid', 'Paid')}:{' '}
-                <strong className="text-emerald-700 font-medium">{formatDate(invoice.pDate, i18n.language)}</strong>
+                <strong className="text-[var(--mv-success-ink)] font-medium">{formatDate(invoice.pDate, i18n.language)}</strong>
               </span>
             )}
           </div>
 
           <div className="dr-actions flex gap-1.5 mt-3.5 flex-wrap">
             {onOfficialPrint && (
-              <button type="button" className="b-btn b-btn-sm b-btn-primary" onClick={() => onOfficialPrint(invoice)}>
-                <FileText size={13} />
-                <span>{t('billingPage.btnOfficialInvoice', 'Official invoice')}</span>
-              </button>
+              <MvButton type="button" variant="primary" size="sm" icon={<FileText size={13} />} onClick={() => onOfficialPrint(invoice)}>
+                {t('billingPage.btnOfficialInvoice', 'Official invoice')}
+              </MvButton>
             )}
             <button type="button" className="b-btn b-btn-sm" onClick={() => onPreviewPdf(invoice)}>
               <FileText size={13} />
@@ -237,15 +232,16 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
               <span>{t('billingPage.btnCSV', 'CSV')}</span>
             </button>
             {invoice.can_pay_now && (
-              <button
+              <MvButton
                 type="button"
-                className="b-btn b-btn-sm b-btn-primary"
+                variant="primary"
+                size="sm"
+                icon={<CreditCard size={13} />}
                 disabled={payingId === invoice.raw_id}
                 onClick={() => onPayNow(invoice)}
               >
-                <CreditCard size={13} />
-                <span>{t('billingPage.btnPayNow', 'Pay Now')}</span>
-              </button>
+                {t('billingPage.btnPayNow', 'Pay Now')}
+              </MvButton>
             )}
             {Boolean(invoice.can_pay_wallet) && walletBalance >= (invoice.rem > 0 ? invoice.rem : invoice.tot) && walletBalance >= invoice.tot && (
               <button type="button" className="b-btn b-btn-sm b-btn-success" onClick={() => onPayWallet(invoice)}>
@@ -296,9 +292,9 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                       return (
                         <article key={li.id || idx} className="dr-line-card">
                           <div className="dr-line-card__top">
-                            <span className={`b-badge ${lineTypeBadgeClass(li.type)}`}>{li.type}</span>
+                            <Tag variant={lineTypeVariant(li.type)}>{li.type}</Tag>
                             <span className="billing-mono dr-line-card__amount">
-                              {formatCurrency(li.amt, invoice.cur)}
+                              <Money value={li.amt} currency={invoice.cur} />
                             </span>
                           </div>
                           <p className="dr-line-card__desc">{li.desc || '—'}</p>
@@ -339,13 +335,13 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                           return (
                             <tr key={li.id || idx}>
                               <td>
-                                <span className={`b-badge ${lineTypeBadgeClass(li.type)}`}>{li.type}</span>
+                                <Tag variant={lineTypeVariant(li.type)}>{li.type}</Tag>
                               </td>
                               <td className="text-xs text-gray-800">{li.desc}</td>
                               <td className="text-xs text-gray-500 whitespace-nowrap">{li.qty}</td>
                               <td className="text-xs text-gray-500 whitespace-nowrap">{lineRateLabel(li)}</td>
                               <td className="billing-mono text-xs font-semibold text-gray-900 whitespace-nowrap">
-                                {formatCurrency(li.amt, invoice.cur)}
+                                <Money value={li.amt} currency={invoice.cur} />
                               </td>
                               <td className="billing-mono text-xs text-purple-600 font-medium whitespace-nowrap">
                                 {loadInfo.sid || '—'}
@@ -386,7 +382,7 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                       </div>
                       <div className="text-right">
                         <div className="billing-mono font-bold text-gray-900 text-sm">
-                          {formatCurrency(li.amt, invoice.cur)}
+                          <Money value={li.amt} currency={invoice.cur} />
                         </div>
                       </div>
                       <ChevronRight size={16} className="text-gray-400" />

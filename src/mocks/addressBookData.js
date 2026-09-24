@@ -57,7 +57,7 @@ export const ROLE_COLORS = {
   both:{bg:'#FFFBEB',fg:'#92400E',bd:'#FDE68A'},
 };
 export const TYPE_COLORS = {
-  Warehouse:'#0EA5E9',Plant:'#10B981',Store:'#F59E0B',Office:'#8E8E9A','Cross-dock':'#7C3AED',Port:'#0891B2',
+  Warehouse:'#0EA5E9',Plant:'#10B981',Store:'#F59E0B',Office:'#8E8E9A','Cross-dock':'#9B51E0',Port:'#0891B2',
 };
 
 export const COUNTRIES = [

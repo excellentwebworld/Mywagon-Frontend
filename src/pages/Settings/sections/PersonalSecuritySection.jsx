@@ -152,7 +152,7 @@ export default function PersonalSecuritySection() {
             <p style={{ fontSize: 11, color: T.t3, marginBottom: 8 }}>{t('settings.securitySection.mfa.codesDesc')}</p>
             <div className="grid grid-cols-2 gap-1.5 mb-3">
               {recoveryCodes.map((c) => (
-                <div key={c} className="px-2.5 py-1.5 rounded" style={{ background: T.sf, fontFamily: 'monospace', fontSize: 12, color: T.t1, border: `1px solid ${T.bd}` }}>
+                <div key={c} className="px-2.5 py-1.5 rounded" style={{ background: T.sf, fontFamily: "var(--font-app), Poppins, sans-serif", fontVariantNumeric: 'tabular-nums', fontSize: 12, color: T.t1, border: `1px solid ${T.bd}` }}>
                   {c}
                 </div>
               ))}

@@ -42,7 +42,7 @@
   color: var(--t1, #18181b) !important;
   border-radius: 10px !important;
   box-shadow:
-    0 0 0 3px var(--ac, #7c3aed),
+    0 0 0 3px var(--ac, #9B51E0),
     0 10px 28px rgba(15, 23, 42, 0.35) !important;
   outline: none !important;
 }
@@ -59,8 +59,8 @@
 .sb-ft .ni.driver-active-element svg,
 .sb-ft a.driver-active-element[data-tour] svg {
   opacity: 1 !important;
-  color: var(--ac, #7c3aed) !important;
-  stroke: var(--ac, #7c3aed) !important;
+  color: var(--ac, #9B51E0) !important;
+  stroke: var(--ac, #9B51E0) !important;
 }
 
 html.dark .sidebar .ni.driver-active-element,
@@ -86,15 +86,15 @@ html.dark .sidebar .ni.driver-active-element svg,
 html.dark .sidebar a.driver-active-element[data-tour] svg,
 html.dark .sb-ft .ni.driver-active-element svg,
 html.dark .sb-ft a.driver-active-element[data-tour] svg {
-  color: var(--ah, #7c3aed) !important;
-  stroke: var(--ah, #7c3aed) !important;
+  color: var(--ah, #9B51E0) !important;
+  stroke: var(--ah, #9B51E0) !important;
 }
 
 [data-tour='dashboard-overview'].driver-active-element {
   border-radius: 14px !important;
   background: var(--sf, #ffffff) !important;
   box-shadow:
-    0 0 0 3px var(--ac, #7c3aed),
+    0 0 0 3px var(--ac, #9B51E0),
     0 12px 32px rgba(15, 23, 42, 0.18) !important;
 }
 
@@ -237,7 +237,7 @@ html.dark .driver-popover {
 }
 
 .driver-popover-next-btn {
-  background: linear-gradient(135deg, var(--ah, #7c3aed) 0%, var(--ac, #9b51e0) 100%) !important;
+  background: linear-gradient(135deg, var(--ah, #9B51E0) 0%, var(--ac, #9b51e0) 100%) !important;
   color: #ffffff !important;
   border: none !important;
   text-decoration: none !important;
@@ -263,12 +263,12 @@ html.dark .driver-popover {
   max-width: min(480px, calc(100vw - 32px)) !important;
   min-width: min(340px, calc(100vw - 32px)) !important;
   border-radius: 18px !important;
-  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28), 0 8px 24px rgba(124, 58, 237, 0.22) !important;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28), 0 8px 24px rgba(155, 81, 224, 0.22) !important;
 }
 
 .driver-popover.mv-tour-welcome .driver-popover-title,
 .driver-popover.mv-tour-finish .driver-popover-title {
-  background: linear-gradient(135deg, var(--ah, #7c3aed) 0%, var(--ac, #9b51e0) 100%) !important;
+  background: linear-gradient(135deg, var(--ah, #9B51E0) 0%, var(--ac, #9b51e0) 100%) !important;
   color: #ffffff !important;
   padding: 28px 24px 6px 24px !important;
   font-size: 20px !important;
@@ -280,7 +280,7 @@ html.dark .driver-popover {
 
 .driver-popover.mv-tour-welcome .driver-popover-description,
 .driver-popover.mv-tour-finish .driver-popover-description {
-  background: linear-gradient(135deg, var(--ah, #7c3aed) 0%, var(--ac, #9b51e0) 100%) !important;
+  background: linear-gradient(135deg, var(--ah, #9B51E0) 0%, var(--ac, #9b51e0) 100%) !important;
   color: rgba(255, 255, 255, 0.95) !important;
   padding: 0 24px 26px 24px !important;
   font-size: 15px !important;
@@ -372,8 +372,8 @@ html.dark .driver-popover {
   font-weight: 700 !important;
   letter-spacing: 0.01em !important;
   border-radius: 9999px !important;
-  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
-  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.4) !important;
+  background: linear-gradient(135deg, #9B51E0 0%, #6d28d9 100%) !important;
+  box-shadow: 0 4px 16px rgba(155, 81, 224, 0.4) !important;
   color: #ffffff !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -387,14 +387,14 @@ html.dark .driver-popover {
 .driver-popover.mv-tour-welcome .driver-popover-next-btn:hover,
 .driver-popover.mv-tour-finish .driver-popover-next-btn:hover {
   filter: brightness(1.08);
-  box-shadow: 0 6px 22px rgba(124, 58, 237, 0.55) !important;
+  box-shadow: 0 6px 22px rgba(155, 81, 224, 0.55) !important;
   transform: translateY(-2px);
 }
 
 .driver-popover.mv-tour-welcome .driver-popover-next-btn:active,
 .driver-popover.mv-tour-finish .driver-popover-next-btn:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(124, 58, 237, 0.4) !important;
+  box-shadow: 0 2px 8px rgba(155, 81, 224, 0.4) !important;
 }
 
 .driver-popover.mv-tour-welcome .driver-popover-progress-text,
@@ -439,7 +439,7 @@ html.dark .driver-popover-arrow-side-bottom {
   padding: 12px 18px;
   border: none;
   border-radius: 9999px;
-  background: linear-gradient(135deg, var(--ah, #7c3aed) 0%, var(--ac, #9b51e0) 100%);
+  background: linear-gradient(135deg, var(--ah, #9B51E0) 0%, var(--ac, #9b51e0) 100%);
   color: #fff;
   font-size: 14px;
   font-weight: 700;

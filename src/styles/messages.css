@@ -11,7 +11,7 @@
   background: var(--bg, #F7F7F8);
   color: var(--t1, #121217);
   position: relative;
-  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-app), 'Poppins', Helvetica, Arial, sans-serif;
 }
 
 /* CHAT LAYOUT — 3-pane flex container */
@@ -58,7 +58,7 @@
 
 .conv-title .unread-total {
   font-size: 11px;
-  background: var(--ac, #6C3AED);
+  background: var(--ac, #9B51E0);
   color: #fff;
   padding: 2px 8px;
   border-radius: 10px;
@@ -84,7 +84,7 @@
 }
 
 .conv-search input:focus {
-  border-color: var(--ac, #6C3AED);
+  border-color: var(--ac, #9B51E0);
   box-shadow: 0 0 0 3px var(--al, #EDE9FE);
   background: var(--sf, #FFFFFF);
 }
@@ -181,7 +181,7 @@
 
 .conv-item.active {
   background: var(--ap, #F5F3FF);
-  border-left-color: var(--ac, #6C3AED);
+  border-left-color: var(--ac, #9B51E0);
 }
 
 .conv-item.unread {
@@ -214,12 +214,12 @@
   position: relative !important;
   overflow: hidden !important;
   text-transform: uppercase !important;
-  background: linear-gradient(135deg, #6C3AED, #8B5CF6);
-  box-shadow: 0 2px 6px rgba(108, 58, 237, 0.2);
+  background: var(--mv-purple);
+  box-shadow: 0 2px 6px rgba(155, 81, 224, 0.2);
 }
 
 .ci-avatar.carrier {
-  background: linear-gradient(135deg, #6C3AED, #8B5CF6) !important;
+  background: var(--mv-purple) !important;
 }
 
 .ci-avatar.freelancer {
@@ -228,7 +228,7 @@
 }
 
 .ci-avatar.driver {
-  background: linear-gradient(135deg, #10B981, #34D399) !important;
+  background: var(--mv-purple) !important;
   box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
 }
 
@@ -275,7 +275,7 @@
 .ci-time {
   font-size: 10px;
   color: var(--t3, #8E8E9A);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   flex-shrink: 0;
   white-space: nowrap;
 }
@@ -307,8 +307,8 @@
 
 .ci-badge.shipment-badge {
   background: var(--ap, #F5F3FF);
-  color: var(--ac, #6C3AED);
-  border: 1px solid rgba(108, 58, 237, 0.25);
+  color: var(--ac, #9B51E0);
+  border: 1px solid rgba(155, 81, 224, 0.25);
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -339,7 +339,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--ac, #6C3AED);
+  background: var(--ac, #9B51E0);
   color: #fff;
   font-size: 10px;
   font-weight: 700;
@@ -362,7 +362,7 @@
   border-radius: 4px;
   background: var(--pkl, #EFF6FF);
   color: #1E40AF;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   letter-spacing: 0.2px;
 }
 
@@ -436,13 +436,13 @@
   color: #ffffff !important;
   flex-shrink: 0 !important;
   text-transform: uppercase !important;
-  background: linear-gradient(135deg, #6C3AED, #8B5CF6);
-  box-shadow: 0 2px 6px rgba(108, 58, 237, 0.2);
+  background: var(--mv-purple);
+  box-shadow: 0 2px 6px rgba(155, 81, 224, 0.2);
   overflow: hidden;
 }
 
 .ch-avatar.carrier {
-  background: linear-gradient(135deg, #6C3AED, #8B5CF6) !important;
+  background: var(--mv-purple) !important;
 }
 
 .ch-avatar.freelancer {
@@ -451,7 +451,7 @@
 }
 
 .ch-avatar.driver {
-  background: linear-gradient(135deg, #10B981, #34D399) !important;
+  background: var(--mv-purple) !important;
   box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
 }
 
@@ -516,8 +516,8 @@
 
 .ch-btn.active {
   background: var(--ap, #F5F3FF);
-  border-color: var(--ac, #6C3AED);
-  color: var(--ac, #6C3AED);
+  border-color: var(--ac, #9B51E0);
+  color: var(--ac, #9B51E0);
 }
 
 /* Context Filter Bar */
@@ -556,7 +556,7 @@
 }
 
 .ctx-select:focus {
-  border-color: var(--ac, #6C3AED);
+  border-color: var(--ac, #9B51E0);
   box-shadow: 0 0 0 3px var(--al, #EDE9FE);
 }
 
@@ -667,7 +667,7 @@
 }
 
 .msg-row.sent .msg-bubble {
-  background: var(--ac, #6C3AED);
+  background: var(--ac, #9B51E0);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
@@ -692,7 +692,7 @@
 .msg-time {
   font-size: 10px;
   color: var(--t3, #8E8E9A);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
 }
 
 .msg-status {
@@ -706,7 +706,7 @@
 }
 
 .msg-status.read svg {
-  color: var(--ac, #6C3AED);
+  color: var(--ac, #9B51E0);
 }
 
 .msg-status.delivered svg {
@@ -1011,7 +1011,7 @@
 }
 
 .msg-doc-action-text {
-  color: #6C3AED;
+  color: #9B51E0;
   font-weight: 500;
 }
 
@@ -1033,7 +1033,7 @@
 }
 
 .msg-doc-card:hover .msg-doc-action-btn {
-  background: #6C3AED;
+  background: #9B51E0;
   color: #FFFFFF;
   transform: translateY(-1px);
 }
@@ -1168,7 +1168,7 @@
 
 .cmp-tool.active {
   background: var(--ap, #F5F3FF);
-  color: var(--ac, #6C3AED);
+  color: var(--ac, #9B51E0);
 }
 
 .cmp-tool svg {
@@ -1200,7 +1200,7 @@
 }
 
 .cmp-input:focus {
-  border-color: var(--ac, #6C3AED);
+  border-color: var(--ac, #9B51E0);
   box-shadow: 0 0 0 3px var(--al, #EDE9FE);
   background: var(--sf, #FFFFFF);
 }
@@ -1214,7 +1214,7 @@
   height: 40px;
   border-radius: 10px;
   border: none;
-  background: var(--ac, #6C3AED);
+  background: var(--ac, #9B51E0);
   color: #fff;
   display: flex;
   align-items: center;
@@ -1227,7 +1227,7 @@
 .cmp-send:hover {
   background: var(--ah, #5B2BD4);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(108, 58, 237, 0.3);
+  box-shadow: 0 4px 16px rgba(155, 81, 224, 0.3);
 }
 
 .cmp-send:disabled {
@@ -1316,7 +1316,7 @@
 .tpl-item svg {
   width: 16px;
   height: 16px;
-  color: var(--ac, #6C3AED);
+  color: var(--ac, #9B51E0);
   flex-shrink: 0;
 }
 
@@ -1422,8 +1422,8 @@
 .shp-sid {
   font-size: 13px;
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
-  color: var(--ac, #6C3AED);
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
+  color: var(--ac, #9B51E0);
 }
 
 .shp-status {
@@ -1478,7 +1478,7 @@
 .shp-loc svg {
   width: 14px;
   height: 14px;
-  color: var(--ac, #6C3AED);
+  color: var(--ac, #9B51E0);
 }
 
 .shp-arrow {
@@ -1604,13 +1604,13 @@
   width: 15px;
   height: 15px;
   flex-shrink: 0;
-  color: var(--ac, #6C3AED);
+  color: var(--ac, #9B51E0);
 }
 
 .ctx-btn.primary {
   background: var(--ap, #F5F3FF);
   border-color: var(--al, #EDE9FE);
-  color: var(--ac, #6C3AED);
+  color: var(--ac, #9B51E0);
 }
 
 .ctx-btn.primary:hover {
@@ -1680,7 +1680,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  color: var(--ac, #6C3AED);
+  color: var(--ac, #9B51E0);
   margin-bottom: 2px;
 }
 
@@ -1694,7 +1694,7 @@
   font-size: 11px;
   color: var(--t3, #8E8E9A);
   margin-top: 2px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
 }
 
 .stop-msg {
@@ -1786,7 +1786,7 @@
 .al-time {
   font-size: 10px;
   color: var(--t3, #8E8E9A);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
 
@@ -2031,8 +2031,8 @@
   padding: 2px 7px;
   border-radius: 4px;
   background: var(--al, #EDE9FE);
-  color: var(--ac, #6C3AED);
-  border: 1px solid rgba(108, 58, 237, 0.2);
+  color: var(--ac, #9B51E0);
+  border: 1px solid rgba(155, 81, 224, 0.2);
 }
 
 /* HEADER POPOVERS (PHONE / EMAIL COPY) */
@@ -2090,7 +2090,7 @@
   font-size: 12px;
   font-weight: 600;
   color: var(--t1, #121217);
-  font-family: monospace;
+  font-family: var(--font-app), Poppins, sans-serif; font-variant-numeric: tabular-nums;
   word-break: break-all;
 }
 
@@ -2112,8 +2112,8 @@
 
 .ch-popover-copy-btn:hover {
   background: var(--al, #EDE9FE);
-  border-color: var(--ac, #6C3AED);
-  color: var(--ac, #6C3AED);
+  border-color: var(--ac, #9B51E0);
+  color: var(--ac, #9B51E0);
 }
 
 /* LINKED TO SID LOAD INDICATOR (BLUE OVAL) */
@@ -2162,7 +2162,7 @@
 
 .cmp-link-sid {
   margin: 0 4px;
-  color: var(--ac, #6C3AED);
+  color: var(--ac, #9B51E0);
   text-decoration: underline;
 }
 
@@ -2185,7 +2185,7 @@
   height: 32px;
   border-radius: 50%;
   border: none;
-  background: var(--ac, #6C3AED);
+  background: var(--ac, #9B51E0);
   color: #fff;
   display: flex;
   align-items: center;
@@ -2218,7 +2218,7 @@
   left: 0;
   top: 0;
   bottom: 0;
-  background: rgba(108, 58, 237, 0.15);
+  background: rgba(155, 81, 224, 0.15);
   border-radius: 4px;
   pointer-events: none;
   transition: width 0.08s linear;
@@ -2240,7 +2240,7 @@
 
 .vp-bar {
   flex: 1;
-  background: var(--ac, #6C3AED);
+  background: var(--ac, #9B51E0);
   border-radius: 2px;
   min-width: 2px;
   transition: opacity 0.1s ease;
@@ -2255,7 +2255,7 @@
   font-weight: 600;
   color: inherit;
   opacity: 0.85;
-  font-family: monospace;
+  font-family: var(--font-app), Poppins, sans-serif; font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
 
@@ -2326,7 +2326,7 @@
   font-size: 13px;
   font-weight: 700;
   color: #EF4444;
-  font-family: monospace;
+  font-family: var(--font-app), Poppins, sans-serif; font-variant-numeric: tabular-nums;
 }
 
 .cvr-recording-text {
@@ -2384,7 +2384,7 @@
   height: 30px;
   border-radius: 50%;
   border: none;
-  background: var(--ac, #6C3AED);
+  background: var(--ac, #9B51E0);
   color: #fff;
   display: flex;
   align-items: center;
@@ -2404,7 +2404,7 @@
 
 .cvp-progress {
   height: 100%;
-  background: var(--ac, #6C3AED);
+  background: var(--ac, #9B51E0);
   border-radius: 3px;
   transition: width 0.08s linear;
 }
@@ -2413,7 +2413,7 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--t2, #5E5E6E);
-  font-family: monospace;
+  font-family: var(--font-app), Poppins, sans-serif; font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }
 
@@ -2657,9 +2657,9 @@
 }
 
 .dark .ci-badge.shipment-badge {
-  background: rgba(108, 58, 237, 0.25);
+  background: rgba(155, 81, 224, 0.25);
   color: #C4B5FD;
-  border-color: rgba(108, 58, 237, 0.4);
+  border-color: rgba(155, 81, 224, 0.4);
 }
 
 .dark .ci-chip-role {

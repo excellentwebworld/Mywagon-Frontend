@@ -99,7 +99,7 @@ export const CounterOfferModal: React.FC<CounterOfferModalProps> = ({
                     {bid.name}
                   </span>
                   {bid.isPartner && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--mv-success-bg)] dark:bg-[var(--st-success-bg)] text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)] border border-[var(--mv-success-bg)] dark:border-[var(--st-success-bg)]">
                       <ShieldCheck size={11} />
                       <span>{t('partner', 'PARTNER')}</span>
                     </span>
@@ -115,7 +115,7 @@ export const CounterOfferModal: React.FC<CounterOfferModalProps> = ({
               <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                 {t('currentOfferPrice', 'Current Offer Price')}
               </div>
-              <div className="text-[15px] font-bold font-mono text-purple-700 dark:text-purple-300">
+              <div className="text-[15px] font-bold tabular-nums text-purple-700 dark:text-purple-300">
                 {currentPrice}
               </div>
             </div>
@@ -142,7 +142,7 @@ export const CounterOfferModal: React.FC<CounterOfferModalProps> = ({
                   setAmount(e.target.value);
                   if (error) setError(null);
                 }}
-                className={`w-full pl-8 pr-4 py-2.5 text-[14px] font-mono rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none transition-all ${
+                className={`w-full pl-8 pr-4 py-2.5 text-[14px] tabular-nums rounded-xl border bg-white dark:bg-slate-800 text-slate-900 dark:text-white outline-none transition-all ${
                   error
                     ? 'border-red-500 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-900'
                     : 'border-slate-300 dark:border-slate-700 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20'
@@ -184,7 +184,7 @@ export const CounterOfferModal: React.FC<CounterOfferModalProps> = ({
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 rounded-xl text-[13px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] shadow-xs active:scale-95 transition-all duration-150 cursor-pointer disabled:opacity-50"
+              className="px-5 py-2 rounded-xl text-[13px] font-bold text-white bg-[#9B51E0] hover:bg-[#4E5CDC] shadow-xs active:scale-95 transition-all duration-150 cursor-pointer disabled:opacity-50"
             >
               {submitting ? t('sending', 'Sending…') : t('sendCounterBid', 'Send Counter-Bid')}
             </button>

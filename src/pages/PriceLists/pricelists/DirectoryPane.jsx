@@ -56,12 +56,12 @@ const NODE_ICON_COLORS = {
   ftl: '#2563EB',
   perWeight: '#059669',
   perLoad: '#D97706',
-  perUnitTransport: '#7C3AED',
+  perUnitTransport: '#9B51E0',
   expiring: '#F59E0B',
   directTrip: '#2563EB',
   roundTrips: '#0891B2',
   simpleLane: '#10B981',
-  multiStop: '#7C3AED',
+  multiStop: '#9B51E0',
   inactive: '#6B7280',
   archived: '#92400E',
   scopeDefault: '#6366F1',
@@ -212,7 +212,7 @@ export default function DirectoryPane({ summary, activeNode, onNodeClick, partne
           {node.icon ?? scopeIcon}
         </IconWrap>
         <span className="flex-1 min-w-0 truncate" title={node.label}>{node.label}</span>
-        <span style={{ fontSize: 10, fontWeight: 700, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>
+        <span style={{ fontSize: 10, fontWeight: 700, color: T.t3, fontFamily: "var(--font-app), Poppins, sans-serif" }}>
           ({node.count})
         </span>
       </button>
@@ -253,7 +253,7 @@ export default function DirectoryPane({ summary, activeNode, onNodeClick, partne
               {t('priceLists.directory.byScope', 'By Scope')}
             </span>
             {scopeNodes.length > 0 && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: T.t3, fontFamily: "var(--font-app), Poppins, sans-serif" }}>
                 {scopeNodes.length}
               </span>
             )}

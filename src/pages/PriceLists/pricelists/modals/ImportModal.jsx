@@ -269,7 +269,7 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
                       <div style={{ fontWeight: 600, color: T.t1, marginBottom: 6 }}>
                         {t('priceLists.import.ref.columns', 'Simple template columns')}
                       </div>
-                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, lineHeight: 1.6, color: T.t3 }}>
+                      <div style={{ fontFamily: "var(--font-app), Poppins, sans-serif", fontSize: 10, lineHeight: 1.6, color: T.t3 }}>
                         {columns.join(' · ')}
                       </div>
                     </div>
@@ -329,7 +329,7 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
                           'Export uses the same city-only columns as the template, plus Status and Scope. Legacy files with addresses or coordinates can still be imported.',
                         )}
                       </div>
-                      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, lineHeight: 1.5, color: T.t3 }}>
+                      <div style={{ fontFamily: "var(--font-app), Poppins, sans-serif", fontSize: 9, lineHeight: 1.5, color: T.t3 }}>
                         {exportColumns.join(' · ')}
                       </div>
                     </div>
@@ -415,13 +415,13 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
                           <td className="px-2 py-1" style={{ color: T.t1, maxWidth: 140 }}>
                             <div className="truncate">{r.oRaw}{!r.validO ? ' ⚠' : ''}</div>
                             {r.oLat != null && r.oLng != null ? (
-                              <div style={{ fontSize: 9, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>{r.oLat}, {r.oLng}</div>
+                              <div style={{ fontSize: 9, color: T.t3, fontFamily: "var(--font-app), Poppins, sans-serif" }}>{r.oLat}, {r.oLng}</div>
                             ) : null}
                           </td>
                           <td className="px-2 py-1" style={{ color: T.t1, maxWidth: 140 }}>
                             <div className="truncate">{r.dRaw}{!r.validD ? ' ⚠' : ''}</div>
                             {r.dLat != null && r.dLng != null ? (
-                              <div style={{ fontSize: 9, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>{r.dLat}, {r.dLng}</div>
+                              <div style={{ fontSize: 9, color: T.t3, fontFamily: "var(--font-app), Poppins, sans-serif" }}>{r.dLat}, {r.dLng}</div>
                             ) : null}
                           </td>
                           <td className="px-2 py-1" style={{ color: T.t3, fontSize: 10, whiteSpace: 'nowrap' }}>
@@ -431,7 +431,7 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
                             <div>{formatMetricLabel(r.metric, t)}</div>
                             <div style={{ fontSize: 10, color: T.t3 }}>{formatMetricValueLabel(r.metric, r.metricValue, t)}</div>
                           </td>
-                          <td className="px-2 py-1" style={{ fontFamily: "'JetBrains Mono', monospace", color: T.t1 }}>{r.price} {r.cur}</td>
+                          <td className="px-2 py-1" style={{ fontFamily: "var(--font-app), Poppins, sans-serif", color: T.t1 }}>{r.price} {r.cur}</td>
                           <td className="px-2 py-1" style={{ color: isErr ? '#EF4444' : '#10B981', maxWidth: 140 }}>
                             {getRowStatusLabel(r)}
                           </td>

@@ -574,7 +574,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     const emailList = trackingEmailsRecord[o.orderId] || [''];
     return (
       <div key={o.orderId} className="pt-2 first:pt-0">
-        <div className="text-xs font-bold font-mono text-indigo-600">
+        <div className="text-xs font-bold tabular-nums text-indigo-600">
           {o.orderRef || o.orderId}
         </div>
         <div className="text-[10px] text-slate-400">{o.route}</div>
@@ -1105,7 +1105,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                     required={!values.negotiable}
                     aria-required={!values.negotiable}
                     aria-invalid={Boolean(errors.targetPrice)}
-                    className="w-full bg-transparent text-right text-lg font-bold font-mono outline-none"
+                    className="w-full bg-transparent text-right text-lg font-bold tabular-nums outline-none"
                     style={{ color: T.t1 }}
                     placeholder={values.negotiable ? (t('optional') || 'Optional') : '0.00'}
                     value={values.targetPrice || ''}
@@ -1378,7 +1378,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 <FileText size={15} style={{ color: T.ac }} />
                 <span className="font-semibold text-sm">{t('notesInstructions', 'Notes & instructions')}</span>
                 {isEditMode && existingNotes.length > 0 && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F3E8FF] text-[#7C3AED] border border-[#E9D5FF]">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#F3E8FF] text-[#9B51E0] border border-[#E9D5FF]">
                     {existingNotes.length}
                   </span>
                 )}
@@ -1405,7 +1405,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                           {note.date && (
                             <>
                               <span>·</span>
-                              <span className="font-mono text-[10px]">
+                              <span className="tabular-nums text-[10px]">
                                 {formatUtcToDisplayDateTime(note.date) || note.date}
                               </span>
                             </>
@@ -1900,7 +1900,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                           {locationName}
                         </span>
                         {orderRefs && orderRefs !== '—' && (
-                          <span className="text-[10px] font-mono truncate max-w-[40%]" style={{ color: T.t3 }}>
+                          <span className="text-[10px] tabular-nums truncate max-w-[40%]" style={{ color: T.t3 }}>
                             {orderRefs}
                           </span>
                         )}
@@ -2059,7 +2059,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
         <div className="flex items-center gap-4 flex-wrap">
           <div className="text-xs flex items-center gap-1.5" style={{ color: T.t2 }}>
             {t('totalCost') || 'Total cost'}:
-            <strong className="text-lg font-bold font-mono" style={{ color: T.t1 }}>
+            <strong className="text-lg font-bold tabular-nums" style={{ color: T.t1 }}>
               {targetPriceVal > 0 ? `€${targetPriceVal.toLocaleString()}` : '—'}
             </strong>
           </div>

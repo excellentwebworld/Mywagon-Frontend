@@ -180,7 +180,7 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
             <div className="wr-envelope-row">
               <span className="wr-envelope-lbl">Status:</span>
               <span className="wr-envelope-val wr-sent-status">
-                <CheckCircle2 size={13} className="text-emerald-600" />
+                <CheckCircle2 size={13} className="text-[var(--mv-success-ink)]" />
                 <span>{report.is_sent ? 'Delivered via Email' : 'Generated'}</span>
               </span>
             </div>

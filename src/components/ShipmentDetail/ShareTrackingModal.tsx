@@ -465,7 +465,7 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
                             )}
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 align-top text-center text-[12px] font-semibold font-mono text-slate-900 dark:text-white">
+                        <td className="py-3.5 px-4 align-top text-center text-[12px] font-semibold tabular-nums text-slate-900 dark:text-white">
                           {row.orderId || '—'}
                         </td>
                         <td className="py-3.5 px-4 align-top text-center">
@@ -475,7 +475,7 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
                             disabled={!rowTrackingUrl}
                             className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
                               isThisRowCopied
-                                ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 shadow-xs'
+                                ? 'border-emerald-300 bg-[var(--mv-success-bg)] text-[var(--mv-success-ink)] dark:border-emerald-700 dark:bg-emerald-950/40 dark:text-[var(--st-success-fg)] shadow-xs'
                                 : rowTrackingUrl
                                   ? 'border-purple-300 bg-purple-50 text-purple-700 hover:bg-purple-100 dark:border-purple-700 dark:bg-purple-950/40 dark:text-purple-300 hover:shadow-xs active:scale-95'
                                   : 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed dark:border-slate-700 dark:bg-slate-800'
@@ -488,7 +488,7 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
                           >
                             {isThisRowCopied ? (
                               <>
-                                <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
+                                <Check size={13} className="text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]" />
                                 <span>{t('trackingLinkCopied', 'Copied')}</span>
                               </>
                             ) : (
@@ -513,7 +513,7 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
             <button
               type="button"
               onClick={handleSubmit}
-              className="px-8 py-2 rounded-lg text-sm font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] transition-all cursor-pointer shadow-sm"
+              className="px-8 py-2 rounded-lg text-sm font-semibold text-white bg-[#9B51E0] hover:bg-[#4E5CDC] transition-all cursor-pointer shadow-sm"
             >
               {t('done', 'Done')}
             </button>

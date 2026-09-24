@@ -420,7 +420,7 @@ export const TruckMapPreview: React.FC<TruckMapPreviewProps> = ({ trucks, onActi
               suppressMarkers: true,
               preserveViewport: true,
               polylineOptions: {
-                strokeColor: activeTruck.vis === 'private' ? '#7C3AED' : '#6C3AED',
+                strokeColor: activeTruck.vis === 'private' ? '#9B51E0' : '#9B51E0',
                 strokeOpacity: 0.85,
                 strokeWeight: 4,
               },
@@ -435,7 +435,7 @@ export const TruckMapPreview: React.FC<TruckMapPreviewProps> = ({ trucks, onActi
             const polyline = new maps.Polyline({
               path: [origin, destination],
               geodesic: true,
-              strokeColor: activeTruck.vis === 'private' ? '#7C3AED' : '#6C3AED',
+              strokeColor: activeTruck.vis === 'private' ? '#9B51E0' : '#9B51E0',
               strokeOpacity: 0.75,
               strokeWeight: 3,
               map,

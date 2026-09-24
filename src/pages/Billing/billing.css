@@ -24,7 +24,7 @@
 }
 
 .billing-mono {
-  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
 }
 
 /* PAGE HEADER */
@@ -421,26 +421,25 @@
 }
 
 .billing-container .b-btn-warning-action {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  background: var(--mv-purple, #9B51E0);
   color: #ffffff;
   border: none;
   padding: 8px 16px;
-  border-radius: 10px;
+  border-radius: var(--r-button, 12px);
   font-size: 12.5px;
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.25);
+  box-shadow: var(--sh-purple);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background var(--dur, 200ms) var(--ease, ease);
   white-space: nowrap;
 }
 
 .billing-container .b-btn-warning-action:hover {
-  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-  box-shadow: 0 4px 10px rgba(124, 58, 237, 0.35);
-  transform: translateY(-1px);
+  background: var(--app-primary-hover, #4E5CDC);
+  box-shadow: var(--sh-purple);
 }
 
 /* SUB-BAR / FILTER BAR */
@@ -523,7 +522,7 @@
 }
 
 .billing-container .sub-pill.active {
-  background: var(--text-primary, #121217);
+  background: var(--mv-navy, #1F1F41);
   color: #ffffff;
   border-color: var(--text-primary, #121217);
   box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.08));
@@ -547,9 +546,9 @@
 }
 
 .billing-container .f-search input:focus {
-  border-color: var(--ac, #6c3aed);
+  border-color: var(--ac, #9B51E0);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(108, 58, 237, 0.15);
+  box-shadow: 0 0 0 3px rgba(155, 81, 224, 0.15);
 }
 
 .billing-container .f-search svg {
@@ -784,7 +783,7 @@ table.billing-t {
 }
 
 .dr-line-card__sid {
-  color: #6c3aed;
+  color: #9B51E0;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -995,7 +994,7 @@ table.billing-t {
 }
 
 .b-btn-primary:hover {
-  background: var(--accent-hover, #7c3aed);
+  background: var(--accent-hover, #9B51E0);
   transform: translateY(-1px);
   box-shadow: var(--shadow-accent-hover, 0 4px 16px rgba(155, 81, 224, 0.35));
   color: #ffffff;
@@ -1109,8 +1108,8 @@ table.billing-t {
 }
 
 .dr-tab-btn.active {
-  color: var(--ac, #6c3aed);
-  border-bottom-color: var(--ac, #6c3aed);
+  color: var(--ac, #9B51E0);
+  border-bottom-color: var(--ac, #9B51E0);
   font-weight: 600;
 }
 
@@ -1122,11 +1121,12 @@ table.billing-t {
 
 /* CREDIT BALANCE CARD */
 .credit-card {
-  border-radius: var(--radius-md, 12px);
+  border-radius: var(--r-card, 16px);
   padding: 24px 28px;
   color: #ffffff;
-  background: linear-gradient(135deg, #047857 0%, #10b981 50%, #34d399 100%);
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25);
+  background: var(--grad-analytics, radial-gradient(120% 140% at 0% 0%, #562C7C 0%, #2A1B47 50%, #1F1F41 100%));
+  box-shadow: var(--sh-card);
+  border: var(--hero-border, 1px solid transparent);
   position: relative;
   overflow: hidden;
 }
@@ -1335,7 +1335,7 @@ table.billing-t {
 }
 
 .tl-item:first-child::before {
-  background: var(--ac, #6c3aed);
+  background: var(--ac, #9B51E0);
 }
 
 .tl-ts {
@@ -1579,9 +1579,9 @@ table.billing-t {
 .billing-mf input:focus,
 .billing-mf select:focus,
 .billing-mf textarea:focus {
-  border-color: var(--ac, #6c3aed);
+  border-color: var(--ac, #9B51E0);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(108, 58, 237, 0.15);
+  box-shadow: 0 0 0 3px rgba(155, 81, 224, 0.15);
 }
 
 .billing-mf textarea {
@@ -1642,7 +1642,7 @@ table.billing-t {
 }
 
 .billing-upload-drop:hover {
-  border-color: #7c3aed;
+  border-color: #9B51E0;
 }
 
 .billing-modal--receipt {
@@ -1866,7 +1866,7 @@ table.billing-t {
   }
 }
 
-/* WebView shell (carrier / driver mobile) — demo-ready */
+/* WebView shell (carrier / driver mobile) ? demo-ready */
 .webview-subscription-shell:has(.webview-billing) {
   overflow-x: hidden;
   width: 100%;
@@ -1923,7 +1923,7 @@ table.billing-t {
 }
 
 .webview-billing .billing-head--actions-only .b-btn-primary {
-  box-shadow: 0 4px 12px rgba(108, 58, 237, 0.2);
+  box-shadow: 0 4px 12px rgba(155, 81, 224, 0.2);
 }
 
 .webview-billing .billing-alert {
@@ -1972,7 +1972,7 @@ table.billing-t {
 
 .wv-view-switch__btn.is-active {
   background: #f3eaff;
-  color: #6c3aed;
+  color: #9B51E0;
 }
 
 /* Kill nested shipper margins that caused half-width / blank gaps */
@@ -2186,7 +2186,7 @@ table.billing-t {
 
 .webview-billing .exp-row:active:not(:disabled) {
   background: #f8f6ff;
-  border-color: rgba(108, 58, 237, 0.28);
+  border-color: rgba(155, 81, 224, 0.28);
 }
 
 .webview-billing .exp-row:disabled {
@@ -2233,7 +2233,7 @@ table.billing-t {
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: #6c3aed;
+  color: #9B51E0;
   background: #f3eaff;
   border-radius: 999px;
   padding: 2px 8px;
@@ -2246,7 +2246,7 @@ table.billing-t {
   gap: 2px;
   font-size: 12px;
   font-weight: 700;
-  color: #6c3aed;
+  color: #9B51E0;
 }
 
 .webview-billing .aging-panel,
@@ -2330,7 +2330,7 @@ table.billing-t {
   padding: 14px;
 }
 
-/* Dense invoice / wallet cards — full width, no blank columns */
+/* Dense invoice / wallet cards ? full width, no blank columns */
 .wv-invoice-list,
 .wv-wallet-list {
   display: flex;
@@ -2373,7 +2373,7 @@ table.billing-t {
 
 .wv-invoice-card__id,
 .wv-wallet-card__id {
-  color: #6c3aed;
+  color: #9B51E0;
   font-weight: 700;
   font-size: 13px;
   min-width: 0;
@@ -2456,7 +2456,7 @@ table.billing-t {
 .wv-wallet-card__applied {
   margin-top: 4px;
   font-size: 11px;
-  color: #6c3aed;
+  color: #9B51E0;
   font-weight: 600;
 }
 
@@ -2476,7 +2476,7 @@ table.billing-t {
   color: var(--text-secondary, #5e5e6e);
 }
 
-/* Mobile modals / drawer (portaled to body — global) */
+/* Mobile modals / drawer (portaled to body ? global) */
 @media (max-width: 768px) {
   .billing-modal-bg {
     align-items: flex-end;
@@ -2615,4 +2615,21 @@ table.billing-t {
   .wv-view-switch__btn span {
     font-size: 11px;
   }
+}
+
+/* Brand: ?0.00 remaining is grey, never green */
+.billing-container .text-[var(--mv-success-ink)],
+.billing-container .text-[var(--mv-success-ink)] {
+  color: var(--app-text-3, #8B8A8F) !important;
+}
+.billing-container .b-badge {
+  border-radius: var(--r-tag, 8px);
+  font-family: var(--font-app), Poppins, sans-serif;
+}
+.billing-container .b-btn-primary {
+  background: var(--mv-purple, #9B51E0) !important;
+  border-radius: var(--r-button, 12px) !important;
+}
+.billing-container .b-btn-primary:hover {
+  background: var(--app-primary-hover, #4E5CDC) !important;
 }

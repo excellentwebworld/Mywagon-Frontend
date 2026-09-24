@@ -380,7 +380,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       if (liveIcon?.path) {
         return {
           path: liveIcon.path,
-          fillColor: liveIcon.fillColor || '#6C3AED',
+          fillColor: liveIcon.fillColor || '#9B51E0',
           fillOpacity: liveIcon.fillOpacity ?? 1,
           strokeColor: liveIcon.strokeColor || '#ffffff',
           strokeWeight: liveIcon.strokeWeight ?? 2,
@@ -393,7 +393,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       }
       return {
         path: google.maps.SymbolPath.CIRCLE,
-        fillColor: '#6C3AED',
+        fillColor: '#9B51E0',
         fillOpacity: 1,
         strokeColor: '#ffffff',
         strokeWeight: 3,
@@ -583,7 +583,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
       {livePosition && Number.isFinite(livePosition.lat) && Number.isFinite(livePosition.lng) ? (
         <div
           className="absolute right-2 top-2 rounded-md px-2 py-1 text-[11px] font-semibold pointer-events-none"
-          style={{ background: 'rgba(108,58,237,0.92)', color: '#fff', zIndex: 2 }}
+          style={{ background: 'rgba(155, 81, 224,0.92)', color: '#fff', zIndex: 2 }}
         >
           ● Live driver
         </div>

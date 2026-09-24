@@ -48,7 +48,7 @@ export const PartnersKpiStrip: React.FC<Props> = ({ t, kpiCounts, kpiFilter, sel
           id={`kpi-${key}`}
         >
           {color && val > 0 && <span className="ptn-kpi-dot" style={{ background: color }} />}
-          <div className="ptn-kpi-val" style={{ color: color && val > 0 ? color : undefined }}>
+          <div className="ptn-kpi-val">
             {val}
           </div>
           <div className="ptn-kpi-lbl">{t(labelKey)}</div>

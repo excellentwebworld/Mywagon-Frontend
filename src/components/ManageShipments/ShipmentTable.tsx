@@ -6,7 +6,6 @@ import {
   formatEuro,
   laneMidLabel,
   shipmentIdSublabel,
-  statusBadgeClass,
 } from '../../pages/ManageShipments/utils/listingUtils';
 import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 import { ListSkeleton } from '../skeletons/ListSkeleton';
@@ -16,6 +15,7 @@ import { RowExpansionPending } from './RowExpansionPending';
 import { RowExpansionStatus } from './RowExpansionStatus';
 import { CarrierAvatar } from './CarrierAvatar';
 import { TransporterNameLink } from '../TransporterProfile/TransporterProfileContext';
+import { LoadStatus } from '../ui/mv';
 
 const BASE_COL_COUNT = 12;
 
@@ -196,13 +196,6 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
             const detail = resolveShipment ? resolveShipment(row) : row;
             const isExpanded = expandedId === row.id;
             const isPending = detail.status === 'pending';
-            const badgeClass = statusBadgeClass(row.status, Boolean(row.at_risk), {
-              bidsReceived: row.bidsReceived ?? 0,
-              bidsSent: row.bidsSent ?? 0,
-              interestedCount: row.interestedCount ?? 0,
-              awaitingResponse: Boolean(row.awaitingResponse),
-              needsAction: Boolean(row.needsAction),
-            });
             const channel = row.channel || (row.vis === 'public' ? 'public' : 'private');
             const quoted = formatEuro(row.quotedPrice ?? row.price);
             const agreed = formatEuro(row.agreedPrice);
@@ -263,14 +256,15 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                   <td className="col-status">
                     <div className="status-cell">
                       <span className={`status-box-wrap${row.at_risk ? ' is-at-risk' : ''}`}>
-                        {row.status === 'partially_fullfilled' ? (
-                          <span className={`${badgeClass} status-box--partial-compact`}>
-                            <span className="status-partial-left">{t('partially')}</span>
-                            <span className="status-partial-right">{t('fulfilled')}</span>
-                          </span>
-                        ) : (
-                          <span className={badgeClass}>{t(row.status)}</span>
-                        )}
+                        <LoadStatus
+                          status={row.status}
+                          bids={
+                            row.status === 'pending' && (row.bidsReceived || row.bidsSent)
+                              ? Number(row.bidsReceived || row.bidsSent)
+                              : undefined
+                          }
+                          label={t(row.status)}
+                        />
                         {row.at_risk ? (
                           <span
                             className="status-at-risk-warn"

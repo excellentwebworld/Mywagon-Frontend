@@ -111,7 +111,7 @@ function SkuDetail({
               className="src-badge"
               style={{
                 background: "#F5F3FF",
-                color: "#7C3AED",
+                color: "#9B51E0",
                 border: "1px solid #DDD6FE",
               }}
             >

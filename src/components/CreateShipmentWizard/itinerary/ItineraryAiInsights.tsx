@@ -127,8 +127,8 @@ export const ItineraryAiInsights: React.FC<ItineraryAiInsightsProps> = ({
 
         <div className="p-3 rounded-lg" style={{ background: T.sa }}>
           <div className="flex items-center gap-2 mb-2">
-            <Sparkles size={14} style={{ color: '#7C3AED' }} />
-            <span className="text-[11px] font-bold uppercase" style={{ color: '#7C3AED' }}>
+            <Sparkles size={14} style={{ color: '#9B51E0' }} />
+            <span className="text-[11px] font-bold uppercase" style={{ color: '#9B51E0' }}>
               {t('step2MarketRate')}
             </span>
           </div>
@@ -148,8 +148,8 @@ export const ItineraryAiInsights: React.FC<ItineraryAiInsightsProps> = ({
       <div className="px-5 pb-4">
         <div className="p-3 rounded-lg" style={{ background: T.sa }}>
           <div className="flex items-center gap-2 mb-2">
-            <Lightbulb size={14} style={{ color: '#7C3AED' }} />
-            <span className="text-[11px] font-bold uppercase" style={{ color: '#7C3AED' }}>
+            <Lightbulb size={14} style={{ color: '#9B51E0' }} />
+            <span className="text-[11px] font-bold uppercase" style={{ color: '#9B51E0' }}>
               {t('step2Recommendations')}
             </span>
           </div>

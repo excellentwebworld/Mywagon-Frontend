@@ -82,7 +82,7 @@ function PhoneIconButton({
       title={copied ? t('copied', 'Copied!') : `${t('copyPhone', 'Click to copy phone')}: ${phone}`}
       className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
     >
-      {copied ? <Check size={14} className="text-emerald-500" /> : <Phone size={14} />}
+      {copied ? <Check size={14} className="text-[var(--mv-success)]" /> : <Phone size={14} />}
     </button>
   );
 }
@@ -94,7 +94,7 @@ function PlateTags({ plates }: { plates: string[] }) {
       {plates.map((plate, pIdx) => (
         <span
           key={`${plate}-${pIdx}`}
-          className="text-[11px] font-semibold font-mono px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
+          className="text-[11px] font-semibold tabular-nums px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700"
         >
           {pIdx === 0 ? `Vehicle: ${plate}` : `Trailer: ${plate}`}
         </span>
@@ -299,7 +299,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                   </span>
 
                   {carrier.partner && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--mv-success-bg)] dark:bg-[var(--st-success-bg)] text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)] border border-[var(--mv-success-bg)] dark:border-[var(--st-success-bg)]">
                       <ShieldCheck size={11} />
                       <span>{t('partner', 'PARTNER')}</span>
                     </span>
@@ -312,7 +312,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       type="button"
                       onClick={() => handleRateCarrier?.(carrier)}
                       title={t('rateTheDriver', 'Rate the Driver')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#4E5CDC] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                     >
                       <Star size={12} fill="#fff" />
                       <span>{t('rate', 'Rate')}</span>
@@ -392,7 +392,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     </span>
 
                     {carrier.partner && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--mv-success-bg)] dark:bg-[var(--st-success-bg)] text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)] border border-[var(--mv-success-bg)] dark:border-[var(--st-success-bg)]">
                         <ShieldCheck size={11} />
                         <span>{t('partner', 'PARTNER')}</span>
                       </span>
@@ -405,7 +405,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                         type="button"
                         onClick={() => handleRateCarrier?.(carrier)}
                         title={t('rateCarrierCompany', 'Rate the Carrier Company')}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#4E5CDC] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                       >
                         <Star size={12} fill="#fff" />
                         <span>{t('rate', 'Rate')}</span>
@@ -495,7 +495,7 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     type="button"
                     onClick={() => handleRateDriver?.(driver)}
                     title={t('rateTheDriver', 'Rate the Driver')}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#4E5CDC] active:scale-95 transition-all shadow-xs cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                   >
                     <Star size={12} fill="#fff" />
                     <span>{t('rate', 'Rate')}</span>

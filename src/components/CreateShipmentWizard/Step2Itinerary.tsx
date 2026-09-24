@@ -564,7 +564,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                                 <div key={oi} className="mb-2 last:mb-0">
                                   {(orderGroup.orderRef || orderGroup.orderId) && (
                                     <div
-                                      className="text-[10px] font-mono mb-1"
+                                      className="text-[10px] tabular-nums mb-1"
                                       style={{ color: diffColor(orderChanged, T.t2) }}
                                     >
                                       {orderGroup.orderRef || orderGroup.orderId}

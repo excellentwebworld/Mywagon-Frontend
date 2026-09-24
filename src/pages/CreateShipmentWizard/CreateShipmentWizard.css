@@ -657,13 +657,15 @@
 }
 
 .tag.pk {
-  background: #EFF6FF;
-  color: #2563EB;
+  background: #FFFFFF;
+  color: #000001;
+  border: 1px solid var(--app-border-strong, #C9C8CD);
 }
 
 .tag.do {
-  background: #F3F0FF;
-  color: #5E3BEE;
+  background: #000001;
+  color: #FFFFFF;
+  border: 1px solid var(--app-black-contour, #000001);
 }
 
 .stop-acts {
@@ -1073,13 +1075,15 @@
 }
 
 .act-b.pk.on {
-  background: #2563EB;
-  color: #fff;
+  background: #FFFFFF;
+  color: #000001;
+  border: 1px solid var(--app-border-strong, #C9C8CD);
 }
 
 .act-b.do.on {
-  background: #5E3BEE;
-  color: #fff;
+  background: #000001;
+  color: #FFFFFF;
+  border: 1px solid var(--app-black-contour, #000001);
 }
 
 .pr-qty { width: 70px; }
@@ -1089,7 +1093,7 @@
   border: 1.5px solid var(--border);
   border-radius: 6px;
   text-align: right;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 600;
   font-size: 13px;
   background: var(--surface);
@@ -1120,7 +1124,7 @@
   border: 1.5px solid var(--border);
   border-radius: 6px;
   text-align: right;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-size: 12px;
   background: var(--surface);
   color: var(--text-primary);
@@ -1297,7 +1301,7 @@
 
 .tl-num {
   font-size: 10px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 500;
   color: var(--text-tertiary);
   margin-top: 6px;
@@ -1342,7 +1346,7 @@
 
 .stop-dt {
   font-size: 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   color: var(--text-tertiary);
   display: flex;
   align-items: center;
@@ -1461,7 +1465,7 @@
 }
 
 .chip b {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-size: 11px;
   font-weight: 600;
   color: var(--text-primary);
@@ -1470,7 +1474,7 @@
 .order-link {
   margin-top: 4px;
   font-size: 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 500;
   color: var(--accent);
 }
@@ -1603,7 +1607,7 @@
 .ts-val {
   font-size: 18px;
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   color: var(--text-primary);
   letter-spacing: -0.3px;
 }
@@ -1612,7 +1616,7 @@
   font-size: 11px;
   font-weight: 500;
   color: var(--text-secondary);
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-app), 'Poppins', sans-serif;
   margin-left: 2px;
 }
 
@@ -1641,7 +1645,7 @@
 }
 
 .oc-cust-total {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-size: 12px;
   color: var(--text-secondary);
 }
@@ -1664,7 +1668,7 @@
 
 .oi-id {
   font-size: 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -1683,7 +1687,7 @@
 }
 
 .oi-wt {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
@@ -1894,10 +1898,10 @@
 .price-box { display: flex; align-items: center; border: 2px solid var(--border); border-radius: 12px; padding: 10px 14px; transition: border-color 0.15s; background: var(--surface); }
 .price-box:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
 .price-sym { font-size: 22px; font-weight: 700; color: var(--text-tertiary); margin-right: 6px; }
-.price-box input { font-size: 32px; font-family: 'JetBrains Mono', monospace; font-weight: 700; width: 100%; text-align: right; border: none; outline: none; background: transparent; color: var(--text-primary); }
+.price-box input { font-size: 32px; font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums; font-weight: 700; width: 100%; text-align: right; border: none; outline: none; background: transparent; color: var(--text-primary); }
 
 .price-meta { padding: 0 20px 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; }
-.price-meta .mono { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--accent); }
+.price-meta .mono { font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent); }
 .price-meta .sep { color: var(--border); }
 
 .override-warn { margin: 0 20px 12px; padding: 8px 12px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; font-size: 12px; color: #92400e; display: flex; align-items: center; gap: 8px; }
@@ -2034,7 +2038,7 @@
 .qs { display: flex; align-items: center; gap: 4px; }
 .qs button { width: 28px; height: 28px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; }
 .qs button:hover { background: var(--surface-hover); }
-.qs input { width: 48px; padding: 5px 6px; border: 1px solid var(--border); border-radius: 6px; text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; outline: none; background: var(--surface); color: var(--text-primary); }
+.qs input { width: 48px; padding: 5px 6px; border: 1px solid var(--border); border-radius: 6px; text-align: center; font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; outline: none; background: var(--surface); color: var(--text-primary); }
 
 .add-date-btn { font-size: 12px; color: var(--accent); background: none; border: 1px dashed var(--accent); border-radius: 8px; padding: 7px 14px; cursor: pointer; font-weight: 500; transition: all 0.15s; margin-top: 4px; font-family: inherit; }
 .add-date-btn:hover { background: var(--accent-light); }
@@ -2047,7 +2051,7 @@
 .tracking-wrap { padding: 12px 0; }
 .tko { margin: 0 20px 12px; padding: 13px; background: var(--surface-hover); border: 1px solid var(--border); border-radius: 12px; }
 .tko-h { margin-bottom: 10px; }
-.tko-id { font-size: 13px; font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--accent); }
+.tko-id { font-size: 13px; font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--accent); }
 .tko-r { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 .tko-loc { font-size: 11px; color: var(--text-tertiary); margin-top: 1px; }
 
@@ -2165,7 +2169,7 @@
 .ri { flex: 1; min-width: 0; }
 .ri-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .ri-name { font-size: 14px; font-weight: 600; color: var(--text-primary); }
-.ri-d { font-size: 11px; color: var(--text-tertiary); font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+.ri-d { font-size: 11px; color: var(--text-tertiary); font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .ri-custs { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
 .ci-e { font-size: 11px; }
 
@@ -2175,8 +2179,8 @@
 .sc:nth-child(2n) { border-right: none; }
 .sc:nth-last-child(-n+2) { border-bottom: none; }
 .sc-l { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-tertiary); margin-bottom: 4px; }
-.sc-v { font-size: 18px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text-primary); letter-spacing: -0.3px; }
-.sc-v .u { font-size: 11px; font-weight: 500; color: var(--text-secondary); font-family: 'DM Sans', sans-serif; }
+.sc-v { font-size: 18px; font-weight: 700; font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums; color: var(--text-primary); letter-spacing: -0.3px; }
+.sc-v .u { font-size: 11px; font-weight: 500; color: var(--text-secondary); font-family: var(--font-app), 'Poppins', sans-serif; }
 
 /* ── Sticky SAT availability context ── */
 .wizard-availability-bar {
@@ -2217,7 +2221,7 @@
   letter-spacing: 0.02em;
 }
 .wizard-availability-bar__id {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-size: 12px;
   font-weight: 700;
   color: var(--text-secondary);
@@ -2229,7 +2233,7 @@
   color: var(--text-tertiary);
 }
 .wizard-availability-bar__vis--private {
-  color: #7C3AED;
+  color: #9B51E0;
 }
 .wizard-availability-bar__preferred {
   font-size: 11px;
@@ -2671,7 +2675,7 @@
 
 .wizard-stop-item.is-active {
   background: var(--accent-pale, #f5f3ff);
-  box-shadow: inset 3px 0 0 0 var(--accent, #6c3aed);
+  box-shadow: inset 3px 0 0 0 var(--accent, #9B51E0);
 }
 
 .wizard-stop-num {

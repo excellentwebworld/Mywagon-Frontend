@@ -65,7 +65,8 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
               borderRadius: 4,
               color: 'var(--t3, #8E8E9A)',
               border: '1px solid var(--bd, #E4E4E8)',
-              fontFamily: "'JetBrains Mono', monospace",
+              fontFamily: "var(--font-app), Poppins, sans-serif",
+              fontVariantNumeric: 'tabular-nums',
             }}
           >
             ESC
@@ -111,7 +112,8 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
                   style={{
                     fontSize: 10,
                     color: 'var(--t3, #8E8E9A)',
-                    fontFamily: "'JetBrains Mono', monospace",
+                    fontFamily: "var(--font-app), Poppins, sans-serif",
+                    fontVariantNumeric: 'tabular-nums',
                   }}
                 >
                   {c.lastTime}

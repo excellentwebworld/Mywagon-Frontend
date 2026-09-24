@@ -20,6 +20,16 @@ type KpiAction =
   | { type: 'scroll' }
   | { type: 'navigate'; to: string };
 
+/** Ops filter dots — colour only on the label, never on the number */
+const OPS_DOT: Record<string, string> = {
+  active: 'var(--mv-purple)',
+  on_trip: '#3B8FE8',
+  needs_action: '#F2C744',
+  upcoming: '#A7DBF8',
+  at_risk: '#D63AAF',
+  past_due: '#FF6B0A',
+};
+
 export const KpiStrip: React.FC<KpiStripProps> = ({
   activeBoardTab,
   setActiveBoardTab,
@@ -65,7 +75,7 @@ export const KpiStrip: React.FC<KpiStripProps> = ({
     key: string;
     value: number | string;
     label: string;
-    colorClass: string;
+    hero?: boolean;
     active: boolean;
     action: KpiAction;
   }> = [
@@ -73,7 +83,7 @@ export const KpiStrip: React.FC<KpiStripProps> = ({
       key: 'active',
       value: error ? '—' : activeLoads,
       label: t('kpiActive'),
-      colorClass: 'c-accent',
+      hero: true,
       active: activeBoardTab === 3,
       action: { type: 'board', tab: 3 },
     },
@@ -81,7 +91,6 @@ export const KpiStrip: React.FC<KpiStripProps> = ({
       key: 'on_trip',
       value: error ? '—' : onTrip,
       label: t('kpiOnTrip'),
-      colorClass: 'c-info',
       active: activeBoardTab === 4,
       action: { type: 'board', tab: 4 },
     },
@@ -89,7 +98,6 @@ export const KpiStrip: React.FC<KpiStripProps> = ({
       key: 'needs_action',
       value: error ? '—' : needsAction,
       label: t('kpiAction'),
-      colorClass: 'c-warning',
       active: activeBoardTab === 0,
       action: { type: 'board', tab: 0 },
     },
@@ -97,7 +105,6 @@ export const KpiStrip: React.FC<KpiStripProps> = ({
       key: 'upcoming',
       value: error ? '—' : upcoming,
       label: t('kpiUpcoming'),
-      colorClass: '',
       active: activeBoardTab === 3,
       action: { type: 'board', tab: 3 },
     },
@@ -105,7 +112,6 @@ export const KpiStrip: React.FC<KpiStripProps> = ({
       key: 'at_risk',
       value: error ? '—' : atRisk,
       label: t('kpiAtRisk'),
-      colorClass: 'c-danger',
       active: activeBoardTab === 2,
       action: { type: 'board', tab: 2 },
     },
@@ -113,7 +119,6 @@ export const KpiStrip: React.FC<KpiStripProps> = ({
       key: 'past_due',
       value: error ? '—' : pastDue,
       label: t('kpiPastDue'),
-      colorClass: 'c-orange',
       active: activeBoardTab === 5,
       action: { type: 'board', tab: 5 },
     },
@@ -138,7 +143,7 @@ export const KpiStrip: React.FC<KpiStripProps> = ({
         {cards.map((card) => (
           <div
             key={card.key}
-            className={`kpi ${card.colorClass} ${card.active ? 'active' : ''}`.trim()}
+            className={`kpi ${card.hero ? 'kpi-hero' : ''} ${card.active ? 'active' : ''}`.trim()}
             onClick={() => handleAction(card.action)}
             role="button"
             tabIndex={0}
@@ -153,7 +158,16 @@ export const KpiStrip: React.FC<KpiStripProps> = ({
               <div className="kpi-val">{card.value}</div>
             </div>
             <div className="kpi-bottom">
-              <span className="kpi-label">{card.label}</span>
+              <span className="kpi-label">
+                {!card.hero && (
+                  <span
+                    className="kpi-dot"
+                    style={{ background: OPS_DOT[card.key] || 'var(--app-border-strong)' }}
+                    aria-hidden
+                  />
+                )}
+                {card.label}
+              </span>
             </div>
           </div>
         ))}

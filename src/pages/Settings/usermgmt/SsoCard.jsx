@@ -275,7 +275,7 @@ function SsoSetupWizard({ onClose, onActivate, sso, copyToClipboard }) {
                 <div key={row.label} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: T.sa, border: `1px solid ${T.bd}` }}>
                   <div className="flex-1 min-w-0">
                     <div style={{ fontSize: 10, fontWeight: 600, color: T.t3 }}>{row.label}</div>
-                    <div className="truncate" style={{ fontSize: 12, color: T.t1, fontFamily: 'monospace' }}>{row.value}</div>
+                    <div className="truncate" style={{ fontSize: 12, color: T.t1, fontFamily: "var(--font-app), Poppins, sans-serif", fontVariantNumeric: 'tabular-nums' }}>{row.value}</div>
                   </div>
                   <button onClick={() => copyToClipboard(row.value)} className="shrink-0 cursor-pointer border-none bg-transparent"><Copy size={13} style={{ color: T.t3 }} /></button>
                 </div>
@@ -288,7 +288,7 @@ function SsoSetupWizard({ onClose, onActivate, sso, copyToClipboard }) {
                   <input value={metadataUrl} onChange={(e) => setMetadataUrl(e.target.value)}
                     placeholder="https://login.microsoftonline.com/..."
                     className="flex-1 px-3 py-2 rounded-lg outline-none"
-                    style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 12, fontFamily: 'monospace' }} />
+                    style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 12, fontFamily: "var(--font-app), Poppins, sans-serif", fontVariantNumeric: 'tabular-nums' }} />
                   <button onClick={() => toast.success(t('userMgmt.sso.idp.autoConfigured'))}
                     className="px-3 py-2 rounded-lg cursor-pointer border-none font-semibold shrink-0"
                     style={{ background: T.ac, color: '#fff', fontSize: 11 }}>
@@ -320,7 +320,7 @@ function SsoSetupWizard({ onClose, onActivate, sso, copyToClipboard }) {
                   ))}
 
                   {domainMethod === 'dns' && (
-                    <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontFamily: 'monospace', fontSize: 11, color: T.t1, border: `1px solid ${T.bd}` }}>
+                    <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontFamily: "var(--font-app), Poppins, sans-serif", fontVariantNumeric: 'tabular-nums', fontSize: 11, color: T.t1, border: `1px solid ${T.bd}` }}>
                       <div style={{ color: T.t3, fontFamily: 'inherit' }}>TXT Record:</div>
                       _myvagon-verification.{sso.domain}<br />
                       {DOMAIN_VERIFICATION_TOKEN}

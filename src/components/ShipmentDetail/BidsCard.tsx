@@ -103,7 +103,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
             <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px]">
               {isNegotiable ? t('startingPrice', 'Starting Price') : t('price', 'Price')}:
             </span>
-            <span className="font-bold font-mono text-purple-700 dark:text-purple-300 text-[13px]">
+            <span className="font-bold tabular-nums text-purple-700 dark:text-purple-300 text-[13px]">
               € {numStartingPrice.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
@@ -174,7 +174,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
 
                       {/* Partner badge */}
                       {item.isPartner && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--mv-success-bg)] dark:bg-[var(--st-success-bg)] text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)] border border-[var(--mv-success-bg)] dark:border-[var(--st-success-bg)]">
                           <ShieldCheck size={11} />
                           <span>{t('partner', 'PARTNER')}</span>
                         </span>
@@ -184,7 +184,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                     {/* Price or Actions */}
                     {item.bidAmount != null ? (
                       <div className="text-right">
-                        <span className="font-bold font-mono text-[14px] text-purple-700 dark:text-purple-300">
+                        <span className="font-bold tabular-nums text-[14px] text-purple-700 dark:text-purple-300">
                           € {item.bidAmount.toLocaleString('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
                       </div>
@@ -223,7 +223,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                           type="button"
                           disabled={acceptingBidId === item.id || decliningBidId === item.id}
                           onClick={() => onAcceptBid(item)}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 cursor-pointer shadow-2xs disabled:opacity-60 border-0"
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold text-white bg-[var(--mv-purple)] hover:bg-[var(--app-primary-hover)] cursor-pointer shadow-2xs disabled:opacity-60 border-0"
                         >
                           {acceptingBidId === item.id ? (
                             <Loader2 size={12} className="animate-spin" />

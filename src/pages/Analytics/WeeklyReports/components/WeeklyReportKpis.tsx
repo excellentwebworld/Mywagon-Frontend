@@ -109,7 +109,7 @@ export const WeeklyReportKpis: React.FC<WeeklyReportKpisProps> = ({
       label: 'Loads Fulfilled',
       val: totalFulfilled,
       sub: 'Completed shipments in period',
-      icon: <CheckCircle size={18} className="text-emerald-500" />,
+      icon: <CheckCircle size={18} className="text-[var(--mv-success)]" />,
       accent: 'emerald',
     },
     {

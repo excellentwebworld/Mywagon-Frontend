@@ -1,31 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
 :root {
-  --bg: #f7f7f8;
+  --bg: #F4F4F5;
   --surface: #ffffff;
-  --surface-soft: #fafafe;
-  --sidebar: #121217;
-  --border: #e4e4e8;
-  --border-strong: #c8c8cf;
-  --text: #121217;
-  --muted: #5e5e6e;
-  --muted-soft: #8e8e9a;
-  --brand: #6c3aed;
-  --brand-dark: #5b2bd4;
-  --brand-soft: #ede9fe;
-  --pickup: #0ea5e9;
-  --pickup-soft: #f0f9ff;
-  --delivery: #10b981;
-  --delivery-soft: #ecfdf5;
-  --emerald-soft: #f0fdf9;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 12px 24px rgba(18, 18, 23, 0.08);
+  --surface-soft: #FAFAFB;
+  --sidebar: #1F1F41;
+  --border: #E6E6E8;
+  --border-strong: #C9C8CD;
+  --text: #000001;
+  --muted: #6C6B70;
+  --muted-soft: #8B8A8F;
+  --brand: #9B51E0;
+  --brand-dark: #4E5CDC;
+  --brand-soft: #F3EAFC;
+  --pickup: #000001;
+  --pickup-soft: #FFFFFF;
+  --delivery: #000001;
+  --delivery-soft: #F4F4F5;
+  --emerald-soft: #E4F5EC;
+  --shadow-sm: 0 1px 2px rgba(31, 31, 65, 0.05);
+  --shadow-md: 0 8px 24px rgba(31, 31, 65, 0.10);
   --radius: 12px;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 body {
   margin: 0;
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Poppins', Helvetica, Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
   background: var(--bg);
   color: var(--text);
 }
@@ -33,7 +34,7 @@ a { color: inherit; text-decoration: none; }
 button, input, textarea, select { font: inherit; }
 button { cursor: pointer; }
 .hidden { display: none !important; }
-.font-mono { font-family: 'JetBrains Mono', monospace; }
+.font-mono { font-family: 'Poppins', Helvetica, Arial, sans-serif; font-variant-numeric: tabular-nums; }
 .show-desktop-only { display: block; }
 @media (max-width: 767px) {
   .show-desktop-only { display: none !important; }
@@ -58,8 +59,8 @@ button { cursor: pointer; }
 .text-slate-400 { color: var(--muted-soft); }
 .text-brand-600 { color: var(--brand); }
 .text-sky-600 { color: var(--pickup); }
-.text-emerald-600 { color: var(--delivery); }
-.text-emerald-700 { color: #059669; }
+.text-[var(--mv-success-ink)] { color: var(--delivery); }
+.text-[var(--mv-success-ink)] { color: #059669; }
 .bg-white { background: var(--surface); }
 .bg-bg { background: var(--bg); }
 .border-top { border-top: 1px solid var(--border); }
@@ -99,7 +100,7 @@ button { cursor: pointer; }
   border-left: 3px solid transparent;
 }
 .sidebar-link:hover { background: rgba(255,255,255,.04); color: rgba(255,255,255,.88); }
-.sidebar-link.is-active { color: white; background: rgba(108,58,237,.14); border-left-color: var(--brand); }
+.sidebar-link.is-active { color: white; background: rgba(155, 81, 224,.14); border-left-color: var(--brand); }
 .sidebar-footer {
   margin-top: auto;
   padding: 18px 22px;
@@ -245,8 +246,8 @@ button { cursor: pointer; }
   text-transform: uppercase;
 }
 .badge-dark { background: #eef2ff; color: #4338ca; }
-.badge-pickup { background: var(--pickup-soft); color: var(--pickup); border: 1px solid #bae6fd; }
-.badge-delivery { background: var(--delivery-soft); color: var(--delivery); border: 1px solid #a7f3d0; }
+.badge-pickup { background: #FFFFFF; color: #000001; border: 1px solid var(--app-border-strong, #C9C8CD); }
+.badge-delivery { background: #000001; color: #FFFFFF; border: 1px solid var(--app-black-contour, #000001); }
 .pill {
   display: inline-flex;
   align-items: center;
@@ -286,7 +287,7 @@ button { cursor: pointer; }
   background: white; border: 1px solid var(--border);
   border-radius: 10px; padding: 6px 10px; font-size: 12px; color: var(--muted);
 }
-.order-link { color: var(--brand); font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; }
+.order-link { color: var(--brand); font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; }
 .map-box {
   min-height: 300px;
   display: grid;
@@ -376,7 +377,7 @@ button { cursor: pointer; }
 .price-symbol { font-size: 24px; font-weight: 700; color: var(--muted-soft); }
 .price-input {
   width: 100%; border: 0; background: transparent; text-align: right;
-  font-size: 32px; font-weight: 700; font-family: 'JetBrains Mono', monospace; color: var(--text);
+  font-size: 32px; font-weight: 700; font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums; color: var(--text);
 }
 .price-input:focus { outline: none; }
 .note-soft {
@@ -506,8 +507,8 @@ html.dark,
 }
 
 .dark .vehicle-card-active {
-  background: rgba(108, 58, 237, 0.18);
-  border-color: var(--brand, #6C3AED);
+  background: rgba(155, 81, 224, 0.18);
+  border-color: var(--brand, #9B51E0);
 }
 
 .dark .vehicle-icon {

@@ -57,7 +57,7 @@ function InstructionNoteItem({
           )}
           {item.author && item.timestamp && <span className="text-amber-500">·</span>}
           {item.timestamp && (
-            <span className="font-mono text-[10px] text-amber-700 dark:text-amber-400">{item.timestamp}</span>
+            <span className="tabular-nums text-[10px] text-amber-700 dark:text-amber-400">{item.timestamp}</span>
           )}
           {item.visibility && (
             <span
@@ -266,7 +266,7 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
               {t('quotedPrice', 'Quoted Price')}
             </span>
           </div>
-          <div className="font-bold text-[14px] text-[var(--text-primary)] font-mono truncate">
+          <div className="font-bold text-[14px] text-[var(--text-primary)] tabular-nums truncate">
             {loadSummary.quote || '—'}
           </div>
         </div>
@@ -282,7 +282,7 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
               {t('loadValue', 'Load Value')}
             </span>
           </div>
-          <div className="font-bold text-[14px] text-[var(--text-primary)] font-mono truncate">
+          <div className="font-bold text-[14px] text-[var(--text-primary)] tabular-nums truncate">
             {loadSummary.loadValue || '—'}
           </div>
         </div>
@@ -324,7 +324,7 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
           </div>
           <div className="text-[12px] font-semibold text-[var(--text-primary)] flex items-center gap-1.5 truncate">
             {loadSummary.negotiable ? (
-              <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-bold truncate">
+              <span className="text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)] flex items-center gap-1 font-bold truncate">
                 ✓ {t('negotiable', 'Negotiable')}
               </span>
             ) : (
@@ -348,8 +348,8 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
           </div>
           <div className="min-w-0">
             {loadSummary.liveNavigation ? (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 truncate max-w-full">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[var(--mv-success-bg)] dark:bg-[var(--st-success-bg)] text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)] border border-[var(--mv-success-bg)] dark:border-[var(--st-success-bg)] truncate max-w-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--mv-success-bg)]0 animate-pulse shrink-0" />
                 <span className="truncate">{t('enabled', 'Enabled')}</span>
               </span>
             ) : (

@@ -33,7 +33,7 @@ export function normalizeFacilityType(type: string | null | undefined): (typeof 
 }
 
 export const FACILITY_TYPE_COLORS: Record<string, string> = {
-  dc: '#7C3AED',
+  dc: '#9B51E0',
   warehouse: '#0EA5E9',
   plant: '#10B981',
   store: '#F59E0B',
@@ -48,7 +48,7 @@ export const TYPE_COLORS: Record<string, string> = {
   Plant: '#10B981',
   Store: '#F59E0B',
   Office: '#8E8E9A',
-  'Cross-dock': '#7C3AED',
+  'Cross-dock': '#9B51E0',
   Port: '#0891B2',
 };
 

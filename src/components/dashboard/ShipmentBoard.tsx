@@ -4,10 +4,8 @@ import type { ListShipmentsParams, ShipmentKpiKey, ApiShipmentsSummary } from '.
 import type { Shipment } from '../../context/AppContext';
 import { useShipmentsList } from '../../hooks/useShipments';
 import { useTranslation } from '../../hooks/useTranslation';
-import {
-  formatEuro,
-  statusBadgeClass,
-} from '../../pages/ManageShipments/utils/listingUtils';
+import { formatEuro } from '../../pages/ManageShipments/utils/listingUtils';
+import { LoadStatus } from '../ui/mv';
 import { DashUpgradeBlock, translateDashMessage } from './dashErrorUtils';
 import { DashBoardSkeleton } from './DashboardSkeletons';
 import { BoardRowExpand } from './BoardRowExpand';
@@ -204,13 +202,6 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
               !error &&
               visibleShipments.map((row) => {
                 const isExpanded = expandedId === row.id;
-                const badgeClass = statusBadgeClass(row.status, Boolean(row.at_risk), {
-                  bidsReceived: row.bidsReceived ?? 0,
-                  bidsSent: row.bidsSent ?? 0,
-                  interestedCount: row.interestedCount ?? 0,
-                  awaitingResponse: Boolean(row.awaitingResponse),
-                  needsAction: Boolean(row.needsAction),
-                });
                 const rate = formatEuro(row.agreedPrice ?? row.quotedPrice ?? row.price) ?? '—';
                 const laneText = `${row.origin || '—'} → ${row.dest || '—'}`;
 
@@ -228,14 +219,15 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
                       </td>
                       <td className="c-status">
                         <span className={`status-box-wrap${row.at_risk ? ' is-at-risk' : ''}`}>
-                          {row.status === 'partially_fullfilled' ? (
-                            <span className={`${badgeClass} status-box--partial-compact`}>
-                              <span className="status-partial-left">{t('partially')}</span>
-                              <span className="status-partial-right">{t('fulfilled')}</span>
-                            </span>
-                          ) : (
-                            <span className={badgeClass}>{t(row.status)}</span>
-                          )}
+                          <LoadStatus
+                            status={row.status}
+                            bids={
+                              row.status === 'pending' && (row.bidsReceived || row.bidsSent)
+                                ? Number(row.bidsReceived || row.bidsSent)
+                                : undefined
+                            }
+                            label={t(row.status)}
+                          />
                           {row.at_risk ? (
                             <span
                               className="status-at-risk-warn"

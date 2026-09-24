@@ -12,7 +12,6 @@ import {
   Receipt,
   RefreshCw,
   Sparkles,
-  Users,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../../hooks/useToast';
@@ -20,6 +19,7 @@ import { ApiError, getApiErrorMessage } from '../../api';
 import { subscriptionService as shipperSubscriptionService } from '../../api/services/subscriptionService';
 import type { WebViewSubscriptionService } from '../../api/services/webViewSubscriptionService';
 import type { WebViewRole } from '../../api/webviewClient';
+import { MvButton, Toggle, UsageMeter } from '../../components/ui/mv';
 import type {
   AddonQuote,
   BillingCycle as ApiCycle,
@@ -29,7 +29,7 @@ import type {
   SubscriptionPermissionItem,
   SubscriptionQuote,
 } from '../../api/types/subscription';
-import { formatDate, formatMoney, usageTone } from './mockData';
+import { formatDate, formatMoney } from './mockData';
 import { PriceBreakdown, type PriceBreakdownRow } from './PriceBreakdown';
 import { SubscriptionModalSkeleton, SubscriptionSkeleton } from './SubscriptionSkeleton';
 import {
@@ -1072,17 +1072,11 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                 {tf('processing', 'Processing…')}
               </span>
             ) : (
-              <button
-                type="button"
-                className={`ao-toggle${current?.recurring_payment ? ' on' : ''}`}
-                role="switch"
-                aria-checked={Boolean(current?.recurring_payment)}
-                aria-label={tf('autopayLabel', 'Autopay')}
+              <Toggle
+                checked={Boolean(current?.recurring_payment)}
+                onChange={(next) => void togglePlanAutoPay(next)}
                 disabled={!current || current.is_free || busy || autoPayProcessing !== null}
-                onClick={() => void togglePlanAutoPay(!current?.recurring_payment)}
-              >
-                <span className="knob" />
-              </button>
+              />
             )}
           </div>
         </div>
@@ -1103,47 +1097,27 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
         <div className="usage-grid">
           {!isWebView ? (
             <>
-              <div className="usage-card usage-card--seat">
-                <div className="uc-top">
-                  <div className="uc-name">
-                    <Users size={13} className="uc-icon" aria-hidden="true" />
-                    {tf('activeUsers', 'Active Users')}
-                  </div>
-                  <div className="uc-vals">
-                    <span className="used">{data?.seats?.active_users ?? 0}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="usage-card usage-card--seat">
-                <div className="uc-top">
-                  <div className="uc-name">
-                    <Users size={13} className="uc-icon" aria-hidden="true" />
-                    {tf('paidUsers', 'Paid Users')}
-                  </div>
-                  <div className="uc-vals">
-                    <span className="used">{data?.seats?.paid_users ?? 0}</span>
-                  </div>
-                </div>
-              </div>
+              <UsageMeter
+                label={tf('activeUsers', 'Active Users')}
+                used={data?.seats?.active_users ?? 0}
+                limit={null}
+              />
+              <UsageMeter
+                label={tf('paidUsers', 'Paid Users')}
+                used={data?.seats?.paid_users ?? 0}
+                limit={null}
+              />
             </>
           ) : null}
           {(data?.usage ?? []).map((u) => {
             const unlimited = u.unlimited || u.limit == null;
-            const pct = unlimited ? 0 : Math.round((u.used / Math.max(u.limit || 1, 1)) * 100);
-            const tone = usageTone(u.used, unlimited ? null : u.limit);
             return (
-              <div key={u.slug} className={`usage-card ${tone === 'ok' ? '' : tone}`}>
-                <div className="uc-top">
-                  <div className="uc-name">{usageLabel(u.slug, u.name)}</div>
-                  <div className="uc-vals">
-                    <span className="used">{u.used}</span>
-                    <span className="lim"> / {unlimited ? tf('unlimited', 'Unlimited') : u.limit}</span>
-                  </div>
-                </div>
-                <div className="uc-bar">
-                  <div className={`uc-fill ${tone}`} style={{ width: `${Math.min(pct, 100)}%` }} />
-                </div>
-              </div>
+              <UsageMeter
+                key={u.slug}
+                label={usageLabel(u.slug, u.name)}
+                used={u.used}
+                limit={unlimited ? null : u.limit}
+              />
             );
           })}
         </div>
@@ -1381,16 +1355,11 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                               {tf('processing', 'Processing…')}
                             </span>
                           ) : (
-                            <button
-                              type="button"
-                              className={`ao-toggle${addon.auto_pay ? ' on' : ''}`}
-                              role="switch"
-                              aria-checked={addon.auto_pay}
+                            <Toggle
+                              checked={addon.auto_pay}
+                              onChange={(next) => void toggleAddonAutoPay(addon, next)}
                               disabled={busy || autoPayProcessing !== null}
-                              onClick={() => void toggleAddonAutoPay(addon, !addon.auto_pay)}
-                            >
-                              <span className="knob" />
-                            </button>
+                            />
                           )}
                         </span>
                       ) : addon.auto_pay ? (
@@ -1487,16 +1456,17 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                     </div>
                   ) : (
                     <>
-                      <button type="button" className="sub-btn" onClick={closeModal}>
+                      <MvButton type="button" variant="secondary" size="sm" onClick={closeModal}>
                         {tf('cancelBtn', 'Cancel')}
-                      </button>
-                      <button
+                      </MvButton>
+                      <MvButton
                         type="button"
-                        className={modalContent.danger ? 'sub-btn sub-btn-danger' : 'sub-btn sub-btn-p'}
+                        variant={modalContent.danger ? 'danger' : 'primary'}
+                        size="sm"
                         onClick={() => void confirmModal()}
                       >
                         {modalContent.confirm}
-                      </button>
+                      </MvButton>
                     </>
                   )}
                 </div>

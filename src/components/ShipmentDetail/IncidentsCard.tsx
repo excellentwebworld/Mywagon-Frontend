@@ -79,7 +79,7 @@ export const IncidentsCard: React.FC<IncidentsCardProps> = ({
                   <div className="mt-0.5 text-slate-500 dark:text-slate-400">
                     {inc.meta} · {t('severity', 'Severity')}: {inc.severity} ·{' '}
                     <span
-                      className={`font-semibold ${inc.resolved ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}
+                      className={`font-semibold ${inc.resolved ? 'text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]' : 'text-red-600 dark:text-red-400'}`}
                     >
                       {inc.resolved ? t('resolved', 'Resolved') : t('open', 'Open')}
                     </span>

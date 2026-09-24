@@ -224,9 +224,9 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
     if (type === 'freelancer_driver' || type === 'driver' || type === 'freelancer') {
       return {
         label: t('priceLists.modal.partnerTypeFreelancer', 'Freelancer'),
-        bg: 'rgba(108, 58, 237, 0.08)',
+        bg: 'rgba(155, 81, 224, 0.08)',
         fg: T.ac,
-        bd: 'rgba(108, 58, 237, 0.2)',
+        bd: 'rgba(155, 81, 224, 0.2)',
       };
     }
     if (type === 'supplier' || type === 'shipper' || type === 'customer') {

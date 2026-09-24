@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Users } from 'lucide-react';
 import type { CreditNote } from '../types';
-import { formatCurrency, formatDate } from '../mockData';
+import { formatDate } from '../mockData';
+import { Money, MvButton, Tag } from '../../../components/ui/mv';
 import { BillingCreditsSkeleton, BillingTableSkeleton } from './BillingSkeleton';
 import { BillingPagination } from './BillingPagination';
 import { ReferralModal } from '../../../components/referral';
@@ -58,7 +59,7 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
         <div className={`credit-card ${loading ? 'billing-skeleton-block' : ''}`}>
           <div className="cc-label">{t('billingPage.creditBalance', 'Available Credit Balance')}</div>
           <div className="cc-val billing-mono">
-            {loading ? <Skeleton width={100} height={28} borderRadius={4} {...sk} /> : formatCurrency(walletBalance)}
+            {loading ? <Skeleton width={100} height={28} borderRadius={4} {...sk} /> : <Money value={walletBalance} />}
           </div>
           <div className="cc-sub">{t('billingPage.walletHint', 'Wallet / Rewards balance available to pay invoices in full')}</div>
         </div>
@@ -68,9 +69,9 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
             {t('billingPage.quickActions', 'Quick Actions')}
           </div>
           <div className="flex gap-2 flex-wrap">
-            <button type="button" className="b-btn b-btn-primary" onClick={onOpenApplyCredit} disabled={loading}>
+            <MvButton type="button" variant="primary" size="sm" onClick={onOpenApplyCredit} disabled={loading}>
               {t('billingPage.btnPayWallet', 'Pay using wallet')}
-            </button>
+            </MvButton>
             <button
               type="button"
               className="b-btn"
@@ -107,15 +108,15 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
                   <article key={cn.id} className="wv-wallet-card">
                     <div className="wv-wallet-card__top">
                       <span className="wv-wallet-card__id billing-mono">{cn.id}</span>
-                      <span className={`b-badge ${isCredit ? 'b-credit' : 'b-debit'}`}>
+                      <Tag variant={isCredit ? 'brand' : 'navy'}>
                         {isCredit ? t('billingPage.credit', 'Credit') : t('billingPage.debit', 'Debit')}
-                      </span>
+                      </Tag>
                     </div>
                     <div className="wv-wallet-card__row">
                       <span>{formatDate(cn.date, i18n.language)}</span>
-                      <strong className={`billing-mono ${isCredit ? 'text-emerald-600' : 'text-red-600'}`}>
+                      <strong className="billing-mono">
                         {isCredit ? '+' : '−'}
-                        {formatCurrency(Math.abs(cn.amt))}
+                        <Money value={Math.abs(cn.amt)} overdue={!isCredit} />
                       </strong>
                     </div>
                     <div className="wv-wallet-card__reason">{cn.reason}</div>
@@ -157,9 +158,9 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
                       <tr key={cn.id}>
                         <td className="billing-mono text-purple-700 font-semibold text-xs">{cn.id}</td>
                         <td className="text-xs text-gray-600">{formatDate(cn.date, i18n.language)}</td>
-                        <td className={`billing-mono text-xs font-semibold ${isCredit ? 'text-emerald-600' : 'text-red-600'}`}>
+                        <td className="billing-mono text-xs font-semibold">
                           {isCredit ? '+' : '−'}
-                          {formatCurrency(Math.abs(cn.amt))}
+                          <Money value={Math.abs(cn.amt)} overdue={!isCredit} />
                         </td>
                         <td className="text-xs text-gray-700">{cn.reason}</td>
                         <td className="text-xs">
@@ -170,9 +171,9 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
                           )}
                         </td>
                         <td>
-                          <span className={`b-badge ${isCredit ? 'b-credit' : 'b-debit'}`}>
+                          <Tag variant={isCredit ? 'brand' : 'navy'}>
                             {isCredit ? t('billingPage.credit', 'Credit') : t('billingPage.debit', 'Debit')}
-                          </span>
+                          </Tag>
                         </td>
                       </tr>
                     );

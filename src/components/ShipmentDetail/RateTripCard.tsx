@@ -73,7 +73,7 @@ export const RateTripCard: React.FC<RateTripCardProps> = ({
             <span
               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
                 selectedOnTime !== false
-                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                  ? 'bg-[var(--mv-success-bg)] dark:bg-[var(--st-success-bg)] text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)] border-[var(--mv-success-bg)] dark:border-[var(--st-success-bg)]'
                   : 'bg-red-50 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800'
               }`}
             >
@@ -103,7 +103,7 @@ export const RateTripCard: React.FC<RateTripCardProps> = ({
                 type="button"
                 disabled={submitting}
                 onClick={() => handleSelect(true)}
-                className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-emerald-500 hover:text-emerald-500 flex items-center gap-1.5 disabled:opacity-60"
+                className="px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-emerald-500 hover:text-[var(--mv-success)] flex items-center gap-1.5 disabled:opacity-60"
               >
                 {submitting && selectedOnTime === true ? <Loader2 size={12} className="animate-spin" /> : null}
                 <span>{t('yes', 'Yes')}</span>

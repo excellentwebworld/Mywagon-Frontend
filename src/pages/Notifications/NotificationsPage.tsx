@@ -151,16 +151,16 @@ const CATEGORY_CONFIGS: Record<string, CategoryVisualConfig> = {
   },
   'Booking Bidding': {
     icon: Gavel,
-    color: '#7C3AED',
-    bg: 'rgba(124, 58, 237, 0.1)',
+    color: '#9B51E0',
+    bg: 'rgba(155, 81, 224, 0.1)',
     badge: 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800',
-    borderLeft: '#7C3AED',
+    borderLeft: '#9B51E0',
   },
   'Shipment Progress': {
     icon: Activity,
     color: '#10B981',
     bg: 'rgba(16, 185, 129, 0.1)',
-    badge: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800',
+    badge: 'bg-[var(--mv-success-bg)] text-[var(--mv-success-ink)] dark:bg-[var(--st-success-bg)] dark:text-[var(--st-success-fg)] border border-[var(--mv-success-bg)] dark:border-[var(--st-success-bg)]',
     borderLeft: '#10B981',
   },
   'Cancellation': {
@@ -603,7 +603,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                 className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold"
                 style={{
                   background: '#EDE9FE',
-                  color: '#7C3AED',
+                  color: '#9B51E0',
                   border: '1px solid #DDD6FE',
                 }}
               >
@@ -628,14 +628,14 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = T.sa;
-              e.currentTarget.style.borderColor = '#7C3AED';
+              e.currentTarget.style.borderColor = '#9B51E0';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = T.sf;
               e.currentTarget.style.borderColor = T.bd;
             }}
           >
-            <CheckCheck className="w-4 h-4 text-[#7C3AED]" />
+            <CheckCheck className="w-4 h-4 text-[#9B51E0]" />
             <span>{loc('btnMarkAll')}</span>
           </button>
 
@@ -650,7 +650,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = T.sa;
-              e.currentTarget.style.borderColor = '#7C3AED';
+              e.currentTarget.style.borderColor = '#9B51E0';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.background = T.sf;
@@ -690,10 +690,10 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                 onClick={() => setActiveCat(s.id)}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all duration-150 cursor-pointer"
                 style={{
-                  background: isActive ? '#7C3AED' : T.sa,
+                  background: isActive ? '#9B51E0' : T.sa,
                   color: isActive ? '#FFFFFF' : T.t2,
-                  border: `1px solid ${isActive ? '#7C3AED' : T.bd}`,
-                  boxShadow: isActive ? '0 2px 8px rgba(124, 58, 237, 0.35)' : 'none',
+                  border: `1px solid ${isActive ? '#9B51E0' : T.bd}`,
+                  boxShadow: isActive ? '0 2px 8px rgba(155, 81, 224, 0.35)' : 'none',
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
@@ -740,8 +740,8 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
               color: T.t1,
             }}
             onFocus={(e) => {
-              e.currentTarget.style.borderColor = '#7C3AED';
-              e.currentTarget.style.boxShadow = '0 0 0 2px rgba(124, 58, 237, 0.15)';
+              e.currentTarget.style.borderColor = '#9B51E0';
+              e.currentTarget.style.boxShadow = '0 0 0 2px rgba(155, 81, 224, 0.15)';
             }}
             onBlur={(e) => {
               e.currentTarget.style.borderColor = T.bd;
@@ -789,7 +789,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
           >
             <div
               className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3.5"
-              style={{ background: '#EDE9FE', color: '#7C3AED' }}
+              style={{ background: '#EDE9FE', color: '#9B51E0' }}
             >
               <Inbox className="w-7 h-7" />
             </div>
@@ -812,19 +812,19 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                 onClick={() => handleOpenDrawer(n)}
                 className="group relative flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 rounded-xl transition-all duration-150 cursor-pointer overflow-hidden"
                 style={{
-                  background: isUnread ? (isDark ? 'rgba(124, 58, 237, 0.08)' : '#FAF8FF') : T.sf,
-                  border: `1px solid ${isUnread ? (isDark ? 'rgba(124, 58, 237, 0.4)' : '#DDD6FE') : T.bd}`,
-                  boxShadow: isUnread ? '0 2px 10px rgba(124, 58, 237, 0.06)' : '0 1px 3px rgba(0,0,0,0.03)',
+                  background: isUnread ? (isDark ? 'rgba(155, 81, 224, 0.08)' : '#FAF8FF') : T.sf,
+                  border: `1px solid ${isUnread ? (isDark ? 'rgba(155, 81, 224, 0.4)' : '#DDD6FE') : T.bd}`,
+                  boxShadow: isUnread ? '0 2px 10px rgba(155, 81, 224, 0.06)' : '0 1px 3px rgba(0,0,0,0.03)',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#7C3AED';
+                  e.currentTarget.style.borderColor = '#9B51E0';
                   e.currentTarget.style.transform = 'translateY(-1px)';
                   e.currentTarget.style.boxShadow = '0 6px 18px rgba(0,0,0,0.08)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = isUnread ? (isDark ? 'rgba(124, 58, 237, 0.4)' : '#DDD6FE') : T.bd;
+                  e.currentTarget.style.borderColor = isUnread ? (isDark ? 'rgba(155, 81, 224, 0.4)' : '#DDD6FE') : T.bd;
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = isUnread ? '0 2px 10px rgba(124, 58, 237, 0.06)' : '0 1px 3px rgba(0,0,0,0.03)';
+                  e.currentTarget.style.boxShadow = isUnread ? '0 2px 10px rgba(155, 81, 224, 0.06)' : '0 1px 3px rgba(0,0,0,0.03)';
                 }}
               >
                 {/* Left accent color bar */}
@@ -856,8 +856,8 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                         <span
                           className="inline-block w-2 h-2 rounded-full"
                           style={{
-                            background: '#7C3AED',
-                            boxShadow: '0 0 0 3px rgba(124, 58, 237, 0.25)',
+                            background: '#9B51E0',
+                            boxShadow: '0 0 0 3px rgba(155, 81, 224, 0.25)',
                           }}
                         />
                       )}
@@ -881,7 +881,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold"
                               style={{
                                 background: T.sa,
-                                color: '#7C3AED',
+                                color: '#9B51E0',
                                 border: `1px solid ${T.bd}`,
                               }}
                             >
@@ -906,7 +906,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                       onClick={() => handleActionNavigate(n, n.chips[0])}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white shadow-xs hover:shadow-md active:scale-[0.98] transition-all cursor-pointer whitespace-nowrap border-none"
                       style={{
-                        background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                        background: 'var(--mv-purple)',
                       }}
                     >
                       <span>{loc(n.action) || loc('viewDetails')}</span>
@@ -922,7 +922,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                       className="p-1.5 rounded-lg cursor-pointer transition-colors border-none bg-transparent"
                       style={{ color: T.t3 }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.color = '#7C3AED';
+                        e.currentTarget.style.color = '#9B51E0';
                         e.currentTarget.style.background = '#EDE9FE';
                       }}
                       onMouseLeave={(e) => {
@@ -1056,10 +1056,10 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                     onClick={() => handlePageChange(p)}
                     className="w-8 h-8 rounded-lg text-xs font-semibold flex items-center justify-center transition-all cursor-pointer"
                     style={{
-                      background: isCurrent ? '#7C3AED' : T.sf,
+                      background: isCurrent ? '#9B51E0' : T.sf,
                       color: isCurrent ? '#FFFFFF' : T.t1,
                       border: isCurrent ? 'none' : `1px solid ${T.bd}`,
-                      boxShadow: isCurrent ? '0 2px 6px rgba(124, 58, 237, 0.4)' : 'none',
+                      boxShadow: isCurrent ? '0 2px 6px rgba(155, 81, 224, 0.4)' : 'none',
                     }}
                   >
                     {p}
@@ -1190,7 +1190,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                               border: `1px solid ${T.bd}`,
                             }}
                           >
-                            <div className="flex items-center gap-2 text-xs font-bold text-[#7C3AED]">
+                            <div className="flex items-center gap-2 text-xs font-bold text-[#9B51E0]">
                               <ExternalLink className="w-4 h-4" />
                               <span>{chip}</span>
                             </div>
@@ -1234,7 +1234,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                       }}
                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white shadow-xs cursor-pointer border-none"
                       style={{
-                        background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                        background: 'var(--mv-purple)',
                       }}
                     >
                       <span>{loc(selectedNotif.action) || loc('viewDetails')}</span>
@@ -1276,7 +1276,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                 <div className="flex items-center gap-2.5">
                   <div
                     className="w-8 h-8 rounded-lg flex items-center justify-center"
-                    style={{ background: '#EDE9FE', color: '#7C3AED' }}
+                    style={{ background: '#EDE9FE', color: '#9B51E0' }}
                   >
                     <SlidersHorizontal className="w-4 h-4" />
                   </div>

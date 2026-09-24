@@ -50,7 +50,7 @@ const ACTION_ICONS = {
 const ACTION_COLORS = {
   login: '#6B7280',
   invited: '#3B82F6',
-  roleChanged: '#8B5CF6',
+  roleChanged: '#9B51E0',
   roleCreated: '#10B981',
   roleEdited: '#F59E0B',
   roleDeleted: '#EF4444',
@@ -58,7 +58,7 @@ const ACTION_COLORS = {
   suspended: '#F97316',
   deactivated: '#EF4444',
   reactivated: '#10B981',
-  permissionsEdited: '#8B5CF6',
+  permissionsEdited: '#9B51E0',
   passwordReset: '#F59E0B',
   mfaChanged: '#0EA5E9',
   signedOut: '#EF4444',

@@ -491,7 +491,7 @@ function McpTab({ mcp, setMcp, T, t, toast }) {
           {/* Server URL */}
           <Card title={t('ai.mcp.serverUrl')} T={T}>
             <div className="flex items-center gap-2 px-4 py-3 rounded-xl" style={{ background: T.sa, border: `1px solid ${T.bd}` }}>
-              <code className="flex-1 truncate" style={{ fontSize: 12, color: T.t1, fontFamily: 'monospace' }}>{mcp.serverUrl}</code>
+              <code className="flex-1 truncate" style={{ fontSize: 12, color: T.t1, fontFamily: "var(--font-app), Poppins, sans-serif", fontVariantNumeric: 'tabular-nums' }}>{mcp.serverUrl}</code>
               <button onClick={() => { navigator.clipboard?.writeText(mcp.serverUrl); toast.success(t('common.copied')); }}
                 className="cursor-pointer border-none bg-transparent p-1.5 rounded-lg"
                 style={{ background: T.sh }}>
@@ -537,7 +537,7 @@ function McpTab({ mcp, setMcp, T, t, toast }) {
                   <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#10B981' }} />
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold truncate" style={{ fontSize: 13, color: T.t1 }}>{tok.name}</div>
-                    <div style={{ fontSize: 11, color: T.t3, fontFamily: 'monospace' }}>{tok.prefix}</div>
+                    <div style={{ fontSize: 11, color: T.t3, fontFamily: "var(--font-app), Poppins, sans-serif", fontVariantNumeric: 'tabular-nums' }}>{tok.prefix}</div>
                   </div>
                   <button className="px-2.5 py-1 rounded-lg cursor-pointer border-none font-semibold" style={{ background: '#FEF2F2', color: '#EF4444', fontSize: 11 }}>
                     {t('ai.mcp.revoke')}
@@ -688,7 +688,7 @@ function UsageBillingTab({ usage, setUsage, T, t, toast }) {
                 </div>
                 <div className="rounded-xl p-4" style={{ background: '#ECFDF5', border: `1px solid #A7F3D0` }}>
                   <div style={{ fontSize: 10, fontWeight: 600, color: '#047857', textTransform: 'uppercase', letterSpacing: 0.5 }}>{t('ai.usage.balance')}</div>
-                  <div className="font-bold mt-1" style={{ fontSize: 18, color: '#10B981', fontVariantNumeric: 'tabular-nums' }}>€{u.extra.balance.toFixed(2)}</div>
+                  <div className="font-bold mt-1" style={{ fontSize: 18, color: u.extra.balance === 0 ? 'var(--app-text-3)' : 'var(--app-text)', fontVariantNumeric: 'tabular-nums' }}>€{u.extra.balance.toFixed(2)}</div>
                 </div>
               </div>
 

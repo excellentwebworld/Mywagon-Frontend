@@ -23,7 +23,7 @@ const DOT_COLORS = {
   deactivated: '#F59E0B',
   archived: '#9CA3AF',
   deleted: '#EF4444',
-  duplicated: '#8B5CF6',
+  duplicated: '#9B51E0',
   imported: '#06B6D4',
 };
 
@@ -336,7 +336,7 @@ export default function AuditLogPanel({ open, onClose }) {
                     <span style={{ fontSize: 12, fontWeight: 600, color: DOT_COLORS[entry.action] || T.t2 }}>
                       {actionLabels[entry.action] || entry.action}
                     </span>
-                    <span style={{ fontSize: 10, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>
+                    <span style={{ fontSize: 10, color: T.t3, fontFamily: "var(--font-app), Poppins, sans-serif" }}>
                       {entry.laneId || '—'}
                     </span>
                   </div>

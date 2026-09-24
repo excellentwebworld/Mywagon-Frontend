@@ -1510,7 +1510,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         ind.push({
           key: "temp",
           label: sku.tempValue || "Temp",
-          color: "#2563EB",
+          color: "#1F1F41",
           bg: "#DBEAFE",
         });
       if (!sku.stackable)
@@ -1858,12 +1858,22 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           {getStopTags(stop).map((tg) => (
                             <span
                               key={tg}
-                              className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0"
-                              style={{
-                                background:
-                                  tg === "pickup" ? "#EFF6FF" : "#F3F0FF",
-                                color: tg === "pickup" ? "#2563EB" : "#5E3BEE",
-                              }}
+                              className="text-[10px] font-bold uppercase px-2 py-0.5 rounded shrink-0"
+                              style={
+                                tg === "pickup"
+                                  ? {
+                                      background: "#FFFFFF",
+                                      color: "#000001",
+                                      border: "1px solid var(--app-border-strong, #C9C8CD)",
+                                      borderRadius: 8,
+                                    }
+                                  : {
+                                      background: "#000001",
+                                      color: "#FFFFFF",
+                                      border: "1px solid var(--app-black-contour, #000001)",
+                                      borderRadius: 8,
+                                    }
+                              }
                             >
                               {t(tg) || tg}
                             </span>
@@ -1937,11 +1947,22 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                       {getStopTags(stop).map((tg) => (
                         <span
                           key={tg}
-                          className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded shrink-0"
-                          style={{
-                            background: tg === "pickup" ? "#EFF6FF" : "#F3F0FF",
-                            color: tg === "pickup" ? "#2563EB" : "#5E3BEE",
-                          }}
+                          className="text-[10px] font-bold uppercase px-2 py-0.5 rounded shrink-0"
+                          style={
+                            tg === "pickup"
+                              ? {
+                                  background: "#FFFFFF",
+                                  color: "#000001",
+                                  border: "1px solid var(--app-border-strong, #C9C8CD)",
+                                  borderRadius: 8,
+                                }
+                              : {
+                                  background: "#000001",
+                                  color: "#FFFFFF",
+                                  border: "1px solid var(--app-black-contour, #000001)",
+                                  borderRadius: 8,
+                                }
+                          }
                         >
                           {t(tg) || tg}
                         </span>
@@ -2204,7 +2225,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                       <button
                         type="button"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-none text-white"
-                        style={{ background: "#2563EB", fontFamily: "inherit" }}
+                        style={{ background: "#1F1F41", fontFamily: "inherit" }}
                         onClick={() => handleStopDone(stop.id)}
                       >
                         <Check size={14} /> Done
@@ -2637,7 +2658,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
   };
   const monoS = {
     ...iS,
-    fontFamily: "'JetBrains Mono', monospace",
+    fontFamily: "var(--font-app), Poppins, sans-serif",
     fontWeight: 600,
     fontSize: 12,
     textAlign: "right" as const,
@@ -2899,7 +2920,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         type="button"
                         className="py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none"
                         style={{
-                          background: ln.action === "pickup" ? "#2563EB" : T.sf,
+                          background: ln.action === "pickup" ? "#FFFFFF" : T.sf,
                           color: ln.action === "pickup" ? "#fff" : T.t3,
                           fontFamily: "inherit",
                         }}
@@ -2912,7 +2933,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         className="py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none"
                         style={{
                           background:
-                            ln.action === "dropoff" ? "#5E3BEE" : T.sf,
+                            ln.action === "dropoff" ? "#000001" : T.sf,
                           color: ln.action === "dropoff" ? "#fff" : T.t3,
                           fontFamily: "inherit",
                         }}
@@ -3460,7 +3481,7 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
                     className="transition-all duration-500"
                     style={{
                       width: `${bal.pkBar * 2}%`,
-                      background: "#2563EB",
+                      background: "#1F1F41",
                       borderRadius: "4px 0 0 4px",
                     }}
                   />
@@ -3476,7 +3497,7 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
                     className="transition-all duration-500"
                     style={{
                       width: `${bal.doBar * 2}%`,
-                      background: "#5E3BEE",
+                      background: "#000001",
                       borderRadius: "0 4px 4px 0",
                     }}
                   />
@@ -3487,13 +3508,13 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
         </div>
         <span
           className="text-[11px] font-bold px-2 py-0.5 rounded"
-          style={{ background: "#EFF6FF", color: "#2563EB" }}
+          style={{ background: "#FFFFFF", color: "#000001", border: "1px solid var(--app-border-strong, #C9C8CD)" }}
         >
           ↑ {bal.pkU} · {fmtW(bal.pkW)}
         </span>
         <span
           className="text-[11px] font-bold px-2 py-0.5 rounded"
-          style={{ background: "#F3F0FF", color: "#5E3BEE" }}
+          style={{ background: "#000001", color: "#FFFFFF", border: "1px solid var(--app-black-contour, #000001)" }}
         >
           ↓ {bal.doU} · {fmtW(bal.doW)}
         </span>
@@ -3520,7 +3541,7 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
             <div>
               <div
                 className="flex items-center gap-1.5 mb-1 text-xs font-bold"
-                style={{ color: "#2563EB" }}
+                style={{ color: "#1F1F41" }}
               >
                 <ArrowUp size={13} />
                 Total Pickup
@@ -3538,7 +3559,7 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
             <div>
               <div
                 className="flex items-center gap-1.5 mb-1 text-xs font-bold"
-                style={{ color: "#5E3BEE" }}
+                style={{ color: "#000001" }}
               >
                 <ArrowDown size={13} />
                 Total Dropoff
@@ -3586,10 +3607,10 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
                     ) : null}
                   </span>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span style={{ color: "#2563EB" }}>
+                    <span style={{ color: "#1F1F41" }}>
                       ↑ {v.pk} {v.unit}
                     </span>
-                    <span style={{ color: "#5E3BEE" }}>
+                    <span style={{ color: "#000001" }}>
                       ↓ {v.do} {v.unit}
                     </span>
                     {v.pk > 0 && v.pk !== v.do && (

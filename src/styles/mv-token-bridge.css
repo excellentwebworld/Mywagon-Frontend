@@ -1,0 +1,112 @@
+/* Bridge MYVAGON app tokens → legacy shipper CSS vars (--accent, --bg, …).
+   Requires mv-app-tokens.css. Do not redefine brand hex here. */
+
+:root,
+[data-theme='light'] {
+  --accent: var(--mv-purple);
+  --accent-hover: var(--app-primary-hover);
+  --accent-light: var(--mv-purple-100);
+  --accent-pale: var(--app-accent-soft);
+  --brand-navy: var(--mv-navy);
+  --brand-blue: var(--mv-blue);
+  --brand-grey: var(--mv-grey);
+
+  --bg: var(--app-canvas);
+  --surface: var(--app-surface);
+  --surface-alt: var(--app-surface-sunken);
+  --border: var(--app-border);
+  --border-focus: var(--app-border-strong);
+
+  --text-primary: var(--app-text);
+  --text-secondary: var(--app-text-2);
+  --text-tertiary: var(--app-text-3);
+
+  --nav-bg: var(--sb-bg);
+  --nav-text: var(--sb-text);
+  --nav-text-hover: var(--sb-text-strong);
+  --nav-active: var(--sb-active-bg);
+  --nav-active-text: var(--sb-active-text);
+  --nav-section: var(--sb-label);
+  --nav-border: var(--sb-divider);
+  --nav-hover: var(--sb-hover);
+
+  --success: var(--mv-success);
+  --success-bg: var(--mv-success-bg);
+  --warning: var(--mv-warning);
+  --warning-bg: var(--mv-warning-bg);
+  --danger: var(--mv-danger);
+  --danger-bg: var(--mv-danger-bg);
+  --info: var(--mv-blue);
+  --info-bg: var(--mv-blue-100);
+
+  --shadow-sm: var(--sh-card);
+  --shadow-md: var(--sh-raised);
+  --shadow-lg: var(--sh-modal);
+  --shadow-accent: var(--sh-purple);
+  --shadow-accent-hover: 0 4px 16px rgba(155, 81, 224, 0.35);
+
+  --sidebar-w: 240px;
+  --topbar-h: 72px;
+  --radius-sm: var(--r-tag);
+  --radius-md: var(--r-button);
+  --radius-lg: var(--r-card);
+  --radius-xl: var(--r-modal);
+
+  --font-sans: var(--font-app);
+  --font-mono: var(--font-app);
+}
+
+[data-theme='dark'] {
+  --accent: var(--mv-purple);
+  --accent-hover: var(--app-primary-hover);
+  --accent-light: var(--app-accent-soft);
+  --accent-pale: var(--app-accent-soft);
+  --brand-navy: var(--mv-navy);
+  --brand-blue: var(--mv-blue);
+  --brand-grey: var(--app-text-3);
+
+  --bg: var(--app-canvas);
+  --surface: var(--app-surface);
+  --surface-alt: var(--app-surface-sunken);
+  --border: var(--app-border);
+  --border-focus: var(--app-border-strong);
+
+  --text-primary: var(--app-text);
+  --text-secondary: var(--app-text-2);
+  --text-tertiary: var(--app-text-3);
+
+  --nav-bg: var(--sb-bg);
+  --nav-text: var(--sb-text);
+  --nav-text-hover: var(--sb-text-strong);
+  --nav-active: var(--sb-active-bg);
+  --nav-active-text: var(--sb-active-text);
+  --nav-section: var(--sb-label);
+  --nav-border: var(--sb-divider);
+  --nav-hover: var(--sb-hover);
+
+  --success: var(--st-success-fg);
+  --success-bg: var(--st-success-bg);
+  --warning: var(--st-warning-fg);
+  --warning-bg: var(--st-warning-bg);
+  --danger: var(--st-danger-fg);
+  --danger-bg: var(--st-danger-bg);
+  --info: var(--app-info-text);
+  --info-bg: var(--app-info-soft);
+}
+
+/* Panel body: Poppins + tabular nums (auth pages keep their own CSS) */
+body {
+  font-family: var(--font-app);
+  font-variant-numeric: tabular-nums;
+  background: var(--app-canvas);
+  color: var(--app-text);
+}
+
+.mono,
+.text-mono,
+.font-mono,
+.kpi-val,
+[data-num] {
+  font-family: var(--font-app) !important;
+  font-variant-numeric: tabular-nums;
+}

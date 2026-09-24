@@ -114,7 +114,7 @@ export const ProductMasterHeader: React.FC<Props> = ({
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
-          style={{ color: "#8B5CF6" }}
+          style={{ color: "#9B51E0" }}
         >
           <polygon points="12 2 2 7 12 12 22 7 12 2" />
           <polyline points="2 17 12 22 22 17" />
@@ -123,7 +123,7 @@ export const ProductMasterHeader: React.FC<Props> = ({
         <span
           style={{
             fontWeight: 600,
-            background: "linear-gradient(135deg, #8B5CF6, #EC4899)",
+            background: "linear-gradient(135deg, #9B51E0, #EC4899)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent",
           }}

@@ -13,7 +13,7 @@
   --t1: #121217;
   --t2: #5E5E6E;
   --t3: #8E8E9A;
-  --ac: #6C3AED;
+  --ac: #9B51E0;
   --al: #EDE9FE;
   --ah: #5B2BD4;
   --ap: #F5F3FF;
@@ -53,7 +53,7 @@
 }
 
 body {
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-app), 'Poppins', sans-serif;
   background: var(--bg);
   color: var(--t1);
   min-height: 100vh;
@@ -115,7 +115,7 @@ button {
 
 .nav-i.act {
   color: #fff;
-  background: rgba(108, 58, 237, 0.15);
+  background: rgba(155, 81, 224, 0.15);
   border-left-color: var(--ac);
 }
 
@@ -471,7 +471,7 @@ button {
 
 .tl-num {
   font-size: 10px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 500;
   color: var(--t3);
   margin-top: 6px;
@@ -516,7 +516,7 @@ button {
 
 .stop-dt {
   font-size: 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 400;
   color: var(--t3);
   display: flex;
@@ -656,7 +656,7 @@ button {
 }
 
 .chip b {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-size: 11px;
   font-weight: 600;
   color: var(--t1);
@@ -665,7 +665,7 @@ button {
 .order-link {
   margin-top: 4px;
   font-size: 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 500;
   color: var(--ac);
 }
@@ -854,7 +854,7 @@ button {
 .oc-cust-total {
   margin-left: auto;
   font-size: 12px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--t1);
 }
@@ -879,7 +879,7 @@ button {
 
 .oi-id {
   font-size: 13px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--ac);
   margin-bottom: 3px;
@@ -908,7 +908,7 @@ button {
 
 .oi-wt {
   font-size: 13px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 600;
   color: var(--t1);
   white-space: nowrap;
@@ -996,7 +996,7 @@ button {
 
 .btn-p:hover {
   background: var(--ah);
-  box-shadow: 0 4px 16px rgba(108, 58, 237, 0.35);
+  box-shadow: 0 4px 16px rgba(155, 81, 224, 0.35);
   transform: translateY(-1px);
 }
 

@@ -96,8 +96,9 @@
 .ptn-kpi-val {
   font-size: 21px;
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   line-height: 1;
+  color: var(--app-text, var(--text-primary));
 }
 .ptn-kpi-lbl {
   font-size: 10px;
@@ -316,7 +317,7 @@
   border-radius: 10px;
 }
 .ptn-cat-node.active .cnt {
-  background: rgba(108, 58, 237, .14);
+  background: rgba(155, 81, 224, .14);
   color: var(--accent);
 }
 
@@ -347,7 +348,7 @@
   padding: 0 6px;
   border-radius: 8px;
 }
-.ptn-type-node.active .cnt { color: var(--accent); background: rgba(108, 58, 237, .12); }
+.ptn-type-node.active .cnt { color: var(--accent); background: rgba(155, 81, 224, .12); }
 
 /* ─────────────────────────────
    CENTER: Partner List
@@ -441,7 +442,7 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
 .ptn-tp-f {
   background: var(--accent-light);
   color: var(--accent);
-  border: 1px solid rgba(108, 58, 237, .2);
+  border: 1px solid rgba(155, 81, 224, .2);
 }
 .ptn-tp-s {
   background: var(--success-bg, #ECFDF5);
@@ -476,14 +477,14 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
 }
 
 /* Metric cells */
-.ptn-ki { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; }
+.ptn-ki { font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums; font-size: 12px; font-weight: 600; }
 .ptn-ki-g { color: var(--success); }
 .ptn-ki-w { color: var(--warning); }
 .ptn-ki-b { color: var(--danger); }
 .ptn-ki-n { color: var(--text-secondary); }
 
 .ptn-contact-cell { font-size: 11px; color: var(--text-secondary); line-height: 1.5; }
-.ptn-ts { font-size: 11px; color: var(--text-tertiary); font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+.ptn-ts { font-size: 11px; color: var(--text-tertiary); font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 /* Expanded row (inline preview) */
 .ptn-expanded-row { background: var(--surface-alt); border-bottom: 1px solid var(--border); }
@@ -706,7 +707,7 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
 .ptn-sc .sv {
   font-size: 18px;
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 .ptn-sc .ptn-sl { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
@@ -724,7 +725,7 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
 .ptn-sc-noborder .sv {
   font-size: 18px;
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 .ptn-sc-noborder .ptn-sl {
@@ -796,7 +797,7 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
   margin-top: 10px;
   padding: 8px 10px;
   background: var(--accent-pale);
-  border: 1px solid rgba(108, 58, 237, .15);
+  border: 1px solid rgba(155, 81, 224, .15);
   border-radius: 6px;
   font-size: 11px;
   color: var(--text-secondary);
@@ -1169,7 +1170,7 @@ table.ptn-table { width: 100%; border-collapse: collapse; }
   text-align: center;
 }
 .ptn-awaiting-title {
-  color: #7C3AED;
+  color: #9B51E0;
   font-weight: 700;
   font-size: 13px;
   margin-bottom: 6px;

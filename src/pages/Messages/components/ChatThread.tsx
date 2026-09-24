@@ -192,7 +192,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
       <div className="msg-area" ref={msgAreaRef} onScroll={handleScroll}>
         {messages.length === 0 && !isTyping && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '40px 20px', textAlign: 'center', color: 'var(--t3, #8E8E9A)' }}>
-            <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, color: '#6C3AED' }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, color: '#9B51E0' }}>
               <Info size={24} />
             </div>
             <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--t1, #121217)', marginBottom: 4 }}>
@@ -282,8 +282,8 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                 className="msg-av"
                 style={{
                   background: isSent
-                    ? 'linear-gradient(135deg, #1e1b4b, #312e81)'
-                    : 'linear-gradient(135deg, #6C3AED, #8B5CF6)',
+                    ? 'var(--mv-navy)'
+                    : 'var(--mv-purple)',
                 }}
               >
                 {isSent ? (
@@ -389,7 +389,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
           <div className="typing-indicator">
             <div
               className="msg-av"
-              style={{ background: 'linear-gradient(135deg, #6C3AED, #8B5CF6)' }}
+              style={{ background: 'var(--mv-purple)' }}
             >
               {conversation.initials || extractInitials(conversation.name)}
             </div>

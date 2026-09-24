@@ -3,6 +3,8 @@ import { AppProvider } from "./context/AppContext.tsx";
 import { AuthProvider } from "./context/AuthContext.tsx";
 import { LoaderProvider } from "./context/LoaderContext.tsx";
 import { ThemeProvider } from "./context/ThemeContext.tsx";
+import "./styles/mv-app-tokens.css";
+import "./styles/mv-token-bridge.css";
 import "./styles/app.css";
 import "./styles/globals.css";
 import "./index.css";

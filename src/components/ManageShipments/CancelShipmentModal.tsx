@@ -267,7 +267,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
                   <span className="text-[11px] text-slate-500 dark:text-slate-400">
                     {t('cancelNotesHelp', 'Explain what happened to help us improve our service')}
                   </span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">{notes.length}/100</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">{notes.length}/100</span>
                 </div>
               </div>
 

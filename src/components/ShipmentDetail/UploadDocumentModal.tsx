@@ -263,7 +263,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                       <span>{formatFileSize(file.size)}</span>
                       <span>·</span>
-                      <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-0.5">
+                      <span className="text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)] font-medium flex items-center gap-0.5">
                         <CheckCircle size={10} /> {t('readyToUpload', 'Ready')}
                       </span>
                     </div>
@@ -295,7 +295,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting || !file}
-              className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm border-0"
+              className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-[#9B51E0] hover:bg-[#4E5CDC] transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-sm border-0"
             >
               {isSubmitting ? (
                 <>

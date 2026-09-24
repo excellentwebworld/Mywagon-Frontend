@@ -40,7 +40,7 @@ export const ShipmentContextPane: React.FC<ShipmentContextPaneProps> = ({
     return (
       <div className="ctx-pane">
         <div className="ctx-pane-head">
-          <FileText size={16} style={{ color: 'var(--ac, #6C3AED)' }} />
+          <FileText size={16} style={{ color: 'var(--ac, #9B51E0)' }} />
           <h3>{t('chatModule.ctxPaneTitle')}</h3>
           <button type="button" className="ctx-pane-close" onClick={onClose}>
             <X size={14} />
@@ -58,7 +58,7 @@ export const ShipmentContextPane: React.FC<ShipmentContextPaneProps> = ({
   return (
     <div className="ctx-pane" id="ctxPane">
       <div className="ctx-pane-head">
-        <FileText size={16} style={{ color: 'var(--ac, #6C3AED)' }} />
+        <FileText size={16} style={{ color: 'var(--ac, #9B51E0)' }} />
         <h3>{t('chatModule.ctxPaneTitle')}</h3>
         <button type="button" className="ctx-pane-close" onClick={onClose}>
           <X size={14} />

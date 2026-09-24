@@ -133,7 +133,7 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
             </div>
             <div className="flex items-center gap-2 mt-2 flex-wrap">
               {lane.isRoundTrip && <Badge bg="#DBEAFE" fg="#2563EB">{t('priceLists.badge.roundTrip', 'RT')}</Badge>}
-              {lane.stops.length > 2 && <Badge bg="#EDE9FE" fg="#7C3AED">{t('priceLists.badge.multiStop', 'Multi')}</Badge>}
+              {lane.stops.length > 2 && <Badge bg="#EDE9FE" fg="#9B51E0">{t('priceLists.badge.multiStop', 'Multi')}</Badge>}
               <Badge bg={({ active: '#D1FAE5', inactive: '#F3F4F6', archived: '#FEF3C7' })[lane.status]}
                      fg={({ active: '#059669', inactive: '#6B7280', archived: '#92400E' })[lane.status]}>
                 {t(`priceLists.status.${lane.status}`, lane.status)}
@@ -161,8 +161,8 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
           </button>
         </div>
         <div className="flex items-center gap-4 mt-3">
-          <span style={{ fontSize: 10, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>{lane.id}</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: T.t1, fontFamily: "'JetBrains Mono', monospace" }}>{lane.totalKm.toLocaleString()} km</span>
+          <span style={{ fontSize: 10, color: T.t3, fontFamily: "var(--font-app), Poppins, sans-serif" }}>{lane.id}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: T.t1, fontFamily: "var(--font-app), Poppins, sans-serif" }}>{lane.totalKm.toLocaleString()} km</span>
           <span style={{ fontSize: 11, color: T.t3 }}>
             {formatDisplayDate(lane.effectiveFrom?.slice(0, 10) || '')}
             {lane.effectiveTo
@@ -223,7 +223,7 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
                   <td style={{ padding: '4px 0', color: T.t1 }}>{cityLabel(leg.from, lang)}</td>
                   <td style={{ padding: '4px 4px', color: T.t3 }}><ArrowRight size={12} /></td>
                   <td style={{ padding: '4px 0', color: T.t1 }}>{cityLabel(leg.to, lang)}</td>
-                  <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t1 }}>
+                  <td style={{ textAlign: 'right', fontFamily: "var(--font-app), Poppins, sans-serif", color: T.t1 }}>
                     {leg.km ? leg.km.toLocaleString() : '—'}
                   </td>
                 </tr>
@@ -232,7 +232,7 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
             <tfoot>
               <tr style={{ borderTop: `1px solid ${T.bd}`, fontWeight: 700 }}>
                 <td colSpan={3} style={{ padding: '6px 0', color: T.t1 }}>{t('common.total', 'Total')}</td>
-                <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", color: T.t1, padding: '6px 0' }}>
+                <td style={{ textAlign: 'right', fontFamily: "var(--font-app), Poppins, sans-serif", color: T.t1, padding: '6px 0' }}>
                   {lane.totalKm.toLocaleString()}
                 </td>
               </tr>
@@ -278,7 +278,7 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
               <div className="flex items-center justify-between" style={{ padding: '6px 0' }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: T.t1 }}>{t('priceLists.profitability.netMargin', 'Net margin')}</span>
                 <div className="flex items-center gap-2">
-                  <span style={{ fontSize: 14, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: marginColor(profitability.marginPct) }}>
+                  <span style={{ fontSize: 14, fontWeight: 800, fontFamily: "var(--font-app), Poppins, sans-serif", color: marginColor(profitability.marginPct) }}>
                     €{profitability.margin.toFixed(2)}
                   </span>
                   <span style={{
@@ -306,7 +306,7 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
                 <div className="flex items-center justify-between" style={{ padding: '4px 0' }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: T.t1 }}>{t('priceLists.marginAnalysis.grossMargin', 'Gross margin')}</span>
                   <div className="flex items-center gap-2">
-                    <span style={{ fontSize: 14, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: marginColor(marginPair.pct) }}>
+                    <span style={{ fontSize: 14, fontWeight: 800, fontFamily: "var(--font-app), Poppins, sans-serif", color: marginColor(marginPair.pct) }}>
                       €{marginPair.gross.toFixed(2)}
                     </span>
                     <span style={{
@@ -350,7 +350,7 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
             <div className="space-y-2">
               {laneHistory.map((entry) => (
                 <div key={entry.id} className="flex gap-2" style={{ fontSize: 11 }}>
-                  <span style={{ fontSize: 10, color: T.t3, fontFamily: "'JetBrains Mono', monospace", minWidth: 110, whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 10, color: T.t3, fontFamily: "var(--font-app), Poppins, sans-serif", minWidth: 110, whiteSpace: 'nowrap' }}>
                     {formatIsoDisplayDateTime(entry.ts)}
                   </span>
                   <span className="min-w-0">
@@ -401,7 +401,7 @@ function Section({ title, sectionKey, open, onToggle, T, children, count = null 
         <span style={{ fontSize: 12, fontWeight: 600, color: T.t1 }}>{title}</span>
         <span className="flex items-center gap-2 shrink-0">
           {count != null && (
-            <span style={{ fontSize: 11, fontWeight: 600, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: T.t3, fontFamily: "var(--font-app), Poppins, sans-serif" }}>
               ({count})
             </span>
           )}
@@ -420,7 +420,7 @@ function PriceLine({ T, label, value, sub, muted, bold }) {
       <div className="text-right">
         <span style={{
           fontSize: 12, fontWeight: bold ? 700 : 600,
-          fontFamily: "'JetBrains Mono', monospace",
+          fontFamily: "var(--font-app), Poppins, sans-serif",
           color: muted ? T.t3 : T.t1,
           fontStyle: muted ? 'italic' : 'normal',
         }}>

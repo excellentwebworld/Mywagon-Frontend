@@ -27,6 +27,7 @@ import {
   DATA_FLOW_HEALTH, SYNC_STATS, INTEGRATION_USAGE,
 } from '../../../mocks/toolsData';
 import { erpIntegrationService } from '../../../api/services/erpIntegrationService';
+import { MvButton, RecordStatusBadge, Tag } from '../../../components/ui/mv';
 import BusinessCentralConnectPanel from './BusinessCentralConnectPanel';
 
 const TABS = [
@@ -237,18 +238,32 @@ function DirectoryTab({ T, t, tUp, toast, search, setSearch, catFilter, setCatFi
 
 
 /* ── ConnectorCard — with description, data types, expandable details ── */
+function connectorStatusTone(status) {
+  switch (status) {
+    case 'connected':
+      return 'success';
+    case 'error':
+      return 'warning';
+    case 'syncing':
+      return 'info';
+    case 'coming_soon':
+      return 'neutral';
+    default:
+      return 'neutral';
+  }
+}
+
 function ConnectorCard({ connector: c, T, t, toast, expanded, onToggle, onCatalogChanged }) {
   const isBc = c.id === 'business_central';
   const isActive = ['connected', 'error', 'syncing'].includes(c.status);
   const statusConfig = {
-    connected: { color: '#10B981', bg: '#ECFDF5', darkBg: '#064E3B', label: t('integrations.status.connected'), Icon: CheckCircle },
-    error: { color: '#F59E0B', bg: '#FFFBEB', darkBg: '#78350F', label: t('integrations.status.error'), Icon: AlertTriangle },
-    syncing: { color: '#3B82F6', bg: '#EFF6FF', darkBg: '#1E3A5F', label: t('integrations.status.syncing'), Icon: RefreshCw },
-    not_connected: { color: '#9CA3AF', bg: T.sa, darkBg: T.sa, label: t('integrations.status.notConnected'), Icon: null },
-    coming_soon: { color: '#9CA3AF', bg: T.sa, darkBg: T.sa, label: t('integrations.comingSoon'), Icon: Clock },
+    connected: { label: t('integrations.status.connected') },
+    error: { label: t('integrations.status.error') },
+    syncing: { label: t('integrations.status.syncing') },
+    not_connected: { label: t('integrations.status.notConnected') },
+    coming_soon: { label: t('integrations.comingSoon') },
   };
   const cfg = statusConfig[c.status] || statusConfig.not_connected;
-  const StatusIcon = cfg.Icon;
 
   const syncDirLabel = { inbound: t('integrations.syncDir.inbound'), outbound: t('integrations.syncDir.outbound'), bidirectional: t('integrations.syncDir.bidirectional') };
   const syncDirIcon = { inbound: ArrowDownRight, outbound: ArrowUpRight, bidirectional: ArrowLeftRight };
@@ -272,15 +287,14 @@ function ConnectorCard({ connector: c, T, t, toast, expanded, onToggle, onCatalo
             <div className="flex items-center gap-1.5 mb-0.5">
               <span className="font-bold truncate" style={{ fontSize: 14, color: T.t1 }}>{c.name}</span>
               {c.region === 'GR' && <span style={{ fontSize: 12 }}>🇬🇷</span>}
-              {c.featured && <span className="px-1.5 py-0.5 rounded" style={{ fontSize: 8, fontWeight: 700, background: T.al, color: T.ac }}>{t('integrations.featured')}</span>}
+              {c.featured && <Tag variant="brand">{t('integrations.featured')}</Tag>}
             </div>
             {/* Status badge */}
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ fontSize: 10, fontWeight: 600, background: cfg.bg, color: cfg.color }}>
-                {StatusIcon && <StatusIcon size={10} />}
-                {cfg.label}
-                {c.errorCount > 0 && ` (${c.errorCount})`}
-              </span>
+              <RecordStatusBadge
+                status={`${cfg.label}${c.errorCount > 0 ? ` (${c.errorCount})` : ''}`}
+                tone={connectorStatusTone(c.status)}
+              />
               {isActive && SyncIcon && (
                 <span className="inline-flex items-center gap-1" style={{ fontSize: 10, color: T.t3 }}>
                   <SyncIcon size={10} />
@@ -291,11 +305,14 @@ function ConnectorCard({ connector: c, T, t, toast, expanded, onToggle, onCatalo
           </div>
           {/* Action */}
           {c.status === 'not_connected' && (
-            <button onClick={(e) => { e.stopPropagation(); if (isBc) onToggle(); else toast.info(t('integrations.connectMock')); }}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold shrink-0 transition-transform duration-200 hover:-translate-y-px"
-              style={{ background: T.ac, color: '#fff', fontSize: 12 }}>
+            <MvButton
+              type="button"
+              variant="primary"
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); if (isBc) onToggle(); else toast.info(t('integrations.connectMock')); }}
+            >
               {t('integrations.connect')}
-            </button>
+            </MvButton>
           )}
           {isActive && (
             <button onClick={(e) => { e.stopPropagation(); onToggle(); }}
@@ -390,7 +407,7 @@ function ApiTab({ T, t, tUp, toast }) {
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <code style={{ fontSize: 11, color: T.t3, fontFamily: 'monospace' }}>{showKey === key.id ? 'mv_live_a8f3k2h9w5p1' : key.prefix}</code>
+                    <code style={{ fontSize: 11, color: T.t3, fontFamily: "var(--font-app), Poppins, sans-serif", fontVariantNumeric: 'tabular-nums' }}>{showKey === key.id ? 'mv_live_a8f3k2h9w5p1' : key.prefix}</code>
                     <button onClick={() => setShowKey(showKey === key.id ? null : key.id)}
                       className="cursor-pointer border-none bg-transparent p-0.5">
                       {showKey === key.id ? <EyeOff size={11} style={{ color: T.t3 }} /> : <Eye size={11} style={{ color: T.t3 }} />}
@@ -446,7 +463,7 @@ function ApiTab({ T, t, tUp, toast }) {
                       </span>
                     )}
                   </div>
-                  <div className="truncate" style={{ fontSize: 11, color: T.t3, fontFamily: 'monospace' }}>{wh.url}</div>
+                  <div className="truncate" style={{ fontSize: 11, color: T.t3, fontFamily: "var(--font-app), Poppins, sans-serif", fontVariantNumeric: 'tabular-nums' }}>{wh.url}</div>
                   <div className="flex items-center gap-4 mt-1.5">
                     <span style={{ fontSize: 11, color: T.t3 }}>{wh.events} {t('integrations.webhooks.events')}</span>
                     <span style={{ fontSize: 11, color: T.t3 }}>{t('integrations.webhooks.successRateLabel')}: <strong style={{ fontWeight: 600, color: isFailing ? '#EF4444' : '#10B981' }}>{wh.successRate}%</strong></span>
@@ -473,7 +490,7 @@ function ApiTab({ T, t, tUp, toast }) {
         <div>
           <div className="font-bold mb-1" style={{ fontSize: 14, color: T.ac }}>{t('integrations.api.docsTitle')}</div>
           <div style={{ fontSize: 12, color: T.t2, marginBottom: 4 }}>
-            Base URL: <code className="px-1.5 py-0.5 rounded" style={{ fontFamily: 'monospace', background: T.sf, fontSize: 11 }}>https://api.myvagon.com/v1</code>
+            Base URL: <code className="px-1.5 py-0.5 rounded" style={{ fontFamily: "var(--font-app), Poppins, sans-serif", fontVariantNumeric: 'tabular-nums', background: T.sf, fontSize: 11 }}>https://api.myvagon.com/v1</code>
           </div>
           <div style={{ fontSize: 11, color: T.t3 }}>{t('integrations.api.rateLimits')}</div>
         </div>

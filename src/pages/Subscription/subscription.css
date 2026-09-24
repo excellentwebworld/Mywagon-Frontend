@@ -10,7 +10,7 @@
 .subscription-page {
   --sub-navy: var(--brand-navy, #1a1040);
   --sub-purple: var(--accent, #9b51e0);
-  --sub-purple-lt: var(--accent-hover, #8b5cf6);
+  --sub-purple-lt: var(--accent-hover, #9B51E0);
   --sub-gold: var(--warning, #f59e0b);
   --sub-green: var(--success, #10b981);
   --sub-surface-alt: var(--surface-alt, #f8f7fc);
@@ -139,7 +139,7 @@
   box-shadow: var(--shadow-accent, 0 2px 8px rgba(155, 81, 224, 0.25));
 }
 .subscription-page .sub-btn-p:hover {
-  background: var(--accent-hover, #7c3aed);
+  background: var(--accent-hover, #9B51E0);
   transform: translateY(-1px);
   box-shadow: var(--shadow-accent-hover, 0 4px 16px rgba(155, 81, 224, 0.35));
   color: #fff;
@@ -184,7 +184,7 @@
   justify-content: center;
   flex-shrink: 0;
 }
-.subscription-page .ps-icon--purple { background: #f3e8ff; color: #7c3aed; }
+.subscription-page .ps-icon--purple { background: #f3e8ff; color: #9B51E0; }
 .subscription-page .ps-icon--blue { background: #eff6ff; color: #2563eb; }
 .subscription-page .ps-icon--amber { background: #fffbeb; color: #d97706; }
 .subscription-page .ps-icon--green { background: #ecfdf5; color: #059669; }
@@ -199,7 +199,7 @@
 .subscription-page .ps-value {
   font-size: 18px;
   font-weight: 700;
-  font-family: 'Plus Jakarta Sans', 'DM Sans', sans-serif;
+  font-family: var(--font-app), Poppins, sans-serif;
   letter-spacing: -0.3px;
   color: var(--text-primary, #121217);
 }
@@ -242,7 +242,7 @@
 }
 .subscription-page .ps-badge.soon .dot { background: #f59e0b; }
 .subscription-page .ps-link {
-  color: var(--ac, #6c3aed);
+  color: var(--ac, #9B51E0);
   font-weight: 600;
   cursor: pointer;
   background: none;
@@ -305,7 +305,7 @@
   white-space: nowrap;
 }
 .subscription-page .cycle-btn:hover { color: var(--t2, #5e5e6e); }
-.subscription-page .cycle-btn.active { background: var(--sub-purple); color: #fff; }
+.subscription-page .cycle-btn.active { background: var(--mv-navy, #1F1F41); color: #fff; }
 .subscription-page .cycle-btn .save-tag {
   position: absolute;
   top: -8px;
@@ -380,7 +380,7 @@
 .subscription-page .usage-card.warn { border-color: #f59e0b; background: #fffdf5; }
 .subscription-page .usage-card.crit { border-color: #ef4444; background: #fef8f8; }
 .subscription-page .uc-vals {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
@@ -401,18 +401,18 @@
   margin-bottom: 6px;
 }
 .subscription-page .uc-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
-.subscription-page .uc-fill.ok { background: #10b981; }
+.subscription-page .uc-fill.ok { background: var(--mv-grad-purple-blue, linear-gradient(90deg, #9B51E0, #4E5CDC)); }
 .subscription-page .uc-fill.warn { background: #f59e0b; }
 .subscription-page .uc-fill.crit { background: #ef4444; }
 .subscription-page .uc-bottom { display: flex; justify-content: space-between; align-items: center; }
 .subscription-page .uc-pct { font-size: 10px; font-weight: 600; }
-.subscription-page .uc-pct.ok { color: #10b981; }
+.subscription-page .uc-pct.ok { color: var(--mv-purple, #9B51E0); }
 .subscription-page .uc-pct.warn { color: #f59e0b; }
 .subscription-page .uc-pct.crit { color: #ef4444; }
 .subscription-page .uc-action {
   font-size: 10px;
   font-weight: 600;
-  color: var(--ac, #6c3aed);
+  color: var(--ac, #9B51E0);
   cursor: pointer;
   padding: 2px 8px;
   border-radius: 4px;
@@ -420,7 +420,7 @@
   border: none;
   font-family: inherit;
 }
-.subscription-page .uc-action:hover { background: var(--ac, #6c3aed); color: #fff; }
+.subscription-page .uc-action:hover { background: var(--ac, #9B51E0); color: #fff; }
 
 .subscription-page .plans-section { padding-bottom: 10px; }
 .subscription-page .plans-header {
@@ -462,7 +462,7 @@
   box-shadow: 0 8px 32px rgba(155, 81, 224, 0.12);
 }
 .subscription-page .pcard.current {
-  border-color: var(--success, #10b981);
+  border-color: var(--mv-purple, #9B51E0);
   box-shadow: 0 8px 28px rgba(16, 185, 129, 0.12);
 }
 .subscription-page .pop-tag,
@@ -482,14 +482,14 @@
   z-index: 3;
 }
 .subscription-page .pop-tag { background: var(--sub-purple); }
-.subscription-page .cur-tag { background: #10b981; }
+.subscription-page .cur-tag { background: var(--mv-grad-purple-blue, linear-gradient(135deg, #9B51E0, #4E5CDC)); }
 .subscription-page .pcard-top { padding: 28px 22px 0; }
 .subscription-page .pcard.feat .pcard-top {
   background: linear-gradient(180deg, #faf8ff, #fff);
   border-radius: var(--sub-r) var(--sub-r) 0 0;
 }
 .subscription-page .pnm {
-  font-family: 'Plus Jakarta Sans', 'DM Sans', sans-serif;
+  font-family: var(--font-app), Poppins, sans-serif;
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.5px;
@@ -661,7 +661,7 @@
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--ac, #6c3aed);
+  color: var(--ac, #9B51E0);
   cursor: pointer;
   padding: 8px 0 16px;
   border: none;
@@ -705,14 +705,14 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--ac, #6c3aed);
+  color: var(--ac, #9B51E0);
   padding: 6px 16px;
 }
 .subscription-page .feat-table .check { color: #10b981; font-size: 14px; }
 .subscription-page .feat-table .dash { color: var(--t3, #8e8e9a); opacity: 0.4; }
 .subscription-page .feat-mono {
   font-weight: 600;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-size: 12px;
 }
 .subscription-page .feat-mono .infinity-sign {
@@ -791,8 +791,9 @@
   box-shadow: 0 4px 20px rgba(108, 60, 224, 0.06);
 }
 .subscription-page .ao-card.purchased {
-  border-color: #10b981;
-  background: linear-gradient(180deg, #f0fdf8, #fff);
+  border-color: transparent;
+  background: linear-gradient(var(--app-surface, #fff), var(--app-surface, #fff)) padding-box, var(--mv-grad-purple-blue) border-box;
+  border: 2px solid transparent;
   display: flex;
   flex-direction: column;
 }
@@ -810,7 +811,7 @@
   letter-spacing: -0.2px;
 }
 .subscription-page .ao-price {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-size: 14px;
   font-weight: 700;
   color: var(--sub-purple);
@@ -846,7 +847,7 @@
   flex-shrink: 0;
   padding: 0;
 }
-.subscription-page .ao-toggle.on { background: #10b981; border-color: #10b981; }
+.subscription-page .ao-toggle.on { background: var(--mv-purple, #9B51E0); border-color: var(--mv-purple, #9B51E0); }
 .subscription-page .ao-toggle .knob {
   position: absolute;
   top: 2px;
@@ -860,7 +861,7 @@
 }
 .subscription-page .ao-toggle.on .knob { left: 22px; }
 .subscription-page .ao-status { font-size: 11px; font-weight: 600; color: var(--t3, #8e8e9a); }
-.subscription-page .ao-status.active { color: #10b981; }
+.subscription-page .ao-status.active { color: var(--mv-purple, #9B51E0); }
 .subscription-page .ao-counter {
   display: flex;
   align-items: center;
@@ -881,11 +882,11 @@
   color: var(--t2, #5e5e6e);
   font-family: inherit;
 }
-.subscription-page .ao-counter button:hover { background: var(--al, #ede9fe); color: var(--ac, #6c3aed); }
+.subscription-page .ao-counter button:hover { background: var(--al, #ede9fe); color: var(--ac, #9B51E0); }
 .subscription-page .ao-counter .qty {
   width: 48px;
   text-align: center;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-size: 14px;
   font-weight: 600;
   border: none;
@@ -1028,7 +1029,7 @@
   text-decoration: none;
   transition: color 0.15s ease;
 }
-.subscription-page .b-field .b-link:hover { color: var(--accent-hover, #7c3aed); }
+.subscription-page .b-field .b-link:hover { color: var(--accent-hover, #9B51E0); }
 
 .sub-modal-overlay {
   position: fixed;
@@ -1106,7 +1107,7 @@
   font-size: 20px;
   font-weight: 700;
   font-family: 'Plus Jakarta Sans', sans-serif;
-  color: var(--ac, #6c3aed);
+  color: var(--ac, #9B51E0);
 }
 .sub-modal .mh-sub { font-size: 11px; color: var(--t3, #8e8e9a); margin-top: 4px; }
 
@@ -1179,7 +1180,7 @@
 .sub-modal .pb-autopay input {
   width: 16px;
   height: 16px;
-  accent-color: var(--ac, #6c3aed);
+  accent-color: var(--ac, #9B51E0);
   cursor: pointer;
 }
 
@@ -1208,7 +1209,7 @@
   color: var(--t2, #5e5e6e);
 }
 .sub-modal .sub-btn-p {
-  background: var(--ac, #6c3aed);
+  background: var(--ac, #9B51E0);
   color: #fff;
   border: none;
 }

@@ -18,12 +18,32 @@ import { useTranslation } from 'react-i18next';
 import type { Invoice, SubFilterKey, KpiFilterKey, BillingSummary } from '../types';
 import { formatCurrency, formatDate } from '../mockData';
 import { DatePicker } from '../../../components/ui/DatePicker';
+import { Money, MvButton, RecordStatusBadge, Tag } from '../../../components/ui/mv';
 import { BillingKpiSkeleton, BillingTableSkeleton } from './BillingSkeleton';
 import { BillingPagination } from './BillingPagination';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 
 const sk = { baseColor: '#f0f0f3', highlightColor: '#fafafe' };
+
+function invoiceStatusTone(status: string): 'success' | 'warning' | 'danger' | 'neutral' {
+  switch (status) {
+    case 'Paid':
+      return 'success';
+    case 'Overdue':
+      return 'danger';
+    case 'Unpaid':
+      return 'warning';
+    default:
+      return 'neutral';
+  }
+}
+
+function invoiceTypeVariant(type: string): 'outline' | 'brand' | 'navy' {
+  if (type === 'Subscription' || type === 'Add-on') return 'brand';
+  if (type === 'Penalty' || type === 'Commission with penalty') return 'navy';
+  return 'outline';
+}
 
 interface SaasFeesTabProps {
   invoices: Invoice[];
@@ -121,7 +141,7 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
       val: formatCurrency(summary?.paid_this_period_amount ?? 0, summary?.currency),
       sub: summary?.paid_this_period_label ?? '',
       key: 'paid' as const,
-      icon: <Check size={16} className="text-emerald-500" />,
+      icon: <Check size={16} className="text-[var(--mv-success)]" />,
     },
     {
       label: t('billingPage.kpiCredits', 'Credits Available'),
@@ -142,46 +162,18 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
     { key: 'Add-on', labelKey: 'billingPage.subAddon', defaultLabel: 'Add-on' },
   ];
 
-  const getTypeBadgeClass = (type: string) => {
-    switch (type) {
-      case 'Subscription':
-        return 'b-subscription';
-      case 'Commission':
-        return 'b-commission';
-      case 'Commission with penalty':
-      case 'Penalty':
-        return 'b-penalty';
-      case 'Add-on':
-        return 'b-addon';
-      default:
-        return 'b-credit';
-    }
-  };
-
-  const getStatusBadgeClass = (status: string) => {
-    switch (status) {
-      case 'Paid':
-        return 'b-paid';
-      case 'Overdue':
-        return 'b-overdue';
-      case 'Unpaid':
-        return 'b-unpaid';
-      default:
-        return 'b-draft';
-    }
-  };
-
   const renderInvoiceActions = (inv: Invoice) => (
     <div className={`flex gap-1 flex-wrap${compact ? ' wv-inv-actions' : ''}`}>
       {inv.can_pay_now && (
-        <button
+        <MvButton
           type="button"
-          className="b-btn b-btn-sm b-btn-primary"
+          variant="primary"
+          size="sm"
           disabled={payingId === inv.raw_id}
           onClick={() => onPayNow(inv)}
         >
           {t('billingPage.btnPayNow', 'Pay Now')}
-        </button>
+        </MvButton>
       )}
       {Boolean(inv.can_pay_wallet) &&
         (summary?.wallet_balance ?? 0) >= (inv.rem > 0 ? inv.rem : inv.tot) &&
@@ -350,9 +342,9 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
               direction="auto"
               placeholder={t('billingPage.toDate', 'To')}
             />
-            <button type="button" className="b-btn b-btn-primary billing-filter-apply" onClick={onApplyDateFilter}>
+            <MvButton type="button" variant="primary" size="sm" className="billing-filter-apply" onClick={onApplyDateFilter}>
               {t('billingPage.filter', 'Filter')}
-            </button>
+            </MvButton>
             {(kpiFilter || searchQuery || dateFrom || dateTo) && (
               <button
                 type="button"
@@ -414,10 +406,10 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
                         </div>
                       ) : null}
                     </div>
-                    <span className={`b-badge ${getStatusBadgeClass(inv.status)}`}>{inv.status}</span>
+                    <RecordStatusBadge status={inv.status} tone={invoiceStatusTone(inv.status)} />
                   </div>
                   <div className="wv-invoice-card__meta">
-                    <span className={`b-badge ${getTypeBadgeClass(inv.type)}`}>{inv.type}</span>
+                    <Tag variant={invoiceTypeVariant(inv.type)}>{inv.type}</Tag>
                     <span className="wv-invoice-card__date">
                       {t('billingPage.thDueDate', 'Due')} {formatDate(inv.dDate, i18n.language)}
                     </span>
@@ -425,12 +417,14 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
                   <div className="wv-invoice-card__amounts">
                     <div>
                       <span className="wv-invoice-card__label">{t('billingPage.thTotal', 'Total')}</span>
-                      <strong className="billing-mono">{formatCurrency(inv.tot, inv.cur)}</strong>
+                      <strong className="billing-mono">
+                        <Money value={inv.tot} currency={inv.cur} />
+                      </strong>
                     </div>
                     <div>
                       <span className="wv-invoice-card__label">{t('billingPage.thRemaining', 'Remaining')}</span>
-                      <strong className={`billing-mono ${inv.rem > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                        {formatCurrency(inv.rem, inv.cur)}
+                      <strong className="billing-mono">
+                        <Money value={inv.rem} currency={inv.cur} overdue={inv.rem > 0 && inv.status === 'Overdue'} />
                       </strong>
                     </div>
                   </div>
@@ -476,10 +470,10 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
                         )}
                       </td>
                       <td>
-                        <span className={`b-badge ${getTypeBadgeClass(inv.type)}`}>{inv.type}</span>
+                        <Tag variant={invoiceTypeVariant(inv.type)}>{inv.type}</Tag>
                       </td>
                       <td>
-                        <span className={`b-badge ${getStatusBadgeClass(inv.status)}`}>{inv.status}</span>
+                        <RecordStatusBadge status={inv.status} tone={invoiceStatusTone(inv.status)} />
                       </td>
                       <td className="text-gray-600 text-xs">{formatDate(inv.iDate, i18n.language)}</td>
                       <td className={`text-xs ${inv.status === 'Overdue' ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
@@ -487,10 +481,10 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
                       </td>
                       <td className="text-gray-400 text-xs">{formatDate(inv.pDate, i18n.language)}</td>
                       <td className="billing-mono font-semibold text-xs text-gray-900">
-                        {formatCurrency(inv.tot, inv.cur)}
+                        <Money value={inv.tot} currency={inv.cur} />
                       </td>
-                      <td className={`billing-mono font-semibold text-xs ${inv.rem > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                        {formatCurrency(inv.rem, inv.cur)}
+                      <td className="billing-mono font-semibold text-xs">
+                        <Money value={inv.rem} currency={inv.cur} overdue={inv.rem > 0 && inv.status === 'Overdue'} />
                       </td>
                       <td>
                         {inv.loads > 0 ? (

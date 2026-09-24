@@ -35,9 +35,9 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
     if (act.includes('accept')) {
       return {
         label: t('accepted', 'Accepted'),
-        dotBg: 'bg-[#10B981]',
-        badgeBg: 'bg-[#D1FAE5] dark:bg-emerald-950/60 text-[#065F46] dark:text-emerald-300 border-[#A7F3D0] dark:border-emerald-800/60',
-        icon: <Check size={12} className="text-[#065F46] dark:text-emerald-400" />,
+        dotBg: 'bg-[var(--mv-success)]',
+        badgeBg: 'bg-[#D1FAE5] dark:bg-[var(--st-success-bg)] text-[#065F46] dark:text-[var(--st-success-fg)] border-[#A7F3D0] dark:border-[var(--st-success-bg)]/60',
+        icon: <Check size={12} className="text-[#065F46] dark:text-[var(--st-success-fg)]" />,
       };
     }
     if (act.includes('reject') || act.includes('decline')) {
@@ -51,7 +51,7 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
     if (act.includes('interest')) {
       return {
         label: t('interestExpressed', 'Interest Expressed'),
-        dotBg: 'bg-[#8B5CF6]',
+        dotBg: 'bg-[#9B51E0]',
         badgeBg: 'bg-[#EDE9FE] dark:bg-purple-950/60 text-[#5B21B6] dark:text-purple-300 border-[#DDD6FE] dark:border-purple-800/60',
         icon: <Tag size={12} className="text-[#5B21B6] dark:text-purple-400" />,
       };
@@ -197,7 +197,7 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
                             {bid.initiatorName}
                           </span>
                           {(partner?.isPartner || (bid as any).isPartner) && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--mv-success-bg)] dark:bg-[var(--st-success-bg)] text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)] border border-[var(--mv-success-bg)] dark:border-[var(--st-success-bg)]">
                               <ShieldCheck size={11} />
                               <span>{t('partner', 'PARTNER')}</span>
                             </span>
@@ -210,7 +210,7 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
                       <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 block uppercase tracking-wider">
                         {t('initialBidPrice', 'Initial Bid')}
                       </span>
-                      <span className="font-bold font-mono text-[14px] text-purple-700 dark:text-purple-300">
+                      <span className="font-bold tabular-nums text-[14px] text-purple-700 dark:text-purple-300">
                         € {bid.price}
                       </span>
                     </div>
@@ -258,7 +258,7 @@ export const BidsHistoryModal: React.FC<BidsHistoryModalProps> = ({
                                 <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
                                   {t('amount', 'Amount')}:
                                 </span>
-                                <span className="px-2.5 py-0.5 rounded-md text-[13px] font-bold font-mono bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                                <span className="px-2.5 py-0.5 rounded-md text-[13px] font-bold tabular-nums bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                                   € {neg.price}
                                 </span>
                               </div>

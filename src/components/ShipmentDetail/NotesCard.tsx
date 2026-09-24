@@ -132,7 +132,7 @@ function NoteItem({
               type="button"
               onClick={() => void handleSaveEdit()}
               disabled={isBusy || !editBody.trim()}
-              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#9B51E0] hover:bg-[#883cd1] text-white cursor-pointer flex items-center gap-1 disabled:opacity-60"
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#9B51E0] hover:bg-[#4E5CDC] text-white cursor-pointer flex items-center gap-1 disabled:opacity-60"
             >
               {isUpdating ? <Loader2 size={11} className="animate-spin" /> : <Send size={11} />}
               <span>{t('save', 'Save')}</span>
@@ -172,7 +172,7 @@ function NoteItem({
           <div className="text-[11px] mt-1.5 flex items-center gap-2 flex-wrap text-slate-500 dark:text-slate-400">
             <span className="font-semibold text-slate-700 dark:text-slate-300">{note.author}</span>
             <span>·</span>
-            <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">
+            <span className="tabular-nums text-[10px] text-slate-500 dark:text-slate-400">
               {formatUtcToDisplayDateTime(note.timestamp)}
             </span>
             <span>·</span>
@@ -334,7 +334,7 @@ export const NotesCard: React.FC<NotesCardProps> = ({
                 <button
                   type="button"
                   onClick={handleSave}
-                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#9B51E0] hover:bg-[#883cd1] text-white cursor-pointer flex items-center gap-1"
+                  className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#9B51E0] hover:bg-[#4E5CDC] text-white cursor-pointer flex items-center gap-1"
                 >
                   <Send size={11} />
                   <span>{t('save', 'Save')}</span>

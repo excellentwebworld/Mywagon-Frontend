@@ -49,7 +49,7 @@ export default function PaginationBar({
         <div className="flex items-center gap-1">
           <PgBtn T={T} disabled={safePage <= 1} onClick={() => setPage(1)}>«</PgBtn>
           <PgBtn T={T} disabled={safePage <= 1} onClick={() => setPage((p) => p - 1)}>‹</PgBtn>
-          <span style={{ fontSize: 12, color: T.t1, fontWeight: 600, padding: '0 8px', fontFamily: "'JetBrains Mono', monospace" }}>
+          <span style={{ fontSize: 12, color: T.t1, fontWeight: 600, padding: '0 8px', fontFamily: "var(--font-app), Poppins, sans-serif", fontVariantNumeric: 'tabular-nums' }}>
             {safePage} / {totalPages}
           </span>
           <PgBtn T={T} disabled={safePage >= totalPages} onClick={() => setPage((p) => p + 1)}>›</PgBtn>

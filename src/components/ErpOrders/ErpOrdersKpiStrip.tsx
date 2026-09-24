@@ -13,7 +13,7 @@ type KpiConfig = {
 const KPI_CONFIG: KpiConfig[] = [
   { key: 'total', filter: '', labelKey: 'erpOrdersKpiTotal' },
   { key: 'unplanned', filter: 'unplanned', labelKey: 'erpOrdersKpiUnplanned', color: '#4338CA' },
-  { key: 'partially_planned', filter: 'partially_planned', labelKey: 'erpOrdersKpiPartiallyPlanned', color: '#7C3AED' },
+  { key: 'partially_planned', filter: 'partially_planned', labelKey: 'erpOrdersKpiPartiallyPlanned', color: '#9B51E0' },
   { key: 'planned', filter: 'planned', labelKey: 'erpOrdersKpiPlanned', color: '#1D4ED8' },
   { key: 'on_trip', filter: 'on_trip', labelKey: 'erpOrdersKpiOnTrip', color: '#B45309' },
   { key: 'completed', filter: 'completed', labelKey: 'erpOrdersKpiCompleted', color: '#047857' },
@@ -44,7 +44,7 @@ export const ErpOrdersKpiStrip: React.FC<Props> = ({ t, kpiCounts, kpiFilter, se
           onKeyDown={(e) => e.key === 'Enter' && selectKpi(filter)}
         >
           {showColor && <span className="erp-kpi-dot" style={{ background: color }} />}
-          <div className="erp-kpi-val" style={{ color: showColor ? color : undefined }}>
+          <div className="erp-kpi-val">
             {val}
           </div>
           <div className="erp-kpi-lbl">{t(labelKey)}</div>

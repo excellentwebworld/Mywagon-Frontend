@@ -165,10 +165,10 @@ export const OrderDetailDrawer: React.FC<Props> = ({
                             <tr key={line.id ?? i}>
                               <td style={{ fontWeight: 500 }}>{line.productName}</td>
                               <td className="sku">{line.sku || '—'}</td>
-                              <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
+                              <td style={{ textAlign: 'right', fontFamily: "var(--font-app), Poppins, sans-serif", fontWeight: 600 }}>
                                 {line.quantity ?? '—'} {line.unit || ''}
                               </td>
-                              <td style={{ textAlign: 'right', fontFamily: "'JetBrains Mono', monospace" }}>
+                              <td style={{ textAlign: 'right', fontFamily: "var(--font-app), Poppins, sans-serif" }}>
                                 {line.weight != null ? `${line.weight} ${line.weightUnit}` : '—'}
                               </td>
                             </tr>

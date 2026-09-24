@@ -167,7 +167,7 @@ const DocItem: React.FC<DocItemProps> = ({
 
               {doc.fileName && doc.fileName !== doc.name && (
                 <div
-                  className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate font-mono"
+                  className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate tabular-nums"
                   title={doc.fileName}
                 >
                   {doc.fileName}
@@ -263,7 +263,7 @@ const DocItem: React.FC<DocItemProps> = ({
             )}
             {doc.uploadedBy && uploadedAt && <span>·</span>}
             {uploadedAt && (
-              <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400 tracking-tight">
+              <span className="tabular-nums text-[10px] text-slate-500 dark:text-slate-400 tracking-tight">
                 {uploadedAt}
               </span>
             )}
@@ -306,7 +306,7 @@ export const DocumentsCard: React.FC<DocumentsCardProps> = ({
               e.stopPropagation();
               onUpload();
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#883cd1] active:scale-95 shadow-xs transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-bold text-white bg-[#9B51E0] hover:bg-[#4E5CDC] active:scale-95 shadow-xs transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
           >
             <Plus size={12} />
             <span>{t('upload', 'Upload')}</span>

@@ -124,10 +124,10 @@ export function resolveNotificationConfig(data: PushNotificationData): ToastConf
     case rawTarget.includes('address'):
       return {
         icon: FileText,
-        iconBg: 'bg-emerald-50 dark:bg-emerald-950/60',
-        iconColor: 'text-emerald-600 dark:text-emerald-400',
-        badgeBg: 'bg-emerald-50 dark:bg-emerald-950/50',
-        badgeColor: 'text-emerald-700 dark:text-emerald-300',
+        iconBg: 'bg-[var(--mv-success-bg)] dark:bg-[var(--st-success-bg)]',
+        iconColor: 'text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]',
+        badgeBg: 'bg-[var(--mv-success-bg)] dark:bg-emerald-950/50',
+        badgeColor: 'text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]',
         categoryName: 'Address Book',
         actionLabel: 'Address Book',
         route: '/address-book',
@@ -148,10 +148,10 @@ export function resolveNotificationConfig(data: PushNotificationData): ToastConf
     case rawTarget.includes('partner'):
       return {
         icon: Users,
-        iconBg: 'bg-emerald-50 dark:bg-emerald-950/60',
-        iconColor: 'text-emerald-600 dark:text-emerald-400',
-        badgeBg: 'bg-emerald-50 dark:bg-emerald-950/50',
-        badgeColor: 'text-emerald-700 dark:text-emerald-300',
+        iconBg: 'bg-[var(--mv-success-bg)] dark:bg-[var(--st-success-bg)]',
+        iconColor: 'text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]',
+        badgeBg: 'bg-[var(--mv-success-bg)] dark:bg-emerald-950/50',
+        badgeColor: 'text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]',
         categoryName: 'Partners',
         actionLabel: 'View Partners',
         route: '/partners',
@@ -404,7 +404,7 @@ export const RealtimeNotificationToast: React.FC<RealtimeNotificationToastProps>
                 {config.categoryName}
               </span>
               <span className="flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--mv-success-bg)]0 animate-pulse" />
                 Just now
               </span>
             </div>

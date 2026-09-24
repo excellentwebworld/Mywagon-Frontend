@@ -352,16 +352,8 @@ export const Header: React.FC<HeaderProps> = ({
         aria-label={t('vagonai.title') || 'Vagon AI'}
         className="mv-topbar-ai"
         style={{
-          background: `linear-gradient(135deg, ${T.grad1}, ${T.grad2})`,
-          boxShadow: `0 2px 8px ${T.ac}33`,
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-1px)';
-          e.currentTarget.style.boxShadow = `0 4px 14px ${T.ac}44`;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = `0 2px 8px ${T.ac}33`;
+          background: 'var(--mv-grad-purple-blue)',
+          boxShadow: 'var(--sh-purple)',
         }}
       >
         <Sparkles size={14} />
@@ -724,16 +716,8 @@ export const Header: React.FC<HeaderProps> = ({
           aria-label={t('createShipment')}
           className="mv-topbar-cta"
           style={{
-            background: T.ac,
-            boxShadow: `0 2px 8px ${T.ac}40`,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow = `0 4px 14px ${T.ac}55`;
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = `0 2px 8px ${T.ac}40`;
+            background: 'var(--mv-grad-purple-blue)',
+            boxShadow: 'var(--sh-purple)',
           }}
         >
           <Plus size={16} className="mv-topbar-cta-icon" />

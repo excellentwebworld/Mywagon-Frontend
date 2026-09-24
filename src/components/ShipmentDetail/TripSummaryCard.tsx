@@ -26,7 +26,7 @@ export const TripSummaryCard: React.FC<TripSummaryCardProps> = ({
     >
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-center">
         <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-          <div className="text-[18px] font-bold font-mono text-slate-900 dark:text-white">
+          <div className="text-[18px] font-bold tabular-nums text-slate-900 dark:text-white">
             {trip.distanceKm}{' '}
             <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
               km
@@ -38,7 +38,7 @@ export const TripSummaryCard: React.FC<TripSummaryCardProps> = ({
         </div>
 
         <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-          <div className="text-[18px] font-bold font-mono text-slate-900 dark:text-white">
+          <div className="text-[18px] font-bold tabular-nums text-slate-900 dark:text-white">
             {trip.duration}
           </div>
           <div className="text-[10px] font-semibold uppercase mt-0.5 text-slate-500 dark:text-slate-400">
@@ -47,7 +47,7 @@ export const TripSummaryCard: React.FC<TripSummaryCardProps> = ({
         </div>
 
         <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-          <div className="text-[18px] font-bold font-mono text-slate-900 dark:text-white">
+          <div className="text-[18px] font-bold tabular-nums text-slate-900 dark:text-white">
             {trip.stops}
           </div>
           <div className="text-[10px] font-semibold uppercase mt-0.5 text-slate-500 dark:text-slate-400">
@@ -56,7 +56,7 @@ export const TripSummaryCard: React.FC<TripSummaryCardProps> = ({
         </div>
 
         <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-          <div className="text-[18px] font-bold font-mono text-slate-900 dark:text-white">
+          <div className="text-[18px] font-bold tabular-nums text-slate-900 dark:text-white">
             {trip.weight}
           </div>
           <div className="text-[10px] font-semibold uppercase mt-0.5 text-slate-500 dark:text-slate-400">
@@ -65,7 +65,7 @@ export const TripSummaryCard: React.FC<TripSummaryCardProps> = ({
         </div>
 
         <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-          <div className="text-[18px] font-bold font-mono text-slate-900 dark:text-white">
+          <div className="text-[18px] font-bold tabular-nums text-slate-900 dark:text-white">
             {trip.customers}
           </div>
           <div className="text-[10px] font-semibold uppercase mt-0.5 text-slate-500 dark:text-slate-400">
@@ -74,7 +74,7 @@ export const TripSummaryCard: React.FC<TripSummaryCardProps> = ({
         </div>
 
         <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
-          <div className="text-[18px] font-bold font-mono text-slate-900 dark:text-white">
+          <div className="text-[18px] font-bold tabular-nums text-slate-900 dark:text-white">
             {trip.orders}
           </div>
           <div className="text-[10px] font-semibold uppercase mt-0.5 text-slate-500 dark:text-slate-400">

@@ -35,7 +35,7 @@ export const TUTORIAL_MODULES: TutorialModuleConfig[] = [
     titleKey: 'tutorials.module.dashboard.title',
     descriptionKey: 'tutorials.module.dashboard.description',
     icon: 'dashboard',
-    color: '#6C3AED',
+    color: '#9B51E0',
     bg: '#F5F3FF',
   },
   {
@@ -85,7 +85,7 @@ export const TUTORIAL_MODULES: TutorialModuleConfig[] = [
     titleKey: 'tutorials.module.partners.title',
     descriptionKey: 'tutorials.module.partners.description',
     icon: 'partners',
-    color: '#7C3AED',
+    color: '#9B51E0',
     bg: '#F5F3FF',
   },
   {
@@ -125,7 +125,7 @@ export const TUTORIAL_MODULES: TutorialModuleConfig[] = [
     titleKey: 'tutorials.module.userManagement.title',
     descriptionKey: 'tutorials.module.userManagement.description',
     icon: 'user-management',
-    color: '#8B5CF6',
+    color: '#9B51E0',
     bg: '#F5F3FF',
   },
 ];

@@ -20,7 +20,7 @@ import { ApiError } from '../../../api/client';
 import { useAuth } from '../../../context/AuthContext';
 import { canManageShipperUsers } from '../../../utils/shipperAccessPresets';
 
-const COLORS = ['#7C3AED', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#EC4899', '#8B5CF6'];
+const COLORS = ['#9B51E0', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#EC4899', '#9B51E0'];
 
 function FieldLabel({ children, T }) {
   return (

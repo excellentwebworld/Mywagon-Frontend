@@ -423,7 +423,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
 
                       <div className="flex items-center gap-2.5 flex-shrink-0">
                         {displayPrice && (
-                          <span className="px-2.5 py-1 rounded-lg text-[12px] font-bold font-mono bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs">
+                          <span className="px-2.5 py-1 rounded-lg text-[12px] font-bold tabular-nums bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800 shadow-2xs">
                             {displayPrice}
                           </span>
                         )}
@@ -475,7 +475,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                                     isReject
                                       ? 'bg-red-500'
                                       : isAccept
-                                      ? 'bg-emerald-500'
+                                      ? 'bg-[var(--mv-success-bg)]0'
                                       : isCounter
                                       ? 'bg-amber-500'
                                       : 'bg-indigo-500'
@@ -489,7 +489,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                                     isReject
                                       ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800'
                                       : isAccept
-                                      ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800'
+                                      ? 'bg-[var(--mv-success-bg)] dark:bg-emerald-950/40 border-[var(--mv-success-bg)] dark:border-[var(--st-success-bg)]'
                                       : isCounter
                                       ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
                                       : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
@@ -503,7 +503,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                                             isReject
                                               ? 'bg-red-100 dark:bg-red-900/60 text-red-700 dark:text-red-300'
                                               : isAccept
-                                              ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300'
+                                              ? 'bg-emerald-100 dark:bg-emerald-900/60 text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]'
                                               : isCounter
                                               ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300'
                                               : 'bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300'
@@ -540,11 +540,11 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
 
                                     {neg.price && (
                                       <div
-                                        className={`font-bold font-mono text-[14px] ${
+                                        className={`font-bold tabular-nums text-[14px] ${
                                           isReject
                                             ? 'text-red-600 dark:text-red-400'
                                             : isAccept
-                                            ? 'text-emerald-600 dark:text-emerald-400'
+                                            ? 'text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]'
                                             : 'text-purple-600 dark:text-purple-400'
                                         }`}
                                       >
@@ -582,7 +582,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                     key={evt.id}
                     className={`flex items-start gap-3 p-3 rounded-xl border shadow-2xs transition-all hover:border-slate-300 dark:hover:border-slate-700 ${b.rowBg || 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'}`}
                   >
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-mono min-w-[105px] flex-shrink-0 pt-0.5 font-semibold">
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 tabular-nums min-w-[105px] flex-shrink-0 pt-0.5 font-semibold">
                       <Clock size={12} className="text-slate-400 dark:text-slate-500" />
                       <span>{evt.date}</span>
                     </div>
@@ -629,7 +629,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                     className={`flex items-start gap-3 p-3 rounded-xl border shadow-2xs transition-all hover:border-slate-300 dark:hover:border-slate-700 ${b.rowBg || 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700'}`}
                   >
                     {/* Timestamp */}
-                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-mono min-w-[110px] flex-shrink-0 pt-0.5 font-semibold">
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 tabular-nums min-w-[110px] flex-shrink-0 pt-0.5 font-semibold">
                       <Clock size={12} className="text-slate-400 dark:text-slate-500" />
                       <span>{evt.date}</span>
                     </div>
@@ -659,7 +659,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                         </div>
 
                         {evt.priceBadge && (
-                          <span className="font-bold font-mono text-[13px] px-2.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                          <span className="font-bold tabular-nums text-[13px] px-2.5 py-0.5 rounded-md bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                             {evt.priceBadge}
                           </span>
                         )}

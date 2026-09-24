@@ -8,6 +8,7 @@ import {
   Check,
 } from 'lucide-react';
 import type { ShipmentDetailViewModel } from '../../pages/ShipmentDetail/detailViewModel';
+import { MvButton, Tag } from '../ui/mv';
 import { StatusBadge } from './StatusBadge';
 
 interface CommandHeaderProps {
@@ -120,7 +121,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
     <div className="mv-surface-card rounded-2xl px-5 py-4 mb-4 bg-[var(--surface)] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="flex-1 min-w-[260px]">
-          <div className="flex items-center gap-2 font-bold font-mono text-[19px] text-slate-900 dark:text-white leading-none">
+          <div className="flex items-center gap-2 font-bold tabular-nums text-[19px] text-slate-900 dark:text-white leading-none">
             <span>#{vm.displayId}</span>
             <button
               type="button"
@@ -129,7 +130,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
               aria-label="Copy ID"
               className="p-1.5 rounded-md text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-90 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
             >
-              {copied ? <Check size={15} className="text-emerald-500 animate-in zoom-in-50 duration-150" /> : <Copy size={15} />}
+              {copied ? <Check size={15} className="text-[var(--mv-success)] animate-in zoom-in-50 duration-150" /> : <Copy size={15} />}
             </button>
           </div>
 
@@ -155,12 +156,12 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
               interestedCount={vm.interestedCount}
             />
 
-            <span className="text-[10px] font-bold tracking-wider text-slate-500 dark:text-slate-400">
+            <Tag variant="outline">
               {(vm.loadSummary?.channel || (vm.isPrivateLoad ? 'PRIVATE' : 'PUBLIC')).toUpperCase()}
-            </span>
+            </Tag>
 
             {vm.primaryCustomer && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)] bg-[var(--mv-success-bg)] dark:bg-[var(--st-success-bg)] border border-[var(--mv-success-bg)] dark:border-[var(--st-success-bg)]">
                 <span>🏪</span> {vm.primaryCustomer}
               </span>
             )}
@@ -183,7 +184,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
               <span
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
                   vm.onTrack
-                    ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                    ? 'bg-[var(--mv-success-bg)] dark:bg-[var(--st-success-bg)] text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)] border border-[var(--mv-success-bg)] dark:border-[var(--st-success-bg)]'
                     : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
                 }`}
               >
@@ -195,25 +196,27 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
 
         <div className="flex items-center gap-1.5 flex-wrap">
           {!readOnly && canEdit && (
-            <button
+            <MvButton
               type="button"
+              variant="primary"
+              size="sm"
+              icon={<Pencil size={14} />}
               onClick={onEdit || (() => onToast(t('editShipment', 'Edit shipment')))}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-semibold whitespace-nowrap bg-[#9B51E0] hover:bg-[#883cd1] text-white shadow-sm active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
             >
-              <Pencil size={14} />
-              <span>{t('editShipment', 'Edit shipment')}</span>
-            </button>
+              {t('editShipment', 'Edit shipment')}
+            </MvButton>
           )}
 
           {!readOnly && (
-            <button
+            <MvButton
               type="button"
+              variant="secondary"
+              size="sm"
+              icon={<MessageSquare size={14} />}
               onClick={onMessage || (() => onToast(t('message', 'Message')))}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-semibold whitespace-nowrap bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
             >
-              <MessageSquare size={14} />
-              <span>{t('message', 'Message')}</span>
-            </button>
+              {t('message', 'Message')}
+            </MvButton>
           )}
 
           {!readOnly && onShare && (

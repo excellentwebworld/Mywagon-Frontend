@@ -37,7 +37,7 @@ function ProfileKycIllustration() {
       <rect x="52" y="25" width="16" height="6" rx="2" fill="#DDD6FE" />
 
       {/* profile circle */}
-      <circle cx="60" cy="52" r="12" fill="#8B5CF6" />
+      <circle cx="60" cy="52" r="12" fill="#9B51E0" />
       <circle cx="60" cy="48" r="4.5" fill="#F5F3FF" />
       <path d="M48.5 62.5c2.2-5 6-7.5 11.5-7.5s9.3 2.5 11.5 7.5" fill="#F5F3FF" />
 
@@ -119,7 +119,7 @@ export const SignupIncompleteAccessModal: React.FC<Props> = ({
             onClick={onOk}
             className="w-full px-5 py-3 rounded-xl cursor-pointer border-none font-semibold"
             style={{
-              background: T.ac || '#7C3AED',
+              background: T.ac || '#9B51E0',
               color: '#fff',
               fontSize: 15,
             }}

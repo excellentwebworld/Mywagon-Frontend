@@ -50,7 +50,7 @@ export const METRIC_SORT_ORDER: Record<string, number> = {
 
 export const METRIC_PILL: Record<string, { labelKey: string; bg: string; fg: string }> = {
   ftl_truck_type: { labelKey: 'priceLists.phase2.metric.ftlTruckType', bg: '#DBEAFE', fg: '#2563EB' },
-  unit_transport: { labelKey: 'priceLists.phase2.metric.unitTransport', bg: '#EDE9FE', fg: '#7C3AED' },
+  unit_transport: { labelKey: 'priceLists.phase2.metric.unitTransport', bg: '#EDE9FE', fg: '#9B51E0' },
   weight: { labelKey: 'priceLists.phase2.metric.weight', bg: '#ECFDF5', fg: '#059669' },
   load_any_size: { labelKey: 'priceLists.phase2.metric.loadAnySize', bg: '#FEF3C7', fg: '#92400E' },
 };

@@ -43,7 +43,7 @@ function ExpiryDate({ lane, t }) {
   const to = lane.effectiveTo ? formatDisplayDate(lane.effectiveTo.slice(0, 10)) : null;
 
   return (
-    <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", color: 'inherit', lineHeight: 1.4 }}>
+    <div style={{ fontSize: 11, fontFamily: "var(--font-app), Poppins, sans-serif", color: 'inherit', lineHeight: 1.4 }}>
       {to || (
         <span style={{ opacity: 0.85 }}>
           {t('priceLists.validity.openEnded', 'Open-ended')}
@@ -58,7 +58,7 @@ function UpdatedDateTime({ iso }) {
   if (!parts) return <span>—</span>;
 
   return (
-    <div style={{ fontSize: 11, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1.4 }}>
+    <div style={{ fontSize: 11, fontFamily: "var(--font-app), Poppins, sans-serif", lineHeight: 1.4 }}>
       <div>{parts.date}</div>
       {parts.time && <div style={{ opacity: 0.85 }}>{parts.time}</div>}
     </div>
@@ -321,14 +321,14 @@ export default function ListPane({
                       {routeDisplay}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5 min-w-0">
-                      <span style={{ fontSize: 10, color: T.t3, fontFamily: "'JetBrains Mono', monospace" }}>{lane.id}</span>
+                      <span style={{ fontSize: 10, color: T.t3, fontFamily: "var(--font-app), Poppins, sans-serif" }}>{lane.id}</span>
                       {lane.isRoundTrip && (
                         <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#DBEAFE', color: '#2563EB', flexShrink: 0 }}>
                           {t('priceLists.badge.roundTrip', 'RT')}
                         </span>
                       )}
                       {lane.stops.length > 2 && (
-                        <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#EDE9FE', color: '#7C3AED', flexShrink: 0 }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, background: '#EDE9FE', color: '#9B51E0', flexShrink: 0 }}>
                           {t('priceLists.badge.multiStop', 'Multi')}
                         </span>
                       )}
@@ -340,15 +340,15 @@ export default function ListPane({
                     </div>
                   </td>
                   <td style={tdStyle}>
-                    <span style={{ fontFamily: "'JetBrains Mono', monospace" }}>{lane.stops.length}</span>
+                    <span style={{ fontFamily: "var(--font-app), Poppins, sans-serif" }}>{lane.stops.length}</span>
                   </td>
                   <td style={tdStyle}>
-                    <span style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600 }}>
+                    <span style={{ fontFamily: "var(--font-app), Poppins, sans-serif", fontWeight: 600 }}>
                       {lane.totalKm.toLocaleString()}
                     </span>
                   </td>
                   <td style={tdStyle}>
-                    <span style={{ fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>
+                    <span style={{ fontWeight: 700, fontFamily: "var(--font-app), Poppins, sans-serif" }}>
                       €{typeof price === 'number' ? price.toLocaleString(undefined, { minimumFractionDigits: price < 10 ? 2 : 0 }) : price}
                     </span>
                   </td>
@@ -402,7 +402,7 @@ export default function ListPane({
                       {profitability && (
                         <span style={{
                           fontWeight: 700, fontSize: 12,
-                          fontFamily: "'JetBrains Mono', monospace",
+                          fontFamily: "var(--font-app), Poppins, sans-serif",
                           color: profitability.marginPct > 20 ? '#059669' : profitability.marginPct > 5 ? '#F59E0B' : '#DC2626',
                         }}>
                           {profitability.marginPct.toFixed(1)}%

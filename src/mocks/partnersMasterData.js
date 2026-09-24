@@ -118,7 +118,7 @@ export const VISIBLE_TYPES_BY_ROLE = {
 // the dark/light theme.
 export const TYPE_COLORS = {
   carrier_company:   { bg: '#EFF6FF', fg: '#2563EB', bd: '#BFDBFE' }, // blue
-  freelancer_driver: { bg: '#F5F3FF', fg: '#7C3AED', bd: '#DDD6FE' }, // purple
+  freelancer_driver: { bg: '#F5F3FF', fg: '#9B51E0', bd: '#DDD6FE' }, // purple
   customer:          { bg: '#ECFDF5', fg: '#10B981', bd: '#A7F3D0' }, // green
   forwarder:         { bg: '#FFF7ED', fg: '#EA580C', bd: '#FED7AA' }, // orange
   supplier:          { bg: '#FDF2F8', fg: '#DB2777', bd: '#FBCFE8' }, // pink

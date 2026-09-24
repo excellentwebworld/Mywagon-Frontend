@@ -10,7 +10,7 @@ export const SHIPPER_PRESET_META: Record<
 > = {
   admin: {
     name: 'Admin',
-    color: '#7C3AED',
+    color: '#9B51E0',
     description: 'Full access to all platform features and settings.',
   },
   dispatcher: {
@@ -85,7 +85,7 @@ export const SHIPPER_ROLES = [
     id: 'role-admin',
     key: 'admin',
     name: 'Admin',
-    color: '#7C3AED',
+    color: '#9B51E0',
     isSystem: true,
     description: SHIPPER_PRESET_META.admin.description,
     permissions: null as string[] | null,

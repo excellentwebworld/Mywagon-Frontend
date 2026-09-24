@@ -711,7 +711,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
                     {formatEur(result.total)}
                   </div>
                   {result.detail?.formula && (
-                    <div style={{ fontSize: 10, color: T.t3, marginBottom: 4, fontFamily: "'JetBrains Mono', monospace" }}>
+                    <div style={{ fontSize: 10, color: T.t3, marginBottom: 4, fontFamily: "var(--font-app), Poppins, sans-serif" }}>
                       {result.detail.formula}
                     </div>
                   )}
@@ -807,7 +807,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
                           )}
                           <div className="flex justify-between gap-2 pt-1" style={{ borderTop: `1px dashed ${T.bd}` }}>
                             <span>{t('priceLists.calculator.breakdownFormula', 'Formula')}</span>
-                            <span style={{ color: T.t1, fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>
+                            <span style={{ color: T.t1, fontFamily: "var(--font-app), Poppins, sans-serif", fontSize: 10 }}>
                               {result.detail.formula}
                             </span>
                           </div>
@@ -858,7 +858,7 @@ export default function QuoteCalculator({ open, onClose, lanes }) {
                                     </div>
                                   )}
                                 </div>
-                                <span style={{ color: T.t1, fontFamily: "'JetBrains Mono', monospace", fontSize: 10, whiteSpace: 'nowrap' }}>
+                                <span style={{ color: T.t1, fontFamily: "var(--font-app), Poppins, sans-serif", fontSize: 10, whiteSpace: 'nowrap' }}>
                                   {formatEur(row.rateEur)}
                                 </span>
                               </div>

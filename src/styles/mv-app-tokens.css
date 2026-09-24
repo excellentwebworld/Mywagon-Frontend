@@ -1,0 +1,219 @@
+/* MYVAGON Shipper Web — application tokens
+   Import ONCE at the app root (after Poppins @font-face).
+   Rule: no hex values anywhere else in the codebase. Components read these variables only. */
+
+:root {
+  /* ---------- Brand core (exact hex, never approximate) ---------- */
+  --mv-purple: #9B51E0;
+  --mv-purple-dark: #562C7C;
+  --mv-navy: #1F1F41;
+  --mv-blue: #4E5CDC;
+  --mv-white: #FFFFFF;
+  --mv-black: #000001;
+  --mv-grey: #8B8A8F;
+
+  /* ---------- Approved tints ---------- */
+  --mv-purple-100: #F3EAFC;
+  --mv-purple-200: #E1C9F6;
+  --mv-purple-300: #C596ED;
+  --mv-purple-tint: #C89BEE;
+  --mv-blue-100: #E8EAFB;
+  --mv-blue-300: #9AA3EC;
+  --mv-grey-100: #F4F4F5;
+  --mv-grey-200: #E6E6E8;
+  --mv-grey-300: #C9C8CD;
+  --mv-grey-400: #A9A8AE;
+  --mv-grey-600: #6C6B70;
+  --mv-navy-800: #2A2A55;
+  --mv-navy-700: #383869;
+
+  /* ---------- Functional (meaning only: status, yes/no, +/-) ---------- */
+  --mv-success: #2FA968;
+  --mv-success-bg: #E4F5EC;
+  --mv-danger: #E03B4A;
+  --mv-danger-bg: #FBE6E8;
+  --mv-warning: #E9A21C;
+  --mv-warning-bg: #FCF1DB;
+  --mv-warning-ink: #9A6508;   /* amber text on amber-bg — 4.5:1 */
+  --mv-success-ink: #1E7A4A;   /* green text on green-bg — 4.5:1 */
+
+  /* ---------- Gradients (approved pairings only) ---------- */
+  --mv-grad-purple-blue: linear-gradient(135deg, #9B51E0 0%, #4E5CDC 100%);
+  --mv-grad-darkpurple-purple: linear-gradient(135deg, #562C7C 0%, #9B51E0 100%);
+  --mv-grad-navy-purple: linear-gradient(135deg, #1F1F41 0%, #9B51E0 100%);
+  --mv-grad-navy-blue: linear-gradient(135deg, #1F1F41 0%, #4E5CDC 100%);
+  --mv-grad-deep: radial-gradient(120% 140% at 0% 0%, #562C7C 0%, #2A1B47 50%, #1F1F41 100%);
+
+  /* ---------- App semantic aliases (use THESE in components) ---------- */
+  --app-canvas: var(--mv-grey-100);        /* page background behind cards */
+  --app-surface: var(--mv-white);          /* cards, tables, panels */
+  --app-surface-sunken: var(--mv-grey-100);/* read-only fields, table header */
+  --app-chrome: var(--mv-navy);            /* sidebar, modal header, dark hero */
+  --app-border: var(--mv-grey-200);
+  --app-border-strong: var(--mv-grey-300);
+  --app-text: var(--mv-black);
+  --app-text-2: var(--mv-grey-600);        /* secondary body, table meta */
+  --app-text-3: var(--mv-grey);            /* captions, overlines, placeholders */
+  --app-accent: var(--mv-purple);
+  --app-accent-soft: var(--mv-purple-100);
+  --app-accent-ink: var(--mv-purple-dark); /* text on purple-100 */
+  --app-focus: 0 0 0 3px rgba(155, 81, 224, 0.28);
+
+  /* ---------- Type ---------- */
+  --font-app: 'Poppins', Helvetica, Arial, sans-serif;
+  --fs-page-title: 24px;   /* 700 */
+  --fs-section: 16px;      /* 600 */
+  --fs-body: 14px;         /* 400 / 500 */
+  --fs-table: 13px;        /* 400 / 500 */
+  --fs-caption: 12px;      /* 400 */
+  --fs-overline: 11px;     /* 600, uppercase, +0.06em */
+  --fs-kpi: 28px;          /* 700, tabular-nums */
+  --fs-kpi-hero: 40px;     /* 800, tabular-nums */
+
+  /* ---------- Space (4px base) ---------- */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px;
+  --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+
+  /* ---------- Radius ---------- */
+  --r-tag: 8px;        /* badges, tags, chips */
+  --r-control: 10px;   /* inputs, selects, icon buttons, filter chips */
+  --r-button: 12px;    /* sm/md buttons (13px on marketing-size lg) */
+  --r-card: 16px;      /* cards, tables, panels */
+  --r-modal: 20px;     /* modals, drawers, hero panels */
+
+  /* ---------- Elevation (navy-tinted, soft) ---------- */
+  --sh-card: 0 1px 2px rgba(31, 31, 65, 0.05);
+  --sh-raised: 0 8px 24px rgba(31, 31, 65, 0.10);
+  --sh-modal: 0 24px 64px rgba(31, 31, 65, 0.24);
+  --sh-purple: 0 8px 20px rgba(155, 81, 224, 0.28);
+
+  /* ---------- Motion ---------- */
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur: 200ms;
+}
+
+/* ================= THEME LAYER =================
+   Components only read --app-*, --st-*, --sb-*. Themes swap the values.
+   Set data-theme="light|dark" and data-sidebar="navy|light" on the app root. */
+:root, [data-theme="light"] {
+  --app-canvas: #F4F4F5;
+  --app-surface: #FFFFFF;
+  --app-surface-sunken: #F4F4F5;
+  --app-hover: #FAFAFB;
+  --app-border: #E6E6E8;
+  --app-divider: #F4F4F5;
+  --app-border-strong: #C9C8CD;
+  --app-text: #000001;
+  --app-text-2: #6C6B70;
+  --app-text-3: #8B8A8F;
+  --app-text-4: #A9A8AE;
+  --app-accent-soft: #F3EAFC;
+  --app-accent-ink: #562C7C;
+  --app-accent-text: #9B51E0;
+  --app-selected-bg: #1F1F41;
+  --app-info-soft: #E8EAFB;
+  --app-info-text: #4E5CDC;
+  --app-toggle-off: #C9C8CD;
+  --app-route-end: #1F1F41;
+  --fn-danger-text: #E03B4A;
+  --st-success-bg: #E4F5EC; --st-success-fg: #1E7A4A;
+  --st-warning-bg: #FCF1DB; --st-warning-fg: #9A6508;
+  --st-danger-bg: #FBE6E8;  --st-danger-fg: #E03B4A;
+  --st-neutral-bg: #F4F4F5; --st-neutral-fg: #6C6B70;
+  --sh-card: 0 1px 2px rgba(31, 31, 65, 0.05);
+  --hero-border: 1px solid transparent;
+  --app-black-contour: #000001;
+  --app-link-hover: #4E5CDC;      /* purple → blue on hover (links, primary buttons) */
+  --app-primary-hover: #4E5CDC;
+  --grad-analytics: radial-gradient(120% 140% at 0% 0%, #562C7C 0%, #2A1B47 50%, #1F1F41 100%);   /* black labels (Dropoff, Unfulfilled) */
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --app-canvas: #17172F;          /* one step below Navy */
+  --app-surface: #1F1F41;         /* brand Navy = card surface */
+  --app-surface-sunken: #1A1A38;  /* inputs, table header */
+  --app-hover: #26264D;
+  --app-border: #2E2E58;
+  --app-divider: #26264D;
+  --app-border-strong: #3D3D6E;
+  --app-text: #FFFFFF;
+  --app-text-2: #C9C8D6;
+  --app-text-3: #A3A2B8;
+  --app-text-4: #7A7994;          /* dashes and zero values only */
+  --app-accent-soft: rgba(155, 81, 224, 0.20);
+  --app-accent-ink: #D9BCF5;
+  --app-accent-text: #B98AEA;     /* Purple lifted for text on Navy (5.7:1) */
+  --app-selected-bg: rgba(155, 81, 224, 0.32);
+  --app-info-soft: rgba(78, 92, 220, 0.22);
+  --app-info-text: #A5AEF2;
+  --app-toggle-off: #3D3D6E;
+  --app-route-end: #FFFFFF;
+  --fn-danger-text: #F48A94;
+  --st-success-bg: rgba(47, 169, 104, 0.18); --st-success-fg: #6FD49B;
+  --st-warning-bg: rgba(233, 162, 28, 0.18); --st-warning-fg: #F2C265;
+  --st-danger-bg: rgba(224, 59, 74, 0.20);   --st-danger-fg: #F48A94;
+  --st-neutral-bg: rgba(255, 255, 255, 0.08); --st-neutral-fg: #C9C8D6;
+  --sh-card: 0 1px 0 rgba(0, 0, 0, 0.24);
+  --hero-border: 1px solid rgba(155, 81, 224, 0.35);
+  --app-black-contour: rgba(255, 255, 255, 0.85);
+  --app-link-hover: #9AA3EC;
+  --app-primary-hover: #4E5CDC;  /* white contour on black labels */
+}
+
+/* Sidebar — Navy by default in light mode (recommended) */
+:root, [data-sidebar="navy"] {
+  --sb-bg: #1F1F41; --sb-border: transparent; --sb-divider: rgba(255, 255, 255, 0.08);
+  --sb-text: rgba(255, 255, 255, 0.72); --sb-text-strong: #FFFFFF; --sb-label: #8B8A8F;
+  --sb-hover: rgba(255, 255, 255, 0.06); --sb-active-bg: rgba(155, 81, 224, 0.22);
+  --sb-active-text: #FFFFFF; --sb-active-icon: #C89BEE;
+  --sb-beta-bg: rgba(155, 81, 224, 0.28); --sb-beta-fg: #C89BEE;
+}
+[data-sidebar="light"] {
+  --sb-bg: #FFFFFF; --sb-border: #E6E6E8; --sb-divider: #E6E6E8;
+  --sb-text: #6C6B70; --sb-text-strong: #000001; --sb-label: #8B8A8F;
+  --sb-hover: #F4F4F5; --sb-active-bg: #F3EAFC;
+  --sb-active-text: #562C7C; --sb-active-icon: #9B51E0;
+  --sb-beta-bg: #F3EAFC; --sb-beta-fg: #562C7C;
+}
+/* Dark mode: sidebar is always the deepest layer, whatever data-sidebar says */
+[data-theme="dark"][data-sidebar] {
+  --sb-bg: #121226; --sb-border: #26264D; --sb-divider: rgba(255, 255, 255, 0.06);
+  --sb-text: rgba(255, 255, 255, 0.68); --sb-text-strong: #FFFFFF; --sb-label: #7A7994;
+  --sb-hover: rgba(255, 255, 255, 0.05); --sb-active-bg: rgba(155, 81, 224, 0.24);
+  --sb-active-text: #FFFFFF; --sb-active-icon: #C89BEE;
+  --sb-beta-bg: rgba(155, 81, 224, 0.28); --sb-beta-fg: #C89BEE;
+}
+
+html, body { font-family: var(--font-app); color: var(--app-text); background: var(--app-canvas); }
+/* One family everywhere. Numbers align via tabular figures — never a monospace font. */
+button, input, select, textarea, table { font-family: inherit; color: inherit; }
+[data-theme] { color: var(--app-text); }
+.num, td, [data-num] { font-variant-numeric: tabular-nums; }
+
+/* ---------- Load lifecycle status (ported from mv-ui; pages must not invent these) ---------- */
+:root {
+  --load-draft-fg: var(--app-text-2);
+  --load-draft-border: 1.5px dashed var(--app-border-strong);
+  --load-scheduled-bg: #FFFFFF;
+  --load-scheduled-fg: #9B51E0;
+  --load-scheduled-border: 1.5px solid #9B51E0;
+  --load-ready-bg: #A7DBF8;
+  --load-ready-fg: #1F1F41;
+  --load-pending-bg: #56D19E;
+  --load-pending-fg: #FFFFFF;
+  --load-pending-bids-bg: #F2C744;
+  --load-pending-bids-fg: #1F1F41;
+  --load-on-trip-bg: #3B8FE8;
+  --load-past-due-bg: #FF6B0A;
+  --load-fulfilled-bg: #8B8A8F;
+  --load-unfulfilled-bg: #000001;
+  --load-canceled-bg: #E06666;
+  --ops-needs-action: #F2C744;
+  --ops-awaiting-response: #56D19E;
+  --ops-upcoming: #A7DBF8;
+  --ops-at-risk: #D63AAF;
+  --ops-awaiting-pod: #8B8A8F;
+  --ops-on-trip: #3B8FE8;
+  --ops-past-due: #FF6B0A;
+}

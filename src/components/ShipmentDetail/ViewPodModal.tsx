@@ -61,13 +61,13 @@ export const ViewPodModal: React.FC<ViewPodModalProps> = ({
         {/* Body */}
         <div className="p-6 overflow-y-auto flex flex-col gap-4 flex-1">
           {/* Status badge & stop info */}
-          <div className="flex items-center justify-between p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex-wrap gap-2">
-            <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-semibold text-[13px]">
-              <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400" />
+          <div className="flex items-center justify-between p-3.5 rounded-xl bg-[var(--mv-success-bg)] dark:bg-emerald-950/40 border border-[var(--mv-success-bg)] dark:border-[var(--st-success-bg)] flex-wrap gap-2">
+            <div className="flex items-center gap-2 text-emerald-800 dark:text-[var(--st-success-fg)] font-semibold text-[13px]">
+              <CheckCircle2 size={16} className="text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]" />
               <span>{t('deliveryConfirmed', 'Delivery Completed & POD Uploaded')}</span>
             </div>
             {stop.date && (
-              <span className="text-[12px] text-emerald-700 dark:text-emerald-400 font-medium">
+              <span className="text-[12px] text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)] font-medium">
                 {stop.date} {stop.timeStart ? `· ${stop.timeStart}` : ''}
               </span>
             )}
@@ -107,7 +107,7 @@ export const ViewPodModal: React.FC<ViewPodModalProps> = ({
 
             {images.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-8 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-850/40 text-center">
-                <CheckCircle2 size={36} className="text-emerald-500 mb-2" />
+                <CheckCircle2 size={36} className="text-[var(--mv-success)] mb-2" />
                 <p className="text-[13px] font-semibold text-slate-900 dark:text-white m-0">
                   {t('podConfirmedNoPhoto', 'Proof of delivery recorded by transporter')}
                 </p>
@@ -161,7 +161,7 @@ export const ViewPodModal: React.FC<ViewPodModalProps> = ({
                         download={`POD-${stop.location}-${idx + 1}.jpg`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 cursor-pointer hover:underline"
+                        className="text-[11px] text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)] font-semibold flex items-center gap-1 cursor-pointer hover:underline"
                       >
                         <Download size={12} />
                         <span>{t('download', 'Download')}</span>

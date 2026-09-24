@@ -258,7 +258,7 @@ export function getEffectivePermissions(user) {
 
 export const SHIPPER_ROLES = [
   {
-    id: 'role-admin', key: 'admin', name: 'Admin', color: '#7C3AED', isSystem: true,
+    id: 'role-admin', key: 'admin', name: 'Admin', color: '#9B51E0', isSystem: true,
     description: 'Full access to all platform features and settings.',
     permissions: null, // null = all permissions
     userCount: 2,
@@ -281,7 +281,7 @@ export const SHIPPER_ROLES = [
 ];
 
 export const FORWARDER_ROLES = [
-  { id: 'role-admin', key: 'admin', name: 'Admin', color: '#7C3AED', isSystem: true, description: 'Full access to all platform features and settings.', permissions: null, userCount: 2 },
+  { id: 'role-admin', key: 'admin', name: 'Admin', color: '#9B51E0', isSystem: true, description: 'Full access to all platform features and settings.', permissions: null, userCount: 2 },
   { id: 'role-operations', key: 'operations', name: 'Operations', color: '#3B82F6', isSystem: true, description: 'Handles shipments, orders, loads, fleet, and day-to-day operations.', permissions: ['shipment.create','shipment.edit','shipment.cancel','shipment.view','orders.view','orders.create','orders.edit','orders.delete','orders.split','orders.groups','orders.ai_optimizer','loads.view','loads.create','loads.assign_carrier','loads.assign_fleet','loads.track','loads.confirm_delivery','fleet.view','fleet.manage_drivers','fleet.manage_vehicles','fleet.assign','master.address_book','master.products','master.partners','master.partners.invite','docs.upload','docs.review','docs.request','posting.private','posting.public','bids.view','bids.accept','bids.counter'], userCount: 3 },
   { id: 'role-account-manager', key: 'accountManager', name: 'Account Manager', color: '#F59E0B', isSystem: true, description: 'Manages partners, price lists, bids, and client relationships.', permissions: ['partners.view','partners.invite','partners.manage','partners.contracts','pricelists.view','pricelists.create','pricelists.edit','bids.view','bids.accept','bids.counter','analytics.basic','analytics.advanced','analytics.export','shipment.view','loads.view'], userCount: 1 },
   { id: 'role-finance', key: 'finance', name: 'Finance', color: '#10B981', isSystem: true, description: 'Handles billing, payments, and financial reporting.', permissions: ['billing.view','billing.pay','billing.disputes','billing.credits','analytics.basic','analytics.advanced','analytics.export','pricelists.view','orders.view','shipment.view'], userCount: 1 },
@@ -289,7 +289,7 @@ export const FORWARDER_ROLES = [
 ];
 
 export const CARRIER_ROLES = [
-  { id: 'role-admin', key: 'admin', name: 'Admin', color: '#7C3AED', isSystem: true, description: 'Full access to all platform features and settings.', permissions: null, userCount: 2 },
+  { id: 'role-admin', key: 'admin', name: 'Admin', color: '#9B51E0', isSystem: true, description: 'Full access to all platform features and settings.', permissions: null, userCount: 2 },
   { id: 'role-fleet-manager', key: 'fleetManager', name: 'Fleet Manager', color: '#3B82F6', isSystem: true, description: 'Manages fleet, loads, and all vehicle/driver operations.', permissions: ['fleet.view','fleet.manage_drivers','fleet.manage_vehicles','fleet.assign','fleet.view_costs','fleet.edit_costs','loads.view','loads.assign_fleet','loads.track','orders.view','docs.upload','docs.review','docs.request'], userCount: 1 },
   { id: 'role-driver-manager', key: 'driverManager', name: 'Driver Manager', color: '#0EA5E9', isSystem: true, description: 'Manages drivers and daily assignments.', permissions: ['fleet.view','fleet.manage_drivers','fleet.assign','loads.view','loads.track','docs.upload'], userCount: 1 },
   { id: 'role-pricing-manager', key: 'pricingManager', name: 'Pricing Manager', color: '#F59E0B', isSystem: true, description: 'Manages rate cards, lane pricing, and profitability.', permissions: ['pricelists.view','pricelists.create','pricelists.edit','pricelists.manage_defaults','pricelists.view_profitability','fleet.view','fleet.view_costs','analytics.basic','analytics.advanced','analytics.export','loads.view'], userCount: 1 },
@@ -606,7 +606,7 @@ export const ACTIVE_SESSIONS = [
    HELPERS
    ═══════════════════════════════════════════════════════════════════════════ */
 
-const AVATAR_COLORS = ['#7C3AED', '#2563EB', '#059669', '#DC2626', '#D97706', '#0891B2', '#BE185D', '#4338CA', '#0D9488'];
+const AVATAR_COLORS = ['#9B51E0', '#2563EB', '#059669', '#DC2626', '#D97706', '#0891B2', '#BE185D', '#4338CA', '#0D9488'];
 
 export function getUserInitials(u) {
   const first = u.firstName || u.first_name || '';

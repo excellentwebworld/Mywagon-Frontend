@@ -32,7 +32,7 @@ export default function UptimeBar({ history, overallUptime, lang }) {
         <span style={{ fontSize: 12, fontWeight: 600, color: T.t2, letterSpacing: 0.3 }}>
           {t('trust.status.uptimeLast90')}
         </span>
-        <span style={{ fontSize: 20, fontWeight: 700, color: '#10B981', fontVariantNumeric: 'tabular-nums' }}>
+        <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--app-text, #000001)', fontVariantNumeric: 'tabular-nums' }}>
           {overallUptime}%
         </span>
       </div>

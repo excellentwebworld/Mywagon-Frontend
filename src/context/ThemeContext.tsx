@@ -32,9 +32,9 @@ export const ThemeContext = createContext<ThemeContextValue | null>(null);
 const DEFAULT_THEME = 'amethyst';
 const STORAGE_KEY_THEME = 'mv_theme';
 const STORAGE_KEY_DARK = 'mv_dark';
+const SIDEBAR_VARIANT = 'navy';
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  // PDS-937: theme picker removed — lock brand palette to amethyst (dark/light still apply)
   const [theme, setThemeState] = useState(() => {
     try {
       localStorage.setItem(STORAGE_KEY_THEME, DEFAULT_THEME);
@@ -88,8 +88,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const T = useMemo(() => resolveTheme(theme, isDark), [theme, isDark]);
 
   useEffect(() => {
+    const root = document.documentElement;
+    root.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    root.setAttribute('data-sidebar', SIDEBAR_VARIANT);
+    root.classList.toggle('dark', isDark);
     applyThemeToDOM(T);
-    document.documentElement.classList.toggle('dark', isDark);
     document.body.style.background = T.bg;
     document.body.style.color = T.t1;
   }, [T, isDark]);

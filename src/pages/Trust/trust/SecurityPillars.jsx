@@ -43,7 +43,7 @@ export default function SecurityPillars({ data }) {
                 <div className="flex flex-wrap gap-1.5">
                   {(p.tags || []).map((tag) => (
                     <span key={tag} className="rounded-md px-2 py-0.5"
-                      style={{ fontSize: 10, fontFamily: 'monospace', color: T.t3, border: `1px solid ${T.bd}`, background: T.sa }}>
+                      style={{ fontSize: 10, fontFamily: "var(--font-app), Poppins, sans-serif", fontVariantNumeric: 'tabular-nums', color: T.t3, border: `1px solid ${T.bd}`, background: T.sa }}>
                       {tag}
                     </span>
                   ))}

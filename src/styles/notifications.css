@@ -12,7 +12,7 @@
   --ntf-t1: #121217;
   --ntf-t2: #5E5E6E;
   --ntf-t3: #8E8E9A;
-  --ntf-ac: #6C3AED;
+  --ntf-ac: #9B51E0;
   --ntf-al: #EDE9FE;
   --ntf-ah: #5B2BD4;
   --ntf-ap: #F5F3FF;
@@ -44,7 +44,7 @@
   --info-c: #1e40af;
   --info-bd: #BFDBFE;
 
-  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-app), 'Poppins', Helvetica, Arial, sans-serif;
   color: var(--ntf-t1);
   padding-bottom: 40px;
 }
@@ -118,7 +118,7 @@
 .notif-page .btn-p:hover {
   background: var(--ntf-ah);
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(108, 58, 237, .3);
+  box-shadow: 0 4px 16px rgba(155, 81, 224, .3);
 }
 
 .notif-page .btn-sm {
@@ -216,7 +216,7 @@
 .notif-page .kpi-v {
   font-size: 20px;
   font-weight: 700;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
@@ -470,7 +470,7 @@
 
 /* Category Left Edges */
 .notif-page .ntf-card.cat-border-new-availability { border-left: 4px solid #2563EB; }
-.notif-page .ntf-card.cat-border-booking-bidding  { border-left: 4px solid #7C3AED; }
+.notif-page .ntf-card.cat-border-booking-bidding  { border-left: 4px solid #9B51E0; }
 .notif-page .ntf-card.cat-border-shipment-progress { border-left: 4px solid #10B981; }
 .notif-page .ntf-card.cat-border-cancellation     { border-left: 4px solid #EF4444; }
 .notif-page .ntf-card.cat-border-docs             { border-left: 4px solid #0EA5E9; }
@@ -480,7 +480,7 @@
 
 /* Category Icons */
 .notif-page .ntf-sev.cat-icon-new-availability { background: #EFF6FF; color: #2563EB; }
-.notif-page .ntf-sev.cat-icon-booking-bidding  { background: #F5F3FF; color: #7C3AED; }
+.notif-page .ntf-sev.cat-icon-booking-bidding  { background: #F5F3FF; color: #9B51E0; }
 .notif-page .ntf-sev.cat-icon-shipment-progress { background: #ECFDF5; color: #10B981; }
 .notif-page .ntf-sev.cat-icon-cancellation     { background: #FEF2F2; color: #EF4444; }
 .notif-page .ntf-sev.cat-icon-docs             { background: #F0F9FF; color: #0EA5E9; }
@@ -605,7 +605,7 @@
 .notif-page .ntf-time {
   font-size: 11px;
   color: var(--ntf-t3);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 500;
 }
 
@@ -625,7 +625,7 @@
   border-radius: 4px;
   background: var(--ntf-sa);
   color: var(--ntf-t2);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   letter-spacing: .2px;
 }
 
@@ -864,8 +864,8 @@
 }
 
 .ntf-drawer-bg .dr-link:hover {
-  border-color: var(--ntf-ac, #6C3AED);
-  color: var(--ntf-ac, #6C3AED);
+  border-color: var(--ntf-ac, #9B51E0);
+  color: var(--ntf-ac, #9B51E0);
   background: var(--ntf-ap, #F5F3FF);
 }
 
@@ -938,12 +938,12 @@
 }
 
 .ntf-drawer-bg .tl-item:first-child::before {
-  background: var(--ntf-ac, #6C3AED);
+  background: var(--ntf-ac, #9B51E0);
 }
 
 .ntf-drawer-bg .tl-ts {
   font-size: 11px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   color: var(--ntf-t3, #8E8E9A);
 }
 
@@ -1105,7 +1105,7 @@
 
 .ntf-page .toggle input:checked+.slider,
 .ntf-modal-bg .toggle input:checked+.slider {
-  background: var(--ntf-ac, #6C3AED);
+  background: var(--ntf-ac, #9B51E0);
 }
 
 .ntf-page .toggle input:checked+.slider::before,
@@ -1126,7 +1126,7 @@
 }
 
 .ntf-modal-bg .sel-sm:focus {
-  border-color: var(--ntf-ac, #6C3AED);
+  border-color: var(--ntf-ac, #9B51E0);
   outline: none;
 }
 

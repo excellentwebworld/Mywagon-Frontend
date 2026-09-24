@@ -183,7 +183,7 @@
   color: var(--text-primary);
   letter-spacing: -0.02em;
   margin-bottom: 4px;
-  font-family: 'JetBrains Mono', monospace, sans-serif;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums, sans-serif;
 }
 
 .wr-kpi-sub {
@@ -539,7 +539,7 @@
 .wr-period-dates {
   font-size: 11px;
   color: var(--text-tertiary);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
 }
 
 /* Delivery Date Cell */
@@ -581,7 +581,7 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
 }
 
 .wr-tbl-delta {
@@ -626,11 +626,11 @@
   border: 1px solid transparent;
 }
 
-.wr-chip-ontrip { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
-.wr-chip-scheduled { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
-.wr-chip-ready { background: #fefce8; color: #854d0e; border-color: #fef08a; }
-.wr-chip-pending { background: #f3f4f6; color: #4b5563; border-color: #e5e7eb; }
-.wr-chip-canceled { background: #fef2f2; color: #991b1b; border-color: #fecaca; }
+.wr-chip-ontrip { background: #3B8FE8; color: #FFFFFF; border-color: transparent; }
+.wr-chip-scheduled { background: #FFFFFF; color: #9B51E0; border-color: #9B51E0; }
+.wr-chip-ready { background: #A7DBF8; color: #1F1F41; border-color: transparent; }
+.wr-chip-pending { background: #56D19E; color: #FFFFFF; border-color: transparent; }
+.wr-chip-canceled { background: #E06666; color: #FFFFFF; border-color: transparent; }
 
 .wr-partner-badge {
   font-size: 13px;
@@ -1104,7 +1104,7 @@
   font-size: 16px;
   font-weight: 700;
   color: #1e293b;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
 }
 
 .wr-delta-tag {

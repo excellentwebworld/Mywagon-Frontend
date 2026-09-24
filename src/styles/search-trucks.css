@@ -286,7 +286,7 @@
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 24px;
-  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(108, 58, 237, 0.06);
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(155, 81, 224, 0.06);
   padding: 16px 16px 18px;
   z-index: 60;
   animation: satPillPop 0.16s ease;
@@ -363,7 +363,7 @@
   background: var(--surface, #fff);
   border: 1px solid var(--border);
   border-radius: 24px;
-  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(108, 58, 237, 0.06);
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.14), 0 4px 12px rgba(155, 81, 224, 0.06);
   animation: satSuggestIn 0.16s ease;
 }
 
@@ -533,9 +533,9 @@
 }
 
 .sat-chip.has {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-light);
+  border-color: var(--mv-navy, #1F1F41);
+  color: #fff;
+  background: var(--mv-navy, #1F1F41);
 }
 
 .sat-chip-prem {
@@ -916,7 +916,7 @@
 .sat-bg-ac { background: var(--accent-light); color: var(--accent); }
 .sat-bg-priv {
   background: var(--accent-light, #F3E8FF);
-  color: var(--accent, #7C3AED);
+  color: var(--accent, #9B51E0);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
 }
 .sat-bg-pub { background: var(--success-bg, #ECFDF5); color: #065F46; }
@@ -946,7 +946,7 @@
 .sat-cr-rate { font-size: 11px; color: var(--warning); }
 
 .sat-price {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 700;
   font-size: 15px;
   color: var(--accent);
@@ -965,7 +965,7 @@
   font-size: 20px;
 }
 .sat-price-original {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-size: 11px;
   font-weight: 500;
   color: var(--text-tertiary);
@@ -1765,7 +1765,7 @@
   border: 2px solid var(--accent);
   border-radius: 20px;
   padding: 4px 10px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-size: 12px;
   font-weight: 700;
   color: var(--accent);
@@ -1778,7 +1778,7 @@
   color: var(--text-tertiary);
   font-style: italic;
   font-weight: 500;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-app), 'Poppins', sans-serif;
 }
 
 .sat-map-marker.active .sat-mm-price {
@@ -1788,31 +1788,31 @@
 }
 
 .sat-map-marker.hovered .sat-mm-price {
-  background: #6C3AED;
+  background: #9B51E0;
   color: #fff;
-  border-color: #6C3AED;
+  border-color: #9B51E0;
 }
 
 .sat-map-marker.hovered.active .sat-mm-price {
-  background: #6C3AED;
+  background: #9B51E0;
   color: #fff;
-  border-color: #6C3AED;
+  border-color: #9B51E0;
 }
 
 .sat-map-marker.private .sat-mm-price {
-  border-color: #7C3AED;
-  color: #7C3AED;
+  border-color: #9B51E0;
+  color: #9B51E0;
 }
 
 .sat-map-marker.private.active .sat-mm-price {
-  background: #7C3AED;
+  background: #9B51E0;
   color: #fff;
 }
 
 .sat-map-marker.private.hovered .sat-mm-price {
-  background: #6C3AED;
+  background: #9B51E0;
   color: #fff;
-  border-color: #6C3AED;
+  border-color: #9B51E0;
 }
 
 .sat-mm-tail {
@@ -1855,21 +1855,13 @@
   white-space: nowrap;
   max-width: 160px;
 }
-.sat-map-endpoint--pickup .sat-map-endpoint__chip {
-  border-color: #0f766e;
-}
-.sat-map-endpoint--pickup .sat-map-endpoint__kind {
-  color: #0f766e;
-}
-.sat-map-endpoint--dropoff .sat-map-endpoint__chip {
-  border-color: #be123c;
-}
-.sat-map-endpoint--dropoff .sat-map-endpoint__kind {
-  color: #be123c;
-}
+.sat-map-endpoint--pickup .sat-map-endpoint__chip { border-color: var(--app-border-strong, #C9C8CD); background: #FFFFFF; }
+.sat-map-endpoint--pickup .sat-map-endpoint__kind { color: #000001; }
+.sat-map-endpoint--dropoff .sat-map-endpoint__chip { border-color: var(--app-black-contour, #000001); background: #000001; }
+.sat-map-endpoint--dropoff .sat-map-endpoint__kind { color: #FFFFFF; }
 
 .sat-map-marker.private .sat-mm-tail {
-  border-top-color: #7C3AED;
+  border-top-color: #9B51E0;
 }
 
 .sat-map-marker.active .sat-mm-tail {
@@ -1879,11 +1871,11 @@
 .sat-map-marker.hovered .sat-mm-tail,
 .sat-map-marker.hovered.active .sat-mm-tail,
 .sat-map-marker.private.hovered .sat-mm-tail {
-  border-top-color: #6C3AED;
+  border-top-color: #9B51E0;
 }
 
 .sat-map-marker.private.active .sat-mm-tail {
-  border-top-color: #7C3AED;
+  border-top-color: #9B51E0;
 }
 
 /* Drawer styles (kept from before) */
@@ -2050,7 +2042,8 @@
   align-items: center;
 }
 .sat-bid-left-price {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-family: var(--font-app), Poppins, sans-serif;
+  font-variant-numeric: tabular-nums;
   font-size: 16px;
   font-weight: 700;
   color: var(--text-primary);
@@ -2145,7 +2138,7 @@
   vertical-align: middle;
 }
 .sat-bid-table .sid {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 600;
   font-size: 13px;
   color: var(--text-primary);
@@ -2245,7 +2238,7 @@
 }
 .sat-bid-table .price,
 .sat-bid-snapshot .price {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 600;
   font-size: 13px;
   color: var(--text-primary);
@@ -2608,7 +2601,7 @@
   color: var(--text-secondary);
 }
 .sat-bid-snap-head .sid {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 700;
   font-size: 15px;
 }
@@ -3018,8 +3011,8 @@ button.sat-step:disabled { opacity: 1; cursor: default; }
   color: var(--accent);
 }
 .sat-pend-filter.act {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--mv-navy, #1F1F41);
+  border-color: var(--mv-navy, #1F1F41);
   color: #fff;
 }
 .sat-pend-filter:disabled {
@@ -3121,7 +3114,7 @@ button.sat-step:disabled { opacity: 1; cursor: default; }
   flex: 1;
 }
 .sat-pend-sid {
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
   font-weight: 600;
   font-size: 12px;
   display: flex;
@@ -3716,7 +3709,7 @@ a.sat-btn {
 .sat-veh-card.is-selected {
   border-color: var(--accent);
   background: var(--accent-light, #EDE9FE);
-  box-shadow: 0 0 0 3px rgba(108, 58, 237, 0.12);
+  box-shadow: 0 0 0 3px rgba(155, 81, 224, 0.12);
 }
 
 .sat-veh-check {

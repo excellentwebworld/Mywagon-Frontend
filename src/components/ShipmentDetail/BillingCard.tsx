@@ -36,7 +36,7 @@ export const BillingCard: React.FC<BillingCardProps> = ({
             <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-slate-500 dark:text-slate-400">
               {t('agreedPrice', 'AGREED PRICE')}
             </div>
-            <div className="font-bold text-[13px] font-mono text-slate-900 dark:text-white">
+            <div className="font-bold text-[13px] tabular-nums text-slate-900 dark:text-white">
               {billing.agreedPrice}
             </div>
           </div>
@@ -45,7 +45,7 @@ export const BillingCard: React.FC<BillingCardProps> = ({
             <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-slate-500 dark:text-slate-400">
               {t('priceType', 'PRICE TYPE')}
             </div>
-            <div className="font-bold text-[13px] font-mono text-slate-900 dark:text-white">
+            <div className="font-bold text-[13px] tabular-nums text-slate-900 dark:text-white">
               {billing.priceType?.toUpperCase()}
             </div>
           </div>
@@ -54,7 +54,7 @@ export const BillingCard: React.FC<BillingCardProps> = ({
             <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-slate-500 dark:text-slate-400">
               {t('costPerKm', 'COST / KM')}
             </div>
-            <div className="font-bold text-[13px] font-mono text-slate-900 dark:text-white">
+            <div className="font-bold text-[13px] tabular-nums text-slate-900 dark:text-white">
               {billing.costPerKm}
             </div>
             {billing.kmDetail && (
@@ -68,7 +68,7 @@ export const BillingCard: React.FC<BillingCardProps> = ({
             <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-slate-500 dark:text-slate-400">
               {t('costPerPallet', 'COST / PALLET')}
             </div>
-            <div className="font-bold text-[13px] font-mono text-slate-900 dark:text-white">
+            <div className="font-bold text-[13px] tabular-nums text-slate-900 dark:text-white">
               {billing.costPerPallet}
             </div>
             {billing.palletDetail && (
@@ -82,7 +82,7 @@ export const BillingCard: React.FC<BillingCardProps> = ({
             <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-slate-500 dark:text-slate-400">
               {t('costPerTonne', 'COST / TONNE')}
             </div>
-            <div className="font-bold text-[13px] font-mono text-slate-900 dark:text-white">
+            <div className="font-bold text-[13px] tabular-nums text-slate-900 dark:text-white">
               {billing.costPerTonne}
             </div>
             {billing.tonneDetail && (
@@ -96,7 +96,7 @@ export const BillingCard: React.FC<BillingCardProps> = ({
             <div className="text-[10px] font-bold uppercase tracking-wider mb-0.5 text-slate-500 dark:text-slate-400">
               {t('costPerStop', 'COST / STOP')}
             </div>
-            <div className="font-bold text-[13px] font-mono text-slate-900 dark:text-white">
+            <div className="font-bold text-[13px] tabular-nums text-slate-900 dark:text-white">
               {billing.costPerStop}
             </div>
             {billing.stopDetail && (
@@ -112,7 +112,7 @@ export const BillingCard: React.FC<BillingCardProps> = ({
           <span
             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
               isPaid
-                ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                ? 'bg-[var(--mv-success-bg)] dark:bg-[var(--st-success-bg)] text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)] border-[var(--mv-success-bg)] dark:border-[var(--st-success-bg)]'
                 : 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
             }`}
           >
@@ -127,7 +127,7 @@ export const BillingCard: React.FC<BillingCardProps> = ({
             <button
               type="button"
               onClick={onMarkPaid}
-              className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white bg-[#9B51E0] hover:bg-[#883cd1] cursor-pointer shadow-xs transition-all border-0"
+              className="px-3 py-1.5 rounded-lg text-[12px] font-semibold text-white bg-[#9B51E0] hover:bg-[#4E5CDC] cursor-pointer shadow-xs transition-all border-0"
             >
               {t('markAsPaid', 'Mark as paid')}
             </button>

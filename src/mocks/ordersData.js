@@ -26,7 +26,7 @@ function shift(iso, days) {
 
 // Source pill colors — consumed by ListPane source cell
 export const SOURCE_COLORS = {
-  erp:        { bg: '#F5F3FF', fg: '#7C3AED', bd: '#DDD6FE', icon: '📥' },
+  erp:        { bg: '#F5F3FF', fg: '#9B51E0', bd: '#DDD6FE', icon: '📥' },
   manual:     { bg: '#F1F5F9', fg: '#475569', bd: '#CBD5E1', icon: '✏️' },
   load_board: { bg: '#FFFBEB', fg: '#B45309', bd: '#FDE68A', icon: '🚛' },
 };
@@ -38,7 +38,7 @@ export const STATUS_COLORS = {
   in_transit:    { bg: '#FFFBEB', fg: '#D97706', bd: '#FDE68A' },
   completed:     { bg: '#ECFDF5', fg: '#10B981', bd: '#A7F3D0' },
   exception:     { bg: '#FEF2F2', fg: '#EF4444', bd: '#FECACA' },
-  split:         { bg: '#F5F3FF', fg: '#7C3AED', bd: '#DDD6FE' },
+  split:         { bg: '#F5F3FF', fg: '#9B51E0', bd: '#DDD6FE' },
 };
 
 export const PRIORITY_COLORS = {
