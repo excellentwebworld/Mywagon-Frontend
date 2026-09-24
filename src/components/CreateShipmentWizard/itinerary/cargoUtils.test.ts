@@ -247,4 +247,76 @@ describe('syncDropoffMirrorLinks', () => {
     expect(drop80.mirrorOf).toBe('pk-80');
     expect(drop20.mirrorOf).toBe('pk-20');
   });
+
+  it('allows multiple dropoffs to share one pickup when qty is split', () => {
+    const stops: ApiStop[] = [
+      stop({
+        id: 's1',
+        lines: [
+          {
+            id: 'pk-400',
+            productId: 'p1',
+            productName: 'milk',
+            customerId: '',
+            customerName: 'Beta Company',
+            orderId: 'betacompanyorder',
+            orderRef: 'betacompanyorder',
+            orderLineId: '',
+            action: 'pickup',
+            qty: '400',
+            unit: 'US Pallets',
+            weight: '800',
+            wtUnit: 'kg',
+            mirrorOf: '',
+          },
+        ],
+      }),
+      stop({
+        id: 's2',
+        lines: [
+          {
+            id: 'dl-200a',
+            productId: 'p1',
+            productName: 'milk',
+            customerId: '',
+            customerName: 'Beta Company',
+            orderId: 'betacompanyorder',
+            orderRef: 'betacompanyorder',
+            orderLineId: '',
+            action: 'dropoff',
+            qty: '200',
+            unit: 'US Pallets',
+            weight: '400',
+            wtUnit: 'kg',
+            mirrorOf: '',
+          },
+        ],
+      }),
+      stop({
+        id: 's3',
+        lines: [
+          {
+            id: 'dl-200b',
+            productId: 'p1',
+            productName: 'milk',
+            customerId: '',
+            customerName: 'Beta Company',
+            orderId: 'betacompanyorder',
+            orderRef: 'betacompanyorder',
+            orderLineId: '',
+            action: 'dropoff',
+            qty: '200',
+            unit: 'US Pallets',
+            weight: '400',
+            wtUnit: 'kg',
+            mirrorOf: '',
+          },
+        ],
+      }),
+    ];
+
+    const synced = syncDropoffMirrorLinks(stops);
+    expect(synced[1].lines[0].mirrorOf).toBe('pk-400');
+    expect(synced[2].lines[0].mirrorOf).toBe('pk-400');
+  });
 });
