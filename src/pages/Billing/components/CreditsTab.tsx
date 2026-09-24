@@ -58,8 +58,8 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
       <div className={`grid grid-cols-1 md:grid-cols-2 gap-3.5 ${compact ? 'px-0 pt-2' : 'px-6 pt-4'}`}>
         <div className={`credit-card ${loading ? 'billing-skeleton-block' : ''}`}>
           <div className="cc-label">{t('billingPage.creditBalance', 'Available Credit Balance')}</div>
-          <div className="cc-val billing-mono">
-            {loading ? <Skeleton width={100} height={28} borderRadius={4} {...sk} /> : <Money value={walletBalance} />}
+          <div className="cc-val billing-mono text-white">
+            {loading ? <Skeleton width={100} height={28} borderRadius={4} {...sk} /> : <Money value={walletBalance} style={{ color: '#ffffff' }} />}
           </div>
           <div className="cc-sub">{t('billingPage.walletHint', 'Wallet / Rewards balance available to pay invoices in full')}</div>
         </div>

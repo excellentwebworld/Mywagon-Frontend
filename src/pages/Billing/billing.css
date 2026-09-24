@@ -1155,6 +1155,13 @@ table.billing-t {
   font-size: 30px;
   font-weight: 700;
   margin-top: 6px;
+  color: #ffffff;
+}
+
+.credit-card .cc-val,
+.credit-card .cc-val span,
+.credit-card .cc-val * {
+  color: #ffffff !important;
 }
 
 .credit-card .cc-sub {

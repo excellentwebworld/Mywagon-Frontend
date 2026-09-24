@@ -315,10 +315,18 @@ export function UsageMeter({ label, used, limit }) {
 /* ------------------------------------------------------------------ */
 /* 10. MONEY — never colour a zero, never green a balance               */
 /* ------------------------------------------------------------------ */
-export function Money({ value, overdue, currency = 'EUR' }) {
+export function Money({ value, overdue, currency = 'EUR', className, style }) {
   const zero = Number(value) === 0;
   return (
-    <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: zero ? 400 : 600, color: zero ? 'var(--app-text-3)' : overdue ? 'var(--mv-danger)' : 'var(--app-text)' }}>
+    <span
+      className={className}
+      style={{
+        fontVariantNumeric: 'tabular-nums',
+        fontWeight: zero ? 400 : 600,
+        color: zero ? 'var(--app-text-3)' : overdue ? 'var(--mv-danger)' : 'var(--app-text)',
+        ...style,
+      }}
+    >
       {new Intl.NumberFormat('en-IE', { style: 'currency', currency: currency || 'EUR' }).format(Number(value) || 0)}
     </span>
   );

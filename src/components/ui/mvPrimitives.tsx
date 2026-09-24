@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from 'react';
+import type { CSSProperties, ReactElement, ReactNode } from 'react';
 import {
   Money as MoneyBase,
   Tag as TagBase,
@@ -13,6 +13,8 @@ export type MoneyProps = {
   value: number;
   overdue?: boolean;
   currency?: string;
+  className?: string;
+  style?: CSSProperties;
 };
 
 export function Money(props: MoneyProps): ReactElement {
