@@ -35,7 +35,22 @@ function physicalDeliveryKey(stop: ShipmentStop): string {
   const location = (stop.location || '').trim().toLowerCase();
   const address = (stop.address || '').trim().toLowerCase();
   const date = (stop.date || '').trim();
-  return `delivery|${location}|${address}|${date}`;
+  // Same address + date with different appointment times are separate deliveries
+  // (must each get their own tracking-link row — matches StopsCard / map grouping).
+  const timeStart = (stop.timeStart || '').trim().toLowerCase();
+  const timeEnd = (stop.timeEnd || '').trim().toLowerCase();
+  return `delivery|${location}|${address}|${date}|${timeStart}|${timeEnd}`;
+}
+
+/** Exported for unit tests — keep in sync with physicalDeliveryKey. */
+export function buildTrackingDeliveryGroupKey(stop: {
+  location?: string;
+  address?: string;
+  date?: string;
+  timeStart?: string;
+  timeEnd?: string;
+}): string {
+  return physicalDeliveryKey(stop as ShipmentStop);
 }
 
 function collectOrderIds(stop: ShipmentStop): string[] {
