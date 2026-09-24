@@ -142,7 +142,7 @@ export function resolveNotificationConfig(data: PushNotificationData): ToastConf
         badgeColor: 'text-amber-700 dark:text-amber-300',
         categoryName: 'Products',
         actionLabel: 'Product Master',
-        route: '/product-master',
+        route: '/products',
       };
 
     case rawTarget.includes('partner'):

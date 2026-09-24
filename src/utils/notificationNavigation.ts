@@ -67,6 +67,10 @@ export function resolveNotificationPath(n: Pick<
     target = '/products';
   } else if (n.action_type === 'viewTutorials') {
     target = '/tutorials';
+  } else if (n.action_type === 'openChat') {
+    target = actionId
+      ? `/messages?userId=${encodeURIComponent(actionId)}`
+      : '/messages';
   } else if (n.action_type === 'viewNotifications') {
     target = '/settings/notifications';
   }

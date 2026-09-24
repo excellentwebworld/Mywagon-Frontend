@@ -104,7 +104,7 @@ function resolveTargetUrl(data) {
     return '/address-book';
   }
   if (rawType.includes('product')) {
-    return '/product-master';
+    return '/products';
   }
   if (rawType.includes('tutorial')) {
     return '/tutorials';

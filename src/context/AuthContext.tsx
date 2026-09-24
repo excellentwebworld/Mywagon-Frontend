@@ -205,13 +205,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = useCallback(async () => {
     const previousUserId = user?.id ?? null;
+    // Clear FCM device token while the Sanctum session is still valid
+    await unregisterFcmDevice().catch(() => {});
     try {
       await authService.logout();
     } catch {
       clearStoredToken();
     } finally {
       clearInfoFormReminderSkip(previousUserId);
-      await unregisterFcmDevice().catch(() => {});
       setUser(null);
       setToken(null);
     }

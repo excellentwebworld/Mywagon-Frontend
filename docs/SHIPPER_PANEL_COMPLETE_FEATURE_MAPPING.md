@@ -85,9 +85,9 @@ React today: auth + 2FA + past-due → `/billing` + KYC → Compliance + company
 
 | Bucket | Dev status |
 |---|---|
-| **Complete** | Search Trucks · Address Book · Product Master · Partners · ERP Orders · Tutorials · Change Password · Support & Feedback (PDS-950) · **Price Lists (PDS-935)** · **Profile Management (PDS-937)** · **CMS / Legal (PDS-937)** · **Signup + post-login gates (PDS-955)** |
+| **Complete** | Search Trucks · Address Book · Product Master · Partners · ERP Orders · Tutorials · Change Password · Support & Feedback (PDS-950) · **Price Lists (PDS-935)** · **Profile Management (PDS-937)** · **CMS / Legal (PDS-937)** · **Signup + post-login gates (PDS-955)** · **Notifications listing + settings + FCM (PDS-960 / PDS-937)** |
 | **Substantially built** | Settings hub (PDS-937) · Create Shipment wizard · Manage Shipments · Login + 2FA · Published Edit Load (PDS-959) |
-| **Partial / in progress** | Shipment Detail · Dashboard · Notifications (**listing pending**; settings done) · Billing / Subscription (placeholders) |
+| **Partial / in progress** | Shipment Detail · Dashboard · Billing / Subscription (placeholders) |
 | **Not started** | Chat · Onboarding tour · Refer · Account Statement |
 
 **Rough dev progress:** ~60% of modules built or substantially complete · ~70% when counting partial UI+API work on in-progress modules.
@@ -106,7 +106,7 @@ React today: auth + 2FA + past-due → `/billing` + KYC → Compliance + company
 | **A — Core freight** | Shipment Detail — remove demo data, wire co-owner/tracking/logs/GPS/POD; Dashboard — live ShipmentBoard/Schedule/LiveMap; Create Shipment — **private load limit modal** |
 | **B — Account & access** | Onboarding tour (UI + API); Settings — Subscription/Billing sections (currently placeholder); Refer MYVAGON |
 | **C — Monetization** | Subscription page (UI + API); Billing page (UI + API); Account Statement (if product confirms) |
-| **D — Collaboration** | Notifications **listing** (UI + API; settings done); **Chat** messenger (UI + API); Refer MYVAGON modal (UI + API) |
+| **D — Collaboration** | Notifications **listing + FCM + preferences** (PDS-960/937); **Chat** messenger (UI + API); Refer MYVAGON modal (UI + API) |
 | **E — Polish** | Public Track (React route or keep Laravel); Settings Integrations + AI Settings (marked coming soon) |
 
 ### Active development tracks (Jira)
@@ -142,7 +142,7 @@ React today: auth + 2FA + past-due → `/billing` + KYC → Compliance + company
 | 16 | Settings / User Management | ✅ | ✅ | PDS-937 dev largely complete; Subscription/Billing sections still placeholder |
 | 17 | Profile Management | ✅ | ✅ | Settings → Personal, Organization, KYC, Legal (PDS-937); **dev complete** |
 | 18 | Change Password | ✅ | ✅ | Settings → Security; `PUT /settings/security/password` |
-| 19 | Notifications | ✅ | 🚧 | Settings toggles **done**; notification **listing pending** (bell, badges, deep links) |
+| 19 | Notifications | ✅ | ✅ | PDS-960 listing/bell/FCM + PDS-937 settings; see `docs/PDS-960-NOTIFICATIONS-QA-MATRIX.md` |
 | 20 | Chat | ✅ | ❌ | Header icon toast-only |
 | 21 | Subscription + Add-ons | ✅ | ✅ | Full SPA + entitlements gating (PDS-976) |
 | 22 | Billing | ✅ | ✅ | Billing SPA (PDS-948) |
@@ -758,12 +758,13 @@ Each module below uses the same checklist fields.
 
 | Field | Detail |
 |---|---|
-| **Overview** | Bell dropdown; listing; push/email toggles; sidebar badges. |
-| **Laravel** | Full listing + settings + deep links + realtime badges. |
-| **React** | **Settings → Notifications** toggles **done**; header bell + listing **pending**. |
-| **API** | `GET/PUT /settings/notifications` done; listing/badge endpoints **pending**. |
-| **Status** | Laravel ✅ · React 🚧 · API 🚧 |
-| **Comparison** | Settings complete; notification **listing pending** (bell dropdown, badges, deep links). |
+| **Overview** | Bell dropdown; listing; push/email toggles; FCM web push; sidebar badges. |
+| **Laravel** | Full listing + settings + deep links + realtime badges + shared send pipeline. |
+| **React** | **Settings → Notifications** toggles + **Notifications Center** (`/settings/notifications`), header bell, FCM (`useFcm` + SW), toasts (PDS-960 / PDS-937). |
+| **API** | `GET/PUT /settings/notifications`; `GET/POST /notifications*` (list, unread, read, archive); `POST /auth/device-token`. |
+| **Status** | Laravel ✅ · React ✅ · API ✅ |
+| **Comparison** | Blade parity for preferences + consumption. Matrix: `docs/PDS-960-NOTIFICATIONS-QA-MATRIX.md`. Chat live push honors `push_messages` via `Node-Project/MV_socket-NodeJS` helper. |
+| **Remaining** | Staging sign-off of matrix Section E; sidebar badge realtime polish (NS-023–025). |
 
 ---
 
@@ -905,7 +906,7 @@ These are **not** Laravel parity debt — they are intentional React/API advance
 |---|---|---|
 | Signup / register | Self-registration | `POST /auth/register`, verify OTP endpoints |
 | Profile Information | Mandatory questionnaire modal | `GET/PUT /profile-information` |
-| Notifications listing | Bell dropdown, badges, deep links | `/notifications`, mark-visited |
+| Notifications listing | Bell dropdown, badges, deep links | `/notifications` → `/settings/notifications`, FCM |
 | Chat | Messages | `/chat/threads`, `/chat/messages`, upload |
 | Subscription | Plans / add-ons | `/subscription/plans`, purchase, cancel, auto-pay |
 | Billing | Invoices / pay | `/billing/invoices`, pay, bank-receipt, wallet |
@@ -930,7 +931,7 @@ These are **not** Laravel parity debt — they are intentional React/API advance
 | **A — Core freight** | Day-to-day ops | Address Book ✅ · Product ✅ · Partners ✅ · SAT ✅ · ERP ✅ · Price Lists ✅ · Create 🚧 · Manage 🚧 · Detail 🚧 | ~80% |
 | **B — Account & access** | Hard gates | Auth/2FA 🚧 · Signup ❌ · KYC 🚧 · Settings/Profile ✅ · Profile Info ❌ · Users 🚧 · Change Password ✅ | ~60% |
 | **C — Monetization** | Revenue | Subscription ❌ · Billing ❌ | ~15% |
-| **D — Collaboration** | Engagement | Notifications 🚧 (listing pending) · Chat ❌ · Refer ❌ · Support ✅ · Tutorials ✅ · Onboarding ❌ | ~55% |
+| **D — Collaboration** | Engagement | Notifications ✅ · Chat · Refer · Support ✅ · Tutorials ✅ · Onboarding | ~70% |
 | **E — Polish** | Closeout | Dashboard 🚧 · Published Edit ❌ · CMS ✅ · Public Track strategy | ~35% |
 
 ### 10.2 Development blockers (must build before full cutover)
@@ -940,7 +941,7 @@ These are **not** Laravel parity debt — they are intentional React/API advance
 3. Shipment Detail — remove demo fallbacks; wire critical actions  
 4. ~~Published Edit Shipment (UI + API)~~ — PDS-959 Phases 0–4 done; QA: `PDS-959-QA-CHECKLIST.md`  
 5. Create Shipment — private load limit modal (within wizard flow)  
-6. Notifications listing (settings done)  
+6. Notifications listing + FCM (done — staging matrix sign-off)  
 7. Chat (if required for parity at cutover)  
 
 **Not dev blockers if hybrid accepted:** Signup/register, Forgot password, Public Track, payment return URLs → can remain Laravel-hosted.
@@ -989,6 +990,7 @@ These are **not** Laravel parity debt — they are intentional React/API advance
 | 2026-08-12 | Removed Legacy Create Shipment from §3 matrix and §7 module specs (32 modules) |
 | 2026-08-12 | Marked **Price Lists (#15)** and **Profile Management (#17)** dev complete |
 | 2026-08-12 | Removed Past-Due gate, Load limits, Upgrade modal, Language/timezone (tracked under Shipment); CMS **done**; Notifications **listing pending** |
+| 2026-09-24 | Notifications **listing + FCM + settings** marked complete (PDS-960); QA matrix + checklist; chat `push_messages` socket gate |
 
 ---
 

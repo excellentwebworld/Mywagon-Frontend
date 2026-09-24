@@ -72,9 +72,18 @@ export async function cleanupLocalFcmDevice(): Promise<void> {
 
 /**
  * Unregister this browser from FCM push on logout.
- * Clears the cached token and deletes the local FCM registration.
+ * Clears the cached token, clears the backend device_token when still authenticated,
+ * and deletes the local FCM registration.
  */
 export async function unregisterFcmDevice(): Promise<void> {
+  // Clear server token while auth session may still be valid (belt-and-suspenders;
+  // ShipperAuthService::logout also nulls device_token).
+  try {
+    await notificationService.updateDeviceToken(null);
+  } catch {
+    /* ignore — logout may already have invalidated the token */
+  }
+
   clearCachedToken();
 
   if (!isFirebaseConfigured) return;

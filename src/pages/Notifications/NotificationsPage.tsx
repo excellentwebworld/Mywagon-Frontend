@@ -563,6 +563,10 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
       target = '/products';
     } else if (action === 'viewTutorials') {
       target = '/tutorials';
+    } else if (action === 'openChat') {
+      target = actionId
+        ? `/messages?userId=${encodeURIComponent(actionId)}`
+        : '/messages';
     } else if (action === 'viewNotifications') {
       target = '/settings/notifications';
     }

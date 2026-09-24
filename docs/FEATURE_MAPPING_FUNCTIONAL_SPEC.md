@@ -46,7 +46,7 @@
 | 16 | User Management (sub-users) | ✅ | ❌ | |
 | 17 | Profile Management | ✅ | ❌ | |
 | 18 | Change Password | ✅ | ❌ | |
-| 19 | Notifications Listing & Settings | ✅ | ❌ | |
+| 19 | Notifications Listing & Settings | ✅ | ✅ | PDS-960 / PDS-937 |
 | 20 | Chat / Messages | ✅ | ❌ | |
 | 21 | Subscription + Add-ons | ✅ | ✅ | Full SPA + Viva; entitlements on `/auth/me` (PDS-976) |
 | 22 | Billing | ✅ | ✅ | Billing SPA (PDS-948) |
@@ -154,7 +154,7 @@ Base: `/api/shipper/v1`
 | Shipments | `/shipments/*` | ✅ |
 | Availabilities (SAT) | `/availabilities/*` | ✅ |
 | ERP Orders | `/erp-orders/*` | ✅ |
-| Profile / KYC / Users / Billing / Chat / Notifications / Subscription | — | ❌ Not exposed yet for SPA |
+| Profile / KYC / Users / Billing / Chat / Notifications / Subscription | — | ✅ Notifications SPA APIs + FCM; others vary by module |
 
 ---
 
@@ -582,11 +582,11 @@ Base: `/api/shipper/v1`
 | **Filters & Search** | Pagination on listing. |
 | **Status Flow** | Unread badges → cleared on visit. |
 | **Notifications & Alerts** | Self (meta). |
-| **API Integration** | Laravel notifications routes + badge endpoints. React: none (dashboard widget is UI shell). |
+| **API Integration** | Laravel notifications routes + badge endpoints. React: `notificationService` + `notificationSettingsService` + FCM (`useFcm`, SW). |
 | **Dependencies** | All alerting modules, Subscription. |
 | **Edge Cases** | Deep link without module entitlement → upgrade. |
-| **Implementation Status** | Laravel ✅ · React ❌ |
-| **Remarks/Notes** | — |
+| **Implementation Status** | Laravel ✅ · React ✅ |
+| **Remarks/Notes** | See `docs/PDS-960-NOTIFICATIONS-QA-MATRIX.md` and `docs/PDS-960-QA-CHECKLIST.md`. |
 
 ---
 

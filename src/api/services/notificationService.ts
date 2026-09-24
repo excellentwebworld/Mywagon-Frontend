@@ -47,6 +47,7 @@ export type NotificationAction =
   | 'viewOrganization'
   | 'openLink'
   | 'viewDetails'
+  | 'openChat'
   | null;
 
 
