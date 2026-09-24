@@ -59,8 +59,8 @@ button { cursor: pointer; }
 .text-slate-400 { color: var(--muted-soft); }
 .text-brand-600 { color: var(--brand); }
 .text-sky-600 { color: var(--pickup); }
-.text-[var(--mv-success-ink)] { color: var(--delivery); }
-.text-[var(--mv-success-ink)] { color: #059669; }
+.text-emerald-600 { color: var(--delivery); }
+.text-green-600 { color: #059669; }
 .bg-white { background: var(--surface); }
 .bg-bg { background: var(--bg); }
 .border-top { border-top: 1px solid var(--border); }

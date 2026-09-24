@@ -2617,11 +2617,7 @@ table.billing-t {
   }
 }
 
-/* Brand: ?0.00 remaining is grey, never green */
-.billing-container .text-[var(--mv-success-ink)],
-.billing-container .text-[var(--mv-success-ink)] {
-  color: var(--app-text-3, #8B8A8F) !important;
-}
+/* Brand: zero remaining uses Money primitive (grey); no green override needed */
 .billing-container .b-badge {
   border-radius: var(--r-tag, 8px);
   font-family: var(--font-app), Poppins, sans-serif;
