@@ -26,6 +26,8 @@ type Props = {
   max?: string; // YYYY-MM-DD format
   direction?: 'up' | 'down' | 'auto';
   align?: 'left' | 'right' | 'auto';
+  allowedDaysOfWeek?: number[]; // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  isDateDisabled?: (dateStr: string, date: Date) => boolean;
 };
 
 export const DatePicker: React.FC<Props> = ({
@@ -39,6 +41,8 @@ export const DatePicker: React.FC<Props> = ({
   max,
   direction = 'down', // Default to 'down' to prevent top clipping in overflow scroll containers
   align = 'auto',
+  allowedDaysOfWeek,
+  isDateDisabled: customIsDateDisabled,
 }) => {
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -188,6 +192,9 @@ export const DatePicker: React.FC<Props> = ({
 
   const handleToday = () => {
     const today = new Date();
+    if (isDateDisabled(today.getFullYear(), today.getMonth(), today.getDate())) {
+      return;
+    }
     const formattedDate = formatDateString(
       today.getFullYear(),
       today.getMonth(),
@@ -290,11 +297,20 @@ export const DatePicker: React.FC<Props> = ({
   const calendarCells = generateDays();
   const today = new Date();
 
-  // Helper check for date min/max bounds
+  // Helper check for date min/max bounds and custom/weekday filters
   const isDateDisabled = (y: number, m: number, d: number) => {
     const dateStr = formatDateString(y, m, d);
     if (min && dateStr < min) return true;
     if (max && dateStr > max) return true;
+    const dateObj = new Date(y, m, d);
+    if (allowedDaysOfWeek && allowedDaysOfWeek.length > 0) {
+      if (!allowedDaysOfWeek.includes(dateObj.getDay())) {
+        return true;
+      }
+    }
+    if (customIsDateDisabled && customIsDateDisabled(dateStr, dateObj)) {
+      return true;
+    }
     return false;
   };
 

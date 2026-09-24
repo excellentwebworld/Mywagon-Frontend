@@ -79,6 +79,7 @@ export function getHeaderPageTitle(
   if (path.startsWith('/billing')) return t('sidebar.billing') || t('billing', 'Billing');
   if (path.startsWith('/subscription')) return t('sidebar.subscription') || t('navSubscription', 'Subscription');
   if (path.startsWith('/support')) return t('sidebar.support') || t('support', 'Support & Feedback');
+  if (path.startsWith('/analytics/weekly-reports') || path.startsWith('/analytics')) return t('weeklyReports', 'Weekly Reports') || 'Weekly Reports';
   if (path.startsWith('/tutorials')) return t('tutorials.pageTitle') || t('tutorial', 'Tutorials');
   return t('dashboard', 'Dashboard');
 }

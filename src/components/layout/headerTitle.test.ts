@@ -27,6 +27,8 @@ describe('getHeaderPageTitle (BUG-10)', () => {
       support: 'Support & Feedback',
       'tutorials.pageTitle': 'Tutorials',
       tutorial: 'Tutorials',
+      weeklyReports: 'Weekly Reports',
+      navWeeklyReports: 'Weekly Reports',
     };
     return translations[key] || fallback || key;
   };
@@ -94,5 +96,10 @@ describe('getHeaderPageTitle (BUG-10)', () => {
 
   it('returns "Tutorials" for /tutorials', () => {
     expect(getHeaderPageTitle('/tutorials', dummyT)).toBe('Tutorials');
+  });
+
+  it('returns "Weekly Reports" for /analytics and /analytics/weekly-reports', () => {
+    expect(getHeaderPageTitle('/analytics', dummyT)).toBe('Weekly Reports');
+    expect(getHeaderPageTitle('/analytics/weekly-reports', dummyT)).toBe('Weekly Reports');
   });
 });

@@ -17,6 +17,7 @@ import {
   Sparkles,
   DollarSign,
   HelpCircle,
+  BarChart3,
   type LucideIcon,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
@@ -129,6 +130,20 @@ const SECTIONS: NavSection[] = [
       },
     ],
   },
+  {
+    id: 'analytics',
+    labelKey: 'navAnalytics',
+    fallback: 'Analytics',
+    items: [
+      {
+        id: 'weekly-reports',
+        labelKey: 'navWeeklyReports',
+        fallback: 'Weekly Reports',
+        route: '/analytics/weekly-reports',
+        icon: BarChart3,
+      },
+    ],
+  },
 ];
 
 const FOOTER: NavItem[] = [
@@ -152,6 +167,7 @@ export function TopNav() {
     if (p === '/settings' || p.startsWith('/settings/')) return true;
     if (p === '/billing' || p.startsWith('/billing/')) return true;
     if (p === '/subscription' || p.startsWith('/subscription/')) return true;
+    if (p === '/analytics' || p.startsWith('/analytics/')) return true;
     return false;
   };
 

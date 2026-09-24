@@ -33,6 +33,7 @@ import { AdminShipmentDetailPage } from './pages/AdminShipmentDetail';
 
 import PriceListsPage from './pages/PriceLists/PriceListsPage';
 import { MessagesPage } from './pages/Messages';
+import { WeeklyReportsPage } from './pages/Analytics/WeeklyReports';
 
 import { LegalPage } from './pages/Legal/LegalPage';
 
@@ -87,6 +88,8 @@ const appRoutes = [
   { path: '/settings/billing', element: <Navigate to="/billing" replace /> },
   { path: '/settings/:section/:tab', element: <SettingsSectionOrUserEdit /> },
   { path: '/settings/:section', element: <Settings /> },
+  { path: '/analytics', element: <Navigate to="/analytics/weekly-reports" replace /> },
+  { path: '/analytics/weekly-reports', element: <WeeklyReportsPage /> },
   { path: '/billing', element: <BillingPage /> },
   { path: '/subscription', element: <SubscriptionPage /> },
   { path: '/support', element: <SupportPage /> },
