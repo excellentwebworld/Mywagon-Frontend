@@ -12,9 +12,30 @@ import {
   InvitePartnerModal,
   PartnersGenericModal,
 } from '../../components/Partners';
+import { SubscriptionPageGate } from '../../components/subscription/SubscriptionPageGate';
+import { useSubscriptionPermission } from '../../hooks/useSubscriptionPermission';
+import { useUpgradeGate } from '../../context/UpgradeGateContext';
 
 const Partners: React.FC = () => {
   const state = usePartners();
+  const { can, remaining } = useSubscriptionPermission();
+  const { openUpgradeGate } = useUpgradeGate();
+  const partnersAllowed = can('partners');
+  const partnersRemaining = remaining('partners');
+
+  const openInviteGuarded = () => {
+    if (!partnersAllowed || (partnersRemaining !== null && partnersRemaining <= 0)) {
+      openUpgradeGate({
+        title: state.t('satUpgradeTitle'),
+        body:
+          state.t('partnersLimitUpgradeBody') ||
+          'You have reached your partner limit for this plan. Upgrade or buy a partners add-on.',
+        upgradeUrl: '/subscription',
+      });
+      return;
+    }
+    state.openInviteModal();
+  };
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -57,6 +78,7 @@ const Partners: React.FC = () => {
   }, [state.confirmAction, state.t]);
 
   return (
+    <SubscriptionPageGate slug="partners" soft>
     <div className="ptn-wrap">
       {state.subscriptionBlocked && state.error && (
         <div className="ptn-subscription-banner" role="alert">
@@ -64,7 +86,14 @@ const Partners: React.FC = () => {
         </div>
       )}
 
-      <PartnersHeader t={state.t} openInviteModal={state.openInviteModal} />
+      {!partnersAllowed || (partnersRemaining !== null && partnersRemaining <= 0) ? (
+        <div className="ptn-subscription-banner" role="status">
+          {state.t('partnersLimitUpgradeBody') ||
+            'Partner invite limit reached for your plan. Upgrade or purchase an add-on to invite more partners.'}
+        </div>
+      ) : null}
+
+      <PartnersHeader t={state.t} openInviteModal={openInviteGuarded} />
 
       <PartnersKpiStrip
         t={state.t}
@@ -168,6 +197,7 @@ const Partners: React.FC = () => {
         />
       )}
     </div>
+    </SubscriptionPageGate>
   );
 };
 

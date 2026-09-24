@@ -48,12 +48,12 @@
 | 18 | Change Password | ✅ | ❌ | |
 | 19 | Notifications Listing & Settings | ✅ | ❌ | |
 | 20 | Chat / Messages | ✅ | ❌ | |
-| 21 | Subscription + Add-ons | ✅ | ❌ | Sidebar placeholder `#subscription` |
-| 22 | Billing | ✅ | ❌ | Sidebar placeholder `#billing` |
+| 21 | Subscription + Add-ons | ✅ | ✅ | Full SPA + Viva; entitlements on `/auth/me` (PDS-976) |
+| 22 | Billing | ✅ | ✅ | Billing SPA (PDS-948) |
 | 23 | Account Statement | ✅ | ❌ | Menu often hidden in Laravel |
 | 24 | Past-Due Invoice gate | ✅ | ✅ | `ProtectedRoute` + `has_past_due` (priority over KYC/info-form) |
-| 25 | Private / Public Load Limit modals | ✅ | 🚧 | Public limit check + Step 3 banner; private limit modal TBD |
-| 26 | Upgrade (Subscribe) Modal | ✅ | 🚧 | Module-local gates (e.g. SAT); global modal TBD |
+| 25 | Private / Public Load Limit modals | ✅ | ✅ | Public + private quota APIs + Step 3 banners (PDS-976) |
+| 26 | Upgrade (Subscribe) Modal | ✅ | ✅ | Global `UpgradeGateProvider` + module gates (PDS-976) |
 | 27 | Support & Feedback | ✅ | ❌ | Sidebar placeholder `#support` |
 | 28 | Tutorials | ✅ | ❌ | Sidebar placeholder `#tutorial` |
 | 29 | Refer MYVAGON | ✅ | ❌ | |

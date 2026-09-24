@@ -9,8 +9,17 @@ import { ChatComposer } from './components/ChatComposer';
 import { ShipmentContextPane } from './components/ShipmentContextPane';
 import { ChatThreadSkeleton } from './components/ChatSkeleton';
 import { formatShipmentAutoId } from '../../utils/chatPartnerUtils';
+import { SubscriptionPageGate } from '../../components/subscription/SubscriptionPageGate';
 
 export const MessagesPage: React.FC = () => {
+  return (
+    <SubscriptionPageGate slug="chat_with_carriers_drivers">
+      <MessagesPageInner />
+    </SubscriptionPageGate>
+  );
+};
+
+const MessagesPageInner: React.FC = () => {
   const {
     t,
     lang,

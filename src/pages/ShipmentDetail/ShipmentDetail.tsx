@@ -33,6 +33,8 @@ import type { Shipment } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
+import { useSubscriptionPermission } from '../../hooks/useSubscriptionPermission';
+import { useUpgradeGate } from '../../context/UpgradeGateContext';
 import { useShipment } from '../../hooks/useShipments';
 import { ShipmentDetailSkeleton } from '../../components/skeletons/ShipmentDetailSkeleton';
 import { buildShipmentDetailViewModel, type DetailNote, type DetailDocument, type PartnerBidItem } from './detailViewModel';
@@ -76,6 +78,12 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
   const { showToast } = useApp();
   const { t } = useTranslation();
   const { requireSignupComplete } = useRequireSignupComplete();
+  const { can, requirePermission } = useSubscriptionPermission();
+  const { openUpgradeGate } = useUpgradeGate();
+  const canViewMap = can('view_map');
+  const canLiveGps = can('live_gps_shipment_tracking');
+  const canViewPods = can('view_electronic_pods');
+  const canTravelledRoute = can('actual_travelled_route');
   const fetched = useShipment(readOnly ? undefined : id);
   const shipment = readOnly ? (shipmentOverride ?? null) : fetched.shipment;
   const loading = readOnly ? false : fetched.loading;
@@ -923,7 +931,18 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
               onToggle={() => toggleSection('stops')}
               onCopy={handleCopy}
               onToast={(msg) => showToast(msg, 'info')}
-              onViewPod={(stop) => setViewPodStop(stop)}
+              onViewPod={(stop) => {
+                if (
+                  !requirePermission('view_electronic_pods', {
+                    body:
+                      t('podUpgradeBody') ||
+                      'Electronic PODs require a plan upgrade or the POD add-on.',
+                  })
+                ) {
+                  return;
+                }
+                setViewPodStop(stop);
+              }}
               onRequestPod={
                 readOnly
                   ? undefined
@@ -1026,6 +1045,7 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
           {/* Right Column (w-full lg:w-[380px] xl:w-[420px] shrink-0) */}
           <div className="w-full lg:w-[380px] xl:w-[420px] shrink-0 flex flex-col gap-0">
             {/* 1. Live Tracking (on-trip) OR Route Map (other statuses) */}
+            {canViewMap || canLiveGps ? (
             <TrackingMapCard
               stops={displayedStops}
               status={vm.status}
@@ -1033,13 +1053,31 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
               trip={vm.trip}
               isDelayed={vm.isDelayed}
               delayText={vm.delayText}
-              actualRouteCoordinates={vm.actualRouteCoordinates}
-              hasActualRoute={vm.hasActualRoute}
+              actualRouteCoordinates={canTravelledRoute ? vm.actualRouteCoordinates : undefined}
+              hasActualRoute={canTravelledRoute ? vm.hasActualRoute : false}
               expanded={sections.tracking}
               onToggle={() => toggleSection('tracking')}
               onShare={readOnly ? undefined : () => setIsShareOpen(true)}
               t={t}
             />
+            ) : (
+              <div className="card mb-3 p-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                <p className="m-0 mb-2">
+                  {t('mapUpgradeBody') || 'Interactive maps and live GPS require a plan upgrade or add-on.'}
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() =>
+                    openUpgradeGate({
+                      body: t('mapUpgradeBody') || 'Interactive maps and live GPS require a plan upgrade or add-on.',
+                    })
+                  }
+                >
+                  {t('satUpgradeNow')}
+                </button>
+              </div>
+            )}
 
             {/* 2. Trip Summary */}
             <TripSummaryCard

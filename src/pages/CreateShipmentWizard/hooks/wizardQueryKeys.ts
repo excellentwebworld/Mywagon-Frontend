@@ -5,4 +5,5 @@ export const wizardQueryKeys = {
   trackingEmailLookup: ['create-shipment', 'tracking-email-lookup'] as const,
   step3Orders: (orderIdsKey: string) => ['create-shipment', 'step3-orders', orderIdsKey] as const,
   publicQuota: (draftId: number | null) => ['create-shipment', 'public-quota', draftId] as const,
+  privateQuota: (draftId: number | null) => ['create-shipment', 'private-quota', draftId] as const,
 };

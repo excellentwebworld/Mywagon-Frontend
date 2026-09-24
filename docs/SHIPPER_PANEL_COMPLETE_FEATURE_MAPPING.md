@@ -144,8 +144,8 @@ React today: auth + 2FA + past-due → `/billing` + KYC → Compliance + company
 | 18 | Change Password | ✅ | ✅ | Settings → Security; `PUT /settings/security/password` |
 | 19 | Notifications | ✅ | 🚧 | Settings toggles **done**; notification **listing pending** (bell, badges, deep links) |
 | 20 | Chat | ✅ | ❌ | Header icon toast-only |
-| 21 | Subscription + Add-ons | ✅ | ❌ | `/subscription` placeholder; upgrades deep-link Laravel |
-| 22 | Billing | ✅ | ❌ | `/billing` placeholder |
+| 21 | Subscription + Add-ons | ✅ | ✅ | Full SPA + entitlements gating (PDS-976) |
+| 22 | Billing | ✅ | ✅ | Billing SPA (PDS-948) |
 | 23 | Account Statement | ✅ | ❌ | |
 | 24 | Support & Feedback | ✅ | ✅ | PDS-950 — KB, tickets, Book a Call; **dev complete** |
 | 25 | Tutorials | ✅ | ✅ | `/tutorials` + contextual triggers |
@@ -255,8 +255,8 @@ Draft → Pending → Scheduled → Ready → Past Due → On Trip
 | `/erp-orders` | ErpOrders | Protected |
 | `/settings` · `/settings/:section` | Settings | Protected |
 | `/settings/:section/:tab` | User edit (Users & Roles) | Protected |
-| `/billing` | BillingPage (placeholder) | Protected |
-| `/subscription` | SubscriptionPage (placeholder) | Protected |
+| `/billing` | BillingPage | Protected |
+| `/subscription` | SubscriptionPage | Protected |
 | `/support` | SupportPage | Protected |
 | `/tutorials` | TutorialsPage | Protected |
 | `/trust` | Redirect → `/settings/trustCenter` | Protected |
@@ -786,7 +786,7 @@ Each module below uses the same checklist fields.
 |---|---|
 | **Overview** | Plans, upgrade/cancel, auto-pay, add-ons. |
 | **Laravel** | Full subscription page + payment handlers. |
-| **React** | `/subscription` + Settings → Subscription show **placeholder**; module 403s deep-link Laravel plan URL. |
+| **React** | Full `/subscription` SPA (plans, add-ons, Viva). Entitlements on `/auth/me` + global Upgrade modal (PDS-976). |
 | **API** | None for SPA. |
 | **Status** | Laravel ✅ · React ❌ · API ❌ |
 | **Comparison** | Hybrid acceptable short-term (upgrade opens Laravel). Full SPA later. |
@@ -799,7 +799,7 @@ Each module below uses the same checklist fields.
 |---|---|
 | **Overview** | Invoices, wallet pay, bank transfer receipt, print. |
 | **Laravel** | Full Billing History & Invoices. |
-| **React** | `/billing` + Settings → Billing **placeholder**. |
+| **React** | Full `/billing` SPA (PDS-948). |
 | **API** | None. |
 | **Status** | Laravel ✅ · React ❌ · API ❌ |
 

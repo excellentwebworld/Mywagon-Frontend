@@ -10,6 +10,7 @@ import {
   LocationList,
 } from '../../components/AddressBook';
 import { ConfirmationModal } from '../../components/ui/ConfirmationModal';
+import { SubscriptionPageGate } from '../../components/subscription/SubscriptionPageGate';
 import { useAddressBook } from './hooks/useAddressBook';
 import '../../styles/address-book.css';
 
@@ -17,6 +18,7 @@ export const AddressBook: React.FC = () => {
   const ab = useAddressBook();
 
   return (
+    <SubscriptionPageGate slug="manage_address_book_master">
     <div className="ab-wrap anim">
       <AddressBookHeader
         t={ab.t}
@@ -139,5 +141,6 @@ export const AddressBook: React.FC = () => {
         }
       />
     </div>
+    </SubscriptionPageGate>
   );
 };

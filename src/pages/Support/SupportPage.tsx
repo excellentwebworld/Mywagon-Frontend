@@ -10,6 +10,7 @@ import { KnowledgeBaseSection } from './components/sections/KnowledgeBaseSection
 import { RequestsSection } from './components/sections/RequestsSection';
 import { BookCallSection } from './components/sections/BookCallSection';
 import { useSupportPage } from './hooks/useSupportPage';
+import { SubscriptionPageGate } from '../../components/subscription/SubscriptionPageGate';
 
 export default function SupportPage() {
   const { t } = useTranslation();
@@ -29,6 +30,44 @@ export default function SupportPage() {
     dismissGateModal,
   } = useSupportPage();
 
+  return (
+    <SubscriptionPageGate slug="feedback_and_support" soft>
+      <SupportPageInner
+        t={t}
+        sectionOpen={sectionOpen}
+        activeRequestTab={activeRequestTab}
+        setActiveRequestTab={setActiveRequestTab}
+        callType={callType}
+        setCallType={setCallType}
+        accessLoading={accessLoading}
+        upgradeUrl={upgradeUrl}
+        gateModalOpen={gateModalOpen}
+        isGated={isGated}
+        toggleSection={toggleSection}
+        scrollToSection={scrollToSection}
+        registerSectionRef={registerSectionRef}
+        dismissGateModal={dismissGateModal}
+      />
+    </SubscriptionPageGate>
+  );
+}
+
+function SupportPageInner({
+  t,
+  sectionOpen,
+  activeRequestTab,
+  setActiveRequestTab,
+  callType,
+  setCallType,
+  accessLoading,
+  upgradeUrl,
+  gateModalOpen,
+  isGated,
+  toggleSection,
+  scrollToSection,
+  registerSectionRef,
+  dismissGateModal,
+}: ReturnType<typeof useSupportPage> & { t: (key: string, fallback?: string) => string }) {
   const [kbArticleCount, setKbArticleCount] = useState<number | null>(null);
 
   useEffect(() => {

@@ -6,6 +6,8 @@ export type {
   LoginResult,
   ShipperUser,
   ShipperPermission,
+  SubscriptionEntitlementEntry,
+  SubscriptionEntitlements,
   TwoFactorChallenge,
   TwoFactorMethod,
 } from './types';

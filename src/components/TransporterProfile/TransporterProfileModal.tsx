@@ -9,6 +9,8 @@ import type { TransporterProfileTarget } from './TransporterProfileContext';
 import { TransporterProfileContent } from './TransporterProfileContent';
 import { TransporterProfileSkeleton } from './TransporterProfileSkeleton';
 import { SubscriptionGateModal } from '../SearchTrucks/SubscriptionGateModal';
+import { useSubscriptionPermission } from '../../hooks/useSubscriptionPermission';
+import { useUpgradeGate } from '../../context/UpgradeGateContext';
 import '../../styles/transporter-profile.css';
 
 interface TransporterProfileModalProps {
@@ -24,6 +26,8 @@ export const TransporterProfileModal: React.FC<TransporterProfileModalProps> = (
   onClose,
   t,
 }) => {
+  const { can } = useSubscriptionPermission();
+  const { openUpgradeGate } = useUpgradeGate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subscriptionBlocked, setSubscriptionBlocked] = useState(false);
@@ -35,6 +39,17 @@ export const TransporterProfileModal: React.FC<TransporterProfileModalProps> = (
   const load = useCallback(
     async (pageNum: number) => {
       if (!target?.id || !target?.type) return;
+      if (!can('rating_and_review_for_transporter')) {
+        openUpgradeGate({
+          title: t('satUpgradeTitle') || 'Upgrade',
+          body:
+            t('transporterProfileUpgradeBody') ||
+            'Transporter ratings and profiles require a plan upgrade.',
+          upgradeUrl: '/subscription',
+        });
+        onClose();
+        return;
+      }
       setLoading(true);
       setError(null);
       try {
@@ -55,7 +70,7 @@ export const TransporterProfileModal: React.FC<TransporterProfileModalProps> = (
         setLoading(false);
       }
     },
-    [target, t, onClose]
+    [target, t, onClose, can, openUpgradeGate]
   );
 
   useEffect(() => {

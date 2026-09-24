@@ -148,6 +148,8 @@ import {
   translateConflict,
   translateResolution,
 } from "./validation";
+import { useSubscriptionPermission } from "../../hooks/useSubscriptionPermission";
+import { useUpgradeGate } from "../../context/UpgradeGateContext";
 
 const makeId = (prefix: string) =>
   `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
@@ -214,6 +216,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   excludeShipmentId = null,
 }) => {
   const { t } = useTranslation();
+  const { requirePermission, can } = useSubscriptionPermission();
+  const { openUpgradeGate } = useUpgradeGate();
   const { values, setFieldValue } = useFormikContext<any>();
   const stops = values.stops || [];
   const lockedIdSet = useMemo(
@@ -502,8 +506,18 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   );
 
   const addStop = useCallback(() => {
+    if (stopsRef.current.length >= 2 && !can('allow_multiple_stops')) {
+      openUpgradeGate({
+        title: t('satUpgradeTitle'),
+        body:
+          t('multiStopUpgradeBody') ||
+          'Multi-stop shipments require a plan upgrade or the multi-stop add-on.',
+        upgradeUrl: '/subscription',
+      });
+      return;
+    }
     setStops((prev) => [...prev, createNewStop(true)]);
-  }, [setStops]);
+  }, [can, openUpgradeGate, setStops, t]);
 
   const delStop = useCallback(
     (sid: string) => {
@@ -1695,6 +1709,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   }, [runContinue]);
 
   const handleSaveDraftClick = useCallback(async () => {
+    if (!requirePermission('draft_shipment', {
+      body: t('draftShipmentUpgradeBody') || 'Saving drafts requires a plan that includes draft shipments.',
+    })) {
+      return;
+    }
     setShowAll(true);
     try {
       await runSaveDraft();
@@ -1702,7 +1721,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     } catch {
       // Error toast handled by parent
     }
-  }, [runSaveDraft, setShowAll]);
+  }, [requirePermission, runSaveDraft, setShowAll, t]);
 
   const stopConflicts = useCallback(
     (idx: number) => {

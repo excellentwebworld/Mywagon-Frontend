@@ -18,6 +18,7 @@ import { InfoFormReminderModal } from './InfoFormReminderModal';
 import { RouterLocationSync } from './RouterLocationSync';
 import { OnboardingTourHost } from '../../onboarding';
 import { SignupIncompleteGateHost } from '../auth/SignupIncompleteGateHost';
+import { UpgradeGateProvider } from '../../context/UpgradeGateContext';
 
 const SIDEBAR_COLLAPSED_KEY = 'shipper-sidebar-collapsed';
 
@@ -132,6 +133,7 @@ export const AppLayout: React.FC = () => {
   const ToastIcon = TOAST_ICON[toast.type] || Info;
 
   return (
+    <UpgradeGateProvider>
     <UserMgmtProvider>
     <TransporterProfileProvider>
     <div className={`app-layout${isSideMode ? '' : ' app-layout--top-nav'}`}>
@@ -196,6 +198,7 @@ export const AppLayout: React.FC = () => {
     </div>
     </TransporterProfileProvider>
     </UserMgmtProvider>
+    </UpgradeGateProvider>
   );
 };
 

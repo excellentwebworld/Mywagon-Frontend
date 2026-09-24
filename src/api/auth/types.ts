@@ -5,6 +5,24 @@ export interface ShipperPermission {
   slug?: string | null;
 }
 
+/** Single permission entitlement from active user_subscription_permissions. */
+export interface SubscriptionEntitlementEntry {
+  type: 'status' | 'count' | 'percentage' | string;
+  value: string;
+  allowed: boolean;
+  used?: number;
+  remaining?: number | null;
+  unlimited?: boolean;
+  limit?: number | null;
+}
+
+export interface SubscriptionEntitlements {
+  plan_id: number | null;
+  plan_name: string | null;
+  interval: 'month' | 'year' | string | null;
+  permissions: Record<string, SubscriptionEntitlementEntry>;
+}
+
 export interface ShipperUser {
   id: number;
   email: string;
@@ -20,6 +38,8 @@ export interface ShipperUser {
   parent_shipper_id: number | null;
   /** Spatie RBAC names (= shipper_permissions.value) */
   permissions?: string[] | ShipperPermission[];
+  /** Plan + add-on entitlements for proactive UI gates (PDS-976). */
+  subscription_entitlements?: SubscriptionEntitlements | null;
   two_factor_enabled?: boolean;
   two_factor_method?: 'authenticator' | 'email' | null;
   has_past_due?: boolean;

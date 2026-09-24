@@ -1,3 +1,5 @@
+import type { SubscriptionEntitlements } from '../auth/types';
+
 export type BillingCycle = 'month' | 'year';
 
 export interface SubscriptionUsageItem {
@@ -102,6 +104,7 @@ export interface SubscriptionOverview {
   auto_pay_available: boolean;
   current: SubscriptionCurrent | null;
   usage: SubscriptionUsageItem[];
+  entitlements?: SubscriptionEntitlements;
   plans: SubscriptionPlanItem[];
   addons: {
     recurring: SubscriptionAddonOffer[];

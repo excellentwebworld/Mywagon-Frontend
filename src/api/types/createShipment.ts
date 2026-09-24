@@ -200,12 +200,16 @@ export interface PublicLoadQuotaResponse {
   status: boolean;
   limit?: number;
   used?: number;
-  remaining?: number;
+  remaining?: number | null;
+  is_unlimited?: boolean;
   message?: string;
   actions?: {
     upgrade_url?: string;
+    addon_url?: string;
   };
 }
+
+export type PrivateLoadQuotaResponse = PublicLoadQuotaResponse;
 
 export interface ApiVehicleCategory {
   id: number;

@@ -17,6 +17,8 @@ import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
 import { useUserMgmt } from '../../../context/UserMgmtContext';
+import { useUpgradeGate } from '../../../context/UpgradeGateContext';
+import { useSubscriptionPermission } from '../../../hooks/useSubscriptionPermission';
 import PaginationBar from '../../../components/ui/PaginationBar';
 import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 import InviteUserModal from './modals/InviteUserModal';
@@ -30,7 +32,6 @@ import { ApiError } from '../../../api/client';
 import { parseUtcInstant } from '../../../utils/timezone';
 import { formatIsoDisplayDateTime } from '../../../utils/dateDisplay';
 import { useAuth } from '../../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 const SORT_FIELDS = ['user', 'role', 'status', 'lastActive', 'created'];
@@ -43,10 +44,12 @@ export default function UsersTab() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const { user: authUser } = useAuth();
   const { requireSignupComplete } = useRequireSignupComplete();
   const { users, setUsers, addUser, updateUser, refresh, loading, error, roles, seats } = useUserMgmt();
+  const { openUpgradeGate } = useUpgradeGate();
+  const { remaining } = useSubscriptionPermission();
+  const dispatcherRemaining = remaining('dispatcher_users');
   const canManageUsers = canManageShipperUsers(authUser);
   const canInvite = canManageUsers && seats?.can_invite !== false;
   const roleFilterOptions = roles.length ? roles : SHIPPER_ROLES;
@@ -150,9 +153,15 @@ export default function UsersTab() {
       return;
     }
     if (!requireSignupComplete()) return;
-    if (seats && seats.can_invite === false) {
-      toast.error(t('userMgmt.seats.atLimitHint'));
-      navigate('/subscription');
+    if (
+      (seats && seats.can_invite === false) ||
+      (dispatcherRemaining !== null && dispatcherRemaining <= 0)
+    ) {
+      openUpgradeGate({
+        title: t('satUpgradeTitle', { defaultValue: 'Upgrade' }),
+        body: t('userMgmt.seats.atLimitHint'),
+        upgradeUrl: '/subscription',
+      });
       return;
     }
     setModalUser(null);

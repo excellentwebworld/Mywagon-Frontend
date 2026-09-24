@@ -56,6 +56,14 @@ export const createShipmentService = {
     return res.data;
   },
 
+  async checkPrivateLoadLimit(draftId?: number): Promise<import('../types/createShipment').PrivateLoadQuotaResponse> {
+    const res = await apiPost<import('../types/createShipment').PrivateLoadQuotaResponse>(
+      '/create-shipment/check-private-limit',
+      draftId ? { draft_id: draftId } : {}
+    );
+    return res.data;
+  },
+
   async fetchAiSuggestedPrice(draftId: number | string): Promise<import('../types/createShipment').AiSuggestedPriceResult> {
     const res = await apiPost<import('../types/createShipment').AiSuggestedPriceResult>(
       `/create-shipment/drafts/${draftId}/ai-suggested-price`,

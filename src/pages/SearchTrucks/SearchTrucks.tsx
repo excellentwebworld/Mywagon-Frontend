@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   AvailabilityList,
@@ -13,6 +13,8 @@ import {
 import { tripTypeToStops } from '../../components/SearchTrucks/SatFilterModal';
 import type { SatFilterDraft } from '../../components/SearchTrucks/SatFilterModal';
 import { useApp } from '../../context/AppContext';
+import { useUpgradeGate } from '../../context/UpgradeGateContext';
+import { useSubscriptionPermission } from '../../hooks/useSubscriptionPermission';
 import '../../styles/search-trucks.css';
 import { useSearchTrucks } from './hooks/useSearchTrucks';
 import type { AvailableTruck } from './types';
@@ -23,8 +25,20 @@ export const SearchTrucks: React.FC = () => {
   const m = useSearchTrucks();
   const { showToast } = useApp();
   const navigate = useNavigate();
+  const { can } = useSubscriptionPermission();
+  const { openUpgradeGate } = useUpgradeGate();
   const [filterOpen, setFilterOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
+
+  useEffect(() => {
+    if (!can('search_available_trucks')) {
+      openUpgradeGate({
+        title: m.t('satUpgradeTitle'),
+        body: m.t('satUpgradeBody'),
+        upgradeUrl: '/subscription',
+      });
+    }
+  }, [can, openUpgradeGate, m.t]);
 
   const openProviderProfile = useCallback(
     (truck: AvailableTruck) => {

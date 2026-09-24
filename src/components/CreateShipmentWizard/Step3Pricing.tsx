@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
 import { useFormikContext } from 'formik';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -36,6 +35,9 @@ import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { useCreateShipmentPartners } from '../../hooks/useCreateShipmentPartners';
 import { usePublicLoadQuota } from '../../hooks/usePublicLoadQuota';
+import { usePrivateLoadQuota } from '../../hooks/usePrivateLoadQuota';
+import { useSubscriptionPermission } from '../../hooks/useSubscriptionPermission';
+import { useUpgradeGate } from '../../context/UpgradeGateContext';
 import { useStep3OrderDetails, EMPTY_STEP3_ORDERS } from '../../hooks/useStep3OrderDetails';
 import { useAiSuggestedPrice } from '../../hooks/useAiSuggestedPrice';
 import { matchContractLane } from '../../api/utils/matchContractLane';
@@ -112,7 +114,13 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     !isEditMode || editStatusNorm === 'pending' || editStatusNorm === 'draft' || editStatusNorm === '';
   const showTrackingEmailSection = canEditTrackingEmails;
   const { carriersList, loading: partnersLoading, error: partnersError } = useCreateShipmentPartners();
+  const { can, requirePermission } = useSubscriptionPermission();
+  const { openUpgradeGate } = useUpgradeGate();
   const { quota: publicQuota, loading: publicQuotaLoading } = usePublicLoadQuota(
+    draftId,
+    values.broadcastType || 'private'
+  );
+  const { quota: privateQuota, loading: privateQuotaLoading } = usePrivateLoadQuota(
     draftId,
     values.broadcastType || 'private'
   );
@@ -340,6 +348,15 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     setFieldValue('targetPrice', String(price));
   };
   const handleAiInsightsClick = () => {
+    if (!requirePermission('ai_suggested_price', {
+      body:
+        t('aiSuggestedPriceUpgradeBody') ||
+        'AI Suggested Price is available on Plus/Pro plans or as a paid add-on.',
+      upgradeUrl: '/subscription',
+    })) {
+      return;
+    }
+
     const nextExpanded = !aiExpanded;
     setAiExpanded(nextExpanded);
 
@@ -445,6 +462,25 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   const palletDivisor = totalPallets > 0 ? totalPallets : 1;
   const pricePerPallet = targetPriceVal > 0 ? (targetPriceVal / palletDivisor).toFixed(2) : '0.00';
   const publicQuotaBlocked = values.broadcastType === 'public' && publicQuota?.status === false;
+  const privateQuotaBlocked = values.broadcastType === 'private' && privateQuota?.status === false;
+  const loadQuotaBlocked = publicQuotaBlocked || privateQuotaBlocked;
+  const canPrivateLoads = can('private_loads');
+  const canPublicLoads = can('public_loads');
+  const canAiSuggestedPrice = can('ai_suggested_price');
+  const canDraftShipment = can('draft_shipment');
+
+  const selectBroadcastType = (type: 'private' | 'public') => {
+    const slug = type === 'private' ? 'private_loads' : 'public_loads';
+    if (!requirePermission(slug, {
+      body:
+        type === 'private'
+          ? t('privateLoadsUpgradeBody') || 'Private loads are not included in your current plan.'
+          : t('publicLoadsUpgradeBody') || 'Public loads are not included in your current plan.',
+    })) {
+      return;
+    }
+    setFieldValue('broadcastType', type);
+  };
 
   const calculatedPrice = useMemo(() => {
     if (contract) {
@@ -636,12 +672,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 <div
                   className={`bcc cursor-pointer border-2 p-4 rounded-xl relative transition-all ${
                     values.broadcastType === 'private' ? 'sel' : ''
-                  }`}
+                  } ${!canPrivateLoads ? 'opacity-60' : ''}`}
                   style={{
                     borderColor: values.broadcastType === 'private' ? T.ac : T.bd,
                     background: values.broadcastType === 'private' ? T.ap : 'transparent',
                   }}
-                  onClick={() => setFieldValue('broadcastType', 'private')}
+                  onClick={() => selectBroadcastType('private')}
                 >
                   {values.broadcastType === 'private' && (
                     <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-xs text-white" style={{ background: T.ac }}>
@@ -657,12 +693,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 <div
                   className={`bcc cursor-pointer border-2 p-4 rounded-xl relative transition-all ${
                     values.broadcastType === 'public' ? 'sel' : ''
-                  }`}
+                  } ${!canPublicLoads ? 'opacity-60' : ''}`}
                   style={{
                     borderColor: values.broadcastType === 'public' ? T.ac : T.bd,
                     background: values.broadcastType === 'public' ? T.ap : 'transparent',
                   }}
-                  onClick={() => setFieldValue('broadcastType', 'public')}
+                  onClick={() => selectBroadcastType('public')}
                 >
                   {values.broadcastType === 'public' && (
                     <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center text-xs text-white" style={{ background: T.ac }}>
@@ -682,19 +718,40 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 <div className="mt-4">
                   <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs flex items-start justify-between gap-3">
                     <span>{publicQuota.message || t('publicQuotaExceeded') || 'You have reached your Public Load limit for this billing cycle.'}</span>
-                    {publicQuota.actions?.upgrade_url && (
-                      <Link
-                        to={
-                          publicQuota.actions.upgrade_url.startsWith('http') ||
-                          publicQuota.actions.upgrade_url.startsWith('/shipper/subscription')
-                            ? '/subscription'
-                            : publicQuota.actions.upgrade_url
-                        }
-                        className="font-bold underline whitespace-nowrap"
-                      >
-                        {t('publicQuotaUpgrade') || 'Upgrade plan'}
-                      </Link>
-                    )}
+                    <button
+                      type="button"
+                      className="font-bold underline whitespace-nowrap"
+                      onClick={() =>
+                        openUpgradeGate({
+                          upgradeUrl: publicQuota.actions?.upgrade_url || '/subscription',
+                        })
+                      }
+                    >
+                      {t('publicQuotaUpgrade') || 'Upgrade plan'}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {values.broadcastType === 'private' && privateQuota?.status === false && (
+                <div className="mt-4">
+                  <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs flex items-start justify-between gap-3">
+                    <span>
+                      {privateQuota.message ||
+                        t('privateQuotaExceeded') ||
+                        'You have reached your Private Load limit for this billing cycle.'}
+                    </span>
+                    <button
+                      type="button"
+                      className="font-bold underline whitespace-nowrap"
+                      onClick={() =>
+                        openUpgradeGate({
+                          upgradeUrl: privateQuota.actions?.upgrade_url || '/subscription',
+                        })
+                      }
+                    >
+                      {t('publicQuotaUpgrade') || 'Upgrade plan'}
+                    </button>
                   </div>
                 </div>
               )}
@@ -1115,7 +1172,18 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 <button
                   type="button"
                   className="ai-suggest-btn shrink-0"
-                  disabled={Boolean(contract) || !draftId || (aiPriceLoading && aiInsightsRequested)}
+                  disabled={
+                    Boolean(contract) ||
+                    !draftId ||
+                    (aiPriceLoading && aiInsightsRequested) ||
+                    !canAiSuggestedPrice
+                  }
+                  title={
+                    !canAiSuggestedPrice
+                      ? t('aiSuggestedPriceUpgradeBody') ||
+                        'AI Suggested Price is available on Plus/Pro plans or as a paid add-on.'
+                      : undefined
+                  }
                   onClick={handleAiInsightsClick}
                 >
                   {aiPriceLoading && aiInsightsRequested ? (
@@ -1173,17 +1241,17 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                       {aiPriceDenied.upgradeUrl && (
                         <>
                           {' '}
-                          <Link
-                            to={
-                              aiPriceDenied.upgradeUrl.startsWith('http') ||
-                              aiPriceDenied.upgradeUrl.startsWith('/shipper/subscription')
-                                ? '/subscription'
-                                : aiPriceDenied.upgradeUrl
+                          <button
+                            type="button"
+                            className="font-bold underline bg-transparent border-none cursor-pointer p-0 text-inherit"
+                            onClick={() =>
+                              openUpgradeGate({
+                                upgradeUrl: aiPriceDenied.upgradeUrl || '/subscription',
+                              })
                             }
-                            className="font-bold underline"
                           >
                             {t('publicQuotaUpgrade') || 'Upgrade plan'}
-                          </Link>
+                          </button>
                         </>
                       )}
                     </div>
@@ -2080,9 +2148,16 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             type="button"
             className="inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 cursor-pointer"
             onClick={async () => {
+              if (!requirePermission('draft_shipment', {
+                body:
+                  t('draftShipmentUpgradeBody') ||
+                  'Saving drafts requires a plan that includes draft shipments.',
+              })) {
+                return;
+              }
               await onSaveDraft?.({ ...values, trackingEmails: trackingEmailsRecord });
             }}
-            disabled={isSubmitting || isSaving}
+            disabled={isSubmitting || isSaving || !canDraftShipment}
           >
             <Save size={13} />{' '}
             {isEditMode
@@ -2097,7 +2172,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               background: T.ac,
               fontFamily: 'inherit',
             }}
-            disabled={isSubmitting || isSaving || publicQuotaBlocked}
+            disabled={isSubmitting || isSaving || loadQuotaBlocked || publicQuotaLoading || privateQuotaLoading}
             aria-busy={isSubmitting}
             onClick={() => {
               const isNegotiable = Boolean(values.negotiable);

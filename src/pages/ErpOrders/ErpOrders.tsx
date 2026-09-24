@@ -31,10 +31,19 @@ import { useAuth } from '../../context/AuthContext';
 import type { LocationItem } from '../../context/AppContext';
 import { EMPTY_ORDER_LINE } from './types';
 import type { SKU } from '../../context/AppContext';
+import { SubscriptionPageGate } from '../../components/subscription/SubscriptionPageGate';
 
 type LocationTarget = 'origin' | 'dest';
 
 export const ErpOrders: React.FC = () => {
+  return (
+    <SubscriptionPageGate slug="manage_erp_orders">
+      <ErpOrdersInner />
+    </SubscriptionPageGate>
+  );
+};
+
+const ErpOrdersInner: React.FC = () => {
   const state = useErpOrdersList();
   const { showToast } = useApp();
   const [locationModalOpen, setLocationModalOpen] = useState(false);

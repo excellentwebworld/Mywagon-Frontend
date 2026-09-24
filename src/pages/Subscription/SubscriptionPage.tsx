@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../../hooks/useToast';
+import { useAuth } from '../../context/AuthContext';
 import { ApiError, getApiErrorMessage } from '../../api';
 import { subscriptionService as shipperSubscriptionService } from '../../api/services/subscriptionService';
 import type { WebViewSubscriptionService } from '../../api/services/webViewSubscriptionService';
@@ -225,6 +226,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
         : USAGE_LABELS;
   const { t, i18n } = useTranslation();
   const { toast } = useToast();
+  const { refreshUser } = useAuth();
   const locale = i18n.language?.startsWith('el') ? 'el' : 'en';
   const tf = (key: string, fallback: string) => t(`subscriptionPage.${key}`, { defaultValue: fallback });
   const usageLabel = (slug: string, apiName?: string | null) => {
@@ -310,12 +312,20 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
       if (overview.current) {
         setCycle(currentIntervalToUi(overview.current.interval, overview.current.start_date, overview.current.expire_date));
       }
+      // Keep SPA entitlement gates in sync after plan/add-on changes (shipper panel only).
+      if (!isWebView) {
+        try {
+          await refreshUser();
+        } catch {
+          // Non-blocking: overview already loaded.
+        }
+      }
     } catch (err) {
       setError(toError(err, tf('loadError', 'Unable to load subscription.')));
     } finally {
       setLoading(false);
     }
-  }, [api, toError, t]);
+  }, [api, toError, t, isWebView, refreshUser]);
 
   useEffect(() => {
     void load();

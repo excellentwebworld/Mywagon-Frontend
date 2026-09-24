@@ -9,6 +9,7 @@ import {
   AiWizardModal,
 } from '../../components/ProductMaster';
 import { ConfirmationModal } from '../../components/ui/ConfirmationModal';
+import { SubscriptionPageGate } from '../../components/subscription/SubscriptionPageGate';
 import { useProductMaster } from './hooks/useProductMaster';
 import '../../styles/product-master.css';
 import '../../styles/ai-wizard.css';
@@ -17,6 +18,7 @@ export const ProductMaster: React.FC = () => {
   const pm = useProductMaster();
 
   return (
+    <SubscriptionPageGate slug="manage_product_master">
     <>
       <div className="pm-container anim">
       <div className="pm-sticky-header">
@@ -205,5 +207,6 @@ export const ProductMaster: React.FC = () => {
         }
       />
     </>
+    </SubscriptionPageGate>
   );
 };
