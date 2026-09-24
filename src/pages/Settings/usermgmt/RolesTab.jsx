@@ -5,7 +5,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Search, Pencil, X, Check, AlertTriangle, Plus, Copy, Trash2,
+  Search, Pencil, X, Check, AlertTriangle, Plus, Copy, Trash2, Loader2,
 } from 'lucide-react';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -146,25 +146,33 @@ export default function RolesTab() {
 
     setSaving(true);
     try {
+      let data;
       if (isCustom) {
         const trimmed = editName.trim();
         if (!trimmed) {
           toast.error(t('userMgmt.roles.nameRequired', { defaultValue: 'Role name is required.' }));
           return;
         }
-        const data = await rolesSettingsService.update(selectedRole.key, {
+        data = await rolesSettingsService.update(selectedRole.key, {
           name: trimmed,
           color: editColor,
           description: editDescription,
           permissions: editPerms || [],
         });
-        applyRolesPayload(data, setApiRoles, setPermissionGroups);
       } else {
-        const data = await rolesSettingsService.update(selectedRole.key, editPerms || []);
-        applyRolesPayload(data, setApiRoles, setPermissionGroups);
+        data = await rolesSettingsService.update(selectedRole.key, editPerms || []);
       }
+      applyRolesPayload(data, setApiRoles, setPermissionGroups);
       cancelEdit();
-      toast.success(t('userMgmt.toast.roleSaved'));
+      const forced = Number(data?.forced_signouts || 0);
+      if (forced > 0) {
+        toast.success(t('userMgmt.toast.roleSavedWithSignouts', {
+          n: forced,
+          defaultValue: `Role saved. ${forced} user(s) were signed out and must log in again.`,
+        }));
+      } else {
+        toast.success(t('userMgmt.toast.roleSaved'));
+      }
       // Sub-users may inherit the edited pack — refresh Spatie permissions.
       if (authUser?.is_sub_user === true || authUser?.type === 'sub_user') {
         await refreshUser().catch(() => null);
@@ -289,7 +297,7 @@ export default function RolesTab() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row gap-4" style={{ minHeight: 400 }}>
+    <div className="flex flex-col md:flex-row gap-4" style={{ minHeight: 400 }} aria-busy={saving}>
       <div className="shrink-0 md:w-[280px]">
         <div className="mb-3 flex items-center justify-between">
           <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: T.t3 }}>
@@ -500,6 +508,7 @@ export default function RolesTab() {
                   <button
                     type="button"
                     onClick={cancelEdit}
+                    disabled={saving}
                     className="flex items-center gap-1 px-3 py-2 rounded-lg cursor-pointer border-none"
                     style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}
                   >
@@ -512,7 +521,7 @@ export default function RolesTab() {
                     className="flex items-center gap-1 px-4 py-2 rounded-lg cursor-pointer border-none font-semibold"
                     style={{ background: T.ac, color: '#fff', fontSize: 12 }}
                   >
-                    <Check size={12} /> {t('common.save')}
+                    {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} {t('common.save')}
                   </button>
                 </div>
               </div>
@@ -579,11 +588,12 @@ export default function RolesTab() {
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
                         style={{ background: T.ac, color: '#fff', fontSize: 12 }}
                       >
-                        <Check size={12} /> {t('common.save')}
+                        {saving ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} {t('common.save')}
                       </button>
                       <button
                         type="button"
                         onClick={cancelEdit}
+                        disabled={saving}
                         className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
                         style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12 }}
                       >

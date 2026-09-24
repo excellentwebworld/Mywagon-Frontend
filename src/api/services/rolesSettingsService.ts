@@ -30,6 +30,8 @@ export type SettingsRole = {
 export type RolesPayload = {
   roles: SettingsRole[];
   groups: PermissionCatalogGroup[];
+  /** Present after role permission updates — users on that role were signed out. */
+  forced_signouts?: number;
 };
 
 export type CreateRoleBody = {
