@@ -638,7 +638,11 @@ export default function RolesTab() {
             )}
 
             <PermissionGrid
-              permissions={editing ? editPerms : selectedRole.permissions}
+              permissions={
+                editing
+                  ? editPerms
+                  : (selectedRole.permission_names || selectedRole.permissions)
+              }
               editing={editing && selectedRole.key !== 'admin'}
               onChange={setEditPerms}
               autoEnabledKeys={autoEnabled}
