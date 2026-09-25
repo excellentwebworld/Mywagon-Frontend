@@ -3514,6 +3514,7 @@
       "sendInvitation": "Send Invitation",
       "required": "This field is required",
       "invalidEmail": "Invalid email address",
+      "invalidPhone": "Please enter a valid phone number (8–15 digits)",
       "selectRole": "Please select a role",
       "allPermissions": "All permissions",
       "permCount": "{{n}} permissions",

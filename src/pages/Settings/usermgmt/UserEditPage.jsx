@@ -16,9 +16,9 @@ import {
   USER_STATUS_CONFIG,
   getUserInitials, getUserFullName, getUserAvatarColor,
 } from '../../../mocks/userMgmtData';
-import { hasCustomDirectPermissions, SHIPPER_ROLES } from '../../../utils/shipperAccessPresets';
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
 import { ApiError } from '../../../api/client';
+import { isValidPhoneNumber, sanitizePhoneInput } from '../../../utils/phoneValidation';
 
 function effectivePermissions(user) {
   if (!user) return [];
@@ -44,6 +44,7 @@ export default function UserEditPage() {
   const [editedPerms, setEditedPerms] = useState(null);
   const [autoEnabled, setAutoEnabled] = useState(new Set());
   const [saving, setSaving] = useState(false);
+  const [profileErrors, setProfileErrors] = useState({});
 
   const cached = getUser(userId || '');
   const user = remoteUser || cached;
@@ -122,7 +123,21 @@ export default function UserEditPage() {
     updateUser(updated);
   };
 
+  const validateProfile = () => {
+    const errs = {};
+    if (!draft.firstName.trim()) errs.firstName = t('userMgmt.invite.required');
+    if (!draft.lastName.trim()) errs.lastName = t('userMgmt.invite.required');
+    if (draft.phone && draft.phone.trim()) {
+      if (!isValidPhoneNumber(draft.phone)) {
+        errs.phone = t('userMgmt.invite.invalidPhone', { defaultValue: 'Please enter a valid phone number (8–15 digits)' });
+      }
+    }
+    setProfileErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const saveProfile = async () => {
+    if (!validateProfile()) return;
     setSaving(true);
     try {
       const updated = await usersSettingsService.update(user.id, {
@@ -133,8 +148,16 @@ export default function UserEditPage() {
         role: isOwner ? undefined : draft.role,
       });
       applyServerUser(updated);
+      setProfileErrors({});
       toast.success(t('userMgmt.toast.userUpdated'));
     } catch (e) {
+      if (e instanceof ApiError && e.fieldErrors) {
+        const mapped = {};
+        if (e.fieldErrors.first_name?.[0]) mapped.firstName = e.fieldErrors.first_name[0];
+        if (e.fieldErrors.last_name?.[0]) mapped.lastName = e.fieldErrors.last_name[0];
+        if (e.fieldErrors.phone?.[0]) mapped.phone = e.fieldErrors.phone[0];
+        setProfileErrors(mapped);
+      }
       toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' }));
     } finally {
       setSaving(false);
@@ -261,20 +284,42 @@ export default function UserEditPage() {
 
       <Section title={t('userMgmt.editPage.userInfo')} T={T}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Field label={t('userMgmt.invite.firstName')} T={T}>
-            <input value={draft.firstName} onChange={(e) => setDraft((d) => ({ ...d, firstName: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg outline-none" style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+          <Field label={t('userMgmt.invite.firstName')} required error={profileErrors.firstName} T={T}>
+            <input
+              value={draft.firstName}
+              onChange={(e) => {
+                setDraft((d) => ({ ...d, firstName: e.target.value }));
+                if (profileErrors.firstName) setProfileErrors((p) => ({ ...p, firstName: undefined }));
+              }}
+              className="w-full px-3 py-2 rounded-lg outline-none"
+              style={{ border: `1px solid ${profileErrors.firstName ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+            />
           </Field>
-          <Field label={t('userMgmt.invite.lastName')} T={T}>
-            <input value={draft.lastName} onChange={(e) => setDraft((d) => ({ ...d, lastName: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg outline-none" style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+          <Field label={t('userMgmt.invite.lastName')} required error={profileErrors.lastName} T={T}>
+            <input
+              value={draft.lastName}
+              onChange={(e) => {
+                setDraft((d) => ({ ...d, lastName: e.target.value }));
+                if (profileErrors.lastName) setProfileErrors((p) => ({ ...p, lastName: undefined }));
+              }}
+              className="w-full px-3 py-2 rounded-lg outline-none"
+              style={{ border: `1px solid ${profileErrors.lastName ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+            />
           </Field>
           <Field label={t('userMgmt.invite.email')} T={T}>
             <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 13, color: T.t3 }}>{user.email}</div>
           </Field>
-          <Field label={t('userMgmt.invite.phone')} T={T}>
-            <input value={draft.phone} onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg outline-none" style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+          <Field label={t('userMgmt.invite.phone')} error={profileErrors.phone} T={T}>
+            <input
+              value={draft.phone}
+              onChange={(e) => {
+                setDraft((d) => ({ ...d, phone: sanitizePhoneInput(e.target.value) }));
+                if (profileErrors.phone) setProfileErrors((p) => ({ ...p, phone: undefined }));
+              }}
+              placeholder="+30 6XX XXX XXXX"
+              className="w-full px-3 py-2 rounded-lg outline-none"
+              style={{ border: `1px solid ${profileErrors.phone ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+            />
           </Field>
           <Field label={t('userMgmt.editPage.jobTitle')} T={T}>
             <input value={draft.jobTitle} onChange={(e) => setDraft((d) => ({ ...d, jobTitle: e.target.value }))}
@@ -389,11 +434,14 @@ function Section({ title, children, T, action }) {
   );
 }
 
-function Field({ label, children, T }) {
+function Field({ label, required, error, children, T }) {
   return (
     <div>
-      <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>{label}</label>
+      <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
+        {label} {required && <span style={{ color: '#EF4444' }}>*</span>}
+      </label>
       {children}
+      {error && <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{error}</p>}
     </div>
   );
 }

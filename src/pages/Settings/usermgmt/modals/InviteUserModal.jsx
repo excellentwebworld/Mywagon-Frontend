@@ -14,6 +14,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import { usersSettingsService } from '../../../../api/services/usersSettingsService';
 import { ApiError } from '../../../../api/client';
 import { SHIPPER_ROLES } from '../../../../utils/shipperAccessPresets';
+import { isValidPhoneNumber, sanitizePhoneInput } from '../../../../utils/phoneValidation';
 
 const EMPTY_FORM = {
   firstName: '', lastName: '', email: '', phone: '',
@@ -79,6 +80,11 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
     if (!isEdit) {
       if (!form.email.trim()) errs.email = t('userMgmt.invite.required');
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = t('userMgmt.invite.invalidEmail');
+    }
+    if (form.phone && form.phone.trim()) {
+      if (!isValidPhoneNumber(form.phone)) {
+        errs.phone = t('userMgmt.invite.invalidPhone', { defaultValue: 'Please enter a valid phone number (8–15 digits)' });
+      }
     }
     if (!form.role) errs.role = t('userMgmt.invite.selectRole');
     setErrors(errs);
@@ -243,10 +249,16 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
             />
           </Field>
           <Field label={t('userMgmt.invite.phone')} error={errors.phone}>
-            <input value={form.phone} onChange={(e) => set('phone', e.target.value)}
+            <input
+              value={form.phone}
+              onChange={(e) => {
+                set('phone', sanitizePhoneInput(e.target.value));
+                if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
+              }}
               placeholder="+30 6XX XXX XXXX"
               className="w-full px-3 py-2 rounded-lg outline-none"
-              style={{ border: `1px solid ${errors.phone ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+              style={{ border: `1px solid ${errors.phone ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+            />
           </Field>
 
           <div>
