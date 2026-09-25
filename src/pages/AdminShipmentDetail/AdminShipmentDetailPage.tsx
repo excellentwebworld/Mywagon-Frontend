@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { ShipmentDetail } from '../ShipmentDetail/ShipmentDetail';
 import { adminShipmentDetailService } from '../../api/services/adminShipmentDetailService';
 import type { Shipment } from '../../context/AppContext';
+import { UpgradeGateProvider } from '../../context/UpgradeGateContext';
 import { ShipmentDetailSkeleton } from '../../components/skeletons/ShipmentDetailSkeleton';
 import { useTranslation } from '../../hooks/useTranslation';
 import fullLogo from '../../assets/logo/fullLogo.svg';
@@ -10,6 +11,9 @@ import fullLogo from '../../assets/logo/fullLogo.svg';
 /**
  * Admin Panel deep-link: read-only React shipment detail.
  * URL: /admin/shipments/{shipments.id}
+ *
+ * Outside AppLayout (no shipper shell), so we mount UpgradeGateProvider here —
+ * ShipmentDetail / useSubscriptionPermission require it.
  */
 export const AdminShipmentDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -52,23 +56,25 @@ export const AdminShipmentDetailPage: React.FC = () => {
   }, [shipmentId]);
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
-      <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-sm">
-        <div className="max-w-[1280px] mx-auto px-5 lg:px-7 py-3 flex items-center justify-between gap-3">
-          <img src={fullLogo} alt="MyVagon" className="h-8 w-auto" />
-          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
-            Admin view · Read only
-          </span>
-        </div>
-      </header>
+    <UpgradeGateProvider>
+      <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
+        <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-sm">
+          <div className="max-w-[1280px] mx-auto px-5 lg:px-7 py-3 flex items-center justify-between gap-3">
+            <img src={fullLogo} alt="MyVagon" className="h-8 w-auto" />
+            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
+              Admin view · Read only
+            </span>
+          </div>
+        </header>
 
-      {loading ? (
-        <div className="max-w-[1280px] mx-auto px-5 lg:px-7 py-5">
-          <ShipmentDetailSkeleton t={t} />
-        </div>
-      ) : (
-        <ShipmentDetail readOnly shipmentOverride={shipment} overrideError={error} />
-      )}
-    </div>
+        {loading ? (
+          <div className="max-w-[1280px] mx-auto px-5 lg:px-7 py-5">
+            <ShipmentDetailSkeleton t={t} />
+          </div>
+        ) : (
+          <ShipmentDetail readOnly shipmentOverride={shipment} overrideError={error} />
+        )}
+      </div>
+    </UpgradeGateProvider>
   );
 };

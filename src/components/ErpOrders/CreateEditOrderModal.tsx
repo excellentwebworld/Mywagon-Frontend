@@ -29,6 +29,7 @@ type Props = {
   skusLoading?: boolean;
   onAddLocationOrigin?: () => void;
   onAddLocationDest?: () => void;
+  onAddCompany?: () => void;
   onAddProduct?: (lineIndex: number) => void;
 };
 
@@ -77,6 +78,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
   skusLoading = false,
   onAddLocationOrigin,
   onAddLocationDest,
+  onAddCompany,
   onAddProduct,
 }) => {
   const todayStr = useMemo(() => getTodayDateString(), []);
@@ -291,6 +293,11 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                     hasError={showError('customerName')}
                     loading={companiesLoading}
                     loadingLabel={loadingLabel}
+                    headerAction={
+                      onAddCompany
+                        ? { label: t('abCreateNewCompany'), onClick: onAddCompany }
+                        : undefined
+                    }
                   />
                   <FormFieldError message={showError('customerName') ? errors.customerName : undefined} />
                 </div>

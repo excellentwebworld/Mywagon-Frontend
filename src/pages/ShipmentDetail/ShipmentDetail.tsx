@@ -83,10 +83,11 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
   const { can, requirePermission } = useSubscriptionPermission();
   const { canAction, requirePermission: requireRbac } = useShipperPermission();
   const { openUpgradeGate } = useUpgradeGate();
-  const canViewMap = can('view_map');
-  const canLiveGps = can('live_gps_shipment_tracking');
-  const canViewPods = can('view_electronic_pods');
-  const canTravelledRoute = can('actual_travelled_route');
+  // Admin deep-link (readOnly) is not a shipper session — skip plan gates and always show maps/PODs.
+  const canViewMap = readOnly || can('view_map');
+  const canLiveGps = readOnly || can('live_gps_shipment_tracking');
+  const canViewPods = readOnly || can('view_electronic_pods');
+  const canTravelledRoute = readOnly || can('actual_travelled_route');
   const fetched = useShipment(readOnly ? undefined : id);
   const shipment = readOnly ? (shipmentOverride ?? null) : fetched.shipment;
   const loading = readOnly ? false : fetched.loading;
@@ -964,6 +965,7 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
               onToast={(msg) => showToast(msg, 'info')}
               onViewPod={(stop) => {
                 if (
+                  !readOnly &&
                   !requirePermission('view_electronic_pods', {
                     body:
                       t('podUpgradeBody') ||

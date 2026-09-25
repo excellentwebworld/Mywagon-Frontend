@@ -521,7 +521,7 @@ export function useAddressBook() {
       ]);
       setIsCompanyOpen(false);
       setCompanyData(EMPTY_COMPANY_DATA);
-      syncCustomerDropdownCaches(queryClient);
+      syncCustomerDropdownCaches(queryClient, { customer: created });
       showToast(`Company "${created.name}" created`, 'success');
     } catch (err) {
       handleApiError(err, 'Failed to create company');

@@ -1053,8 +1053,19 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           companyVat: created.vat_number || "",
           companyEntityId: created.id,
         }));
+        setErpCompanies((prev) =>
+          prev.some((c) => Number(c.id) === Number(created.id))
+            ? prev
+            : [created, ...prev],
+        );
+        setErpOrderForm((f) => ({
+          ...f,
+          companyEntityId: created.id,
+          customerName: created.name,
+        }));
+        setCompanyData(EMPTY_COMPANY_DATA);
         setIsCompanyOpen(false);
-        syncCustomerDropdownCaches(queryClient);
+        syncCustomerDropdownCaches(queryClient, { customer: created });
         showToast(
           t("erpOrdersCompanyCreated") || "Company created successfully.",
           "success",
@@ -2444,6 +2455,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
             role: "delivery",
           });
           setMLoc(true);
+        }}
+        onAddCompany={() => {
+          setCompanyData(EMPTY_COMPANY_DATA);
+          setIsCompanyOpen(true);
         }}
         onAddProduct={(index) => {
           setPCtx((p: any) => ({
