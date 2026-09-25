@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { addressBookService, productMasterService } from '../api';
 import { formatUtcToDisplayDateTime } from '../utils/timezone';
+import { toastRbacAccessDenied } from '../utils/rbacToast';
 import { useAuth } from './AuthContext';
 
 // ==========================================
@@ -683,6 +684,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }, duration);
     return () => clearTimeout(timer);
   }, [toast.show, toast.key, toast.type, hideToast]);
+
+  // API Spatie RBAC 403 → toast (debounced; does not redirect)
+  useEffect(() => {
+    const onRbacDenied = (event: Event) => {
+      const detail = (event as CustomEvent<{ message?: string }>).detail;
+      toastRbacAccessDenied(showToast, detail?.message);
+    };
+    window.addEventListener('shipper:rbac-denied', onRbacDenied);
+    return () => window.removeEventListener('shipper:rbac-denied', onRbacDenied);
+  }, [showToast]);
 
   // Locations State
   const [locations, setLocations] = useState<LocationItem[]>([]);

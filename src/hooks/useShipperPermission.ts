@@ -15,6 +15,7 @@ import {
   type ShipperRbacActionKey,
   type ShipperRbacNavKey,
 } from '../utils/shipperRbacMap';
+import { RBAC_ACCESS_DENIED_DEFAULT, toastRbacAccessDenied } from '../utils/rbacToast';
 
 export type UseShipperPermissionResult = {
   /** Primary account — Spatie unrestricted. */
@@ -33,9 +34,6 @@ export type UseShipperPermissionResult = {
    */
   requirePermission: (name: string | string[], message?: string) => boolean;
 };
-
-const DEFAULT_DENIED =
-  "You don't have permission to perform this action. Contact your company admin.";
 
 export function useShipperPermission(): UseShipperPermissionResult {
   const { user } = useAuth();
@@ -79,8 +77,8 @@ export function useShipperPermission(): UseShipperPermissionResult {
       if (shipperCan(user, name)) return true;
       const msg =
         message ||
-        t('rbac.accessDenied', { defaultValue: DEFAULT_DENIED });
-      showToast(msg, 'error');
+        t('rbac.accessDenied', { defaultValue: RBAC_ACCESS_DENIED_DEFAULT });
+      toastRbacAccessDenied(showToast, msg);
       return false;
     },
     [user, showToast, t],

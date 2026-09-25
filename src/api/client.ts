@@ -85,6 +85,19 @@ axiosInstance.interceptors.response.use(
       window.dispatchEvent(new CustomEvent('shipper:signup-incomplete'));
       window.dispatchEvent(new CustomEvent('shipper:signup-incomplete-modal'));
     }
+    // Spatie / shipper_permissions RBAC (no plan-upgrade code) — toast without redirect.
+    if (
+      error.response?.status === 403 &&
+      !error.response?.data?.code &&
+      !error.response?.data?.upgrade_url
+    ) {
+      const msg = error.response?.data?.message;
+      if (typeof msg === 'string' && /permission/i.test(msg)) {
+        window.dispatchEvent(
+          new CustomEvent('shipper:rbac-denied', { detail: { message: msg } }),
+        );
+      }
+    }
     return Promise.reject(error);
   }
 );

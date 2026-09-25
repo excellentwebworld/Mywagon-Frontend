@@ -3021,6 +3021,9 @@
     "create": "Create",
     "copied": "Copied"
   },
+  "rbac": {
+    "accessDenied": "You cannot perform this action as your account does not have permission."
+  },
   "roles": {
     "shipper": "Shipper",
     "forwarder": "Forwarder",
