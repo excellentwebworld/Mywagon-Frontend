@@ -110,22 +110,54 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
     onToast(t('billingPage.copiedToClipboard', 'Copied to clipboard'));
   };
 
-  const resolveLoadSid = (li: LineItem): { sid: string | null; shipmentId: string | null } => {
-    if (li.sid) {
-      const raw = li.shipment_id || li.sid.replace(/^(SHP|SID)-?/i, '');
-      const formattedSid = li.sid.startsWith('SHP-') ? li.sid : `SHP-${li.sid.replace(/^(SID)-?/i, '')}`;
-      return { sid: formattedSid, shipmentId: raw };
+  const resolveLoadSid = (li: LineItem): { sid: string | null; linkId: string | null } => {
+    const normalizeSid = (value: string): string =>
+      `SID-${value.replace(/^SID-/i, '')}`;
+
+    // Prefer API sid when it is already shipments.auto_id (SID-xxxxx).
+    if (li.sid && /^SID-/i.test(li.sid)) {
+      return {
+        sid: normalizeSid(li.sid),
+        linkId: li.shipment_id || normalizeSid(li.sid),
+      };
     }
-    if (li.shipment_id) {
-      return { sid: `SHP-${li.shipment_id}`, shipmentId: li.shipment_id };
-    }
+
+    // Recover SID from description ("Penalty 80% SID-394916") — never treat those digits as PK.
     if (li.desc) {
-      const match = li.desc.match(/(?:SID|SHP)-?(\d+)/i);
-      if (match && match[1]) {
-        return { sid: `SHP-${match[1]}`, shipmentId: match[1] };
+      const match = li.desc.match(/(SID-\d+)/i);
+      if (match?.[1]) {
+        return {
+          sid: normalizeSid(match[1]),
+          linkId: li.shipment_id || normalizeSid(match[1]),
+        };
       }
     }
-    return { sid: null, shipmentId: null };
+
+    // Legacy SHP-{primary key}: keep navigation by PK, do not display as SID.
+    if (li.shipment_id) {
+      return { sid: null, linkId: li.shipment_id };
+    }
+    if (li.sid && /^SHP-/i.test(li.sid)) {
+      return { sid: null, linkId: li.sid.replace(/^SHP-/i, '') };
+    }
+
+    return { sid: null, linkId: null };
+  };
+
+  const renderLoadSidLink = (li: LineItem) => {
+    const { sid, linkId } = resolveLoadSid(li);
+    if (!sid || !linkId) {
+      return <span>{sid || '—'}</span>;
+    }
+    return (
+      <Link
+        to={`/shipments/${linkId}`}
+        onClick={onClose}
+        className="text-purple-600 font-medium hover:underline"
+      >
+        {sid}
+      </Link>
+    );
   };
 
   const lineRateLabel = (li: LineItem) =>
@@ -288,7 +320,6 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                 <>
                   <div className="dr-line-cards">
                     {lineItems.map((li, idx) => {
-                      const loadInfo = resolveLoadSid(li);
                       return (
                         <article key={li.id || idx} className="dr-line-card">
                           <div className="dr-line-card__top">
@@ -309,7 +340,7 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                             </div>
                             <div>
                               <span className="dr-line-card__label">{t('billingPage.liLoadSID', 'Load SID')}</span>
-                              <span className="billing-mono dr-line-card__sid">{loadInfo.sid || '—'}</span>
+                              <span className="billing-mono dr-line-card__sid">{renderLoadSidLink(li)}</span>
                             </div>
                           </div>
                         </article>
@@ -330,25 +361,22 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                         </tr>
                       </thead>
                       <tbody>
-                        {lineItems.map((li, idx) => {
-                          const loadInfo = resolveLoadSid(li);
-                          return (
-                            <tr key={li.id || idx}>
-                              <td>
-                                <Tag variant={lineTypeVariant(li.type)}>{li.type}</Tag>
-                              </td>
-                              <td className="text-xs text-gray-800">{li.desc}</td>
-                              <td className="text-xs text-gray-500 whitespace-nowrap">{li.qty}</td>
-                              <td className="text-xs text-gray-500 whitespace-nowrap">{lineRateLabel(li)}</td>
-                              <td className="billing-mono text-xs font-semibold text-gray-900 whitespace-nowrap">
-                                <Money value={li.amt} currency={invoice.cur} />
-                              </td>
-                              <td className="billing-mono text-xs text-purple-600 font-medium whitespace-nowrap">
-                                {loadInfo.sid || '—'}
-                              </td>
-                            </tr>
-                          );
-                        })}
+                        {lineItems.map((li, idx) => (
+                          <tr key={li.id || idx}>
+                            <td>
+                              <Tag variant={lineTypeVariant(li.type)}>{li.type}</Tag>
+                            </td>
+                            <td className="text-xs text-gray-800">{li.desc}</td>
+                            <td className="text-xs text-gray-500 whitespace-nowrap">{li.qty}</td>
+                            <td className="text-xs text-gray-500 whitespace-nowrap">{lineRateLabel(li)}</td>
+                            <td className="billing-mono text-xs font-semibold text-gray-900 whitespace-nowrap">
+                              <Money value={li.amt} currency={invoice.cur} />
+                            </td>
+                            <td className="billing-mono text-xs whitespace-nowrap">
+                              {renderLoadSidLink(li)}
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
                   </div>
@@ -365,11 +393,11 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
               {lineItems
                 .filter((l) => resolveLoadSid(l).sid)
                 .map((li, idx) => {
-                  const { sid, shipmentId } = resolveLoadSid(li);
+                  const { sid, linkId } = resolveLoadSid(li);
                   return (
                     <Link
                       key={idx}
-                      to={`/shipments/${shipmentId}`}
+                      to={`/shipments/${linkId}`}
                       onClick={onClose}
                       className="p-3.5 border border-gray-200 rounded-xl mb-2.5 flex items-center gap-3.5 bg-gray-50 hover:bg-purple-50/50 transition-colors block no-underline text-inherit"
                     >
