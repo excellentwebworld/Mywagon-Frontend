@@ -2939,7 +2939,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         type="button"
                         className="py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none"
                         style={{
-                          background: ln.action === "pickup" ? "#FFFFFF" : T.sf,
+                          background:
+                            ln.action === "pickup" ? "#000001" : T.sf,
                           color: ln.action === "pickup" ? "#fff" : T.t3,
                           fontFamily: "inherit",
                         }}
