@@ -196,7 +196,7 @@ function timelineDotClass(step: TrackingTimelineItem): string {
   } else if (step.state === 'cur') {
     classes.push('cur');
   } else if (step.state === 'done') {
-    classes.push('done', 'success');
+    classes.push('done');
   } else if (step.state === 'pending') {
     classes.push('pending');
   } else {
@@ -1444,32 +1444,41 @@ export const PublicTrackingPage: React.FC = () => {
 
       <div className="pt-ms-bar">
         <div className="pt-ms-card">
-          <div className="pt-ms-row">
-            {timeline.map((step, idx) => {
-              const isLast = idx === timeline.length - 1;
-              const connectorClass = timelineConnectorClass(step, isLast, data.shipment.status);
-              return (
-                <div className={`pt-ms-step ${timelineStepClass(step)}`} key={`${step.key}-${idx}`}>
-                  <div className="pt-ms-track">
-                    <div className={`pt-ms-dot ${timelineDotClass(step)}`} />
-                    {!isLast || connectorClass === 'dashed' ? (
-                      <div className={`pt-ms-connector ${connectorClass}`} />
-                    ) : null}
+          <div className="pt-ms-scroll">
+            <div className="pt-ms-row">
+              {timeline.map((step, idx) => {
+                const isLast = idx === timeline.length - 1;
+                const connectorClass = timelineConnectorClass(step, isLast, data.shipment.status);
+                return (
+                  <div className={`pt-ms-step ${timelineStepClass(step)}`} key={`${step.key}-${idx}`}>
+                    <div className="pt-ms-track">
+                      <div className={`pt-ms-dot ${timelineDotClass(step)}`} />
+                      {!isLast && (
+                        <div
+                          className={`pt-ms-connector ${
+                            step.state === 'done' ? 'done' : ''
+                          }`}
+                        />
+                      )}
+                      {isLast && connectorClass === 'dashed' && (
+                        <div className="pt-ms-connector dashed" />
+                      )}
+                    </div>
+                    <div className="pt-ms-body">
+                      <div className="pt-ms-label">{step.label}</div>
+                      {step.highlight ? <div className="pt-ms-highlight">{step.highlight}</div> : null}
+                      {step.detail ? <div className="pt-ms-detail">{step.detail}</div> : null}
+                      {step.at ? (
+                        <div className="pt-ms-at">
+                          <p>{formatUtcToDisplayDate(step.at)}</p>
+                          <p>{formatUtcToDisplayTime(step.at)}</p>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="pt-ms-body">
-                    <div className="pt-ms-label">{step.label}</div>
-                    {step.highlight ? <div className="pt-ms-highlight">{step.highlight}</div> : null}
-                    {step.detail ? <div className="pt-ms-detail">{step.detail}</div> : null}
-                    {step.at ? (
-                      <div className="pt-ms-at">
-                        <p>{formatUtcToDisplayDate(step.at)}</p>
-                        <p>{formatUtcToDisplayTime(step.at)}</p>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
