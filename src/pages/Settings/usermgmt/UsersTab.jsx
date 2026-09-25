@@ -292,7 +292,7 @@ export default function UsersTab() {
 
     setExporting(true);
     try {
-      const header = ['first_name', 'last_name', 'email', 'role', 'status', 'last_active', 'created', 'phone', 'job_title'];
+      const header = ['first_name', 'last_name', 'email', 'role', 'status', 'last_active', 'created', 'phone'];
       const rows = filtered.map((u) => [
         u.firstName || u.first_name || '',
         u.lastName || u.last_name || '',
@@ -302,9 +302,10 @@ export default function UsersTab() {
         u.lastActive || u.last_active
           ? (formatIsoDisplayDateTime(u.lastActive || u.last_active) || '')
           : '',
-        u.created || u.created_at || '',
+        u.created || u.created_at || u.createdAt
+          ? (formatIsoDisplayDateTime(u.created || u.created_at || u.createdAt) || '')
+          : '',
         u.phone || '',
-        u.jobTitle || u.job_title || '',
       ]);
       const csv = `\uFEFF${header.join(',')}\n${rows.map((row) => row.map(escapeCsvCell).join(',')).join('\n')}`;
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
