@@ -354,12 +354,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     setFieldValue('targetPrice', String(price));
   };
   const handleAiInsightsClick = () => {
-    if (!requirePermission('ai_suggested_price', {
-      body:
-        t('aiSuggestedPriceUpgradeBody') ||
-        'AI Suggested Price is available on Plus/Pro plans or as a paid add-on.',
-      upgradeUrl: '/subscription',
-    })) {
+    if (!requirePermission('ai_suggested_price')) {
       return;
     }
 
@@ -481,12 +476,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     const rbacKey = type === 'private' ? ACTION_RBAC.publishPrivate : ACTION_RBAC.publishPublic;
     if (!requireRbac(rbacKey)) return;
     const slug = type === 'private' ? 'private_loads' : 'public_loads';
-    if (!requirePermission(slug, {
-      body:
-        type === 'private'
-          ? t('privateLoadsUpgradeBody') || 'Private loads are not included in your current plan.'
-          : t('publicLoadsUpgradeBody') || 'Public loads are not included in your current plan.',
-    })) {
+    if (!requirePermission(slug)) {
       return;
     }
     setFieldValue('broadcastType', type);
@@ -733,6 +723,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                       className="font-bold underline whitespace-nowrap"
                       onClick={() =>
                         openUpgradeGate({
+                          variant: 'limit',
                           upgradeUrl: publicQuota.actions?.upgrade_url || '/subscription',
                         })
                       }
@@ -756,6 +747,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                       className="font-bold underline whitespace-nowrap"
                       onClick={() =>
                         openUpgradeGate({
+                          variant: 'limit',
                           upgradeUrl: privateQuota.actions?.upgrade_url || '/subscription',
                         })
                       }
@@ -1190,8 +1182,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   }
                   title={
                     !canAiSuggestedPrice
-                      ? t('aiSuggestedPriceUpgradeBody') ||
-                        'AI Suggested Price is available on Plus/Pro plans or as a paid add-on.'
+                      ? t('satUpgradeBody', 'Your current subscription plan does not support this feature. To unlock it, please upgrade to a higher tier plan.')
                       : undefined
                   }
                   onClick={handleAiInsightsClick}
@@ -2158,11 +2149,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             type="button"
             className="inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 cursor-pointer"
             onClick={async () => {
-              if (!requirePermission('draft_shipment', {
-                body:
-                  t('draftShipmentUpgradeBody') ||
-                  'Saving drafts requires a plan that includes draft shipments.',
-              })) {
+              if (!requirePermission('draft_shipment')) {
                 return;
               }
               await onSaveDraft?.({ ...values, trackingEmails: trackingEmailsRecord });

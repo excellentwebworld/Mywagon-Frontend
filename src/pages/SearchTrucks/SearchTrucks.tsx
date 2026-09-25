@@ -32,13 +32,9 @@ export const SearchTrucks: React.FC = () => {
 
   useEffect(() => {
     if (!can('search_available_trucks')) {
-      openUpgradeGate({
-        title: m.t('satUpgradeTitle'),
-        body: m.t('satUpgradeBody'),
-        upgradeUrl: '/subscription',
-      });
+      openUpgradeGate();
     }
-  }, [can, openUpgradeGate, m.t]);
+  }, [can, openUpgradeGate]);
 
   const openProviderProfile = useCallback(
     (truck: AvailableTruck) => {

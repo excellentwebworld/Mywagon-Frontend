@@ -507,17 +507,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const addStop = useCallback(() => {
     if (stopsRef.current.length >= 2 && !can('allow_multiple_stops')) {
-      openUpgradeGate({
-        title: t('satUpgradeTitle'),
-        body:
-          t('multiStopUpgradeBody') ||
-          'Multi-stop shipments require a plan upgrade or the multi-stop add-on.',
-        upgradeUrl: '/subscription',
-      });
+      openUpgradeGate();
       return;
     }
     setStops((prev) => [...prev, createNewStop(true)]);
-  }, [can, openUpgradeGate, setStops, t]);
+  }, [can, openUpgradeGate, setStops]);
 
   const delStop = useCallback(
     (sid: string) => {
@@ -1720,9 +1714,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   }, [runContinue]);
 
   const handleSaveDraftClick = useCallback(async () => {
-    if (!requirePermission('draft_shipment', {
-      body: t('draftShipmentUpgradeBody') || 'Saving drafts requires a plan that includes draft shipments.',
-    })) {
+    if (!requirePermission('draft_shipment')) {
       return;
     }
     setShowAll(true);
@@ -1732,7 +1724,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     } catch {
       // Error toast handled by parent
     }
-  }, [requirePermission, runSaveDraft, setShowAll, t]);
+  }, [requirePermission, runSaveDraft, setShowAll]);
 
   const stopConflicts = useCallback(
     (idx: number) => {

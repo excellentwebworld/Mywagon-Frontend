@@ -40,13 +40,7 @@ export const TransporterProfileModal: React.FC<TransporterProfileModalProps> = (
     async (pageNum: number) => {
       if (!target?.id || !target?.type) return;
       if (!can('rating_and_review_for_transporter')) {
-        openUpgradeGate({
-          title: t('satUpgradeTitle') || 'Upgrade',
-          body:
-            t('transporterProfileUpgradeBody') ||
-            'Transporter ratings and profiles require a plan upgrade.',
-          upgradeUrl: '/subscription',
-        });
+        openUpgradeGate();
         onClose();
         return;
       }

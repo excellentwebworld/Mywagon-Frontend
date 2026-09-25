@@ -25,13 +25,7 @@ const Partners: React.FC = () => {
 
   const openInviteGuarded = () => {
     if (!partnersAllowed || (partnersRemaining !== null && partnersRemaining <= 0)) {
-      openUpgradeGate({
-        title: state.t('satUpgradeTitle'),
-        body:
-          state.t('partnersLimitUpgradeBody') ||
-          'You have reached your partner limit for this plan. Upgrade or buy a partners add-on.',
-        upgradeUrl: '/subscription',
-      });
+      openUpgradeGate({ variant: 'limit' });
       return;
     }
     state.openInviteModal();
@@ -88,8 +82,10 @@ const Partners: React.FC = () => {
 
       {!partnersAllowed || (partnersRemaining !== null && partnersRemaining <= 0) ? (
         <div className="ptn-subscription-banner" role="status">
-          {state.t('partnersLimitUpgradeBody') ||
-            'Partner invite limit reached for your plan. Upgrade or purchase an add-on to invite more partners.'}
+          {state.t(
+            'satUpgradeLimitBody',
+            'You have reached the limit for this feature in your current plan. To use this feature now, visit the Subscription page to upgrade or purchase add-ons.',
+          )}
         </div>
       ) : null}
 

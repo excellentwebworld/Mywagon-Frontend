@@ -157,11 +157,7 @@ export default function UsersTab() {
       (seats && seats.can_invite === false) ||
       (dispatcherRemaining !== null && dispatcherRemaining <= 0)
     ) {
-      openUpgradeGate({
-        title: t('satUpgradeTitle', { defaultValue: 'Upgrade' }),
-        body: t('userMgmt.seats.atLimitHint'),
-        upgradeUrl: '/subscription',
-      });
+      openUpgradeGate({ variant: 'limit' });
       return;
     }
     setModalUser(null);

@@ -2,10 +2,16 @@ import React, { createContext, useCallback, useContext, useMemo, useState } from
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from '../hooks/useTranslation';
 
+/** Matches Laravel shipper `#subscribe-modal` / `#subscription-prompt` copy. */
+export type UpgradeGateVariant = 'feature' | 'limit';
+
 export type UpgradeGateOptions = {
+  /** Optional override; prefer variant so all modules share Laravel wording. */
   title?: string;
   body?: string;
   upgradeUrl?: string;
+  /** `feature` = not in plan; `limit` = quota reached (add-on / upgrade). */
+  variant?: UpgradeGateVariant;
 };
 
 type UpgradeGateContextValue = {
@@ -16,6 +22,20 @@ type UpgradeGateContextValue = {
 const UpgradeGateContext = createContext<UpgradeGateContextValue | undefined>(undefined);
 
 const DEFAULT_UPGRADE_URL = '/subscription';
+
+const FEATURE_BODY_EN =
+  'Your current subscription plan does not support this feature. To unlock it, please upgrade to a higher tier plan.';
+const LIMIT_BODY_EN =
+  'You have reached the limit for this feature in your current plan. To use this feature now, visit the Subscription page to upgrade or purchase add-ons.';
+
+/** i18next returns the key when missing — treat that as empty so defaults apply. */
+function resolveCopy(raw: string | undefined, fallback: string): string {
+  const value = (raw || '').trim();
+  if (!value) return fallback;
+  // Raw key leaked (e.g. "multiStopUpgradeBody")
+  if (/^[a-zA-Z][a-zA-Z0-9_.]*$/.test(value) && !value.includes(' ')) return fallback;
+  return value;
+}
 
 export const UpgradeGateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { t } = useTranslation();
@@ -30,11 +50,17 @@ export const UpgradeGateProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
   const openUpgradeGate = useCallback((options?: UpgradeGateOptions) => {
-    setTitle(options?.title);
-    setBody(options?.body);
+    const variant = options?.variant ?? 'feature';
+    const defaultBody =
+      variant === 'limit'
+        ? t('satUpgradeLimitBody', LIMIT_BODY_EN)
+        : t('satUpgradeBody', FEATURE_BODY_EN);
+
+    setTitle(resolveCopy(options?.title, t('satUpgradeTitle', 'Upgrade')));
+    setBody(resolveCopy(options?.body, defaultBody));
     setUpgradeUrl(options?.upgradeUrl?.trim() || DEFAULT_UPGRADE_URL);
     setOpen(true);
-  }, []);
+  }, [t]);
 
   const value = useMemo(
     () => ({ openUpgradeGate, closeUpgradeGate }),
@@ -53,6 +79,9 @@ export const UpgradeGateProvider: React.FC<{ children: React.ReactNode }> = ({ c
     window.open(resolvedUrl, '_blank', 'noopener,noreferrer');
   };
 
+  const displayTitle = title || t('satUpgradeTitle', 'Upgrade');
+  const displayBody = body || t('satUpgradeBody', FEATURE_BODY_EN);
+
   return (
     <UpgradeGateContext.Provider value={value}>
       {children}
@@ -60,18 +89,26 @@ export const UpgradeGateProvider: React.FC<{ children: React.ReactNode }> = ({ c
         <div className="sat-gate-modal" role="dialog" aria-modal="true" aria-labelledby="upgrade-gate-title">
           <div className="sat-gate-modal__backdrop" onClick={closeUpgradeGate} />
           <div className="sat-gate-modal__panel">
+            <button
+              type="button"
+              className="sat-gate-modal__close"
+              aria-label={t('close', 'Close')}
+              onClick={closeUpgradeGate}
+            >
+              ×
+            </button>
             <div className="sat-gate-modal__body">
               <h2 id="upgrade-gate-title" className="sat-gate-modal__title">
-                {title || t('satUpgradeTitle')}
+                {displayTitle}
               </h2>
-              <p className="sat-gate-modal__copy">{body || t('satUpgradeBody')}</p>
+              <p className="sat-gate-modal__copy">{displayBody}</p>
             </div>
             <div className="sat-gate-modal__actions">
               <button type="button" className="sat-btn" onClick={closeUpgradeGate}>
-                {t('satRemindLater')}
+                {t('satRemindLater', 'Remind me later')}
               </button>
               <button type="button" className="sat-btn sat-btn-pr" onClick={goUpgrade}>
-                {t('satUpgradeNow')}
+                {t('satUpgradeNow', 'Upgrade Now')}
               </button>
             </div>
           </div>

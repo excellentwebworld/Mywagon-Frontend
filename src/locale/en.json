@@ -2929,6 +2929,7 @@
   "satUpgradePlan": "Upgrade your plan to use this filter",
   "satUpgradeTitle": "Upgrade",
   "satUpgradeBody": "Your current subscription plan does not support this feature. To unlock it, please upgrade to a higher tier plan.",
+  "satUpgradeLimitBody": "You have reached the limit for this feature in your current plan. To use this feature now, visit the Subscription page to upgrade or purchase add-ons.",
   "satUpgradeNow": "Upgrade Now",
   "satRemindLater": "Remind me later",
   "satRetry": "Retry",

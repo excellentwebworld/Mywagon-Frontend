@@ -964,14 +964,7 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
               onCopy={handleCopy}
               onToast={(msg) => showToast(msg, 'info')}
               onViewPod={(stop) => {
-                if (
-                  !readOnly &&
-                  !requirePermission('view_electronic_pods', {
-                    body:
-                      t('podUpgradeBody') ||
-                      'Electronic PODs require a plan upgrade or the POD add-on.',
-                  })
-                ) {
+                if (!readOnly && !requirePermission('view_electronic_pods')) {
                   return;
                 }
                 setViewPodStop(stop);
@@ -1096,18 +1089,17 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
             ) : (
               <div className="card mb-3 p-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
                 <p className="m-0 mb-2">
-                  {t('mapUpgradeBody') || 'Interactive maps and live GPS require a plan upgrade or add-on.'}
+                  {t(
+                    'satUpgradeBody',
+                    'Your current subscription plan does not support this feature. To unlock it, please upgrade to a higher tier plan.',
+                  )}
                 </p>
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
-                  onClick={() =>
-                    openUpgradeGate({
-                      body: t('mapUpgradeBody') || 'Interactive maps and live GPS require a plan upgrade or add-on.',
-                    })
-                  }
+                  onClick={() => openUpgradeGate()}
                 >
-                  {t('satUpgradeNow')}
+                  {t('satUpgradeNow', 'Upgrade Now')}
                 </button>
               </div>
             )}
