@@ -1416,8 +1416,8 @@
       },
       "activity": {
         "recentTitle": "Account activity",
-        "accountActivityHint": "Overall account activity — not limited to your personal actions.",
-        "empty": "No account activity to show yet. A full audit feed will be available soon.",
+        "accountActivityHint": "Your recent actions on this account.",
+        "empty": "No personal activity to show yet.",
         "viewFullAuditLog": "View full audit log",
         "accountInfo": "Account Information",
         "memberSince": "Member Since",
