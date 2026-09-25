@@ -17,7 +17,9 @@ import { useAuth } from '../../../context/AuthContext';
 import { useShipperPermission } from '../../../hooks/useShipperPermission';
 import { ACTION_RBAC } from '../../../utils/shipperRbacMap';
 import { needsInfoFormHardGate } from '../../../hooks/useInfoFormGate';
+import { needsKycGate } from '../../../hooks/useKycGate';
 import {
+  isSocialShipper,
   needsSignupComplete,
   needsSocialCompany,
   needsSocialPhone,
@@ -173,14 +175,16 @@ export default function OrganizationSection() {
   const fromCompanyInfo =
     searchParams.get('from') === 'company_info' ||
     (user?.kyc_status === 'accepted' && user?.company_address_complete === false);
-  // Social stepwise signup: company/address first — never treat as info-form gate.
+  // Social stepwise signup: company/address first — never treat as info-form gate
+  // while signup_complete is still false.
   const fromSocialSetup =
     searchParams.get('from') === 'social_setup' ||
     needsSocialCompany(user) ||
     needsSignupComplete(user);
   const fromInfoForm =
-    !fromSocialSetup &&
     !needsSignupComplete(user) &&
+    !needsSocialCompany(user) &&
+    searchParams.get('from') !== 'social_setup' &&
     (searchParams.get('from') === 'info_form' || needsInfoFormHardGate(user));
   const [countriesDomicile, setCountriesDomicile] = useState([]);
 
@@ -499,10 +503,18 @@ export default function OrganizationSection() {
       applyPayload(payload);
       setEditingOps(false);
       toast.success(t('settings.orgSection.saved'));
-      await refreshUser().catch(() => {});
+      const profile = await refreshUser().catch(() => null);
+      const nextUser = profile || user;
 
-      // After mandatory info form → KYC page (normal + social).
-      if (fromInfoForm && payload?.operations_meta?.is_mandatory_completed === true) {
+      // Completion flag is on payload.completion (not operations_meta).
+      const mandatoryDone = payload?.completion?.is_mandatory_completed === true;
+      const socialNeedsKyc =
+        isSocialShipper(nextUser) &&
+        !needsSignupComplete(nextUser) &&
+        needsKycGate(nextUser);
+
+      // After mandatory form → KYC (normal info-form gate + social signup).
+      if (mandatoryDone && (fromInfoForm || socialNeedsKyc)) {
         navigate('/settings/compliance', { replace: true });
       }
     } catch (e) {

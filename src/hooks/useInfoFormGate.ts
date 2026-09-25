@@ -31,6 +31,8 @@ export function isInfoFormAllowedPath(pathname: string): boolean {
   const path = pathname.replace(/\/$/, '') || '/';
   if (path === '/billing' || path.startsWith('/billing/')) return true;
   if (path === '/settings/organization' || path.startsWith('/settings/organization/')) return true;
+  // Allow KYC after mandatory form save (social + normal) without bouncing back to org.
+  if (path === '/settings/compliance' || path.startsWith('/settings/compliance/')) return true;
   return false;
 }
 
