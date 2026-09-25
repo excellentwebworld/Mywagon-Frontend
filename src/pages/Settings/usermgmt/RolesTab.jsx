@@ -19,6 +19,7 @@ import { rolesSettingsService } from '../../../api/services/rolesSettingsService
 import { ApiError } from '../../../api/client';
 import { useAuth } from '../../../context/AuthContext';
 import { canManageShipperUsers } from '../../../utils/shipperAccessPresets';
+import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 
 const COLORS = ['#9B51E0', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#EC4899', '#9B51E0'];
 
@@ -95,6 +96,7 @@ export default function RolesTab() {
   const [newRoleColor, setNewRoleColor] = useState('#3B82F6');
   const [newRoleDescription, setNewRoleDescription] = useState('');
   const [nameError, setNameError] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   useEffect(() => {
     if (!selectedKey && roles.length) {
@@ -250,27 +252,39 @@ export default function RolesTab() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!selectedRole || isSystem) return;
     if (usersOnRole.length > 0) {
       toast.error(t('userMgmt.roles.cannotDelete', { n: usersOnRole.length }));
       return;
     }
 
-    setSaving(true);
-    try {
-      const data = await rolesSettingsService.destroy(selectedRole.key);
-      applyRolesPayload(data, setApiRoles, setPermissionGroups);
-      setSelectedKey(data.roles?.[0]?.key || null);
-      cancelEdit();
-      toast.success(t('userMgmt.toast.roleDeleted'));
-      await refresh();
-    } catch (e) {
-      const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' });
-      toast.error(msg);
-    } finally {
-      setSaving(false);
-    }
+    setConfirmDialog({
+      title: t('userMgmt.roles.deleteRoleTitle', { defaultValue: 'Delete this role?' }),
+      message: t('userMgmt.roles.deleteRoleMsg', {
+        name: selectedRole.name,
+        defaultValue: `Are you sure you want to delete "${selectedRole.name}"? This action cannot be undone.`,
+      }),
+      variant: 'danger',
+      confirmLabel: t('common.confirm', { defaultValue: 'Confirm' }),
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setSaving(true);
+        try {
+          const data = await rolesSettingsService.destroy(selectedRole.key);
+          applyRolesPayload(data, setApiRoles, setPermissionGroups);
+          setSelectedKey(data.roles?.[0]?.key || null);
+          cancelEdit();
+          toast.success(t('userMgmt.toast.roleDeleted'));
+          await refresh();
+        } catch (e) {
+          const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' });
+          toast.error(msg);
+        } finally {
+          setSaving(false);
+        }
+      },
+    });
   };
 
   if (loading && !roles.length) {
@@ -570,7 +584,7 @@ export default function RolesTab() {
                       {isCustom && (
                         <button
                           type="button"
-                          onClick={() => void handleDelete()}
+                          onClick={handleDelete}
                           disabled={saving}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
                           style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#EF4444', fontSize: 12 }}
@@ -666,6 +680,16 @@ export default function RolesTab() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!confirmDialog}
+        onClose={() => setConfirmDialog(null)}
+        onConfirm={confirmDialog?.onConfirm}
+        title={confirmDialog?.title}
+        message={confirmDialog?.message}
+        variant={confirmDialog?.variant || 'danger'}
+        confirmLabel={confirmDialog?.confirmLabel}
+      />
     </div>
   );
 }

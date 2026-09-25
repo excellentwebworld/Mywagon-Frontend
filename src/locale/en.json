@@ -3691,6 +3691,8 @@
       "userCount": "{{n}} users",
       "affectsUsers": "Changes will affect {{n}} users immediately. They will be signed out and must log in again.",
       "cannotDelete": "Cannot delete — {{n}} users are assigned. Reassign them first.",
+      "deleteRoleTitle": "Delete this role?",
+      "deleteRoleMsg": "Are you sure you want to delete \"{{name}}\"? This action cannot be undone.",
       "nameTaken": "A role with this name already exists.",
       "adminLocked": "Admin always has all permissions",
       "description": "Description",
