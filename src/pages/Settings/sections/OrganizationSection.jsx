@@ -22,13 +22,10 @@ import {
   needsSocialCompany,
   needsSocialPhone,
 } from '../../../hooks/useSignupCompleteGate';
-import { postAuthDestination } from '../../../hooks/postAuthDestination';
 import { organizationSettingsService } from '../../../api/services/organizationSettingsService';
-import { authService, signupService } from '../../../api/auth';
+import { signupService } from '../../../api/auth';
 import { GoogleMapAddressField } from '../../../components/AddressBook/GoogleMapAddressField';
 import { ContextualTutorialTrigger } from '../../../components/Tutorials';
-import { FORCE_TOUR_SESSION_KEY } from '../../../onboarding';
-import { safeSessionSet } from '../../../utils/safeStorage';
 import '../../../styles/tutorials.css';
 import '../../../styles/address-book.css';
 import '../../Register/RegisterPage.css';
@@ -504,18 +501,9 @@ export default function OrganizationSection() {
       toast.success(t('settings.orgSection.saved'));
       await refreshUser().catch(() => {});
 
-      // After mandatory info form: next gate (KYC if pending) or dashboard/tour.
+      // After mandatory info form → KYC page (normal + social).
       if (fromInfoForm && payload?.operations_meta?.is_mandatory_completed === true) {
-        try {
-          const profile = await authService.me();
-          const dest = postAuthDestination(profile);
-          if (dest === '/dashboard' && profile.onboarding_completed === false) {
-            safeSessionSet(FORCE_TOUR_SESSION_KEY, '1');
-          }
-          navigate(dest);
-        } catch {
-          navigate('/settings/compliance');
-        }
+        navigate('/settings/compliance', { replace: true });
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('settings.orgSection.saveError'));

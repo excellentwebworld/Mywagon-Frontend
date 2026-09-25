@@ -2526,7 +2526,13 @@
     "success": "Company information saved. KYC is pending review.",
     "requiredToast": "Please complete your company information to continue.",
     "kycRequiredToast": "Please upload your KYC documents to continue.",
-    "infoFormRequiredToast": "Please complete the mandatory information questions to continue."
+    "infoFormRequiredToast": "Please complete the mandatory information questions to continue.",
+    "welcomeTitle": "Welcome to MYVAGON",
+    "welcomeBody": "Please complete the required information to activate your account — including your phone number, company details, and KYC verification. This keeps shipping secure and compliant.",
+    "getStartedCta": "Get Started",
+    "almostThereTitle": "Almost there!",
+    "almostThereBody": "Complete your profile and KYC verification to continue using MYVAGON.",
+    "completeNowCta": "Complete Now"
   },
   "login": {
     "twoFactor": {
