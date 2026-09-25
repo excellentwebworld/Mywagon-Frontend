@@ -400,17 +400,18 @@ export default function PersonalSection() {
                 <div
                   className="flex flex-1 items-center gap-2 px-3 py-2 rounded-lg min-w-0"
                   style={{ background: T.sa, fontSize: 13, color: profile.phone_locked ? T.t3 : T.t1 }}
+                  title={profile.phone_locked ? t('settings.profileSection.phoneLocked') : undefined}
                 >
                   {profile.phone_locked ? <Lock size={12} className="shrink-0" /> : null}
-                  <span className="flex-1 truncate">{profile.phone || '—'}</span>
-                  {profile.phone_locked && (
-                    <span className="shrink-0" style={{ fontSize: 10, color: T.t3 }}>
-                      {t('settings.profileSection.phoneLocked')}
-                    </span>
-                  )}
+                  <span className="flex-1 select-all">{profile.phone || '—'}</span>
                 </div>
               )}
             </div>
+            {profile.phone_locked && (
+              <div className="mt-1" style={{ fontSize: 10, color: T.t3 }}>
+                {t('settings.profileSection.phoneLocked')}
+              </div>
+            )}
           </div>
           <div className="md:col-span-2">
             <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
