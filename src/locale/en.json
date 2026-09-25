@@ -3700,7 +3700,9 @@
       "noDescription": "No description provided.",
       "color": "Color",
       "editDetailsHint": "Update name, color, and description",
-      "permissionsSection": "Permissions"
+      "permissionsSection": "Permissions",
+      "selectAll": "Select all",
+      "selectAllInGroup": "Select all in group"
     },
     "security": {
       "mfaTitle": "Multi-Factor Authentication",

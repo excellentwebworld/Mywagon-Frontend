@@ -77,6 +77,7 @@ export default function RolesTab() {
     roles,
     setRoles: setApiRoles,
     setPermissionGroups,
+    permissionGroups,
     refresh,
     loading,
   } = useUserMgmt();
@@ -97,6 +98,48 @@ export default function RolesTab() {
   const [newRoleDescription, setNewRoleDescription] = useState('');
   const [nameError, setNameError] = useState('');
   const [confirmDialog, setConfirmDialog] = useState(null);
+
+  const allPermissionKeys = useMemo(
+    () => (permissionGroups || []).flatMap((g) => (g.permissions || []).map((p) => p.name)),
+    [permissionGroups],
+  );
+
+  const filteredPermissionKeys = useMemo(() => {
+    if (!permSearch) return allPermissionKeys;
+    const q = permSearch.toLowerCase();
+    return (permissionGroups || []).flatMap((g) =>
+      (g.permissions || [])
+        .filter(
+          (p) =>
+            (p.label || '').toLowerCase().includes(q) ||
+            (p.name || '').toLowerCase().includes(q) ||
+            (g.label || '').toLowerCase().includes(q),
+        )
+        .map((p) => p.name),
+    );
+  }, [permissionGroups, allPermissionKeys, permSearch]);
+
+  const targetPermKeys = permSearch ? filteredPermissionKeys : allPermissionKeys;
+  const selectedTargetCount = useMemo(() => {
+    const currentSet = new Set(editPerms || []);
+    return targetPermKeys.filter((k) => currentSet.has(k)).length;
+  }, [targetPermKeys, editPerms]);
+
+  const isAllSelected = targetPermKeys.length > 0 && selectedTargetCount === targetPermKeys.length;
+  const isIndeterminate = selectedTargetCount > 0 && selectedTargetCount < targetPermKeys.length;
+
+  const handleToggleSelectAll = () => {
+    if (!targetPermKeys.length) return;
+    const currentSet = new Set(editPerms || []);
+
+    if (isAllSelected) {
+      targetPermKeys.forEach((k) => currentSet.delete(k));
+    } else {
+      targetPermKeys.forEach((k) => currentSet.add(k));
+    }
+    setEditPerms(Array.from(currentSet));
+    setAutoEnabled(new Set());
+  };
 
   useEffect(() => {
     if (!selectedKey && roles.length) {
@@ -641,10 +684,37 @@ export default function RolesTab() {
             )}
 
             {editing && (
-              <div className="mb-2">
-                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: T.t3 }}>
-                  {t('userMgmt.roles.permissionsSection', { defaultValue: 'Permissions' })}
-                </span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: T.t3 }}>
+                    {t('userMgmt.roles.permissionsSection', { defaultValue: 'Permissions' })}
+                  </span>
+                  {allPermissionKeys.length > 0 && (
+                    <span style={{ fontSize: 11, color: T.t3, fontWeight: 500 }}>
+                      ({(editPerms || []).length}/{allPermissionKeys.length})
+                    </span>
+                  )}
+                </div>
+                {selectedRole.key !== 'admin' && targetPermKeys.length > 0 && (
+                  <label
+                    htmlFor="select-all-permissions"
+                    className="flex items-center gap-1.5 cursor-pointer select-none"
+                    style={{ fontSize: 12, color: T.t1, fontWeight: 500 }}
+                  >
+                    <input
+                      type="checkbox"
+                      id="select-all-permissions"
+                      ref={(el) => {
+                        if (el) el.indeterminate = isIndeterminate;
+                      }}
+                      checked={isAllSelected}
+                      onChange={handleToggleSelectAll}
+                      className="w-4 h-4 rounded cursor-pointer shrink-0"
+                      style={{ accentColor: T.ac }}
+                    />
+                    <span>{t('userMgmt.roles.selectAll', { defaultValue: 'Select all' })}</span>
+                  </label>
+                )}
               </div>
             )}
 

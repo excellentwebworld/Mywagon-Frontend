@@ -99,6 +99,53 @@ export default function PermissionGrid({
     onAutoEnabled?.(autoSet);
   }, [permSet, onChange, isFullAdmin, autoEnabledKeys, onAutoEnabled, t, toast]);
 
+  const handleToggleGroup = useCallback((group) => {
+    if (!onChange || isFullAdmin) return;
+
+    const groupPermKeys = group.permissions.map((p) => p.name);
+    const newSet = new Set(permSet);
+    const autoSet = new Set(autoEnabledKeys || []);
+    const allGroupSelected = groupPermKeys.every((k) => newSet.has(k));
+
+    if (allGroupSelected) {
+      let blocked = false;
+      for (const permKey of groupPermKeys) {
+        const dependents = PERMISSION_DEPENDENTS[permKey] || [];
+        const activeDependents = dependents.filter((d) => newSet.has(d) && !groupPermKeys.includes(d));
+        if (activeDependents.length > 0) {
+          toast.error(t('userMgmt.deps.cannotDisable', { perms: activeDependents.join(', ') }));
+          blocked = true;
+          break;
+        }
+      }
+      if (blocked) return;
+
+      groupPermKeys.forEach((k) => {
+        newSet.delete(k);
+        autoSet.delete(k);
+      });
+    } else {
+      const newlyEnabled = [];
+      groupPermKeys.forEach((permKey) => {
+        newSet.add(permKey);
+        const deps = PERMISSION_DEPENDENCIES[permKey] || [];
+        deps.forEach((dep) => {
+          if (!newSet.has(dep)) {
+            newSet.add(dep);
+            autoSet.add(dep);
+            newlyEnabled.push(dep);
+          }
+        });
+      });
+      if (newlyEnabled.length > 0) {
+        toast.info(t('userMgmt.deps.autoEnabled', { perms: newlyEnabled.join(', ') }));
+      }
+    }
+
+    onChange(Array.from(newSet));
+    onAutoEnabled?.(autoSet);
+  }, [permSet, onChange, isFullAdmin, autoEnabledKeys, onAutoEnabled, t, toast]);
+
   const filteredGroups = useMemo(() => {
     if (!searchQuery) return catalogGroups;
     const q = searchQuery.toLowerCase();
@@ -147,9 +194,24 @@ export default function PermissionGrid({
                 <Icon size={14} style={{ color: T.ac }} />
                 <span style={{ fontSize: 12, fontWeight: 600 }}>{groupLabel}</span>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 500, color: enabledCount === totalCount ? '#10B981' : T.t3 }}>
-                {enabledCount}/{totalCount}
-              </span>
+              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                {editing && !isFullAdmin && (
+                  <input
+                    type="checkbox"
+                    checked={enabledCount === totalCount && totalCount > 0}
+                    ref={(el) => {
+                      if (el) el.indeterminate = enabledCount > 0 && enabledCount < totalCount;
+                    }}
+                    onChange={() => handleToggleGroup(group)}
+                    className="cursor-pointer shrink-0"
+                    style={{ accentColor: T.ac }}
+                    title={t('userMgmt.roles.selectAllInGroup', { defaultValue: 'Select all in group' })}
+                  />
+                )}
+                <span style={{ fontSize: 11, fontWeight: 500, color: enabledCount === totalCount ? '#10B981' : T.t3 }}>
+                  {enabledCount}/{totalCount}
+                </span>
+              </div>
             </button>
 
             {!isCollapsed && (

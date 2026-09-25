@@ -3700,7 +3700,9 @@
       "noDescription": "Δεν έχει δοθεί περιγραφή.",
       "color": "Χρώμα",
       "editDetailsHint": "Ενημέρωση ονόματος, χρώματος και περιγραφής",
-      "permissionsSection": "Δικαιώματα"
+      "permissionsSection": "Δικαιώματα",
+      "selectAll": "Επιλογή όλων",
+      "selectAllInGroup": "Επιλογή όλων στην ομάδα"
     },
     "security": {
       "mfaTitle": "Αυθεντικοποίηση Δύο Παραγόντων",
