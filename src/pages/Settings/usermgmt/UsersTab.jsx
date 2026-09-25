@@ -197,6 +197,7 @@ export default function UsersTab() {
         try {
           const updated = await usersSettingsService.deactivate(u.id);
           updateUser(updated);
+          await refresh();
           toast.success(t('userMgmt.toast.deactivated', { name: getUserFullName(u) }));
         } catch (e) {
           toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Action failed' }));
@@ -228,6 +229,7 @@ export default function UsersTab() {
         try {
           const updated = await usersSettingsService.deactivate(u.id);
           updateUser(updated);
+          await refresh();
           toast.success(t('userMgmt.toast.inviteCancelled'));
         } catch (e) {
           toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Action failed' }));

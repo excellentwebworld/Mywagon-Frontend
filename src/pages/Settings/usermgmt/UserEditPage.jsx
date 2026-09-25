@@ -217,6 +217,7 @@ export default function UserEditPage() {
     try {
       const updated = await usersSettingsService.deactivate(user.id);
       applyServerUser(updated);
+      await refresh();
       toast.success(t('userMgmt.toast.deactivated', { name: getUserFullName(user) }));
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Action failed' }));
