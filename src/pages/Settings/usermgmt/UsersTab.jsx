@@ -206,17 +206,6 @@ export default function UsersTab() {
       },
     });
   };
-  const handleDeletePermanently = (u) => {
-    setConfirmDialog({
-      title: t('userMgmt.confirm.deleteTitle'),
-      message: t('userMgmt.confirm.deleteMsg', { name: getUserFullName(u) }),
-      variant: 'danger',
-      onConfirm: () => {
-        toast.info(t('userMgmt.toast.deleteNotAvailable', { defaultValue: 'Permanent delete is not available yet. Deactivate the user instead.' }));
-        setConfirmDialog(null);
-      },
-    });
-  };
   const handleCancelInvite = (u) => {
     if (!canManageUsers) {
       toast.error(t('userMgmt.seats.noManagePermission'));
@@ -480,7 +469,6 @@ export default function UsersTab() {
                 }}
                 onReactivate={() => handleReactivate(u)}
                 onDeactivate={() => { handleDeactivate(u); setActionMenu(null); }}
-                onDelete={() => { handleDeletePermanently(u); setActionMenu(null); }}
                 onCancelInvite={() => { handleCancelInvite(u); setActionMenu(null); }}
                 onForceSignout={() => { handleForceSignOut(u); setActionMenu(null); }}
                 relTime={relTime}
@@ -583,7 +571,7 @@ function UsersTableSkeleton({ T, rows = 6 }) {
 function UserRow({
   user: u, T, t, onEdit, rolesByKey, canManageUsers = true,
   actionMenu, onActionMenuToggle,
-  onReactivate, onDeactivate, onDelete,
+  onReactivate, onDeactivate,
   onCancelInvite, onForceSignout,
   relTime, formatDateTime, formatDate, actionMenuRef,
 }) {
@@ -716,10 +704,7 @@ function UserRow({
               </>
             )}
             {status === 'deactivated' && (
-              <>
-                <ActionItem icon={RotateCcw} label={t('userMgmt.actions.reactivate')} onClick={onReactivate} T={T} />
-                <ActionItem icon={Trash2} label={t('userMgmt.actions.deletePerm')} onClick={onDelete} T={T} danger />
-              </>
+              <ActionItem icon={RotateCcw} label={t('userMgmt.actions.reactivate')} onClick={onReactivate} T={T} />
             )}
           </div>,
           document.body,
