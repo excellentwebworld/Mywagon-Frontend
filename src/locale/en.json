@@ -3525,6 +3525,7 @@
       "location_none": "No restrictions",
       "location_specific": "Specific locations only",
       "sentAgo": "Sent {{time}}",
+      "sent": "Sent",
       "daysLeft": "{{n}}d left"
     },
     "deps": {

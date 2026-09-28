@@ -644,7 +644,16 @@ function UserRow({
       </td>
       <td className="px-3 py-3" style={{ fontSize: 12, color: T.t3 }}>
         {status === 'invited' ? (
-          <span style={{ color: '#F59E0B' }}>{t('userMgmt.invite.sentAgo', { time: relTime(u.inviteSentAt) })}</span>
+          (() => {
+            const sentAt = u.inviteSentAt || u.invite_sent_at || u.created || u.created_at;
+            return (
+              <span style={{ color: '#F59E0B' }}>
+                {sentAt
+                  ? t('userMgmt.invite.sentAgo', { time: relTime(sentAt) })
+                  : t('userMgmt.invite.sent', { defaultValue: 'Sent' })}
+              </span>
+            );
+          })()
         ) : formatDateTime(u.lastActive || u.last_active)}
       </td>
       <td className="px-3 py-3" style={{ fontSize: 12, color: T.t3 }}>{formatDate(u.created || u.created_at)}</td>
@@ -725,9 +734,17 @@ function ActionItem({ icon: Icon, label, onClick, T, danger }) {
   );
 }
 
-function MobileUserCard({ user: u, T, t, onClick, formatDateTime }) {
+function MobileUserCard({ user: u, T, t, onClick, formatDateTime, relTime }) {
   const role = ROLES_BY_KEY[u.role];
   const sc = USER_STATUS_CONFIG[u.status] || USER_STATUS_CONFIG.active;
+  const status = String(u.status || 'active').toLowerCase();
+  const sentAt = u.inviteSentAt || u.invite_sent_at || u.created || u.created_at;
+  const lastActiveLabel = status === 'invited'
+    ? (sentAt
+      ? t('userMgmt.invite.sentAgo', { time: relTime(sentAt) })
+      : t('userMgmt.invite.sent', { defaultValue: 'Sent' }))
+    : formatDateTime(u.lastActive || u.last_active);
+
   return (
     <button type="button" onClick={onClick} className="w-full p-3 rounded-xl cursor-pointer border-none text-left"
       style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
@@ -749,8 +766,8 @@ function MobileUserCard({ user: u, T, t, onClick, formatDateTime }) {
           </span>
         </div>
       </div>
-      <div className="mt-2" style={{ fontSize: 10, color: T.t3 }}>
-        {t('userMgmt.table.col_lastActive')}: {formatDateTime(u.lastActive || u.last_active)}
+      <div className="mt-2" style={{ fontSize: 10, color: status === 'invited' ? '#F59E0B' : T.t3 }}>
+        {t('userMgmt.table.col_lastActive')}: {lastActiveLabel}
       </div>
     </button>
   );
