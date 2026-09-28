@@ -96,6 +96,17 @@ export const LoginPage: React.FC = () => {
     clearSignupDraft();
   }, []);
 
+  // Re-translate login field errors when language toggles after submit.
+  const prevLoginLangRef = useRef(lang);
+  useEffect(() => {
+    if (prevLoginLangRef.current === lang) return;
+    prevLoginLangRef.current = lang;
+    setFieldErrors((prev) => {
+      if (!prev.email && !prev.password) return prev;
+      return validateLoginForm(email, password, t);
+    });
+  }, [lang, t, email, password]);
+
   // OAuth returns to /login?token=…&signup_complete=0 — finish session HERE (do not rely on
   // /auth/social/callback; Amplify/deep-link timing was leaving users stuck on this URL).
   useEffect(() => {
