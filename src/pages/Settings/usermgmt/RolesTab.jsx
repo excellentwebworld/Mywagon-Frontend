@@ -18,7 +18,7 @@ import { useUserMgmt } from '../../../context/UserMgmtContext';
 import { rolesSettingsService } from '../../../api/services/rolesSettingsService';
 import { ApiError } from '../../../api/client';
 import { useAuth } from '../../../context/AuthContext';
-import { canManageShipperUsers } from '../../../utils/shipperAccessPresets';
+import { canManageShipperUsers, expandPermissionDependencies } from '../../../utils/shipperAccessPresets';
 import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 
 const COLORS = ['#9B51E0', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#EC4899', '#9B51E0'];
@@ -83,6 +83,11 @@ export default function RolesTab() {
   } = useUserMgmt();
   const isGreek = i18n.language === 'el';
 
+  const catalogKeys = useMemo(
+    () => permissionGroups.flatMap((g) => g.permissions.map((p) => p.name)),
+    [permissionGroups],
+  );
+
   const [selectedKey, setSelectedKey] = useState(null);
   const [editing, setEditing] = useState(false);
   const [editPerms, setEditPerms] = useState(null);
@@ -134,10 +139,11 @@ export default function RolesTab() {
 
     if (isAllSelected) {
       targetPermKeys.forEach((k) => currentSet.delete(k));
+      setEditPerms(Array.from(currentSet));
     } else {
       targetPermKeys.forEach((k) => currentSet.add(k));
+      setEditPerms(expandPermissionDependencies(Array.from(currentSet), catalogKeys));
     }
-    setEditPerms(Array.from(currentSet));
     setAutoEnabled(new Set());
   };
 
@@ -171,7 +177,10 @@ export default function RolesTab() {
     setEditPerms(
       selectedRole.permissions === null
         ? []
-        : [...(selectedRole.permission_names || selectedRole.permissions || [])],
+        : expandPermissionDependencies(
+          selectedRole.permission_names || selectedRole.permissions || [],
+          catalogKeys,
+        ),
     );
     setEditName(selectedRole.name || '');
     setEditColor(selectedRole.color || '#3B82F6');

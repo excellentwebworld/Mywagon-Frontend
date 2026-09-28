@@ -20,6 +20,7 @@ import {
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
 import { ApiError } from '../../../api/client';
 import { isValidPhoneNumber, sanitizePhoneInput } from '../../../utils/phoneValidation';
+import { expandPermissionDependencies } from '../../../utils/shipperAccessPresets';
 
 function effectivePermissions(user) {
   if (!user) return [];
@@ -36,8 +37,12 @@ export default function UserEditPage() {
   const { t } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
-  const { getUser, updateUser, roles, refresh, loading: listLoading } = useUserMgmt();
+  const { getUser, updateUser, roles, refresh, loading: listLoading, permissionGroups } = useUserMgmt();
 
+  const catalogKeys = useMemo(
+    () => permissionGroups.flatMap((g) => g.permissions.map((p) => p.name)),
+    [permissionGroups],
+  );
   const [remoteUser, setRemoteUser] = useState(null);
   const [fetching, setFetching] = useState(true);
   const [draft, setDraft] = useState(null);
@@ -186,7 +191,9 @@ export default function UserEditPage() {
 
   const startEditPerms = () => {
     const current = effectivePermissions({ ...user, role: draft.role });
-    setEditedPerms(current === null ? null : [...current]);
+    setEditedPerms(
+      current === null ? null : expandPermissionDependencies(current, catalogKeys),
+    );
     setAutoEnabled(new Set());
     setEditingPerms(true);
   };

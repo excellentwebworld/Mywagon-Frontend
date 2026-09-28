@@ -10,8 +10,7 @@ import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { useUserMgmt } from '../../../context/UserMgmtContext';
 import {
-  PERMISSION_DEPENDENCIES,
-  PERMISSION_DEPENDENTS,
+  buildPermissionDependencyMaps,
 } from '../../../utils/shipperAccessPresets';
 
 const GROUP_ICONS = {
@@ -44,6 +43,11 @@ export default function PermissionGrid({
   const allKeys = useMemo(
     () => catalogGroups.flatMap((g) => g.permissions.map((p) => p.name)),
     [catalogGroups],
+  );
+
+  const { dependencies: PERMISSION_DEPENDENCIES, dependents: PERMISSION_DEPENDENTS } = useMemo(
+    () => buildPermissionDependencyMaps(allKeys),
+    [allKeys],
   );
 
   const labelByKey = useMemo(() => {
@@ -118,7 +122,7 @@ export default function PermissionGrid({
 
     onChange(Array.from(newSet));
     onAutoEnabled?.(autoSet);
-  }, [permSet, onChange, isFullAdmin, autoEnabledKeys, onAutoEnabled, t, toast, formatPermLabels]);
+  }, [permSet, onChange, isFullAdmin, autoEnabledKeys, onAutoEnabled, t, toast, formatPermLabels, PERMISSION_DEPENDENCIES, PERMISSION_DEPENDENTS]);
 
   const handleToggleGroup = useCallback((group) => {
     if (!onChange || isFullAdmin) return;
@@ -171,7 +175,7 @@ export default function PermissionGrid({
 
     onChange(Array.from(newSet));
     onAutoEnabled?.(autoSet);
-  }, [permSet, onChange, isFullAdmin, autoEnabledKeys, onAutoEnabled, t, toast, formatPermLabels]);
+  }, [permSet, onChange, isFullAdmin, autoEnabledKeys, onAutoEnabled, t, toast, formatPermLabels, PERMISSION_DEPENDENCIES, PERMISSION_DEPENDENTS]);
 
   const filteredGroups = useMemo(() => {
     if (!searchQuery) return catalogGroups;
