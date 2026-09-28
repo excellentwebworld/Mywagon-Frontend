@@ -4,6 +4,7 @@ import { availabilitiesService } from '../../api';
 import { mapListItemToTruck } from '../../api/mappers/availabilitiesMapper';
 import type { AvailableTruck } from '../../pages/SearchTrucks/types';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useShipperPermission } from '../../hooks/useShipperPermission';
 import { DashUpgradeBlock, formatDashError, translateDashMessage } from './dashErrorUtils';
 import { DashTrucksSkeleton } from './DashboardSkeletons';
 import { TruckMapPreview } from './TruckMapPreview';
@@ -14,6 +15,8 @@ const MAP_PIN_LIMIT = 50;
 export const TruckAvailabilitiesCard: React.FC<{ enabled?: boolean }> = ({ enabled = true }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { canNav } = useShipperPermission();
+  const canSearchTrucks = canNav('searchTrucks');
   const [partnerCount, setPartnerCount] = useState<number | null>(null);
   const [publicCount, setPublicCount] = useState<number | null>(null);
   const [trucks, setTrucks] = useState<AvailableTruck[]>([]);
@@ -27,6 +30,15 @@ export const TruckAvailabilitiesCard: React.FC<{ enabled?: boolean }> = ({ enabl
 
   useEffect(() => {
     if (!enabled) return;
+    if (!canSearchTrucks) {
+      setPartnerCount(null);
+      setPublicCount(null);
+      setTrucks([]);
+      setLoading(false);
+      setError(null);
+      setUpgradeUrl(undefined);
+      return;
+    }
 
     let cancelled = false;
     setLoading(true);
@@ -61,8 +73,11 @@ export const TruckAvailabilitiesCard: React.FC<{ enabled?: boolean }> = ({ enabl
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [enabled, canSearchTrucks]);
 
+  if (!canSearchTrucks) {
+    return null;
+  }
   const formatCount = (value: number | null) => {
     if (value == null) return DASH;
     return value.toLocaleString();

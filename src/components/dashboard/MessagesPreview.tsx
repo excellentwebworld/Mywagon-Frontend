@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { chatService } from '../../api/services/chatService';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useShipperPermission } from '../../hooks/useShipperPermission';
 import type { Conversation } from '../../pages/Messages/types';
 import { DashUpgradeBlock, formatDashError, translateDashMessage } from './dashErrorUtils';
 import { DashMessagesSkeleton } from './DashboardSkeletons';
@@ -12,6 +13,8 @@ const PREVIEW_LIMIT = 50;
 export const MessagesPreview: React.FC<{ enabled?: boolean }> = ({ enabled = true }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { canNav } = useShipperPermission();
+  const canMessages = canNav('messages');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,6 +22,14 @@ export const MessagesPreview: React.FC<{ enabled?: boolean }> = ({ enabled = tru
 
   useEffect(() => {
     if (!enabled) return;
+    // Do not call chat APIs without chat_with_carrier — avoids global RBAC 403 toast.
+    if (!canMessages) {
+      setConversations([]);
+      setLoading(false);
+      setError(null);
+      setUpgradeUrl(undefined);
+      return;
+    }
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -42,8 +53,11 @@ export const MessagesPreview: React.FC<{ enabled?: boolean }> = ({ enabled = tru
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [enabled, canMessages]);
 
+  if (!canMessages) {
+    return null;
+  }
   const openConversation = (c: Conversation) => {
     if (c.partnerId != null && c.partnerType) {
       const params = new URLSearchParams({
