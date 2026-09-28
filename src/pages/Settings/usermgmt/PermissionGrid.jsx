@@ -252,19 +252,16 @@ export default function PermissionGrid({
                   const isAutoEnabled = autoEnabledKeys?.has?.(perm.name);
                   const label = t(`userMgmt.perm.${perm.name}`, { defaultValue: perm.label });
 
-                  return (
-                    <div
-                      key={perm.name}
-                      className="flex items-center gap-2 px-3 py-2"
-                      style={{ borderTop: `1px solid ${T.bd}` }}
-                    >
+                  const content = (
+                    <>
                       {editing ? (
                         <input
                           type="checkbox"
                           checked={enabled}
                           disabled={isFullAdmin}
                           onChange={() => handleToggle(perm.name)}
-                          className="shrink-0"
+                          className="shrink-0 cursor-pointer"
+                          style={{ accentColor: T.ac }}
                         />
                       ) : (
                         <span style={{ fontSize: 12, width: 18, textAlign: 'center' }}>
@@ -279,6 +276,28 @@ export default function PermissionGrid({
                       {isAutoEnabled && (
                         <Link2 size={11} style={{ color: T.ac, opacity: 0.6 }} title={t('userMgmt.deps.linkedDep', { defaultValue: 'Auto-enabled (dependency)' })} />
                       )}
+                    </>
+                  );
+
+                  if (editing && !isFullAdmin) {
+                    return (
+                      <label
+                        key={perm.name}
+                        className="flex items-center gap-2 px-3 py-2 cursor-pointer"
+                        style={{ borderTop: `1px solid ${T.bd}` }}
+                      >
+                        {content}
+                      </label>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={perm.name}
+                      className="flex items-center gap-2 px-3 py-2"
+                      style={{ borderTop: `1px solid ${T.bd}` }}
+                    >
+                      {content}
                     </div>
                   );
                 })}
