@@ -366,6 +366,7 @@ export default function OrganizationSection() {
   }, [fromCompanyInfo, fromSocialSetup, data]);
 
   const startOpsEdit = () => {
+    if (!requireRbac(ACTION_RBAC.editCompanyInfo)) return;
     const draft = {};
     for (const field of opsFields) {
       const val = data.operations?.[field.key] ?? (field.key === 'company_description' ? data.branding?.company_description : undefined);
@@ -393,6 +394,7 @@ export default function OrganizationSection() {
   }, [fromInfoForm, data, opsFields]);
 
   const startBrandEdit = () => {
+    if (!requireRbac(ACTION_RBAC.editCompanyInfo)) return;
     setBrandDraft({
       public_profile: !!data.branding.public_profile,
       company_description: data.branding.company_description ?? '',
@@ -1999,14 +2001,16 @@ function SectionCard({ title, icon, editing, saving, onEdit, onSave, onCancel, h
           <h3 className="font-bold" style={{ fontSize: 14, color: theme.t1 }}>{title}</h3>
         </div>
         {!editing ? (
-          <button
-            type="button"
-            onClick={onEdit}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
-            style={{ background: theme.ac, color: '#fff', fontSize: 12 }}
-          >
-            <Pencil size={12} /> {t('common.edit')}
-          </button>
+          onEdit ? (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
+              style={{ background: theme.ac, color: '#fff', fontSize: 12 }}
+            >
+              <Pencil size={12} /> {t('common.edit')}
+            </button>
+          ) : null
         ) : (
           <div className="flex gap-2">
             <button
