@@ -339,6 +339,7 @@ export default function OrganizationSection() {
   }, [data, t]);
 
   const startLegalEdit = () => {
+    const toCoord = (v) => (v == null || v === '' ? '' : String(v));
     setLegalDraft({
       legal_name: data.legal.legal_name ?? '',
       trade_name: data.legal.trade_name ?? '',
@@ -348,8 +349,8 @@ export default function OrganizationSection() {
       city: data.legal.city ?? '',
       postal_code: data.legal.postal_code ?? '',
       country: data.legal.country ?? '',
-      lat: data.legal.lat ?? '',
-      lng: data.legal.lng ?? '',
+      lat: toCoord(data.legal.lat),
+      lng: toCoord(data.legal.lng),
       invoice_emails: [...(data.legal.invoice_emails || [])],
     });
     setEmailInput('');
@@ -454,7 +455,14 @@ export default function OrganizationSection() {
     }
     setSavingLegal(true);
     try {
-      const payload = await organizationSettingsService.update({ legal: legalDraft });
+      const toCoord = (v) => (v == null || v === '' ? null : String(v));
+      const payload = await organizationSettingsService.update({
+        legal: {
+          ...legalDraft,
+          lat: toCoord(legalDraft.lat),
+          lng: toCoord(legalDraft.lng),
+        },
+      });
       applyPayload(payload);
       setEditingLegal(false);
       toast.success(t('settings.orgSection.saved'));
@@ -744,7 +752,11 @@ export default function OrganizationSection() {
                   hideLabel
                   hideHint={false}
                   onAddressChange={(v) => setLegalDraft((p) => ({ ...p, billing_address: v }))}
-                  onLatLngChange={(lat, lng) => setLegalDraft((p) => ({ ...p, lat, lng }))}
+                  onLatLngChange={(lat, lng) => setLegalDraft((p) => ({
+                    ...p,
+                    lat: lat == null || lat === '' ? '' : String(lat),
+                    lng: lng == null || lng === '' ? '' : String(lng),
+                  }))}
                   onCityPostalChange={(city, postalCode) => {
                     setLegalDraft((p) => ({
                       ...p,
@@ -765,8 +777,8 @@ export default function OrganizationSection() {
                       city: place.city || p.city,
                       postal_code: place.postalCode || p.postal_code,
                       country: matchCountry || p.country,
-                      lat: place.lat || p.lat,
-                      lng: place.lng || p.lng,
+                      lat: place.lat != null && place.lat !== '' ? String(place.lat) : p.lat,
+                      lng: place.lng != null && place.lng !== '' ? String(place.lng) : p.lng,
                     }));
                   }}
                 />
