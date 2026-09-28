@@ -12,9 +12,10 @@ import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { useUserMgmt } from '../../../context/UserMgmtContext';
 import PermissionGrid from './PermissionGrid';
+import UserAvatar from './UserAvatar';
 import {
   USER_STATUS_CONFIG,
-  getUserInitials, getUserFullName, getUserAvatarColor,
+  getUserFullName,
 } from '../../../mocks/userMgmtData';
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
 import { ApiError } from '../../../api/client';
@@ -260,10 +261,7 @@ export default function UserEditPage() {
       </button>
 
       <div className="rounded-xl p-5 flex items-center gap-4" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
-        <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold shrink-0"
-          style={{ background: getUserAvatarColor(String(user.id)), fontSize: 18 }}>
-          {getUserInitials(user)}
-        </div>
+        <UserAvatar user={user} size={56} fontSize={18} />
         <div className="flex-1 min-w-0">
           <div className="font-bold" style={{ fontSize: 18, color: T.t1 }}>{getUserFullName(user)}</div>
           <div style={{ fontSize: 13, color: T.t3 }}>{user.email}</div>

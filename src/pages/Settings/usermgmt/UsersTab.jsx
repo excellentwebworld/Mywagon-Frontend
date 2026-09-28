@@ -23,9 +23,10 @@ import PaginationBar from '../../../components/ui/PaginationBar';
 import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 import InviteUserModal from './modals/InviteUserModal';
 import {
-  USER_STATUS_CONFIG, getUserInitials, getUserFullName, getUserAvatarColor,
+  USER_STATUS_CONFIG, getUserFullName,
   getInviteStatus,
 } from '../../../mocks/userMgmtData';
+import UserAvatar from './UserAvatar';
 import { canManageShipperUsers, hasCustomDirectPermissions, SHIPPER_ROLES } from '../../../utils/shipperAccessPresets';
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
 import { ApiError } from '../../../api/client';
@@ -611,10 +612,7 @@ function UserRow({
     <tr style={{ borderBottom: `1px solid ${T.bd}` }}>
       <td className="px-3 py-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold shrink-0"
-            style={{ background: getUserAvatarColor(u.id), fontSize: 12 }}>
-            {getUserInitials(u)}
-          </div>
+          <UserAvatar user={u} size={36} fontSize={12} />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{getUserFullName(u)}</span>
@@ -749,10 +747,7 @@ function MobileUserCard({ user: u, T, t, onClick, formatDateTime, relTime }) {
     <button type="button" onClick={onClick} className="w-full p-3 rounded-xl cursor-pointer border-none text-left"
       style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shrink-0"
-          style={{ background: getUserAvatarColor(u.id), fontSize: 13 }}>
-          {getUserInitials(u)}
-        </div>
+        <UserAvatar user={u} size={40} fontSize={13} />
         <div className="flex-1 min-w-0">
           <div style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{getUserFullName(u)}</div>
           <div style={{ fontSize: 11, color: T.t3 }}>{u.email}</div>
