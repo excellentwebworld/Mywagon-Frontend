@@ -638,7 +638,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Locale State
   const [lang, setLangState] = useState<'en' | 'el'>(() => {
     try {
-      return (localStorage.getItem('shipment-lang') as 'en' | 'el') || 'en';
+      const stored = (localStorage.getItem('shipment-lang') as 'en' | 'el') || 'en';
+      localStorage.setItem('app_locale', stored);
+      return stored;
     } catch {
       return 'en';
     }
@@ -648,6 +650,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLangState(l);
     try {
       localStorage.setItem('shipment-lang', l);
+      // Keep API Accept-Language keys in sync with UI language.
+      localStorage.setItem('app_locale', l);
     } catch {
       /* ignore */
     }

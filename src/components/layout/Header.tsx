@@ -182,7 +182,7 @@ export const Header: React.FC<HeaderProps> = ({
       loadUnreadCount();
       loadHeaderNotificationList();
     }
-  }, [notifOpen]);
+  }, [notifOpen, lang]);
 
   useEffect(() => {
     const handlePushReceived = () => {

@@ -365,7 +365,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [lang]);
 
   // ── Reset page to 1 when filters change ────────────────────────────────
   useEffect(() => {
@@ -384,7 +384,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
   // ── Reload data when activeCat, debouncedSearch, currentPage or perPage changes ───
   useEffect(() => {
     void fetchNotifications(activeCat, debouncedSearch, currentPage, perPage);
-  }, [activeCat, debouncedSearch, currentPage, perPage, fetchNotifications]);
+  }, [activeCat, debouncedSearch, currentPage, perPage, fetchNotifications, lang]);
 
   // ── Search debounce ────────────────────────────────────────────────────
   useEffect(() => {
