@@ -63,7 +63,11 @@ export default function UserDetailPanel({
     setSubmitting(false);
   }, [mode, user]);
 
-  const set = (key, val) => setForm((prev) => ({ ...prev, [key]: val }));
+  const set = (key, val) => {
+    setForm((prev) => ({ ...prev, [key]: val }));
+    // Clear the field error immediately when user modifies the value
+    setErrors((prev) => (prev[key] ? { ...prev, [key]: undefined } : prev));
+  };
 
   const validate = () => {
     const errs = {};
@@ -213,10 +217,7 @@ export default function UserDetailPanel({
         <Field label={t('userMgmt.invite.phone')} error={errors.phone} T={T}>
           <input
             value={form.phone}
-            onChange={(e) => {
-              set('phone', sanitizePhoneInput(e.target.value));
-              if (errors.phone) setErrors((prev) => ({ ...prev, phone: undefined }));
-            }}
+            onChange={(e) => set('phone', sanitizePhoneInput(e.target.value))}
             placeholder="+30 6XX XXX XXXX"
             className="w-full px-3 py-2 rounded-lg outline-none"
             style={{ border: `1px solid ${errors.phone ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
@@ -240,7 +241,12 @@ export default function UserDetailPanel({
                   type="button"
                   key={role.key}
                   disabled={disabled}
-                  onClick={() => !disabled && set('role', role.key)}
+                  onClick={() => {
+                    if (!disabled) {
+                      set('role', role.key);
+                      setErrors((prev) => (prev.role ? { ...prev, role: undefined } : prev));
+                    }
+                  }}
                   className="p-3 rounded-xl border-none text-left transition-all duration-150"
                   style={{
                     background: sel ? `${T.ac}08` : T.sa,
