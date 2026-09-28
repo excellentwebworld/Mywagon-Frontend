@@ -35,6 +35,7 @@ import { AdminShipmentDetailPage } from './pages/AdminShipmentDetail';
 
 import PriceListsPage from './pages/PriceLists/PriceListsPage';
 import { MessagesPage } from './pages/Messages';
+import { VagonAIPage } from './pages/VagonAI';
 import { WeeklyReportsPage } from './pages/Analytics/WeeklyReports';
 
 import { LegalPage } from './pages/Legal/LegalPage';
@@ -68,6 +69,7 @@ const legalRoutes = [
 ];
 
 const appRoutes = [
+  { path: '/vagonai', element: <VagonAIPage /> },
   { path: '/dashboard', element: <Dashboard /> },
   { path: '/notifications', element: <Navigate to="/settings/notifications" replace /> },
   { path: '/messages', element: withRbac(SHIPPER_RBAC.chatWithCarrier, <MessagesPage />) },

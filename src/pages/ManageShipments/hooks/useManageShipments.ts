@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ApiError, shipmentsService } from '../../../api';
+import { aiDraftsService } from '../../../api/services/aiDraftsService';
 import type { ListShipmentsParams } from '../../../api/types/shipments';
 import { useApp } from '../../../context/AppContext';
 import type { Shipment } from '../../../context/AppContext';
@@ -28,6 +29,7 @@ import {
   type SortKey,
   type StatusTabKey,
 } from '../utils/listingUtils';
+import { toAiDraftIdSet } from '../aiDrafts';
 
 export const PER_PAGE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -70,6 +72,15 @@ export function useManageShipments() {
   const [page, setPage] = useState(1);
   const [appliedFilters, setAppliedFilters] = useState<ShipmentsFilterState>(DEFAULT_FILTERS);
   const [productTypeNames, setProductTypeNames] = useState<Record<string, string>>({});
+
+  /**
+   * MS3-338 — ids of this shipper's AI drafts, for the "AI" marker on a row.
+   *
+   * `null` means "not known yet, or the gateway could not be reached", which is
+   * deliberately distinct from an empty array: rendering an unreachable gateway
+   * as "you have no AI drafts" would be a confident wrong answer.
+   */
+  const [aiDraftIds, setAiDraftIds] = useState<number[] | null>(null);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -184,6 +195,11 @@ export function useManageShipments() {
     true
   );
 
+  /** Stable Set for row badges; recomputed only when the gateway's answer changes. */
+  const aiDraftIdSet = useMemo(() => toAiDraftIdSet(aiDraftIds), [aiDraftIds]);
+
+
+
   const kpiCounts = summary.kpis;
   const statusCounts = summary.statuses;
 
@@ -293,6 +309,7 @@ export function useManageShipments() {
         : null;
     setActiveKpiState((prev) => (prev === kpiFromUrl ? prev : kpiFromUrl));
   }, [searchParams]);
+
 
   /**
    * Top KPI filters (Needs Action, Awaiting POD, …) span multiple statuses.
@@ -830,7 +847,21 @@ export function useManageShipments() {
     setPage(1);
   }, []);
 
+
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const page = await aiDraftsService.list({ page: 1, perPage: 100 });
+      if (!cancelled) setAiDraftIds(page ? page.draftIds : null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshKey]);
+
   return {
+    aiDraftIdSet,
     t,
     direction,
     setDirection,

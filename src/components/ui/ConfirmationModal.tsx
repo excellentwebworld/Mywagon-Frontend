@@ -14,6 +14,15 @@ export interface ConfirmationModalProps {
   type?: 'danger' | 'warning' | 'success' | 'info';
   confirmLoading?: boolean;
   className?: string;
+  /**
+   * Extra class on the backdrop, not the panel.
+   *
+   * The backdrop is the element that carries `z-index`, so a modal opened from
+   * inside another portal (a drawer, say) can only lift itself above its opener
+   * from here — `className` lands on `.modal`, which is trapped in the
+   * backdrop's stacking context.
+   */
+  backdropClassName?: string;
 }
 
 export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -27,6 +36,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   type = 'danger',
   confirmLoading = false,
   className,
+  backdropClassName,
 }) => {
   const { t } = useTranslation();
   const resolvedConfirmText = confirmText ?? t('ui.confirm', 'Confirm');
@@ -103,7 +113,10 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   };
 
   return createPortal(
-    <div className="modal-backdrop open" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div
+      className={`modal-backdrop open ${backdropClassName || ''}`.trim()}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div
         className={`modal modal-sm confirmation-modal ${className || ''}`.trim()}
         onClick={(e) => e.stopPropagation()}

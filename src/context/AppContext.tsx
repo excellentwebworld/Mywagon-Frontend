@@ -270,6 +270,7 @@ export interface Shipment {
   updatedAt?: string | null;
   /** ISO created_at for progress timeline (Created step). */
   createdAt?: string | null;
+  /** MS3-344/338 — `vagon_ai` when the draft was created by Vagon AI. */
   stops?: ShipmentStop[];
   oldStops?: ShipmentStop[];
   old_stops?: ShipmentStop[];

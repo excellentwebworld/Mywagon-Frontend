@@ -291,6 +291,8 @@ export function filtersToApiParams(filters: ShipmentsFilterState): Omit<ListShip
   if (filters.carrier_name.trim()) params.carrier_name = filters.carrier_name.trim();
   if (filters.product_type.length) params.product_type = filters.product_type;
   if (filters.channel !== 'all') params.channel = filters.channel;
+  // MS3-338: no created_by param — the core API has no such column. The AI
+  // filter is applied by passing ids the gateway supplies (see useManageShipments).
   if (filters.pickup_location_name.trim()) {
     params.pickup_location_name = filters.pickup_location_name.trim();
   }

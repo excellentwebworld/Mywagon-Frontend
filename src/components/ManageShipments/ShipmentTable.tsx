@@ -1,6 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Shipment } from '../../context/AppContext';
+import { isAiCreatedDraft } from '../../pages/ManageShipments/aiDrafts';
+
+/** Shared empty set, so a missing prop does not allocate one per render. */
+const EMPTY_AI_IDS: Set<string> = new Set();
 import type { StatusTabKey } from '../../pages/ManageShipments/utils/listingUtils';
 import {
   formatEuro,
@@ -22,6 +26,13 @@ const BASE_COL_COUNT = 12;
 interface ShipmentTableProps {
   loading?: boolean;
   shipments: Shipment[];
+  /**
+   * MS3-338 — ids the chat gateway says Vagon AI created.
+   *
+   * Passed in rather than read off the row: the core API has no created_by
+   * column, so the shipment itself carries no clue about who made it.
+   */
+  aiDraftIds?: Set<string>;
   activeTab?: StatusTabKey;
   selectedIds: Set<string>;
   expandedId: string | null;
@@ -124,6 +135,7 @@ function BidsCell({
 export const ShipmentTable: React.FC<ShipmentTableProps> = ({
   loading = false,
   shipments,
+  aiDraftIds,
   activeTab = 'active',
   selectedIds,
   expandedId,
@@ -231,6 +243,16 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                   </td>
                   <td>
                     <div className="sid">
+              {isAiCreatedDraft(row, aiDraftIds ?? EMPTY_AI_IDS) ? (
+                <span
+                  className="badge badge-info"
+                  style={{ marginRight: 6, fontSize: 10, verticalAlign: 'middle' }}
+                  title={t('aiCreatedDraftHint')}
+                  data-ai-draft="1"
+                >
+                  AI
+                </span>
+              ) : null}
                       <span>{row.autoId || row.id}</span>
                       <span
                         className="sid-copy"

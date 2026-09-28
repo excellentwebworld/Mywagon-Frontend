@@ -135,20 +135,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {mainOpen && (
             <>
-              <button
-                type="button"
-                className="ni"
+              <Link
+                to="/vagonai"
+                onClick={(e) => onFeatureNav(e, "/vagonai")}
+                className={`ni ${isLinkActive("/vagonai") ? "active" : ""}`}
                 title={t("vagonai.title") || "Vagon AI"}
                 data-tour="vagon-ai"
-                onClick={() => {
-                  if (!requireSignupComplete()) return;
-                  showToast(t("vagonai.title") || "Vagon AI", "info");
-                  onCloseMobile();
-                }}
               >
                 <Sparkles size={18} />
                 <span>{t("vagonai.title") || "Vagon AI"}</span>
-              </button>
+                <span className="nb">BETA</span>
+              </Link>
 
               <Link
                 to="/dashboard"

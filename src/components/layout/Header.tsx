@@ -66,6 +66,7 @@ export function getHeaderPageTitle(
 ): string {
   const path = pathname || '';
   if (path.startsWith('/dashboard')) return t('dashboard', 'Dashboard');
+  if (path.startsWith('/vagonai')) return t('vagonai.title') || 'Vagon AI';
   if (path.startsWith('/settings/notifications') || path.startsWith('/notifications')) return t('notifications', 'Notifications') || 'Notifications';
   if (path.startsWith('/messages') || path.startsWith('/chat')) return t('navMessages', 'Messages') || 'Messages';
   if (path.startsWith('/shipments/create')) return t('createShipment.label', 'Create Shipment');
@@ -352,10 +353,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Vagon AI */}
       <button
         type="button"
-        onClick={() => {
-          if (!requireSignupComplete()) return;
-          showToast(t('vagonai.title') || 'Vagon AI', 'info');
-        }}
+        onClick={() => goFeature('/vagonai')}
         aria-label={t('vagonai.title') || 'Vagon AI'}
         className="mv-topbar-ai"
         style={{

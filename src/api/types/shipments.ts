@@ -94,6 +94,8 @@ export interface ApiShipmentListItem {
   orders_count?: number;
   updated_at?: string | null;
   created_at?: string | null;
+  /** MS3-344/338 provenance — `vagon_ai` for AI one-shot drafts. */
+  run_id?: string | null;
   bids_count?: number;
   bids_received?: number;
   bids_sent?: number;

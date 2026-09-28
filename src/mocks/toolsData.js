@@ -145,6 +145,7 @@ export const AI_CAPABILITIES = [
   { id: 'accept_bids', group: 'accept', level: 'confirm' },
   { id: 'reject_bids', group: 'accept', level: 'confirm' },
   { id: 'confirm_delivery', group: 'accept', level: 'confirm' },
+  { id: 'mark_complete', group: 'accept', level: 'confirm' },
   // Cancel/Delete
   { id: 'cancel_shipments', group: 'cancel', level: 'blocked' },
   { id: 'archive_orders', group: 'cancel', level: 'confirm' },

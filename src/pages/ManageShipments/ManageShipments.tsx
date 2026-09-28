@@ -83,6 +83,7 @@ export const ManageShipments: React.FC = () => {
           <ShipmentTable
             loading={m.loading}
             shipments={m.pagination.items}
+            aiDraftIds={m.aiDraftIdSet}
             activeTab={m.activeTab}
             selectedIds={m.selectedIds}
             expandedId={m.expandedId}
