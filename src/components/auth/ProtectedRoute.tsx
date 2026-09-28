@@ -15,8 +15,10 @@ import {
   needsInfoFormHardGate,
 } from '../../hooks/useInfoFormGate';
 import {
+  isSignupCompleteAllowedPath,
   isSocialShipper,
   needsSignupComplete,
+  openSignupIncompleteModal,
 } from '../../hooks/useSignupCompleteGate';
 import { MyVagonBootScreen } from '../ui/MyVagonLoader';
 
@@ -27,7 +29,7 @@ interface ProtectedRouteProps {
 /**
  * Gate sequence:
  *   past-due →
- *   social incomplete: browse panel (features soft-gated via modal) →
+ *   social incomplete: dashboard only (+ settings/billing for profile & past-due) →
  *   social after profile: KYC → Info Form → panel
  *   normal: Info Form → KYC → company info → panel
  */
@@ -36,6 +38,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { showToast } = useApp();
   const { t } = useTranslation();
   const location = useLocation();
+
+  const social = isSocialShipper(user);
+  const signupDone = !needsSignupComplete(user);
+  const signupPathBlocked =
+    isAuthenticated &&
+    !signupDone &&
+    !isSignupCompleteAllowedPath(location.pathname, user);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -50,6 +59,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }, [isAuthenticated, showToast, t]);
 
+  useEffect(() => {
+    if (signupPathBlocked) {
+      openSignupIncompleteModal();
+    }
+  }, [signupPathBlocked]);
+
   if (isLoading) {
     return <MyVagonBootScreen />;
   }
@@ -62,10 +77,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/billing" replace />;
   }
 
-  // Incomplete social may browse; soft-gate handles feature actions.
-  // Hard gates below only apply after signup_complete.
-  const social = isSocialShipper(user);
-  const signupDone = !needsSignupComplete(user);
+  // Incomplete social may browse dashboard/settings; operational routes are blocked
+  // (same allowlist as sidebar soft-gate). Hard KYC/info gates apply after signup_complete.
+  if (signupPathBlocked) {
+    return <Navigate to="/dashboard" replace />;
+  }
 
   if (
     signupDone &&

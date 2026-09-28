@@ -12,6 +12,8 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePastDueLock } from '../../hooks/usePastDueLock';
+import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
+import { isSignupCompleteAllowedPath } from '../../hooks/useSignupCompleteGate';
 import { useShipperPermission } from '../../hooks/useShipperPermission';
 import { useApp } from '../../context/AppContext';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
@@ -55,6 +57,7 @@ export function ProfileDropdown() {
   const { T, isDark, toggleDark } = useTheme();
   const { user, logout } = useAuth();
   const pastDueLocked = usePastDueLock();
+  const { requireSignupComplete, signupIncomplete } = useRequireSignupComplete();
   const { canNav } = useShipperPermission();
   const navigate = useNavigate();
 
@@ -250,8 +253,20 @@ export function ProfileDropdown() {
                     key={link.label}
                     onClick={() => {
                       if (link.kind === 'referral') {
+                        if (!requireSignupComplete()) {
+                          setOpen(false);
+                          return;
+                        }
                         setOpen(false);
                         setReferralOpen(true);
+                        return;
+                      }
+                      if (
+                        signupIncomplete &&
+                        !isSignupCompleteAllowedPath(link.route)
+                      ) {
+                        setOpen(false);
+                        requireSignupComplete();
                         return;
                       }
                       navigate(link.route);

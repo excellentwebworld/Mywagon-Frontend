@@ -24,6 +24,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePastDueLock } from '../../hooks/usePastDueLock';
 import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
+import { isSignupCompleteAllowedPath } from '../../hooks/useSignupCompleteGate';
 import { useShipperPermission } from '../../hooks/useShipperPermission';
 import type { ShipperRbacNavKey } from '../../utils/shipperRbacMap';
 import { useApp } from '../../context/AppContext';
@@ -178,19 +179,9 @@ export function TopNav() {
     items: section.items.filter(itemAllowed),
   })).filter((section) => section.items.length > 0);
 
-  const isSignupBrowseAllowed = (path: string) => {
-    const p = path.replace(/\/$/, '') || '/';
-    if (p === '/dashboard') return true;
-    if (p === '/settings' || p.startsWith('/settings/')) return true;
-    if (p === '/billing' || p.startsWith('/billing/')) return true;
-    if (p === '/subscription' || p.startsWith('/subscription/')) return true;
-    if (p === '/analytics' || p.startsWith('/analytics/')) return true;
-    return false;
-  };
-
   const go = (route?: string) => {
     if (!route) return;
-    if (signupIncomplete && !isSignupBrowseAllowed(route)) {
+    if (signupIncomplete && !isSignupCompleteAllowedPath(route)) {
       requireSignupComplete();
       return;
     }

@@ -7,18 +7,8 @@ import { assetUrl } from "../../utils/assetUrl";
 import collapsedLogo from "../../assets/logo/logo.svg";
 import { usePastDueLock } from "../../hooks/usePastDueLock";
 import { useRequireSignupComplete } from "../../hooks/useRequireSignupComplete";
+import { isSignupCompleteAllowedPath } from "../../hooks/useSignupCompleteGate";
 import { useShipperPermission } from "../../hooks/useShipperPermission";
-
-/** Paths incomplete social users may open without the profile modal. */
-function isSignupBrowseAllowed(path: string): boolean {
-  const p = path.replace(/\/$/, "") || "/";
-  if (p === "/dashboard") return true;
-  if (p === "/settings" || p.startsWith("/settings/")) return true;
-  if (p === "/billing" || p.startsWith("/billing/")) return true;
-  if (p === "/subscription" || p.startsWith("/subscription/")) return true;
-  if (p === "/analytics" || p.startsWith("/analytics/")) return true;
-  return false;
-}
 
 interface SidebarProps {
   collapsed: boolean;
@@ -73,7 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       onCloseMobile();
       return;
     }
-    if (signupIncomplete && !isSignupBrowseAllowed(path)) {
+    if (signupIncomplete && !isSignupCompleteAllowedPath(path)) {
       e.preventDefault();
       requireSignupComplete();
       return;

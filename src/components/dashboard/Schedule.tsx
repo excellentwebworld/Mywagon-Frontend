@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
+import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
 import { useTranslation } from '../../hooks/useTranslation';
 import { statusBadgeClass } from '../../pages/ManageShipments/utils/listingUtils';
 import { useTodaySchedule } from './useTodaySchedule';
@@ -19,6 +20,7 @@ const ScheduleRowActions: React.FC<{
   t: (key: string, defaultVal?: string) => string;
 }> = ({ event, onSelectOnMap, t }) => {
   const navigate = useNavigate();
+  const { requireSignupComplete } = useRequireSignupComplete();
   const [open, setOpen] = useState(false);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -87,6 +89,7 @@ const ScheduleRowActions: React.FC<{
               role="menuitem"
               onClick={() => {
                 setOpen(false);
+                if (!requireSignupComplete()) return;
                 navigate(`/shipments/${event.shipmentId}`);
               }}
             >
@@ -107,6 +110,7 @@ const ScheduleRowActions: React.FC<{
               role="menuitem"
               onClick={() => {
                 setOpen(false);
+                if (!requireSignupComplete()) return;
                 navigate(`/shipments?search=${event.autoId}`);
               }}
             >
@@ -122,6 +126,7 @@ const ScheduleRowActions: React.FC<{
 export const Schedule: React.FC<ScheduleProps> = ({ selectedShipmentId, onSelectShipment }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { requireSignupComplete } = useRequireSignupComplete();
   const { events, counts, loading, error } = useTodaySchedule();
 
   // Auto-select first event's shipment (Blade seeds first itinerary).
@@ -178,7 +183,13 @@ export const Schedule: React.FC<ScheduleProps> = ({ selectedShipmentId, onSelect
             </span>
           </span>
         </h3>
-        <Link to="/shipments" className="card-link">
+        <Link
+          to="/shipments"
+          className="card-link"
+          onClick={(e) => {
+            if (!requireSignupComplete()) e.preventDefault();
+          }}
+        >
           <span>{t('viewAll')}</span> →
         </Link>
       </div>
@@ -268,6 +279,7 @@ export const Schedule: React.FC<ScheduleProps> = ({ selectedShipmentId, onSelect
                     className="sched-details-btn sched-desktop-btn"
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (!requireSignupComplete()) return;
                       navigate(`/shipments/${event.shipmentId}`);
                     }}
                   >

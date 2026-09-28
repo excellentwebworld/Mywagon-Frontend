@@ -4,6 +4,7 @@ import { availabilitiesService } from '../../api';
 import { mapListItemToTruck } from '../../api/mappers/availabilitiesMapper';
 import type { AvailableTruck } from '../../pages/SearchTrucks/types';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
 import { useShipperPermission } from '../../hooks/useShipperPermission';
 import { DashUpgradeBlock, formatDashError, translateDashMessage } from './dashErrorUtils';
 import { DashTrucksSkeleton } from './DashboardSkeletons';
@@ -15,6 +16,7 @@ const MAP_PIN_LIMIT = 50;
 export const TruckAvailabilitiesCard: React.FC<{ enabled?: boolean }> = ({ enabled = true }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { requireSignupComplete } = useRequireSignupComplete();
   const { canNav } = useShipperPermission();
   const canSearchTrucks = canNav('searchTrucks');
   const [partnerCount, setPartnerCount] = useState<number | null>(null);
@@ -25,8 +27,9 @@ export const TruckAvailabilitiesCard: React.FC<{ enabled?: boolean }> = ({ enabl
   const [upgradeUrl, setUpgradeUrl] = useState<string | undefined>();
 
   const goSearch = useCallback(() => {
+    if (!requireSignupComplete()) return;
     navigate('/search-trucks');
-  }, [navigate]);
+  }, [navigate, requireSignupComplete]);
 
   useEffect(() => {
     if (!enabled) return;

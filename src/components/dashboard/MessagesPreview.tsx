@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { chatService } from '../../api/services/chatService';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
 import { useShipperPermission } from '../../hooks/useShipperPermission';
 import type { Conversation } from '../../pages/Messages/types';
 import { DashUpgradeBlock, formatDashError, translateDashMessage } from './dashErrorUtils';
@@ -13,6 +14,7 @@ const PREVIEW_LIMIT = 50;
 export const MessagesPreview: React.FC<{ enabled?: boolean }> = ({ enabled = true }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { requireSignupComplete } = useRequireSignupComplete();
   const { canNav } = useShipperPermission();
   const canMessages = canNav('messages');
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -59,6 +61,7 @@ export const MessagesPreview: React.FC<{ enabled?: boolean }> = ({ enabled = tru
     return null;
   }
   const openConversation = (c: Conversation) => {
+    if (!requireSignupComplete()) return;
     if (c.partnerId != null && c.partnerType) {
       const params = new URLSearchParams({
         userId: String(c.partnerId),
@@ -80,7 +83,14 @@ export const MessagesPreview: React.FC<{ enabled?: boolean }> = ({ enabled = tru
           </svg>
           <span>{t('dashMessagesTitle')}</span>
         </h3>
-        <span className="card-link" style={{ cursor: 'pointer' }} onClick={() => navigate('/messages')}>
+        <span
+          className="card-link"
+          style={{ cursor: 'pointer' }}
+          onClick={() => {
+            if (!requireSignupComplete()) return;
+            navigate('/messages');
+          }}
+        >
           {t('dashViewMessages')}
         </span>
       </div>
