@@ -5,6 +5,7 @@ import { productLineVisual, formatReason, type ProductLineVisual } from '../../p
 import { StopTag } from '../ui/mv';
 import { CollapsibleCard } from './CollapsibleCard';
 import { formatDisplayDate, formatDisplayTime } from '../../utils/dateDisplay';
+import { translateCargoUnit } from '../../utils/shipmentLogI18n';
 
 export interface ReportablePickup {
   location_id: number;
@@ -876,7 +877,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                                 fontWeight: prodHl?.qty ? 600 : undefined,
                                               }}
                                             >
-                                              {`${prod.qty} ${prod.qtyUnit || 'EUR Pallets'}`}
+                                              {`${prod.qty} ${translateCargoUnit(prod.qtyUnit || 'EUR Pallets', t)}`}
                                             </span>
                                           ) : ''}
                                           {prod.qty && prod.weight ? ' · ' : ''}
@@ -887,7 +888,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                                 fontWeight: prodHl?.weight ? 600 : undefined,
                                               }}
                                             >
-                                              {`${prod.weight} ${prod.weightUnit || 'Tonnes'}`}
+                                              {`${prod.weight} ${translateCargoUnit(prod.weightUnit || 'Tonnes', t)}`}
                                             </span>
                                           ) : ''}
                                         </span>

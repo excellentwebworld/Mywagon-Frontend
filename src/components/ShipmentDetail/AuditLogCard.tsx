@@ -15,10 +15,11 @@ import type { AuditEntry, BidHistoryItem, ShipmentLogItem } from '../../pages/Sh
 import { CarrierAvatar } from '../ManageShipments/CarrierAvatar';
 import { CollapsibleCard } from './CollapsibleCard';
 import { formatReason } from '../../pages/ManageShipments/utils/listingUtils';
+import { translateShipmentLogAction } from '../../utils/shipmentLogI18n';
 
 const FILTER_CATEGORIES = [
   { key: 'all', labelKey: 'all', fallback: 'All' },
-  { key: 'bidding', labelKey: 'bidsHistory', fallback: 'Bidding' },
+  { key: 'bidding', labelKey: 'auditFilter_bidding', fallback: 'Bidding' },
   { key: 'operations', labelKey: 'operations', fallback: 'Operations' },
 ] as const;
 
@@ -213,9 +214,12 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
       const isCancel = act.includes('cancel') || act.includes('ακύρωσ') || act.includes('canceled') || act.includes('cancelled');
       const isReject = Boolean(op.isRejection || op.is_rejection || act.includes('reject') || act.includes('decline'));
 
-      let displayAction = cleanPerformanceText(op.action || op.text || '');
+      let displayAction = translateShipmentLogAction(
+        cleanPerformanceText(op.action || op.text || ''),
+        t,
+      );
       if (isCreateAction(act)) {
-        displayAction = 'Shipment Created';
+        displayAction = t('auditShipmentCreated', 'Shipment Created');
       }
 
       list.push({
@@ -242,7 +246,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
             category: 'bidding',
             timestamp: parseEventTimestamp(neg.date),
             date: neg.date,
-            action: neg.action,
+            action: translateShipmentLogAction(neg.action, t),
             actor: neg.userName || bid.initiatorName,
             priceBadge: neg.price ? `€ ${neg.price}` : null,
             notes: neg.notes,
@@ -256,7 +260,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
           category: 'bidding',
           timestamp: parseEventTimestamp(bid.date),
           date: bid.date,
-          action: 'Offer Placed',
+          action: t('auditOfferPlaced', 'Offer Placed'),
           actor: bid.initiatorName,
           priceBadge: bid.price ? `€ ${bid.price}` : null,
           tone: 'bid',
@@ -276,7 +280,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
       }
       return 0;
     });
-  }, [shipmentLogs, entries, bidsHistory]);
+  }, [shipmentLogs, entries, bidsHistory, t]);
 
   const operationsEvents = useMemo(() => {
     return allEvents.filter((e) => e.category === 'operations');
@@ -461,6 +465,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                                 ];
 
                           return timelineList.map((neg, nIdx) => {
+                            const actionLabel = translateShipmentLogAction(neg.action, t);
                             const isReject = neg.action.toLowerCase().includes('reject');
                             const isAccept = neg.action.toLowerCase().includes('accept');
                             const isCounter = neg.action.toLowerCase().includes('counter');
@@ -518,7 +523,7 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                                           ) : (
                                             <Tag size={10} />
                                           )}
-                                          {neg.action}
+                                          {actionLabel}
                                         </span>
                                         <span className="text-slate-600 dark:text-slate-300">
                                           {t('by', 'by')}{' '}

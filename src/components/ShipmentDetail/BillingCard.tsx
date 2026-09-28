@@ -46,7 +46,9 @@ export const BillingCard: React.FC<BillingCardProps> = ({
               {t('priceType', 'PRICE TYPE')}
             </div>
             <div className="font-bold text-[13px] tabular-nums text-slate-900 dark:text-white">
-              {billing.priceType?.toUpperCase()}
+              {String(billing.priceType || '').toLowerCase().includes('contract')
+                ? t('contract', 'CONTRACT')
+                : t('spot', 'SPOT')}
             </div>
           </div>
 

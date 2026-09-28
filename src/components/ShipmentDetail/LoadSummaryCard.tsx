@@ -301,12 +301,14 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
           <div className="min-w-0">
             <span
               className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider truncate max-w-full ${
-                loadSummary.channel === 'Public'
+                String(loadSummary.channel || '').toLowerCase() === 'public'
                   ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
                   : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800'
               }`}
             >
-              {loadSummary.channel || 'Private'}
+              {String(loadSummary.channel || '').toLowerCase() === 'public'
+                ? t('channelPublic', 'PUBLIC')
+                : t('channelPrivate', 'PRIVATE')}
             </span>
           </div>
         </div>

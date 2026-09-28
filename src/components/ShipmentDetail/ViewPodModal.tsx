@@ -130,7 +130,7 @@ export const ViewPodModal: React.FC<ViewPodModalProps> = ({
                     <div className="relative aspect-video w-full overflow-hidden bg-black/5 flex items-center justify-center">
                       <img
                         src={img.url}
-                        alt={t('podImageLabel', `POD Document ${idx + 1}`)}
+                        alt={t('podImageLabel', 'POD Document {{n}}').replace('{{n}}', String(idx + 1))}
                         className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -156,7 +156,7 @@ export const ViewPodModal: React.FC<ViewPodModalProps> = ({
 
                     <div className="p-2.5 bg-white dark:bg-slate-900 flex items-center justify-between border-t border-slate-200 dark:border-slate-700">
                       <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                        {t('podImageLabel', `POD Document ${idx + 1}`)}
+                        {t('podImageLabel', 'POD Document {{n}}').replace('{{n}}', String(idx + 1))}
                       </span>
                       <a
                         href={img.url}

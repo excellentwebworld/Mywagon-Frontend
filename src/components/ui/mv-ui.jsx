@@ -103,12 +103,13 @@ export const OpsDot = ({ filter }) => <span style={{ width: 7, height: 7, border
 
 /* 1d. STOP TYPE — Pickup white, Dropoff black (existing coding). Dark mode: black label gets a white contour via --app-black-contour. */
 export function StopTag({ type }) {
+  const { t } = useTranslation();
   const drop = String(type).toLowerCase() === 'dropoff';
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 8px', borderRadius: 8, fontSize: 11, fontWeight: 600, letterSpacing: '0.04em',
       background: drop ? '#000001' : '#FFFFFF', color: drop ? '#FFFFFF' : '#000001',
       border: drop ? '1px solid var(--app-black-contour)' : '1px solid var(--app-border-strong)' }}>
-      {drop ? 'DROPOFF' : 'PICKUP'}
+      {drop ? t('dropoffUpper', 'DROPOFF') : t('pickupUpper', 'PICKUP')}
     </span>
   );
 }

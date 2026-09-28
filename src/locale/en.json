@@ -6563,5 +6563,32 @@
   "createProductPlus": "+ Create Product",
   "ui": {
     "search": "Search…"
-  }
+  },
+  "constants.kgs": "Kgs",
+  "constants.kg": "Kg",
+  "podImageLabel": "POD Document {{n}}",
+  "on": "on",
+  "auditShipmentCreated": "Shipment Created",
+  "auditMarkAsPaid": "Mark As Paid",
+  "auditRating": "Rating",
+  "auditShipmentCompleted": "Shipment Completed",
+  "auditStatusChanged": "Status Changed",
+  "auditPodUploaded": "POD Uploaded",
+  "auditAcceptShipment": "Accept Shipment",
+  "auditShipmentEditRequested": "Shipment Edit Requested",
+  "auditShipmentEditApplied": "Shipment Edit Applied",
+  "auditBidAccepted": "Bid Accepted",
+  "auditCreateBid": "Create Bid",
+  "auditBidReceived": "Bid Received",
+  "auditBidPlaced": "Bid Placed",
+  "auditOfferAccepted": "Offer Accepted",
+  "auditOfferPlaced": "Offer Placed",
+  "auditOfferRejected": "Offer Rejected",
+  "auditCounterOffer": "Counter Offer",
+  "auditArrivedAtLocation": "Arrived At Location",
+  "auditCompletePickup": "Complete Pickup",
+  "auditCompleteDropoff": "Complete Dropoff",
+  "auditStartTrip": "Start Trip",
+  "auditCancelShipment": "Cancel Shipment",
+  "auditTrackingLinksUpdated": "Tracking Links Updated"
 }
