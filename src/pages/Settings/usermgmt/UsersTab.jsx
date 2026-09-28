@@ -367,7 +367,7 @@ export default function UsersTab() {
           </button>
           {showStatusFilter && (
             <div className="absolute top-full left-0 mt-1 rounded-xl shadow-xl overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}`, zIndex: 50, minWidth: 180 }}>
-              {['active', 'invited', 'suspended', 'deactivated'].map((s) => {
+              {['active', 'invited', 'deactivated'].map((s) => {
                 const sc = USER_STATUS_CONFIG[s];
                 return (
                   <label key={s} className="flex items-center gap-2 px-3 py-2 cursor-pointer" style={{ fontSize: 12, color: T.t1 }}>
@@ -696,13 +696,7 @@ function UserRow({
             {status === 'invited' && (
               <ActionItem icon={XCircle} label={t('userMgmt.actions.cancelInvite')} onClick={onCancelInvite} T={T} danger />
             )}
-            {status === 'suspended' && (
-              <>
-                <ActionItem icon={Edit3} label={t('userMgmt.actions.edit')} onClick={onEdit} T={T} />
-                <ActionItem icon={RotateCcw} label={t('userMgmt.actions.reactivate')} onClick={onReactivate} T={T} />
-                <ActionItem icon={XCircle} label={t('userMgmt.actions.deactivate')} onClick={onDeactivate} T={T} danger />
-              </>
-            )}
+
             {status === 'deactivated' && (
               <ActionItem icon={RotateCcw} label={t('userMgmt.actions.reactivate')} onClick={onReactivate} T={T} />
             )}
