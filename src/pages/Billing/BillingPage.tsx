@@ -26,7 +26,7 @@ import type {
   KpiFilterKey,
   BillingSummary,
 } from './types';
-import { downloadFileBlob, canSubmitBankReceipt, formatCurrency } from './mockData';
+import { downloadFileBlob, canSubmitBankReceipt, formatCurrency, isInvoicePaid, normalizeInvoiceStatus } from './mockData';
 import { fillPrintWindow, preparePrintWindow } from '../../utils/printHtml';
 import { InvoiceDocument } from './documents/InvoiceDocument';
 import { renderBillingDocumentHtml } from './documents/renderBillingDocument';
@@ -61,13 +61,12 @@ export function mapSubFilter(sub: SubFilterKey, kpi: KpiFilterKey): { status?: s
   if (kpi === 'overdue') return { status: 'overdue' };
   if (kpi === 'dueSoon') return { status: 'due_soon' };
   if (kpi === 'paid') return { status: 'paid' };
-  if (sub === 'Unpaid') return { status: 'unpaid' };
-  if (sub === 'Overdue') return { status: 'overdue' };
-  if (sub === 'Paid') return { status: 'paid' };
-  if (sub === 'Subscription') return { type: 'subscription' };
-  if (sub === 'Commission') return { type: 'commission' };
-  if (sub === 'Commission with penalty' || sub === 'Penalty') return { type: 'commission_with_penalty' };
-  if (sub === 'Add-on') return { type: 'add-on' };
+  if (sub === 'unpaid') return { status: 'unpaid' };
+  if (sub === 'overdue') return { status: 'overdue' };
+  if (sub === 'paid') return { status: 'paid' };
+  if (sub === 'subscription') return { type: 'subscription' };
+  if (sub === 'commission-with-penalty') return { type: 'commission-with-penalty' };
+  if (sub === 'add-on') return { type: 'add-on' };
   return { status: 'all' };
 }
 
@@ -840,7 +839,9 @@ export const BillingPage: React.FC<BillingPageProps> = ({
             onPageChange={setWalletPage}
             onPerPageChange={setWalletPerPage}
             onOpenApplyCredit={() => {
-              const localUnpaid = invoices.filter((i) => i.rem > 0 && i.status !== 'Paid' && i.status !== 'Voided');
+              const localUnpaid = invoices.filter(
+                (i) => i.rem > 0 && !isInvoicePaid(i.status) && normalizeInvoiceStatus(i.status) !== 'voided',
+              );
               setWalletInvoices(localUnpaid);
               setWalletInvoicesLoading(true);
               setApplyCreditOpen(true);
@@ -855,7 +856,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
                 });
             }}
             onOpenRequestAdj={() => {
-              setWalletInvoices(invoices.filter((i) => i.rem > 0 && i.status !== 'Paid'));
+              setWalletInvoices(invoices.filter((i) => i.rem > 0 && !isInvoicePaid(i.status)));
               setRequestAdjOpen(true);
               api
                 .getInvoices({ status: 'unpaid', per_page: 50 })
@@ -921,7 +922,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
         invoices={
           walletInvoices.length
             ? walletInvoices
-            : invoices.filter((i) => i.rem > 0 && i.status !== 'Paid')
+            : invoices.filter((i) => i.rem > 0 && !isInvoicePaid(i.status))
         }
         currency={summary?.currency}
         onSubmit={handleRequestAdjustment}

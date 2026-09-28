@@ -1,6 +1,12 @@
-export type InvoiceType = 'Commission' | 'Subscription' | 'Commission with penalty' | 'Penalty' | 'Add-on' | 'Adjustment' | 'Credit note' | string;
+/** Canonical slug keys from billing API (Laravel translation keys). */
+export type InvoiceType =
+  | 'subscription'
+  | 'commission-with-penalty'
+  | 'add-on'
+  | 'credit-note'
+  | string;
 
-export type InvoiceStatus = 'Paid' | 'Unpaid' | 'Overdue' | 'Draft' | 'Voided';
+export type InvoiceStatus = 'paid' | 'unpaid' | 'overdue' | 'voided' | 'draft' | string;
 
 export type Currency = 'EUR' | 'USD' | 'GBP' | string;
 
@@ -8,8 +14,10 @@ export interface Invoice {
   id: string;
   raw_id?: number;
   type: InvoiceType;
+  type_label?: string;
   sub: string;
   status: InvoiceStatus;
+  status_label?: string;
   iDate: string;
   dDate: string | null;
   pDate: string | null;
@@ -125,7 +133,14 @@ export interface InvoicePrintPayload {
 }
 
 export type TabKey = 'saas' | 'credits' | 'statements';
-export type SubFilterKey = 'All' | 'Unpaid' | 'Overdue' | 'Paid' | 'Subscription' | 'Commission' | 'Commission with penalty' | 'Penalty' | 'Add-on';
+export type SubFilterKey =
+  | 'All'
+  | 'unpaid'
+  | 'overdue'
+  | 'paid'
+  | 'subscription'
+  | 'commission-with-penalty'
+  | 'add-on';
 export type KpiFilterKey = 'outstanding' | 'overdue' | 'dueSoon' | 'paid' | null;
 
 export interface StatementPayload {

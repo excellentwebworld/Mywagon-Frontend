@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { X, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { BillingModalPortal } from './BillingModalPortal';
-import { buildStatementPeriodOptions } from '../../mockData';
+import { buildStatementPeriodOptions, formatStatementPeriodLabel } from '../../mockData';
 
 interface StatementDownloadModalProps {
   isOpen: boolean;
@@ -17,7 +17,7 @@ export const StatementDownloadModal: React.FC<StatementDownloadModalProps> = ({
   onGenerate,
   registeredAt,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const periods = useMemo(() => buildStatementPeriodOptions(registeredAt), [registeredAt]);
   const [month, setMonth] = useState(periods[0] ?? '');
   const [format, setFormat] = useState<'PDF' | 'CSV' | 'XLSX'>('PDF');
@@ -59,7 +59,7 @@ export const StatementDownloadModal: React.FC<StatementDownloadModalProps> = ({
               <select value={month} onChange={(e) => setMonth(e.target.value)} required>
                 {periods.map((period) => (
                   <option key={period} value={period}>
-                    {period}
+                    {formatStatementPeriodLabel(period, i18n.language)}
                   </option>
                 ))}
               </select>

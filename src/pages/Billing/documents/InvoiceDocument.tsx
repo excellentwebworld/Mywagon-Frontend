@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { BillingIssuer, BillingParty, Invoice } from '../../../api/types/billing';
-import { formatCurrency, formatDate } from '../mockData';
+import { formatCurrency, formatDate, isInvoicePaid } from '../mockData';
 
 function statusClass(status: string): string {
   const value = status.toLowerCase();
@@ -26,7 +26,7 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
   const { t } = useTranslation();
   const lines = invoice.line_items ?? [];
   const issuerName = issuer?.name || 'MYVAGON';
-  const paid = invoice.status === 'Paid';
+  const paid = isInvoicePaid(invoice.status);
   const billLines = billTo?.address_lines?.length
     ? billTo.address_lines
     : billTo?.address

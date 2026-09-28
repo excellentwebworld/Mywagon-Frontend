@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Invoice } from '../../types';
-import { formatCurrency } from '../../mockData';
+import { formatCurrency, isInvoicePaid, normalizeInvoiceStatus } from '../../mockData';
 import { BillingModalPortal } from './BillingModalPortal';
 
 interface RequestAdjustmentModalProps {
@@ -21,7 +21,9 @@ export const RequestAdjustmentModal: React.FC<RequestAdjustmentModalProps> = ({
   onSubmit,
 }) => {
   const { t } = useTranslation();
-  const unpaidInvoices = invoices.filter((inv) => inv.rem > 0 && inv.status !== 'Paid' && inv.status !== 'Voided');
+  const unpaidInvoices = invoices.filter(
+    (inv) => inv.rem > 0 && !isInvoicePaid(inv.status) && normalizeInvoiceStatus(inv.status) !== 'voided',
+  );
 
   const [invoiceId, setInvoiceId] = useState('');
   const [amount, setAmount] = useState('');

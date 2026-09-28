@@ -15,17 +15,25 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Invoice, LineItem } from '../types';
-import { formatCurrency, formatDate } from '../mockData';
+import {
+  formatCurrency,
+  formatDate,
+  invoiceStatusLabel,
+  invoiceTypeLabel,
+  isInvoiceOverdue,
+  normalizeInvoiceStatus,
+  normalizeInvoiceType,
+} from '../mockData';
 import { Money, MvButton, RecordStatusBadge, Tag } from '../../../components/ui/mv';
 import { BillingDrawerSkeleton } from './BillingSkeleton';
 
 function invoiceStatusTone(status: string): 'success' | 'warning' | 'danger' | 'neutral' {
-  switch (status) {
-    case 'Paid':
+  switch (normalizeInvoiceStatus(status)) {
+    case 'paid':
       return 'success';
-    case 'Overdue':
+    case 'overdue':
       return 'danger';
-    case 'Unpaid':
+    case 'unpaid':
       return 'warning';
     default:
       return 'neutral';
@@ -33,8 +41,9 @@ function invoiceStatusTone(status: string): 'success' | 'warning' | 'danger' | '
 }
 
 function invoiceTypeVariant(type: string): 'outline' | 'brand' | 'navy' {
-  if (type === 'Subscription' || type === 'Add-on') return 'brand';
-  if (type === 'Penalty' || type === 'Commission with penalty') return 'navy';
+  const slug = normalizeInvoiceType(type);
+  if (slug === 'subscription' || slug === 'add-on') return 'brand';
+  if (slug === 'commission-with-penalty') return 'navy';
   return 'outline';
 }
 
@@ -179,8 +188,8 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                 </button>
               </div>
               <div className="flex gap-2">
-                <Tag variant={typeVariant}>{invoice.type}</Tag>
-                <RecordStatusBadge status={invoice.status} tone={statusTone} />
+                <Tag variant={typeVariant}>{invoiceTypeLabel(invoice, t)}</Tag>
+                <RecordStatusBadge status={invoiceStatusLabel(invoice, t)} tone={statusTone} />
                 {invoice.under_process ? (
                   <RecordStatusBadge status={t('billingPage.receiptUnderReview', 'Receipt under review')} tone="warning" />
                 ) : null}
@@ -225,7 +234,7 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
                 {t('billingPage.remaining', 'Remaining')}
               </div>
               <div className="billing-mono dr-summary-value dr-summary-value--remain">
-                <Money value={invoice.rem} currency={invoice.cur} overdue={invoice.rem > 0 && invoice.status === 'Overdue'} />
+                <Money value={invoice.rem} currency={invoice.cur} overdue={invoice.rem > 0 && isInvoiceOverdue(invoice.status)} />
               </div>
             </div>
           </div>

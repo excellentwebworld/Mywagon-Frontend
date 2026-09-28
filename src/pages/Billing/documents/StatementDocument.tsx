@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StatementPayload } from '../../../api/types/billing';
-import { formatCurrency, formatDate } from '../mockData';
+import { formatCurrency, formatDate, walletReasonLabel } from '../mockData';
 
 interface StatementDocumentProps {
   statement: StatementPayload;
@@ -152,7 +152,7 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
               movements.map((row) => (
                 <tr key={row.id}>
                   <td>{formatDate(row.date)}</td>
-                  <td>{row.reason}</td>
+                  <td>{walletReasonLabel(row.reason, t)}</td>
                   <td className="num">{formatCurrency(row.amt, currency)}</td>
                   <td>{row.type || '—'}</td>
                   <td>{row.applied || '—'}</td>
