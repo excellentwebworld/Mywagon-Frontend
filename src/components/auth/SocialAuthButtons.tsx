@@ -69,7 +69,7 @@ export const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ disabled, 
     <div className={`social-auth${compact ? ' social-auth--compact' : ''}`}>
       {!compact && (
         <div className="social-auth-divider" role="separator">
-          <span>{t('socialAuth.orContinueWith', { defaultValue: 'Or sign up' })}</span>
+          <span>{t('socialAuth.orContinueWith', 'Or sign up')}</span>
         </div>
       )}
       <div className="social-auth-buttons">
@@ -80,7 +80,7 @@ export const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ disabled, 
           onClick={() => start('google')}
         >
           <GoogleIcon />
-          <span>{t('socialAuth.continueWithGoogle', { defaultValue: 'Continue with Google' })}</span>
+          <span>{t('socialAuth.google', 'Google')}</span>
         </button>
         <button
           type="button"
@@ -89,7 +89,7 @@ export const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({ disabled, 
           onClick={() => start('microsoft')}
         >
           <MicrosoftIcon />
-          <span>{t('socialAuth.continueWithMicrosoft', { defaultValue: 'Continue with Microsoft 365' })}</span>
+          <span>{t('socialAuth.microsoft', 'Microsoft 365')}</span>
         </button>
       </div>
     </div>

@@ -2620,8 +2620,6 @@
     "orSignUpWithEmail": "Ή εγγραφείτε με email",
     "google": "Google",
     "microsoft": "Microsoft 365",
-    "continueWithGoogle": "Συνέχεια με Google",
-    "continueWithMicrosoft": "Συνέχεια με Microsoft 365",
     "failed": "Η σύνδεση μέσω social απέτυχε. Δοκιμάστε ξανά.",
     "missingToken": "Η σύνδεση μέσω social απέτυχε. Δοκιμάστε ξανά.",
     "sessionFailed": "Δεν ήταν δυνατή η έναρξη συνεδρίας. Δοκιμάστε ξανά."

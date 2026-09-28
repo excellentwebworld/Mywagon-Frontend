@@ -2619,8 +2619,6 @@
     "orSignUpWithEmail": "Or sign up with email",
     "google": "Google",
     "microsoft": "Microsoft 365",
-    "continueWithGoogle": "Continue with Google",
-    "continueWithMicrosoft": "Continue with Microsoft 365",
     "failed": "Social sign-in failed. Please try again.",
     "missingToken": "Social sign-in failed. Please try again.",
     "sessionFailed": "Could not start your session. Please try again."
