@@ -12,10 +12,10 @@ export type ShipperRbacUser = {
   permissions?: Array<string | ShipperPermission> | null;
 } | null | undefined;
 
-/** True for company owner / primary shipper (or temporarily unrestricted). */
+/** True for company owner / primary shipper (not a sub-user). */
 export function isShipperRbacUnrestricted(user: ShipperRbacUser): boolean {
-  // Temporarily bypass permission check for dispatcher/sub-users
-  return true;
+  if (!user) return false;
+  return user.is_sub_user !== true && user.type !== 'sub_user';
 }
 
 export function shipperRbacNames(user: ShipperRbacUser): string[] {
@@ -31,14 +31,21 @@ export function shipperCan(
   user: ShipperRbacUser,
   name: string | string[],
 ): boolean {
-  // Temporarily bypass permission check for dispatcher/sub-users
-  return true;
+  if (!user) return false;
+  if (isShipperRbacUnrestricted(user)) return true;
+  const names = Array.isArray(name) ? name : [name];
+  if (names.length === 0) return true;
+  const granted = new Set(shipperRbacNames(user));
+  return names.some((n) => granted.has(n));
 }
 
 export function shipperCanAll(
   user: ShipperRbacUser,
   names: string[],
 ): boolean {
-  // Temporarily bypass permission check for dispatcher/sub-users
-  return true;
+  if (!user) return false;
+  if (isShipperRbacUnrestricted(user)) return true;
+  if (names.length === 0) return true;
+  const granted = new Set(shipperRbacNames(user));
+  return names.every((n) => granted.has(n));
 }

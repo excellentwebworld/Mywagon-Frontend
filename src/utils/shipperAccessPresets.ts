@@ -209,6 +209,7 @@ export function canManageShipperUsers(user: {
   type?: string;
   permissions?: Array<string | { name?: string; value?: string; slug?: string | null }> | null;
 } | null | undefined): boolean {
-  // Temporarily bypass permission check for dispatcher/sub-users
-  return true;
+  if (!user) return false;
+  if (user.is_sub_user !== true && user.type !== 'sub_user') return true;
+  return permissionNames(user.permissions).includes(MANAGE_USERS_PERMISSION);
 }
