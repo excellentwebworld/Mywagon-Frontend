@@ -1149,11 +1149,11 @@
 
 /* Legacy-style price breakdown (addon + plan purchase) */
 .sub-modal .price-breakdown {
-  border: 1px solid var(--bd, #e4e4e8);
+  border: 1px solid var(--border, #e4e4e8);
   border-radius: 10px;
   overflow: hidden;
   margin-bottom: 14px;
-  background: #fff;
+  background: var(--surface, #fff);
 }
 .sub-modal .pb-head {
   display: grid;
@@ -1162,11 +1162,14 @@
   padding: 10px 14px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--t3, #8e8e9a);
-  background: var(--se, #fafafe);
-  border-bottom: 1px solid var(--bd, #e4e4e8);
+  color: var(--text-tertiary, #8e8e9a);
+  background: var(--surface-alt, #fafafe);
+  border-bottom: 1px solid var(--border, #e4e4e8);
 }
-.sub-modal .pb-body { padding: 2px 0; }
+.sub-modal .pb-body {
+  padding: 2px 0;
+  background: var(--surface, #fff);
+}
 .sub-modal .pb-row {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -1174,11 +1177,11 @@
   align-items: start;
   padding: 11px 14px;
   font-size: 13px;
-  color: var(--t1, #1a1a24);
+  color: var(--text-primary, #1a1a24);
   line-height: 1.45;
 }
 .sub-modal .pb-row-divider {
-  border-top: 1px solid var(--bd, #e4e4e8);
+  border-top: 1px solid var(--border, #e4e4e8);
 }
 .sub-modal .pb-row-strong .pb-label,
 .sub-modal .pb-row-strong .pb-value {
@@ -1187,20 +1190,20 @@
 .sub-modal .pb-label {
   min-width: 0;
   word-break: break-word;
-  color: var(--t2, #5e5e6e);
+  color: var(--text-secondary, #5e5e6e);
 }
-.sub-modal .pb-row-strong .pb-label { color: var(--t1, #1a1a24); }
+.sub-modal .pb-row-strong .pb-label { color: var(--text-primary, #1a1a24); }
 .sub-modal .pb-value {
   text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  color: var(--t1, #1a1a24);
+  color: var(--text-primary, #1a1a24);
 }
 .sub-modal .pb-footer {
   padding: 12px 14px;
-  border-top: 1px solid var(--bd, #e4e4e8);
-  background: var(--se, #fafafe);
+  border-top: 1px solid var(--border, #e4e4e8);
+  background: var(--surface-alt, #fafafe);
 }
 .sub-modal .pb-autopay {
   display: flex;
@@ -1209,7 +1212,7 @@
   gap: 12px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--t1, #1a1a24);
+  color: var(--text-primary, #1a1a24);
   margin: 0;
   cursor: pointer;
 }
@@ -1222,11 +1225,12 @@
 
 .sub-modal .m-info {
   font-size: 12px;
-  color: var(--t2, #5e5e6e);
+  color: var(--text-secondary, #5e5e6e);
   line-height: 1.6;
   margin-bottom: 0;
   padding: 12px;
-  background: var(--se, #fafafe);
+  background: var(--surface-alt, #fafafe);
+  border: 1px solid var(--border, #e4e4e8);
   border-radius: 8px;
 }
 .sub-modal .m-info + .m-info { margin-top: 10px; }
@@ -1240,19 +1244,103 @@
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  border: 1px solid var(--bd, #e4e4e8);
-  background: #fff;
-  color: var(--t2, #5e5e6e);
+  border: 1px solid var(--border, #e4e4e8);
+  background: var(--surface-alt, #fff);
+  color: var(--text-primary, #5e5e6e);
+  transition: all 0.15s ease;
+}
+.sub-modal .sub-btn:hover {
+  background: var(--surface, #f4f4f6);
+  border-color: var(--border-focus, #c8c8cf);
 }
 .sub-modal .sub-btn-p {
-  background: var(--ac, #9B51E0);
+  background: var(--accent, #9B51E0);
   color: #fff;
   border: none;
+}
+.sub-modal .sub-btn-p:hover {
+  background: var(--accent-hover, #843cc9);
+  color: #fff;
 }
 .sub-modal .sub-btn-danger {
   background: none;
   color: #ef4444;
   border: 1.5px solid #ef4444;
+}
+
+/* Dark mode overrides for sub-modal */
+[data-theme='dark'] .sub-modal {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+}
+[data-theme='dark'] .sub-modal-head,
+[data-theme='dark'] .sub-modal-foot {
+  border-color: var(--border);
+}
+[data-theme='dark'] .sub-modal-head h3 {
+  color: var(--text-primary);
+}
+[data-theme='dark'] .sub-modal-close {
+  border-color: var(--border);
+  color: var(--text-tertiary);
+}
+[data-theme='dark'] .sub-modal-close:hover {
+  background: var(--surface-alt);
+  color: var(--text-primary);
+}
+[data-theme='dark'] .sub-modal .m-highlight {
+  background: rgba(155, 81, 224, 0.12);
+  border-color: rgba(155, 81, 224, 0.25);
+}
+[data-theme='dark'] .sub-modal .mh-val {
+  color: #c084fc;
+}
+[data-theme='dark'] .sub-modal .price-breakdown {
+  border-color: var(--border);
+  background: var(--surface);
+}
+[data-theme='dark'] .sub-modal .pb-head {
+  background: var(--surface-alt);
+  border-color: var(--border);
+  color: var(--text-tertiary);
+}
+[data-theme='dark'] .sub-modal .pb-body {
+  background: var(--surface);
+}
+[data-theme='dark'] .sub-modal .pb-row {
+  color: var(--text-primary);
+}
+[data-theme='dark'] .sub-modal .pb-row-divider {
+  border-color: var(--border);
+}
+[data-theme='dark'] .sub-modal .pb-label {
+  color: var(--text-secondary);
+}
+[data-theme='dark'] .sub-modal .pb-row-strong .pb-label,
+[data-theme='dark'] .sub-modal .pb-row-strong .pb-value,
+[data-theme='dark'] .sub-modal .pb-value {
+  color: var(--text-primary);
+}
+[data-theme='dark'] .sub-modal .pb-footer {
+  background: var(--surface-alt);
+  border-color: var(--border);
+}
+[data-theme='dark'] .sub-modal .pb-autopay {
+  color: var(--text-primary);
+}
+[data-theme='dark'] .sub-modal .m-info {
+  background: var(--surface-alt);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+[data-theme='dark'] .sub-modal .sub-btn {
+  background: var(--surface-alt);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+[data-theme='dark'] .sub-modal .sub-btn:hover {
+  background: var(--surface);
 }
 .sub-modal-skeleton-field + .sub-modal-skeleton-field { margin-top: 14px; }
 .sub-modal-foot-skel {
@@ -1269,8 +1357,11 @@
   background: linear-gradient(90deg, #f0f0f3 25%, #fafafe 50%, #f0f0f3 75%);
   background-size: 200% 100%;
   animation: sub-skel-shimmer 1.2s ease-in-out infinite;
-}
 .sub-modal-skel-btn--pri { width: 118px; }
+[data-theme='dark'] .sub-modal-skel-btn {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
+  background-size: 200% 100%;
+}
 @keyframes sub-skel-shimmer {
   0% { background-position: 100% 0; }
   100% { background-position: -100% 0; }
