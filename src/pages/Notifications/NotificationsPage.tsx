@@ -436,7 +436,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
       setMeta(prev => ({ ...prev, unread_count: 0 }));
       showToast(loc('btnMarkAll') + ' ✓', 'success');
     } catch {
-      showToast('Failed to mark all as read', 'error');
+      showToast(tHook('Notifications.failed_to_mark_all_as_read', 'Failed to mark all as read'), 'error');
     }
   };
 
@@ -447,7 +447,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
       setNotifications(prev => prev.map(n => n.id === id ? mapApiItem(updated) : n));
       setMeta(prev => ({ ...prev, unread_count: Math.max(0, prev.unread_count - 1) }));
     } catch {
-      showToast('Failed to mark as read', 'error');
+      showToast(tHook('Notifications.failed_to_mark_as_read', 'Failed to mark as read'), 'error');
     }
   };
 
@@ -464,7 +464,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
       }
       showToast(wasArchived ? (loc('unarchive') + ' ✓') : (loc('archive') + ' ✓'), 'info');
     } catch {
-      showToast('Failed to update archive status', 'error');
+      showToast(tHook('Notifications.failed_to_update_archive_status', 'Failed to update archive status'), 'error');
     }
   };
 

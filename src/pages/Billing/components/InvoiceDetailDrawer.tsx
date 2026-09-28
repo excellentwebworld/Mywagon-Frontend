@@ -174,7 +174,7 @@ export const InvoiceDetailDrawer: React.FC<InvoiceDetailDrawerProps> = ({
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="billing-mono text-lg font-bold text-gray-900">{invoice.id}</span>
-                <button type="button" className="b-btn-ghost p-1" title="Copy Invoice ID" onClick={copyInvoiceId}>
+                <button type="button" className="b-btn-ghost p-1" title={t('Billing.copy_invoice_id', 'Copy Invoice ID')} onClick={copyInvoiceId}>
                   <Copy size={15} />
                 </button>
               </div>

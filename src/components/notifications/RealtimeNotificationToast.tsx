@@ -13,6 +13,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface PushNotificationData {
   id?: string;
@@ -335,6 +336,7 @@ export const RealtimeNotificationToast: React.FC<RealtimeNotificationToastProps>
   onDismiss,
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(100);
   const startTimeRef = useRef<number>(Date.now());
@@ -379,7 +381,7 @@ export const RealtimeNotificationToast: React.FC<RealtimeNotificationToastProps>
 
   return (
     <aside
-      aria-label="Real-time notification"
+      aria-label={t('notifications.real_time_notification', 'Real-time notification')}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => {
         setPaused(false);
@@ -405,11 +407,11 @@ export const RealtimeNotificationToast: React.FC<RealtimeNotificationToastProps>
               </span>
               <span className="flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500 font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--mv-success-bg)]0 animate-pulse" />
-                Just now
+                {t('justNow', 'Just now')}
               </span>
             </div>
             <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate mt-0.5">
-              {notification.title || 'New Notification'}
+              {notification.title || t('notifications.new_notification', 'New Notification')}
             </h4>
           </div>
         </div>
@@ -421,6 +423,7 @@ export const RealtimeNotificationToast: React.FC<RealtimeNotificationToastProps>
             e.stopPropagation();
             onDismiss();
           }}
+          aria-label={t('close', 'Close')}
           className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors -mr-1 -mt-1 cursor-pointer"
         >
           <X className="w-4 h-4" />

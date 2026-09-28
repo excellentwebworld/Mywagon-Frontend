@@ -708,7 +708,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   <div className="text-2xl mb-2">🌐</div>
                   <div className="text-sm font-bold text-slate-800 flex items-center gap-1">
                     {t('publicMarketplace') || 'Public Marketplace'}
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded text-white bg-indigo-600">BETA</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded text-white bg-indigo-600">{t('common.beta', 'BETA')}</span>
                   </div>
                   <div className="text-[11px] text-slate-400 mt-1">{t('publicMarketplaceDesc') || 'Publish to the entire carrier marketplace.'}</div>
                 </div>

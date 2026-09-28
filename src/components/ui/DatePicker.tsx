@@ -515,10 +515,10 @@ export const DatePicker: React.FC<Props> = ({
 
           <div className="date-picker-footer">
             <button type="button" className="date-picker-footer-btn" onClick={handleClear}>
-              Clear
+              {t('clear', 'Clear')}
             </button>
             <button type="button" className="date-picker-footer-btn" onClick={handleToday}>
-              Today
+              {t('today', 'Today')}
             </button>
           </div>
         </div>,

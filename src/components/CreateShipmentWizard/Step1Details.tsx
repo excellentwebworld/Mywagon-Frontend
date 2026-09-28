@@ -1916,7 +1916,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         </div>
                       ) : (
                         <span className="text-sm" style={{ color: T.t3 }}>
-                          Empty Stop
+                          {t("createShipment.emptyStop", "Empty Stop")}
                         </span>
                       )}
                     </div>
@@ -1971,7 +1971,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         className="text-sm font-semibold"
                         style={{ color: T.t1 }}
                       >
-                        Stop {idx + 1}
+                        {t("createShipment.stopN", "Stop {{n}}", { n: idx + 1 })}
                       </span>
                       {getStopTags(stop).map((tg) => (
                         <span
@@ -2023,7 +2023,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           className="block text-[11px] font-semibold mb-1 uppercase tracking-wide"
                           style={{ color: T.t3 }}
                         >
-                          Location
+                          {t("location", "Location")}
                         </label>
                         <div
                           className="flex items-center gap-1"
@@ -2092,7 +2092,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                             className="block text-[11px] font-semibold mb-1 uppercase tracking-wide"
                             style={{ color: T.t3 }}
                           >
-                            From
+                            {t("from", "From")}
                           </label>
                           <div className="flex gap-1 items-center">
                             <DatePicker
@@ -2139,7 +2139,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               className="text-[11px] font-semibold uppercase tracking-wide"
                               style={{ color: T.t3 }}
                             >
-                              To (Optional)
+                              {t("createShipment.toOptional", "To (Optional)")}
                             </label>
                           </div>
                           <div className="flex gap-1 items-center">
@@ -2257,7 +2257,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         style={{ background: "#1F1F41", fontFamily: "inherit" }}
                         onClick={() => handleStopDone(stop.id)}
                       >
-                        <Check size={14} /> Done
+                        <Check size={14} /> {t("done", "Done")}
                       </button>
                       <button
                         type="button"
@@ -2308,7 +2308,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
             style={{ color: T.ac }}
             onClick={addStop}
           >
-            Add Stop
+            {t("addStopLabel", "Add Stop")}
           </span>
         </div>
       </div>
@@ -2532,7 +2532,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         className="text-[10px] mt-0.5"
                         style={{ color: T.t3 }}
                       >
-                        Stop {c.stopIndex + 1}
+                        {t("createShipment.stopN", "Stop {{n}}", {
+                          n: c.stopIndex + 1,
+                        })}
                         {stops[c.stopIndex]?.locationName
                           ? ` — ${stops[c.stopIndex].locationName}`
                           : ""}
@@ -2960,7 +2962,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         }}
                         onClick={() => onSetField(ln.id, "action", "pickup")}
                       >
-                        Pick
+                        {t("createShipment.pick", "Pick")}
                       </button>
                       <button
                         type="button"
@@ -2973,7 +2975,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         }}
                         onClick={() => onSetField(ln.id, "action", "dropoff")}
                       >
-                        Drop
+                        {t("createShipment.drop", "Drop")}
                       </button>
                     </div>
                   </td>
@@ -3320,7 +3322,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                     }}
                     onClick={onAddLine}
                   >
-                    <Plus size={14} /> Add Line
+                    <Plus size={14} /> {t("createShipment.addLine", "Add Line")}
                   </button>
                   <div style={{ width: qfOpen ? 220 : "auto" }}>
                     {qfOpen ? (
@@ -3333,7 +3335,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         options={ordOpts}
                         placeholder={t("createShipment.searchErpOrders", "Search ERP orders...")}
                         footerAction={{
-                          label: `+ Create Order`,
+                          label: t("createShipment.createOrderPlus", "+ Create Order"),
                           onClick: () => {
                             setQfOpen(false);
                             onQuickFillNew();
@@ -3352,7 +3354,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         }}
                         onClick={() => setQfOpen(true)}
                       >
-                        <FileText size={12} /> Quick Fill
+                        <FileText size={12} /> {t("createShipment.quickFill", "Quick Fill")}
                       </button>
                     )}
                   </div>
@@ -3453,7 +3455,7 @@ const OrderCell: React.FC<OrderCellProps> = ({
       placeholder="—"
       hasError={hasError}
       footerAction={{
-        label: `+ Create Order`,
+        label: t("createShipment.createOrderPlus", "+ Create Order"),
         onClick: onNewOrd,
       }}
       menuFixed={true}
@@ -3495,7 +3497,7 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
         onClick={() => hasData && setBalExp(!balExp)}
       >
         <span className="text-sm font-semibold" style={{ color: T.t1 }}>
-          Load Balance
+          {t("createShipment.loadBalance", "Load Balance")}
         </span>
         <div className="flex-1 mx-1">
           <div
@@ -3557,7 +3559,7 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
             className="text-[10px] font-bold px-1.5 py-0.5 rounded"
             style={{ background: "#D1FAE5", color: "#059669" }}
           >
-            ✓ Balanced
+            ✓ {t("createShipment.balanced", "Balanced")}
           </span>
         )}
         <ChevronDown
@@ -3578,12 +3580,12 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
                 style={{ color: "#1F1F41" }}
               >
                 <ArrowUp size={13} />
-                Total Pickup
+                {t("createShipment.totalPickup", "Total Pickup")}
               </div>
               <div className="text-lg font-bold" style={{ color: T.t1 }}>
                 {bal.pkU}{" "}
                 <span className="text-xs font-normal" style={{ color: T.t3 }}>
-                  units
+                  {t("createShipment.units", "units")}
                 </span>
               </div>
               <div className="text-sm font-semibold" style={{ color: T.t2 }}>
@@ -3596,12 +3598,12 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
                 style={{ color: "#000001" }}
               >
                 <ArrowDown size={13} />
-                Total Dropoff
+                {t("createShipment.totalDropoff", "Total Dropoff")}
               </div>
               <div className="text-lg font-bold" style={{ color: T.t1 }}>
                 {bal.doU}{" "}
                 <span className="text-xs font-normal" style={{ color: T.t3 }}>
-                  units
+                  {t("createShipment.units", "units")}
                 </span>
               </div>
               <div className="text-sm font-semibold" style={{ color: T.t2 }}>
@@ -3618,7 +3620,7 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
                 className="text-[10px] font-bold uppercase tracking-wider mb-2"
                 style={{ color: T.t3 }}
               >
-                Per Product
+                {t("createShipment.perProduct", "Per Product")}
               </div>
               {Object.entries(bal.byP).map(([nm, v]: [string, any]) => {
                 const label = nm.includes("||") ? nm.split("||")[0] : nm;
@@ -3694,17 +3696,28 @@ function getStopTags(stop: any) {
 function fmtStopBrief(s: any, t: any) {
   const parts = [];
   if (s.dateFrom) {
-    let str = `From ${formatDisplayDate(s.dateFrom)}`;
+    let str = t("createShipment.stopBriefFrom", "From {{date}}", {
+      date: formatDisplayDate(s.dateFrom),
+    });
     if (s.timeFrom) str += ` ${formatDisplayTime(s.timeFrom)}`;
     if (s.dateTo) {
-      str += ` To ${formatDisplayDate(s.dateTo)}`;
+      str += ` ${t("createShipment.stopBriefTo", "To {{date}}", {
+        date: formatDisplayDate(s.dateTo),
+      })}`;
       if (s.timeTo) str += ` ${formatDisplayTime(s.timeTo)}`;
     } else if (s.timeTo) {
-      str += ` To ${formatDisplayTime(s.timeTo)}`;
+      str += ` ${t("createShipment.stopBriefTo", "To {{date}}", {
+        date: formatDisplayTime(s.timeTo),
+      })}`;
     }
     parts.push(str);
   }
   const cargoCount = (s.lines || []).filter((l: any) => l.productId).length;
-  if (cargoCount) parts.push(`${cargoCount} lines`);
+  if (cargoCount)
+    parts.push(
+      t("createShipment.stopBriefLines", "{{count}} lines", {
+        count: cargoCount,
+      }),
+    );
   return parts.join(" · ");
 }

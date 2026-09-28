@@ -25,7 +25,11 @@ interface RowExpansionStatusProps {
   onEdit: () => void;
   onViewNewTab: () => void;
   onCancel: () => void;
-  t: (key: string, opts?: Record<string, unknown>) => string;
+  t: (
+    key: string,
+    fallbackOrOptions?: string | Record<string, unknown>,
+    options?: Record<string, unknown>,
+  ) => string;
 }
 
 export const RowExpansionStatus: React.FC<RowExpansionStatusProps> = ({

@@ -138,7 +138,7 @@ function ColumnMappingSummaryBar({
       <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', borderBottom: '1px solid var(--bd)', paddingBottom: '6px' }}>
         <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--t2)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => setIsExpanded(false)}>
           <span className="summary-toggle-icon" style={{ transform: 'rotate(90deg)', display: 'inline-block' }}>▶</span>
-          Column Mapping Details
+          {t('aiWizardColumnMappingDetails', { defaultValue: 'Column Mapping Details' })}
         </span>
         <button
           type="button"

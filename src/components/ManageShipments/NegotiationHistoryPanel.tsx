@@ -5,7 +5,11 @@ import { formatEuro } from '../../pages/ManageShipments/utils/listingUtils';
 import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 import { NegotiationHistorySkeleton } from '../skeletons/ManageShipmentsSkeleton';
 
-type ExpTranslate = (key: string, opts?: Record<string, unknown>) => string;
+type ExpTranslate = (
+  key: string,
+  fallbackOrOptions?: string | Record<string, unknown>,
+  options?: Record<string, unknown>,
+) => string;
 
 interface NegotiationHistoryPanelProps {
   open: boolean;

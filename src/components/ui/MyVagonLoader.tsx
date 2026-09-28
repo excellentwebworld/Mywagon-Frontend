@@ -1,5 +1,6 @@
 import React from "react";
 import LoaderGif from "../../assets/loader.gif";
+import { useTranslation } from "../../hooks/useTranslation";
 
 export type MyVagonLoaderTheme = "light" | "dark";
 
@@ -13,6 +14,7 @@ type ContentProps = {
 export const MyVagonLoaderContent: React.FC<ContentProps> = ({
   className = "",
 }) => {
+  const { t } = useTranslation();
   const size = 300;
 
   return (
@@ -26,11 +28,11 @@ export const MyVagonLoaderContent: React.FC<ContentProps> = ({
     >
       <img
         src={LoaderGif}
-        alt="Loading…"
+        alt={t("ui.loading", "Loading…")}
         width={size}
         height={size}
         style={{ objectFit: "cover", display: "block" }}
-        aria-label="Loading"
+        aria-label={t("loading", "Loading")}
       />
     </div>
   );
@@ -57,14 +59,17 @@ type BootScreenProps = {
   children?: React.ReactNode;
 };
 
-export const MyVagonBootScreen: React.FC<BootScreenProps> = ({ children }) => (
-  <div
-    className="mv-boot-screen"
-    role="status"
-    aria-live="polite"
-    aria-busy="true"
-    aria-label="Loading"
-  >
-    {children ?? <MyVagonLoader mode="boot" />}
-  </div>
-);
+export const MyVagonBootScreen: React.FC<BootScreenProps> = ({ children }) => {
+  const { t } = useTranslation();
+  return (
+    <div
+      className="mv-boot-screen"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      aria-label={t("loading", "Loading")}
+    >
+      {children ?? <MyVagonLoader mode="boot" />}
+    </div>
+  );
+};

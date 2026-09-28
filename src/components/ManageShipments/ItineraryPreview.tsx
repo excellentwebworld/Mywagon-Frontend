@@ -25,7 +25,7 @@ interface ItineraryPreviewProps {
   /** Bid wizard / read-only review: expand all stops and show product rows immediately. */
   defaultExpanded?: boolean;
   defaultCargoExpanded?: boolean;
-  t: (key: string, opts?: Record<string, unknown>) => string;
+  t: (key: string, fallbackOrOptions?: string | Record<string, unknown>, options?: Record<string, unknown>) => string;
 }
 
 function isEpochOrZeroDate(dateStr?: string | null): boolean {
@@ -131,17 +131,31 @@ function showTripStatus(shipmentStatus?: string): boolean {
   );
 }
 
-function StopStatusIcon({ visual }: { visual: ItineraryStopVisual }) {
+function StopStatusIcon({
+  visual,
+  t,
+}: {
+  visual: ItineraryStopVisual;
+  t: ItineraryPreviewProps['t'];
+}) {
   if (visual === 'done') {
     return (
-      <span className="itin-stop-tick itin-stop-tick--ok" aria-hidden title="Complete">
+      <span
+        className="itin-stop-tick itin-stop-tick--ok"
+        aria-hidden
+        title={t('ManageShipments.complete', 'Complete')}
+      >
         ✓
       </span>
     );
   }
   if (visual === 'failed') {
     return (
-      <span className="itin-stop-tick itin-stop-tick--fail" aria-hidden title="Unable">
+      <span
+        className="itin-stop-tick itin-stop-tick--fail"
+        aria-hidden
+        title={t('ManageShipments.unable', 'Unable')}
+      >
         ✕
       </span>
     );
@@ -149,24 +163,42 @@ function StopStatusIcon({ visual }: { visual: ItineraryStopVisual }) {
   return null;
 }
 
-function ProductStatusTick({ visual }: { visual: ProductLineVisual }) {
+function ProductStatusTick({
+  visual,
+  t,
+}: {
+  visual: ProductLineVisual;
+  t: ItineraryPreviewProps['t'];
+}) {
   if (visual === 'default') return null;
   if (visual === 'failed') {
     return (
-      <span className="itin-status-tick itin-status-tick--fail" aria-hidden title="Unable">
+      <span
+        className="itin-status-tick itin-status-tick--fail"
+        aria-hidden
+        title={t('ManageShipments.unable', 'Unable')}
+      >
         ✕
       </span>
     );
   }
   if (visual === 'done-pod') {
     return (
-      <span className="itin-status-tick itin-status-tick--ok" aria-hidden title="POD uploaded">
+      <span
+        className="itin-status-tick itin-status-tick--ok"
+        aria-hidden
+        title={t('ManageShipments.pod_uploaded', 'POD uploaded')}
+      >
         ✓✓
       </span>
     );
   }
   return (
-    <span className="itin-status-tick itin-status-tick--ok" aria-hidden title="Complete">
+    <span
+      className="itin-status-tick itin-status-tick--ok"
+      aria-hidden
+      title={t('ManageShipments.complete', 'Complete')}
+    >
       ✓
     </span>
   );
@@ -176,21 +208,27 @@ function PodChip({
   type,
   pod,
   visual,
+  t,
 }: {
   type: 'pickup' | 'delivery';
   pod?: string;
   visual: ProductLineVisual | ItineraryStopVisual;
+  t: ItineraryPreviewProps['t'];
 }) {
   if (type !== 'delivery') return null;
   const podCode = String(pod ?? '0');
   if (podCode === '1' || visual === 'done-pod') {
-    return <span className="itin-pod-chip itin-pod-chip--ok">POD</span>;
+    return <span className="itin-pod-chip itin-pod-chip--ok">{t('tl_pod', 'POD')}</span>;
   }
   if (podCode === '3' || (visual === 'failed' && podCode === '3')) {
-    return <span className="itin-pod-chip itin-pod-chip--fail">POD</span>;
+    return <span className="itin-pod-chip itin-pod-chip--fail">{t('tl_pod', 'POD')}</span>;
   }
   if (podCode === '2') {
-    return <span className="itin-pod-chip itin-pod-chip--later">POD later</span>;
+    return (
+      <span className="itin-pod-chip itin-pod-chip--later">
+        {t('ManageShipments.pod_later', 'POD later')}
+      </span>
+    );
   }
   return null;
 }
@@ -380,8 +418,8 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
                       {isPickup ? t('pickup') : t('delivery')}
                     </span>
                     {when ? <span className="itin-when">{when}</span> : null}
-                    <StopStatusIcon visual={stopVisual} />
-                    <PodChip type={stop.type} pod={stop.pod} visual={stopVisual} />
+                    <StopStatusIcon visual={stopVisual} t={t} />
+                    <PodChip type={stop.type} pod={stop.pod} visual={stopVisual} t={t} />
                     {hasCargo ? (
                       <span className="itin-chev" aria-hidden>
                         {cargoOpen ? '▾' : '▸'}
@@ -455,8 +493,8 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
                             <div className="itin-cargo-stats">
                               {qtyLabel ? <span>{qtyLabel}</span> : null}
                               {weightLabel ? <span>{weightLabel}</span> : null}
-                              <PodChip type={stop.type} pod={line.pod} visual={visual} />
-                              <ProductStatusTick visual={visual} />
+                              <PodChip type={stop.type} pod={line.pod} visual={visual} t={t} />
+                              <ProductStatusTick visual={visual} t={t} />
                             </div>
                           </div>
                           <PodProof

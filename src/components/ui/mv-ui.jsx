@@ -3,6 +3,7 @@
 // Every colour below is a CSS variable. If you need a colour that isn't here, it's the wrong colour.
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 /* ------------------------------------------------------------------ */
 /* 1. STATUS → TONE MAP (single source of truth for every status chip) */
@@ -49,6 +50,7 @@ export const LOAD_STATUS = {
 };
 
 export function LoadStatus({ status, bids, sub, label }) {
+  const { t } = useTranslation();
   const raw = String(status || 'draft').toLowerCase().trim();
   const spaced = raw.replace(/_/g, ' ').replace(/fullfilled/g, 'fulfilled');
   const k =
@@ -65,22 +67,22 @@ export function LoadStatus({ status, bids, sub, label }) {
               : spaced === 'canceled' || spaced === 'cancelled'
                 ? 'canceled'
                 : spaced;
-  const t = LOAD_STATUS[k] || LOAD_STATUS.draft;
+  const tone = LOAD_STATUS[k] || LOAD_STATUS.draft;
   const display = label || status;
   const second = bids ? `${bids} bid requests` : sub;
-  if (t.split) {
+  if (tone.split) {
     return (
       <span style={{ display: 'inline-flex', minHeight: 26, borderRadius: 8, overflow: 'hidden', fontSize: 12, fontWeight: 600, border: '1px solid var(--app-black-contour)' }}>
-        <span style={{ display: 'flex', alignItems: 'center', padding: '0 9px', background: '#E6E6E8', color: '#1F1F41' }}>Partially</span>
-        <span style={{ display: 'flex', alignItems: 'center', padding: '0 9px', background: '#000001', color: '#FFFFFF' }}>Fulfilled</span>
+        <span style={{ display: 'flex', alignItems: 'center', padding: '0 9px', background: '#E6E6E8', color: '#1F1F41' }}>{t('ui.partially', 'Partially')}</span>
+        <span style={{ display: 'flex', alignItems: 'center', padding: '0 9px', background: '#000001', color: '#FFFFFF' }}>{t('ui.fulfilled', 'Fulfilled')}</span>
       </span>
     );
   }
   return (
     <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: 108, minHeight: 26, padding: '4px 10px',
-      borderRadius: 8, background: t.bg, color: t.fg, border: t.border || '1px solid transparent', fontSize: 12, fontWeight: 600, lineHeight: 1.25, textAlign: 'center' }}>
+      borderRadius: 8, background: tone.bg, color: tone.fg, border: tone.border || '1px solid transparent', fontSize: 12, fontWeight: 600, lineHeight: 1.25, textAlign: 'center' }}>
       {display}
-      {second && <span style={{ fontSize: 11, fontWeight: 500, color: t.subFg || 'inherit' }}>{second}</span>}
+      {second && <span style={{ fontSize: 11, fontWeight: 500, color: tone.subFg || 'inherit' }}>{second}</span>}
     </span>
   );
 }

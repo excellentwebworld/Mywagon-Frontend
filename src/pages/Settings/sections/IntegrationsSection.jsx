@@ -490,7 +490,7 @@ function ApiTab({ T, t, tUp, toast }) {
         <div>
           <div className="font-bold mb-1" style={{ fontSize: 14, color: T.ac }}>{t('integrations.api.docsTitle')}</div>
           <div style={{ fontSize: 12, color: T.t2, marginBottom: 4 }}>
-            Base URL: <code className="px-1.5 py-0.5 rounded" style={{ fontFamily: "var(--font-app), Poppins, sans-serif", fontVariantNumeric: 'tabular-nums', background: T.sf, fontSize: 11 }}>https://api.myvagon.com/v1</code>
+            {t('integrations.api.baseUrl', 'Base URL:')} <code className="px-1.5 py-0.5 rounded" style={{ fontFamily: "var(--font-app), Poppins, sans-serif", fontVariantNumeric: 'tabular-nums', background: T.sf, fontSize: 11 }}>https://api.myvagon.com/v1</code>
           </div>
           <div style={{ fontSize: 11, color: T.t3 }}>{t('integrations.api.rateLimits')}</div>
         </div>

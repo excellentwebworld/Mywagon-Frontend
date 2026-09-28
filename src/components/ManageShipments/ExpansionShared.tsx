@@ -10,7 +10,11 @@ import {
 } from '../../pages/ManageShipments/utils/listingUtils';
 import { ExpHeading } from './ExpHeading';
 
-export type ExpTranslate = (key: string, opts?: Record<string, unknown>) => string;
+export type ExpTranslate = (
+  key: string,
+  fallbackOrOptions?: string | Record<string, unknown>,
+  options?: Record<string, unknown>,
+) => string;
 
 /** Progress bar — Laravel Load Details step sequence/logic. */
 export function ProgressTimeline({

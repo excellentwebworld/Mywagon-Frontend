@@ -282,11 +282,11 @@ export const PartnersList: React.FC<Props> = ({
             value={perPage}
             onChange={(e) => setPageSize(Number(e.target.value))}
             disabled={listLoading}
-            aria-label="Rows per page"
+            aria-label={t('Partners.rows_per_page', 'Rows per page')}
           >
             {pageSizeOptions.map((n) => (
               <option key={n} value={n}>
-                {n} / page
+                {t('abPerPageOption', '{{n}} / page', { n })}
               </option>
             ))}
           </select>

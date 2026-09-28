@@ -9,7 +9,11 @@ export function ExpRefreshButton({
 }: {
   loading?: boolean;
   onRefresh: () => void;
-  t: (key: string, opts?: Record<string, unknown>) => string;
+  t: (
+    key: string,
+    fallbackOrOptions?: string | Record<string, unknown>,
+    options?: Record<string, unknown>,
+  ) => string;
 }) {
   return (
     <button

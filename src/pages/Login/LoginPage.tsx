@@ -364,7 +364,7 @@ export const LoginPage: React.FC = () => {
                     type="checkbox"
                     checked={lang !== 'el'}
                     onChange={(e) => handleLanguageChange(e.target.checked)}
-                    aria-label="Language"
+                    aria-label={t('Login.language', 'Language')}
                   />
                   <span className="shipper-login-lang-slider" />
                 </label>

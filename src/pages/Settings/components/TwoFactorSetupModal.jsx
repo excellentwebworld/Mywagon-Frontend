@@ -103,7 +103,7 @@ export default function TwoFactorSetupModal({ T, t, toast, onClose, onEnabled })
               ? t('settings.securitySection.mfa.recoveryCodes')
               : t('settings.securitySection.mfa.enable')}
           </h3>
-          <button type="button" onClick={step === 'codes' ? finish : onClose} className="cursor-pointer border-none bg-transparent" style={{ color: T.t3, fontSize: 20 }}>×</button>
+          <button type="button" onClick={step === 'codes' ? finish : onClose} className="cursor-pointer border-none bg-transparent" style={{ color: T.t3, fontSize: 20 }} aria-label={t('close', 'Close')}>×</button>
         </div>
 
         <div className="px-5 py-4 space-y-3">
@@ -155,7 +155,7 @@ export default function TwoFactorSetupModal({ T, t, toast, onClose, onEnabled })
                   </p>
                   <img
                     src={`data:image/svg+xml;base64,${qrSvg}`}
-                    alt="2FA QR"
+                    alt={t('settings.securitySection.mfa.qrAlt', { defaultValue: '2FA QR code' })}
                     width={180}
                     height={180}
                     style={{ background: '#fff', borderRadius: 12, padding: 8 }}

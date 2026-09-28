@@ -484,10 +484,16 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
   return Array.from(map.values());
 }
 
-function OrderStatusIcon({ visual }: { visual: ProductLineVisual }) {
+function OrderStatusIcon({
+  visual,
+  t,
+}: {
+  visual: ProductLineVisual;
+  t: StopsCardProps['t'];
+}) {
   if (visual === 'failed') {
     return (
-      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] text-[#EF4444]" title="Unable">
+      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] text-[#EF4444]" title={t('ShipmentDetail.unable', 'Unable')}>
         <X size={18} strokeWidth={2.5} />
       </div>
     );
@@ -495,7 +501,7 @@ function OrderStatusIcon({ visual }: { visual: ProductLineVisual }) {
   // Two ticks = pickup/dropoff completed (POD is shown separately via the green rectangle)
   if (visual === 'done-pod') {
     return (
-      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E9D5FF] bg-[#F3E8FF] text-[#9B51E0]" title="Completed">
+      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E9D5FF] bg-[#F3E8FF] text-[#9B51E0]" title={t('ShipmentDetail.completed', 'Completed')}>
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M1 9.5L5.5 14L16 3" />
           <path d="M1 5.5L5.5 10L16 -1" opacity="0.6" />
@@ -506,7 +512,7 @@ function OrderStatusIcon({ visual }: { visual: ProductLineVisual }) {
   // One tick = arrived at location
   if (visual === 'done') {
     return (
-      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E9D5FF] bg-[#F3E8FF] text-[#9B51E0]" title="Arrived">
+      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E9D5FF] bg-[#F3E8FF] text-[#9B51E0]" title={t('ShipmentDetail.arrived', 'Arrived')}>
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
@@ -892,7 +898,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                               })}
                             </div>
 
-                            <OrderStatusIcon visual={effectiveVisual} />
+                            <OrderStatusIcon visual={effectiveVisual} t={t} />
                           </div>
 
                           {/* Issue Reason Alert in Red if present */}
