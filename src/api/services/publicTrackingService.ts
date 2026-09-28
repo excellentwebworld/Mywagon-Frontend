@@ -50,9 +50,17 @@ async function getTracking(
   guestEmail?: string | null
 ): Promise<PublicTrackingPayload> {
   const base = publicApiBase();
+  let acceptLang = 'en';
+  try {
+    const stored = localStorage.getItem('shipment-lang');
+    if (stored === 'el' || stored === 'en') acceptLang = stored;
+  } catch {
+    /* ignore */
+  }
   try {
     const res = await axios.get<ApiEnvelope<PublicTrackingPayload>>(`${base}/track-shipment`, {
       params: trackingQuery(id, locationId, guestEmail),
+      headers: { 'Accept-Language': acceptLang },
     });
     if (!res.data?.success || !res.data.data) {
       throw new Error(res.data?.message || 'Failed to load tracking');

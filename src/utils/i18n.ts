@@ -6,7 +6,12 @@ import en from "../locale/en.json";
 import el from "../locale/el.json";
 import { safeLocalGet } from "./safeStorage";
 
-const locale = safeLocalGet("i18nextLng") || "en";
+// Prefer app UI language (shipment-lang) so first paint matches AppContext.
+const storedAppLang = safeLocalGet("shipment-lang") || safeLocalGet("app_locale");
+const locale =
+  storedAppLang === "el" || storedAppLang === "en"
+    ? storedAppLang
+    : safeLocalGet("i18nextLng") || "en";
 
 i18n
   .use(LanguageDetector)

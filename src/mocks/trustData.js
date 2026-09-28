@@ -41,7 +41,7 @@ function generate24hSparkline(degradedHour) {
 export const PLATFORM_STATUS = {
   overall: 'operational', // 'operational' | 'degraded' | 'outage' | 'maintenance'
   services: [
-    { id: 'api',      name: { en: 'API Gateway',      el: 'API Gateway' },         status: 'operational', metric: '12ms avg', metricLabel: { en: 'Response time', el: 'Χρόνος απόκρισης' }, uptime: 99.99, sparkline: generate24hSparkline(-1) },
+    { id: 'api',      name: { en: 'API Gateway',      el: 'Πύλη API' },         status: 'operational', metric: '12ms avg', metricLabel: { en: 'Response time', el: 'Χρόνος απόκρισης' }, uptime: 99.99, sparkline: generate24hSparkline(-1) },
     { id: 'web',      name: { en: 'Web Application',   el: 'Εφαρμογή Web' },       status: 'operational', metric: '99.99%',   metricLabel: { en: 'Uptime',        el: 'Διαθεσιμότητα' },    uptime: 99.99, sparkline: generate24hSparkline(-1) },
     { id: 'database', name: { en: 'Database',           el: 'Βάση Δεδομένων' },     status: 'operational', metric: '99.99%',   metricLabel: { en: 'Uptime',        el: 'Διαθεσιμότητα' },    uptime: 99.99, sparkline: generate24hSparkline(-1) },
     { id: 'storage',  name: { en: 'File Storage',       el: 'Αποθήκευση Αρχείων' }, status: 'operational', metric: '99.99%',   metricLabel: { en: 'Uptime',        el: 'Διαθεσιμότητα' },    uptime: 99.99, sparkline: generate24hSparkline(-1) },

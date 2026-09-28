@@ -2895,7 +2895,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       headerAction={
                         ln.orderId
                           ? {
-                              label: `+ Create Product`,
+                              label: t('createProductPlus', '+ Create Product'),
                               onClick: () => onNewProd(ln.id),
                             }
                           : undefined

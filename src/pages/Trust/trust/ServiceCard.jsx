@@ -78,7 +78,7 @@ export default function ServiceCard({ service, lang }) {
         ))}
       </div>
       <div className="flex justify-between mt-1" style={{ fontSize: 9, color: T.t3 }}>
-        <span>24h</span>
+        <span>{t('trust.status.last24h', { defaultValue: '24h' })}</span>
         <span>{t('trust.status.now')}</span>
       </div>
     </div>

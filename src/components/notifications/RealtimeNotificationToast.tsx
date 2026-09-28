@@ -331,6 +331,63 @@ interface RealtimeNotificationToastProps {
 
 const DURATION_MS = 6500;
 
+function toastCategoryKey(name: string): string {
+  const map: Record<string, string> = {
+    Link: 'link',
+    Dashboard: 'dashboard',
+    Shipment: 'shipment',
+    Cancellation: 'cancellation',
+    Availability: 'availability',
+    'Address Book': 'addressBook',
+    Products: 'products',
+    Partners: 'partners',
+    Billing: 'billing',
+    Orders: 'orders',
+    Docs: 'docs',
+    Subscription: 'subscription',
+    Support: 'support',
+    Team: 'team',
+    Organization: 'organization',
+    Compliance: 'compliance',
+    Profile: 'profile',
+    Legal: 'legal',
+    'Terms & Policies': 'terms',
+    Notifications: 'notifications',
+    System: 'system',
+  };
+  return map[name] || 'system';
+}
+
+function toastActionKey(label: string): string {
+  const map: Record<string, string> = {
+    'Open Link': 'openLink',
+    'View Dashboard': 'viewDashboard',
+    'Create Shipment': 'createShipment',
+    'View Shipment': 'viewShipment',
+    'Manage Shipments': 'manageShipments',
+    'View Load': 'viewLoad',
+    'Search Trucks': 'searchTrucks',
+    'Address Book': 'addressBook',
+    'Product Master': 'productMaster',
+    'View Partners': 'viewPartners',
+    'View Invoice': 'viewInvoice',
+    'View Billing': 'viewBilling',
+    'View Order': 'viewOrder',
+    'View Docs': 'viewDocs',
+    'View Subscription': 'viewSubscription',
+    'Open Support': 'openSupport',
+    'User Management': 'userManagement',
+    'Company Info': 'companyInfo',
+    'View Compliance': 'viewCompliance',
+    'View Profile': 'viewProfile',
+    'Privacy Policy': 'privacyPolicy',
+    'Terms & Conditions': 'termsConditions',
+    'View Notifications': 'viewNotifications',
+    'View Details': 'viewDetails',
+  };
+  return map[label] || 'viewDetails';
+}
+
 export const RealtimeNotificationToast: React.FC<RealtimeNotificationToastProps> = ({
   notification,
   onDismiss,
@@ -403,7 +460,9 @@ export const RealtimeNotificationToast: React.FC<RealtimeNotificationToastProps>
               <span
                 className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wide uppercase ${config.badgeBg} ${config.badgeColor}`}
               >
-                {config.categoryName}
+                {t(`notifToast.category.${toastCategoryKey(config.categoryName)}`, {
+                  defaultValue: config.categoryName,
+                })}
               </span>
               <span className="flex items-center gap-1 text-[11px] text-slate-400 dark:text-slate-500 font-medium">
                 <span className="w-1.5 h-1.5 rounded-full bg-[var(--mv-success-bg)]0 animate-pulse" />
@@ -445,7 +504,11 @@ export const RealtimeNotificationToast: React.FC<RealtimeNotificationToastProps>
           }}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs hover:shadow-xs group-hover:translate-x-0.5 transition-all cursor-pointer"
         >
-          <span>{config.actionLabel}</span>
+          <span>
+            {t(`notifToast.action.${toastActionKey(config.actionLabel)}`, {
+              defaultValue: config.actionLabel,
+            })}
+          </span>
           <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>

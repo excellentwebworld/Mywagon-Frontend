@@ -4,7 +4,6 @@ import {
   CheckCircle2,
   ArrowUpRight,
   ArrowDownRight,
-  Minus,
   Inbox,
   Eye,
   FileSpreadsheet,
@@ -65,7 +64,6 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
     }
     return (
       <span className="wr-tbl-delta wr-delta-zero">
-        <Minus size={12} />
         <span>0</span>
       </span>
     );

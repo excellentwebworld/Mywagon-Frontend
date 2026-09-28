@@ -403,7 +403,7 @@ function ApiTab({ T, t, tUp, toast }) {
                   <div className="flex items-center gap-2">
                     <span className="font-bold" style={{ fontSize: 13, color: T.t1 }}>{key.name}</span>
                     <span className="px-2 py-0.5 rounded-full shrink-0" style={{ fontSize: 9, fontWeight: 700, background: key.env === 'production' ? '#ECFDF5' : '#EFF6FF', color: key.env === 'production' ? '#047857' : '#1D4ED8' }}>
-                      {key.env}
+                      {t(`integrations.api.${key.env}`, { defaultValue: key.env })}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
@@ -588,7 +588,7 @@ function UsageTab({ T, t, tUp }) {
             <h3 className="font-bold" style={{ fontSize: 14, color: T.t1 }}>{t('integrations.usage.currentPeriod')}</h3>
           </div>
           <span className="px-2.5 py-0.5 rounded-full" style={{ fontSize: 10, fontWeight: 700, background: T.al, color: T.ac }}>
-            {u.currentPlan} {t('integrations.usage.plan')}
+            {t(`integrations.usage.plan${u.currentPlan}`, { defaultValue: `${u.currentPlan} Plan` })}
           </span>
         </div>
         <div className="p-5">
@@ -692,7 +692,14 @@ function UsageTab({ T, t, tUp }) {
             style={{ borderBottom: i < u.history.length - 1 ? `1px solid ${T.bd}` : 'none', background: T.sf }}
             onMouseEnter={(e) => e.currentTarget.style.background = T.sh}
             onMouseLeave={(e) => e.currentTarget.style.background = T.sf}>
-            <div style={{ fontSize: 12, fontWeight: 500, color: T.t1 }}>{row.month}</div>
+            <div style={{ fontSize: 12, fontWeight: 500, color: T.t1 }}>
+              {(() => {
+                const [mon, year] = String(row.month || '').split(' ');
+                return mon
+                  ? `${t(`integrations.usage.month${mon}`, { defaultValue: mon })}${year ? ` ${year}` : ''}`
+                  : row.month;
+              })()}
+            </div>
             <div className="text-right" style={{ fontSize: 12, color: T.t2, fontVariantNumeric: 'tabular-nums' }}>{row.apiCalls.toLocaleString()}</div>
             <div className="text-right" style={{ fontSize: 12, color: T.t2, fontVariantNumeric: 'tabular-nums' }}>{row.webhooks.toLocaleString()}</div>
             <div className="text-right font-semibold" style={{ fontSize: 12, color: T.t1, fontVariantNumeric: 'tabular-nums' }}>€{row.cost.toFixed(2)}</div>

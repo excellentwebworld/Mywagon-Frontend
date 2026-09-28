@@ -38,7 +38,7 @@ export const SearchableSelect: React.FC<Props> = ({
   value,
   onChange,
   placeholder,
-  searchPlaceholder = 'Search…',
+  searchPlaceholder,
   disabled = false,
   hasError = false,
   className = '',
@@ -57,6 +57,7 @@ export const SearchableSelect: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation();
   const resolvedPlaceholder = placeholder ?? t('ui.select', 'Select…');
+  const resolvedSearchPlaceholder = searchPlaceholder ?? t('ui.search', 'Search…');
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -210,7 +211,7 @@ export const SearchableSelect: React.FC<Props> = ({
             type="text"
             value={query}
             onChange={(e) => handleQuery(e.target.value)}
-            placeholder={searchPlaceholder}
+            placeholder={resolvedSearchPlaceholder}
             autoFocus
           />
         </div>

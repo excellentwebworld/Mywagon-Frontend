@@ -244,7 +244,12 @@ export const VehicleSelector: React.FC<VehicleSelectorProps> = ({
                           <VehicleIcon />
                         </div>
                         <div className="vn">{displayName}</div>
-                        <div className="vs">{vt.subtitle}</div>
+                        <div className="vs">
+                          {vt.categories
+                            .map((c) => (locale === 'el' ? c.labelEl : c.label))
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </div>
                         {fit.show && (
                           <div className="vc-fit">
                             <div className="vc-fit-cap">

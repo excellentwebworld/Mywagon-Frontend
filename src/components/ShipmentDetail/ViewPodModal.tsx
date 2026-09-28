@@ -84,7 +84,9 @@ export const ViewPodModal: React.FC<ViewPodModalProps> = ({
                   <div key={i} className="flex items-start justify-between text-[12px] flex-wrap gap-1">
                     <div>
                       <span className="font-semibold text-slate-900 dark:text-white">
-                        {ord.orderId !== '—' ? `Order: ${ord.orderId}` : 'Delivered Cargo'}
+                        {ord.orderId !== '—'
+                          ? `${t('orderLabelPrefix', 'Order:')} ${ord.orderId}`
+                          : t('deliveredCargo', 'Delivered Cargo')}
                       </span>
                       {ord.customerName && (
                         <span className="text-slate-500 dark:text-slate-400 ml-2">({ord.customerName})</span>

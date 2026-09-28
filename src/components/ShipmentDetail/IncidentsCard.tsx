@@ -77,7 +77,12 @@ export const IncidentsCard: React.FC<IncidentsCardProps> = ({
                     {inc.title}
                   </div>
                   <div className="mt-0.5 text-slate-500 dark:text-slate-400">
-                    {inc.meta} · {t('severity', 'Severity')}: {inc.severity} ·{' '}
+                    {inc.meta} · {t('severity', 'Severity')}:{' '}
+                    {t(
+                      `severityValue.${String(inc.severity || '').toLowerCase()}`,
+                      inc.severity,
+                    )}{' '}
+                    ·{' '}
                     <span
                       className={`font-semibold ${inc.resolved ? 'text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]' : 'text-red-600 dark:text-red-400'}`}
                     >

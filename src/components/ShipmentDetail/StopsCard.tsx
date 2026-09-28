@@ -835,7 +835,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                   className="font-semibold tabular-nums transition-colors text-[var(--text-primary)]"
                                   style={{ color: diffColor(ordHl?.orderId) }}
                                 >
-                                  Order: {order.orderId}
+                                  {t('orderLabelPrefix', 'Order:')} {order.orderId}
                                 </span>
                                 {ordHl?.isNew && !stopHl?.isNew && (
                                   <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider bg-[var(--mv-success)] text-white shadow-xs">
@@ -970,7 +970,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                               : 'text-[var(--text-secondary)]'
                           }`}
                         >
-                          POD (Proof of Delivery)
+                          {t('podProofOfDelivery', 'POD (Proof of Delivery)')}
                         </span>
                         {stop.pod === '1' || (stop.podImages && stop.podImages.length > 0) ? (
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-900/60 text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]">

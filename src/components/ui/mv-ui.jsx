@@ -69,7 +69,9 @@ export function LoadStatus({ status, bids, sub, label }) {
                 : spaced;
   const tone = LOAD_STATUS[k] || LOAD_STATUS.draft;
   const display = label || status;
-  const second = bids ? `${bids} bid requests` : sub;
+  const second = bids
+    ? t('statusBidRequestsCount', { count: bids, defaultValue: `${bids} bid requests` })
+    : sub;
   if (tone.split) {
     return (
       <span style={{ display: 'inline-flex', minHeight: 26, borderRadius: 8, overflow: 'hidden', fontSize: 12, fontWeight: 600, border: '1px solid var(--app-black-contour)' }}>

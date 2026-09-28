@@ -116,6 +116,19 @@ const DICT: Record<string, { en: string; el: string }> = {
   loadMore:           { en: 'Load More', el: 'Φόρτωση Περισσότερων' },
   loading:            { en: 'Loading…', el: 'Φόρτωση…' },
   new:                { en: 'new', el: 'νέες' },
+  catSystem:          { en: 'System', el: 'Σύστημα' },
+  catCompliance:      { en: 'Compliance', el: 'Συμμόρφωση' },
+  catShipment:        { en: 'Shipment', el: 'Αποστολή' },
+  catBilling:         { en: 'Billing', el: 'Τιμολόγηση' },
+  catPartners:        { en: 'Partners', el: 'Συνεργάτες' },
+  catOrders:          { en: 'Orders', el: 'Παραγγελίες' },
+  catDocs:            { en: 'Docs', el: 'Έγγραφα' },
+  catShipmentProgress:{ en: 'Shipment Progress', el: 'Πρόοδος Αποστολής' },
+  catBookingBidding:  { en: 'Booking Bidding', el: 'Κρατήσεις & Προσφορές' },
+  catNewAvailability: { en: 'New Availability', el: 'Νέα Διαθεσιμότητα' },
+  severityCritical:   { en: 'Critical', el: 'Κρίσιμο' },
+  severityWarning:    { en: 'Warning', el: 'Προειδοποίηση' },
+  severityInfo:       { en: 'Info', el: 'Πληροφορία' },
 };
 
 // ─── Filter Segments ─────────────────────────────────────────────────────────
@@ -337,6 +350,34 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
   const loc = (key: string): string => {
     if (DICT[key]) return DICT[key][currentLang];
     return tHook(key) || key;
+  };
+
+  const categoryLabel = (category?: string): string => {
+    const map: Record<string, string> = {
+      System: 'catSystem',
+      Compliance: 'catCompliance',
+      Shipment: 'catShipment',
+      Billing: 'catBilling',
+      Partners: 'catPartners',
+      Orders: 'catOrders',
+      Docs: 'catDocs',
+      Cancellation: 'filterCancellation',
+      'Shipment Progress': 'catShipmentProgress',
+      'Booking Bidding': 'catBookingBidding',
+      'New Availability': 'catNewAvailability',
+    };
+    const key = category ? map[category] : undefined;
+    return key ? loc(key) : (category || '');
+  };
+
+  const severityLabel = (severity?: string): string => {
+    const map: Record<string, string> = {
+      Critical: 'severityCritical',
+      Warning: 'severityWarning',
+      Info: 'severityInfo',
+    };
+    const key = severity ? map[severity] : undefined;
+    return key ? loc(key) : (severity || '');
   };
 
   // ── Fetch helper ───────────────────────────────────────────────────────
@@ -854,7 +895,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10.5px] font-bold tracking-tight ${config.badge}`}
                       >
-                        {n.category}
+                        {categoryLabel(n.category)}
                       </span>
                       {isUnread && (
                         <span
@@ -1136,7 +1177,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                         getCategoryConfig(selectedNotif.category).badge
                       }`}
                     >
-                      {selectedNotif.category}
+                      {categoryLabel(selectedNotif.category)}
                     </span>
                     <h2 className="text-base font-bold leading-snug" style={{ color: T.t1 }}>
                       {selectedNotif.title}
@@ -1299,7 +1340,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
               </div>
 
               <div className="p-6 overflow-y-auto flex-1">
-                <NotificationsSection />
+                <NotificationsSection onSaved={() => setSettingsOpen(false)} />
               </div>
             </div>
           </div>,

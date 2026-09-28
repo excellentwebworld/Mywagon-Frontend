@@ -6,7 +6,6 @@ import {
   Mail,
   ArrowUpRight,
   ArrowDownRight,
-  Minus,
   CheckCircle2,
 } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
@@ -298,11 +297,9 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
                               <ArrowUpRight size={13} />
                             ) : isNegative ? (
                               <ArrowDownRight size={13} />
-                            ) : (
-                              <Minus size={13} />
-                            )}
+                            ) : null}
                             <span>
-                              {isPositive ? `+${delta}` : delta}{' '}
+                              {isPositive ? `+${delta}` : isNegative ? `${delta}` : '0'}{' '}
                               {t('weeklyReports.vsLastWeek', 'vs last week')}
                             </span>
                           </span>

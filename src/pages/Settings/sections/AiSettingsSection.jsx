@@ -587,7 +587,9 @@ function UsageBillingTab({ usage, setUsage, T, t, toast }) {
           <div>
             <div className="flex items-center gap-2 mb-0.5">
               <Sparkles size={16} style={{ color: T.ac }} />
-              <span className="font-bold" style={{ fontSize: 16, color: T.t1 }}>{u.plan} {t('ai.usage.planLabel')}</span>
+              <span className="font-bold" style={{ fontSize: 16, color: T.t1 }}>
+                {t(`ai.usage.plan${u.plan}`, { defaultValue: u.plan })} {t('ai.usage.planLabel')}
+              </span>
             </div>
             <span style={{ fontSize: 12, color: T.t3 }}>€{u.planPrice}/{t('ai.usage.perMonth')}</span>
           </div>
@@ -777,7 +779,7 @@ function UsageBillingTab({ usage, setUsage, T, t, toast }) {
                     <span style={{ fontSize: 12, color: T.t3, fontVariantNumeric: 'tabular-nums', width: 90 }}>{ph.date}</span>
                     <span className="flex-1" style={{ fontSize: 12, color: T.t1, fontWeight: 500 }}>{ph.credits.toLocaleString()} {t('ai.usage.credits')}</span>
                     <span className="px-2 py-0.5 rounded-full" style={{ fontSize: 10, fontWeight: 600, background: ph.method === 'Auto' ? '#EFF6FF' : T.al, color: ph.method === 'Auto' ? '#1D4ED8' : T.ac }}>
-                      {ph.method}
+                      {ph.method === 'Auto' ? t('ai.usage.methodAuto') : t('ai.usage.methodManual')}
                     </span>
                     <span className="font-semibold" style={{ fontSize: 12, color: T.t1, fontVariantNumeric: 'tabular-nums' }}>€{ph.amount}</span>
                   </div>
@@ -804,7 +806,9 @@ function UsageBillingTab({ usage, setUsage, T, t, toast }) {
                   background: isCurrent ? T.al : 'transparent',
                 }}>
                 <div className="flex items-center gap-1.5 mb-2">
-                  <span className="font-bold" style={{ fontSize: 13, color: isCurrent ? T.ac : T.t1 }}>{tier.name}</span>
+                  <span className="font-bold" style={{ fontSize: 13, color: isCurrent ? T.ac : T.t1 }}>
+                    {t(`ai.usage.plan${tier.name}`, { defaultValue: tier.name })}
+                  </span>
                   {isCurrent && <span className="px-1.5 py-0.5 rounded" style={{ fontSize: 8, fontWeight: 700, background: T.ac, color: '#fff' }}>{t('ai.usage.current')}</span>}
                 </div>
                 <div className="font-bold mb-3" style={{ fontSize: 18, color: T.t1 }}>

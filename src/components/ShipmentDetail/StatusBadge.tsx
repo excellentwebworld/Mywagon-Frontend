@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 import {
   pendingBadgeVariant,
   type PendingBadgeOpts,
@@ -79,7 +80,25 @@ export function normalizeStatusKey(status?: string | null): string {
   }
 }
 
-const LABEL: Record<string, string> = {
+const LABEL_KEYS: Record<string, string> = {
+  draft: 'statusDraft',
+  pending: 'statusPending',
+  scheduled: 'statusScheduled',
+  ready: 'statusReady',
+  upcoming: 'statusScheduled',
+  on_trip: 'statusOnTrip',
+  in_progress: 'statusOnTrip',
+  past_due: 'statusPastDue',
+  awarded: 'statusAwarded',
+  fullfilled: 'statusFulfilled',
+  delivered: 'statusFulfilled',
+  not_fullfilled: 'statusUnfulfilled',
+  canceled: 'statusCanceled',
+  cancelled: 'statusCanceled',
+  partially_fullfilled: 'statusPartiallyFulfilled',
+};
+
+const LABEL_FALLBACK: Record<string, string> = {
   draft: 'Draft',
   pending: 'Pending',
   scheduled: 'Scheduled',
@@ -107,8 +126,12 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
   awaitingResponse,
   needsAction,
 }) => {
+  const { t } = useTranslation();
   const normKey = normalizeStatusKey(status);
-  const label = LABEL[normKey] || String(status || '').replace(/_/g, ' ');
+  const labelKey = LABEL_KEYS[normKey];
+  const label = labelKey
+    ? t(labelKey, LABEL_FALLBACK[normKey] || normKey)
+    : String(status || '').replace(/_/g, ' ');
 
   const pendingVariant =
     normKey === 'pending'

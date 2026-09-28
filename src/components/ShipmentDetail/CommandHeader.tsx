@@ -157,7 +157,13 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
             />
 
             <Tag variant="outline">
-              {(vm.loadSummary?.channel || (vm.isPrivateLoad ? 'PRIVATE' : 'PUBLIC')).toUpperCase()}
+              {t(
+                (vm.loadSummary?.channel || (vm.isPrivateLoad ? 'PRIVATE' : 'PUBLIC')).toUpperCase() ===
+                  'PRIVATE'
+                  ? 'channelPrivate'
+                  : 'channelPublic',
+                vm.isPrivateLoad ? 'PRIVATE' : 'PUBLIC',
+              )}
             </Tag>
 
             {vm.primaryCustomer && (

@@ -1749,7 +1749,20 @@
       "retry": "Try again",
       "saved": "Notification settings saved",
       "loadError": "Failed to load notification settings",
-      "saveError": "Failed to save notification settings"
+      "saveError": "Failed to save notification settings",
+      "types": {
+        "new_availability": "New Availability",
+        "booking_bidding": "Booking Bidding",
+        "shipment_progress": "Shipment Progress",
+        "cancellation": "Cancellation",
+        "messages": "Messages",
+        "weekly_activity_report": "Weekly Activity Report",
+        "offers": "Offers",
+        "documents": "Documents",
+        "billing": "Billing",
+        "partners": "Partners",
+        "system": "System"
+      }
     },
     "securityTrust": "Security & Trust"
   },
@@ -3327,6 +3340,7 @@
       "outage": "Outage",
       "maintenance": "Maintenance",
       "now": "Now",
+      "last24h": "24h",
       "uptimeLast90": "Uptime — Last 90 Days",
       "daysAgo": "{{n}} days ago",
       "today": "Today",
@@ -4334,7 +4348,13 @@
       "unlimited": "Unlimited",
       "upgrade": "Upgrade",
       "downgrade": "Downgrade",
-      "contactSales": "Contact sales"
+      "contactSales": "Contact sales",
+      "methodManual": "Manual",
+      "methodAuto": "Auto",
+      "planStarter": "Starter",
+      "planProfessional": "Professional",
+      "planBusiness": "Business",
+      "planEnterprise": "Enterprise"
     },
     "tabs": {
       "assistant": "Assistant",
@@ -4399,7 +4419,9 @@
       "copied": "API key copied",
       "today": "Today",
       "thisMonth": "This month",
-      "calls": "calls"
+      "calls": "calls",
+      "production": "Production",
+      "sandbox": "Sandbox"
     },
     "webhooks": {
       "title": "Webhooks",
@@ -4508,7 +4530,23 @@
       "total": "Total this period",
       "billingHistory": "Billing history",
       "colMonth": "Month",
-      "colTotal": "Total"
+      "colTotal": "Total",
+      "planBusiness": "Business Plan",
+      "planStarter": "Starter Plan",
+      "planProfessional": "Professional Plan",
+      "planEnterprise": "Enterprise Plan",
+      "monthJan": "Jan",
+      "monthFeb": "Feb",
+      "monthMar": "Mar",
+      "monthApr": "Apr",
+      "monthMay": "May",
+      "monthJun": "Jun",
+      "monthJul": "Jul",
+      "monthAug": "Aug",
+      "monthSep": "Sep",
+      "monthOct": "Oct",
+      "monthNov": "Nov",
+      "monthDec": "Dec"
     }
   },
   "priceLists": {
@@ -5733,6 +5771,57 @@
   "layout.main_navigation": "Main navigation",
   "notifications.real_time_notification": "Real-time notification",
   "notifications.new_notification": "New Notification",
+  "notifToast": {
+    "category": {
+      "link": "Link",
+      "dashboard": "Dashboard",
+      "shipment": "Shipment",
+      "cancellation": "Cancellation",
+      "availability": "Availability",
+      "addressBook": "Address Book",
+      "products": "Products",
+      "partners": "Partners",
+      "billing": "Billing",
+      "orders": "Orders",
+      "docs": "Docs",
+      "subscription": "Subscription",
+      "support": "Support",
+      "team": "Team",
+      "organization": "Organization",
+      "compliance": "Compliance",
+      "profile": "Profile",
+      "legal": "Legal",
+      "terms": "Terms & Policies",
+      "notifications": "Notifications",
+      "system": "System"
+    },
+    "action": {
+      "openLink": "Open Link",
+      "viewDashboard": "View Dashboard",
+      "createShipment": "Create Shipment",
+      "viewShipment": "View Shipment",
+      "manageShipments": "Manage Shipments",
+      "viewLoad": "View Load",
+      "searchTrucks": "Search Trucks",
+      "addressBook": "Address Book",
+      "productMaster": "Product Master",
+      "viewPartners": "View Partners",
+      "viewInvoice": "View Invoice",
+      "viewBilling": "View Billing",
+      "viewOrder": "View Order",
+      "viewDocs": "View Docs",
+      "viewSubscription": "View Subscription",
+      "openSupport": "Open Support",
+      "userManagement": "User Management",
+      "companyInfo": "Company Info",
+      "viewCompliance": "View Compliance",
+      "viewProfile": "View Profile",
+      "privacyPolicy": "Privacy Policy",
+      "termsConditions": "Terms & Conditions",
+      "viewNotifications": "View Notifications",
+      "viewDetails": "View Details"
+    }
+  },
   "skeletons.loading_cancellation_reasons": "Loading cancellation reasons",
   "skeletons.loading_carriers": "Loading carriers",
   "skeletons.loading_catalog": "Loading catalog",
@@ -6447,5 +6536,32 @@
   "loadingAuditLog": "Loading audit log",
   "partnerBadge": "PARTNER",
   "timePickerNow": "Now",
-  "emailLabel": "Email"
+  "emailLabel": "Email",
+  "severityValue": {
+    "critical": "Critical",
+    "warning": "Warning",
+    "info": "Info",
+    "Critical": "Critical",
+    "Warning": "Warning",
+    "Info": "Info"
+  },
+  "statusDraft": "Draft",
+  "statusPending": "Pending",
+  "statusScheduled": "Scheduled",
+  "statusReady": "Ready",
+  "statusOnTrip": "On Trip",
+  "statusPastDue": "Past Due",
+  "statusAwarded": "Awarded",
+  "statusFulfilled": "Fulfilled",
+  "statusUnfulfilled": "Unfulfilled",
+  "statusCanceled": "Canceled",
+  "statusPartiallyFulfilled": "Partially Fulfilled",
+  "channelPublic": "PUBLIC",
+  "channelPrivate": "PRIVATE",
+  "orderLabelPrefix": "Order:",
+  "podProofOfDelivery": "POD (Proof of Delivery)",
+  "createProductPlus": "+ Create Product",
+  "ui": {
+    "search": "Search…"
+  }
 }

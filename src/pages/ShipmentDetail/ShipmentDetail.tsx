@@ -78,7 +78,7 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { showToast } = useApp();
-  const { t } = useTranslation();
+  const { t, lang: appLang } = useTranslation();
   const { requireSignupComplete } = useRequireSignupComplete();
   const { can, requirePermission } = useSubscriptionPermission();
   const { canAction, requirePermission: requireRbac } = useShipperPermission();
@@ -93,7 +93,10 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
   const loading = readOnly ? false : fetched.loading;
   const error = readOnly ? overrideError : fetched.error;
   const refetch = readOnly ? () => undefined : fetched.refetch;
-  const [lang, setLang] = useState<'en' | 'el'>('en');
+  const [lang, setLang] = useState<'en' | 'el'>(appLang);
+  useEffect(() => {
+    setLang(appLang);
+  }, [appLang]);
   const [activeNav, setActiveNav] = useState('stops');
   const [sections, setSections] = useState(DEFAULT_SECTIONS);
   const [isShareOpen, setIsShareOpen] = useState(false);

@@ -185,7 +185,10 @@ export default function AuditLogSection() {
         <button onClick={() => { setSeverity(prev => SEVERITY_CYCLE[(SEVERITY_CYCLE.indexOf(prev) + 1) % SEVERITY_CYCLE.length]); setPage(1); }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer border-none"
           style={{ background: severity !== 'all' ? (SEVERITY_CONFIG[severity]?.bg || T.sa) : T.sa, border: `1px solid ${severity !== 'all' ? (SEVERITY_CONFIG[severity]?.color || T.bd) + '40' : T.bd}`, color: severity !== 'all' ? SEVERITY_CONFIG[severity]?.color : T.t2, fontSize: 12, fontWeight: 500 }}>
-          {t('compliance.audit.severity')}: {severity === 'all' ? t('compliance.audit.all') : SEVERITY_CONFIG[severity]?.label}
+          {t('compliance.audit.severity')}:{' '}
+          {severity === 'all'
+            ? t('compliance.audit.all')
+            : t(`severityValue.${severity}`, { defaultValue: SEVERITY_CONFIG[severity]?.label || severity })}
         </button>
 
         {/* Date range — shared DatePicker (same as Create Shipment / Add Lane) */}
@@ -258,7 +261,9 @@ export default function AuditLogSection() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold truncate" style={{ fontSize: 12, color: T.t1 }}>{entry.action}</span>
-                          <span className="px-1.5 py-0.5 rounded-full shrink-0" style={{ fontSize: 9, fontWeight: 700, background: sev.bg, color: sev.color }}>{sev.label}</span>
+                          <span className="px-1.5 py-0.5 rounded-full shrink-0" style={{ fontSize: 9, fontWeight: 700, background: sev.bg, color: sev.color }}>
+                            {t(`severityValue.${entry.severity}`, { defaultValue: sev.label })}
+                          </span>
                         </div>
                         <div style={{ fontSize: 11, color: T.t3, marginTop: 1 }}>
                           {entry.actor?.name || '—'} · {entry.target}

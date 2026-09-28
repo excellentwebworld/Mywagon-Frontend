@@ -124,6 +124,20 @@ const I18N: Record<string, { en: string; el: string }> = {
   quantityMismatch: { en: 'Quantity mismatch', el: 'Διαφορά ποσότητας' },
   notAssigned: { en: 'Not assigned', el: 'Δεν έχει ανατεθεί' },
   transporterNotAssigned: { en: 'Transporter is not assigned yet', el: 'Δεν έχει ανατεθεί μεταφορέας ακόμη' },
+  tlCreated: { en: 'Created', el: 'Δημιουργία' },
+  waitingForBid: { en: 'Waiting for Bid', el: 'Αναμονή προσφοράς' },
+  privateShipmentAccepted: { en: 'Private Shipment Accepted', el: 'Ιδιωτική αποστολή αποδεκτή' },
+  publicShipmentAccepted: { en: 'Public Shipment Accepted', el: 'Δημόσια αποστολή αποδεκτή' },
+  shipmentAccepted: { en: 'Shipment Accepted', el: 'Αποστολή αποδεκτή' },
+  canceledShipment: { en: 'Canceled Shipment', el: 'Ακυρωμένη αποστολή' },
+  startTrip: { en: 'Start Trip', el: 'Έναρξη διαδρομής' },
+  arrival: { en: 'Arrival', el: 'Άφιξη' },
+  tripCompleted: { en: 'Trip Completed', el: 'Ολοκλήρωση διαδρομής' },
+  podUploaded: { en: 'POD Uploaded', el: 'POD Μεταφορτώθηκε' },
+  podUploadPending: { en: 'POD Upload Pending', el: 'Εκκρεμεί μεταφόρτωση POD' },
+  latestBidAt: { en: 'latest bid at', el: 'τελευταία προσφορά στις' },
+  tlPickup: { en: 'Pickup', el: 'Παραλαβή' },
+  tlDropoff: { en: 'Drop-off', el: 'Παράδοση' },
 };
 
 /** Visible live-driver pin (data URI) — clearer than the tiny Laravel SVG path. */
@@ -150,6 +164,59 @@ const PARTIAL_REASONS: Array<{ key: string; labelKey: string }> = [
 
 function t(lang: Lang, key: string): string {
   return I18N[key]?.[lang] ?? key;
+}
+
+/** Localize API timeline labels (backend may return EN or locale strings). */
+function timelineLabel(lang: Lang, step: TrackingTimelineItem): string {
+  const key = step.key || '';
+  const raw = step.label || '';
+  const company =
+    raw.includes(' - ') ? raw.split(' - ').slice(1).join(' - ').trim() : '';
+
+  if (key === 'created') return t(lang, 'tlCreated');
+  if (key === 'waiting_bid') return t(lang, 'waitingForBid');
+  if (key === 'canceled') return t(lang, 'canceledShipment');
+  if (key === 'start_trip' || key === 'start_trip_unable') return t(lang, 'startTrip');
+  if (key === 'trip_completed') return t(lang, 'tripCompleted');
+  if (key === 'accepted_private' || (key === 'accepted' && /private/i.test(raw))) {
+    return t(lang, 'privateShipmentAccepted');
+  }
+  if (key === 'accepted_public' || key === 'accepted') {
+    return /private/i.test(raw)
+      ? t(lang, 'privateShipmentAccepted')
+      : /public/i.test(raw) || key === 'accepted_public'
+        ? t(lang, 'publicShipmentAccepted')
+        : t(lang, 'shipmentAccepted');
+  }
+  if (key === 'transporter_freelancer' || (key === 'transporter' && /freelancer/i.test(raw))) {
+    return `${t(lang, 'freelancer')}:`;
+  }
+  if (key === 'transporter_carrier' || key === 'transporter') {
+    return `${t(lang, 'carrier')}:`;
+  }
+  if (key === 'pod_uploaded') return t(lang, 'podUploaded');
+  if (key === 'pod_pending') return t(lang, 'podUploadPending');
+  if (key === 'pod') {
+    return step.state === 'done' || /uploaded/i.test(raw)
+      ? t(lang, 'podUploaded')
+      : t(lang, 'podUploadPending');
+  }
+  if (key.startsWith('arrival')) {
+    return company ? `${t(lang, 'arrival')} - ${company}` : t(lang, 'arrival');
+  }
+  if (key.startsWith('complete')) {
+    const isPickup = key.includes('pickup') || /^pickup/i.test(raw);
+    const verbLabel = t(lang, isPickup ? 'tlPickup' : 'tlDropoff');
+    return company ? `${verbLabel} - ${company}` : verbLabel;
+  }
+
+  return raw;
+}
+
+function timelineDetail(lang: Lang, detail?: string | null): string | null {
+  if (!detail) return null;
+  if (/latest bid at/i.test(detail)) return t(lang, 'latestBidAt');
+  return detail;
 }
 
 function initials(name?: string | null): string {
@@ -367,13 +434,9 @@ const TrackingLiveMap: React.FC<{
   livePosition: { lat: number; lng: number } | null;
   socketStatus?: 'idle' | 'connecting' | 'connected' | 'error';
 }> = ({ data, stops: passedStops, lang, livePosition, socketStatus = 'idle' }) => {
-  const { t: tr, i18n } = useTranslation();
-
-  useEffect(() => {
-    if (i18n.language !== lang) {
-      i18n.changeLanguage(lang);
-    }
-  }, [lang, i18n]);
+  // Do NOT call i18n.changeLanguage here — AppContext syncs global locale and would
+  // fight this page's local EN/GR toggle (maximum update depth).
+  const { t: tr } = useTranslation();
 
   const [routeMode, setRouteMode] = useState<'suggested' | 'actual'>('suggested');
   const enrichedStops = useMemo(
@@ -756,14 +819,17 @@ const ItineraryStop: React.FC<{
 
 export const PublicTrackingPage: React.FC = () => {
   const { encryptedId, encryptedLocationIds, guestEmail: guestFromUrl } = usePublicTrackingTokens();
-  const { t: tr, i18n } = useTranslation();
-  const [lang, setLang] = useState<Lang>('en');
-
-  useEffect(() => {
-    if (i18n.language !== lang) {
-      i18n.changeLanguage(lang);
+  const { t: tr } = useTranslation();
+  const [lang, setLang] = useState<Lang>(() => {
+    try {
+      const stored = localStorage.getItem('shipment-lang');
+      return stored === 'el' || stored === 'en' ? stored : 'en';
+    } catch {
+      return 'en';
     }
-  }, [lang, i18n]);
+  });
+
+  // Local EN/GR only — never sync into global i18n (conflicts with AppContext language).
   const [data, setData] = useState<PublicTrackingPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1466,6 +1532,7 @@ export const PublicTrackingPage: React.FC = () => {
               {timeline.map((step, idx) => {
                 const isLast = idx === timeline.length - 1;
                 const connectorClass = timelineConnectorClass(step, isLast, data.shipment.status);
+                const detailText = timelineDetail(lang, step.detail);
                 return (
                   <div className={`pt-ms-step ${timelineStepClass(step)}`} key={`${step.key}-${idx}`}>
                     <div className="pt-ms-track">
@@ -1482,9 +1549,9 @@ export const PublicTrackingPage: React.FC = () => {
                       )}
                     </div>
                     <div className="pt-ms-body">
-                      <div className="pt-ms-label">{step.label}</div>
+                      <div className="pt-ms-label">{timelineLabel(lang, step)}</div>
                       {step.highlight ? <div className="pt-ms-highlight">{step.highlight}</div> : null}
-                      {step.detail ? <div className="pt-ms-detail">{step.detail}</div> : null}
+                      {detailText ? <div className="pt-ms-detail">{detailText}</div> : null}
                       {step.at ? (
                         <div className="pt-ms-at">
                           <p>{formatUtcToDisplayDate(step.at)}</p>
