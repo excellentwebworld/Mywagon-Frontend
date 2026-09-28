@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { WeeklyReportItem, WeeklyReportsMeta } from '../../../../api/types/weeklyReports';
+import { formatWeeklyDateLabel } from '../weeklyReportsDates';
 
 interface WeeklyReportKpisProps {
   reports: WeeklyReportItem[];
@@ -61,16 +62,7 @@ export const WeeklyReportKpis: React.FC<WeeklyReportKpisProps> = ({
   const totalCreated = meta?.overall_created ?? sumCreated;
   const totalInProgress = meta?.overall_in_progress ?? sumInProgress;
 
-  const formatDateLabel = (dStr?: string) => {
-    if (!dStr) return '';
-    try {
-      const d = new Date(dStr);
-      if (isNaN(d.getTime())) return dStr;
-      return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-    } catch {
-      return dStr;
-    }
-  };
+  const formatDateLabel = (dStr?: string) => formatWeeklyDateLabel(dStr);
 
   const getPeriodSubtitle = () => {
     const fromLabel = formatDateLabel(dateFrom || meta?.date_range_start);

@@ -538,6 +538,7 @@
   font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
+  white-space: nowrap;
 }
 
 .wr-period-dates {
@@ -558,6 +559,7 @@
   font-size: 13px;
   color: var(--text-primary);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .wr-sent-pill {

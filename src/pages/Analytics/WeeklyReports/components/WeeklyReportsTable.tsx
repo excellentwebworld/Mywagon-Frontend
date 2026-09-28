@@ -12,6 +12,10 @@ import {
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { WeeklyReportItem } from '../../../../api/types/weeklyReports';
 import { BillingPagination } from '../../../Billing/components/BillingPagination';
+import {
+  formatWeeklyDeliveryDate,
+  formatWeeklyPeriodLabel,
+} from '../weeklyReportsDates';
 
 interface WeeklyReportsTableProps {
   reports: WeeklyReportItem[];
@@ -65,21 +69,6 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
         <span>0</span>
       </span>
     );
-  };
-
-  const formatDeliveryDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-      return d.toLocaleDateString(undefined, {
-        weekday: 'short',
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
-    } catch {
-      return dateStr;
-    }
   };
 
   return (
@@ -207,7 +196,9 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                           <Calendar size={16} />
                         </div>
                         <div className="wr-period-info">
-                          <strong className="wr-period-title">{r.period_label}</strong>
+                          <strong className="wr-period-title">
+                            {formatWeeklyPeriodLabel(r.week_start, r.week_end)}
+                          </strong>
                         </div>
                       </div>
                     </td>
@@ -216,7 +207,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     <td className="wr-td-delivery">
                       <div className="wr-delivery-cell">
                         <span className="wr-delivery-date">
-                          {formatDeliveryDate(r.delivery_date)}
+                          {formatWeeklyDeliveryDate(r.sent_at, r.delivery_date)}
                         </span>
                         <span className="wr-sent-pill">
                           <CheckCircle2 size={11} />

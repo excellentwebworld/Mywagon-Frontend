@@ -15,6 +15,7 @@ import { WeeklyReportsFilterBar } from './components/WeeklyReportsFilterBar';
 import { WeeklyReportKpis } from './components/WeeklyReportKpis';
 import { WeeklyReportsTable } from './components/WeeklyReportsTable';
 import { WeeklyReportEmailModal } from './components/WeeklyReportEmailModal';
+import { formatWeeklyDateLabel } from './weeklyReportsDates';
 
 import './weekly-reports.css';
 
@@ -355,16 +356,7 @@ export const WeeklyReportsPage: React.FC = () => {
     }
   };
 
-  const formatDateLabel = (dStr?: string) => {
-    if (!dStr) return '';
-    try {
-      const d = new Date(dStr);
-      if (isNaN(d.getTime())) return dStr;
-      return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-    } catch {
-      return dStr;
-    }
-  };
+  const formatDateLabel = (dStr?: string) => formatWeeklyDateLabel(dStr);
 
   const dateRangeLabel = (() => {
     const fromLabel = formatDateLabel(appliedFrom || meta?.date_range_start);

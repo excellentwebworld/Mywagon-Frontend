@@ -11,6 +11,10 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { WeeklyReportItem } from '../../../../api/types/weeklyReports';
+import {
+  formatWeeklyDeliveryDate,
+  formatWeeklyPeriodLabel,
+} from '../weeklyReportsDates';
 
 interface WeeklyReportEmailModalProps {
   report: WeeklyReportItem | null;
@@ -26,6 +30,8 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
   const { t } = useTranslation();
 
   if (!report) return null;
+
+  const periodLabel = formatWeeklyPeriodLabel(report.week_start, report.week_end);
 
   const metricDefinitions = [
     {
@@ -114,24 +120,6 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
     window.print();
   };
 
-  const formatSentDate = (isoStr?: string, fallback = '') => {
-    if (!isoStr) return fallback;
-    try {
-      const d = new Date(isoStr);
-      if (isNaN(d.getTime())) return fallback;
-      return d.toLocaleDateString(undefined, {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return fallback;
-    }
-  };
-
   return (
     <div
       className="wr-modal-backdrop"
@@ -151,7 +139,7 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
               <Mail size={15} />
               <span>{t('weeklyReports.emailPreview', 'Weekly Report Email')}</span>
             </div>
-            <span className="wr-period-chip">{report.period_label}</span>
+            <span className="wr-period-chip">{periodLabel}</span>
           </div>
 
           <div className="wr-toolbar-actions">
@@ -209,7 +197,7 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
             <div className="wr-envelope-row">
               <span className="wr-envelope-lbl">{t('analytics.weeklyReports.date', 'Date:')}</span>
               <span className="wr-envelope-val">
-                {formatSentDate(report.sent_at, report.delivery_date)}
+                {formatWeeklyDeliveryDate(report.sent_at, report.delivery_date)}
               </span>
             </div>
             <div className="wr-envelope-row">
@@ -256,7 +244,7 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
                 {t(
                   'weeklyReports.summaryIntro',
                   'Here is your logistics performance summary for {{period}}.',
-                  { period: report.period_label }
+                  { period: periodLabel }
                 )}
               </p>
             </div>
