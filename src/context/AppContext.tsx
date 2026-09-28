@@ -2,7 +2,18 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { addressBookService, productMasterService } from '../api';
 import { formatUtcToDisplayDateTime } from '../utils/timezone';
 import { toastRbacAccessDenied } from '../utils/rbacToast';
+import i18n from '../utils/i18n';
 import { useAuth } from './AuthContext';
+
+function toastT(lang: 'en' | 'el', key: string, fallback: string, vars?: Record<string, string | number>): string {
+  let msg = String(i18n.t(key, { lng: lang, defaultValue: fallback }));
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) {
+      msg = msg.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), String(v));
+    }
+  }
+  return msg;
+}
 
 // ==========================================
 // TYPES
@@ -715,26 +726,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       lastUsed: 'Never',
     };
     setLocations((prev) => [newLoc, ...prev]);
-    showToast(`Location "${loc.name}" created successfully.`, 'success');
+    showToast(
+      toastT(lang, 'toastLocationCreated', 'Location "{{name}}" created successfully.', {
+        name: loc.name,
+      }),
+      'success'
+    );
   };
 
   const updateLocation = (updatedLoc: LocationItem) => {
     setLocations((prev) => prev.map((loc) => (loc.id === updatedLoc.id ? updatedLoc : loc)));
-    showToast(`Location "${updatedLoc.name}" updated successfully.`, 'success');
+    showToast(
+      toastT(lang, 'toastLocationUpdated', 'Location "{{name}}" updated successfully.', {
+        name: updatedLoc.name,
+      }),
+      'success'
+    );
   };
 
   const archiveLocation = (id: string) => {
     setLocations((prev) =>
       prev.map((loc) => (loc.id === id ? { ...loc, status: 'archived' } : loc))
     );
-    showToast(`Location archived.`, 'info');
+    showToast(toastT(lang, 'toastLocationArchived', 'Location archived.'), 'info');
   };
 
   const restoreLocation = (id: string) => {
     setLocations((prev) =>
       prev.map((loc) => (loc.id === id ? { ...loc, status: 'active' } : loc))
     );
-    showToast(`Location restored.`, 'success');
+    showToast(toastT(lang, 'toastLocationRestored', 'Location restored.'), 'success');
   };
 
   const refreshLocationsFromApi = useCallback(async (force = false) => {
@@ -789,7 +810,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const nextId = `C-${String(companies.length + 1).padStart(3, '0')}`;
     const newComp: Company = { ...comp, id: nextId };
     setCompanies((prev) => [...prev, newComp]);
-    showToast(`Company "${comp.name}" added successfully.`, 'success');
+    showToast(
+      toastT(lang, 'toastCompanyAdded', 'Company "{{name}}" added successfully.', { name: comp.name }),
+      'success'
+    );
   };
 
   // Categories State
@@ -808,7 +832,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const nextId = `CAT-${String(categories.length + 1).padStart(2, '0')}`;
     const newCat: Category = { id: nextId, name: { en: nameEn, el: nameEl }, icon };
     setCategories((prev) => [...prev, newCat]);
-    showToast(`Category "${nameEn}" added.`, 'success');
+    showToast(
+      toastT(lang, 'toastCategoryAdded', 'Category "{{name}}" added.', { name: nameEn }),
+      'success'
+    );
   };
 
   // Product Types State
@@ -833,7 +860,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const nextId = `PT-${String(productTypes.length + 1).padStart(2, '0')}`;
     const newPt: ProductType = { ...pt, id: nextId, s30: 0, s90: 0 };
     setProductTypes((prev) => [...prev, newPt]);
-    showToast(`Product Type "${pt.name}" created.`, 'success');
+    showToast(
+      toastT(lang, 'toastProductTypeCreated', 'Product Type "{{name}}" created.', { name: pt.name }),
+      'success'
+    );
   };
 
   const updateProductType = (pt: ProductType) => {
@@ -868,7 +898,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const nextId = `SKU-${String(skus.length + 1).padStart(3, '0')}`;
     const newSku: SKU = { ...sku, id: nextId };
     setSkus((prev) => [...prev, newSku]);
-    showToast(`SKU "${sku.name}" added successfully.`, 'success');
+    showToast(
+      toastT(lang, 'toastSkuAdded', 'SKU "{{name}}" added successfully.', { name: sku.name }),
+      'success'
+    );
   };
 
   const updateSku = (sku: SKU) => {
@@ -939,7 +972,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addShipment = (shp: Shipment) => {
     setShipments((prev) => [shp, ...prev]);
-    showToast(`Shipment "${shp.id}" created successfully.`, 'success');
+    showToast(
+      toastT(lang, 'toastShipmentCreated', 'Shipment "{{id}}" created successfully.', { id: shp.id }),
+      'success'
+    );
   };
 
   const updateShipment = (updatedShp: Shipment) => {

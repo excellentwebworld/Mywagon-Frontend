@@ -138,11 +138,12 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
             <span className="font-semibold">{vm.lane}</span>
             {vm.viaLabel && (
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                via {vm.viaLabel}
+                {t('via', 'via')} {vm.viaLabel}
               </span>
             )}
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-              {vm.stopsCount} {vm.stopsCount === 1 ? 'stop' : 'stops'}
+              {vm.stopsCount}{' '}
+              {vm.stopsCount === 1 ? t('stop', 'stop') : t('stops', 'stops')}
             </span>
           </div>
 

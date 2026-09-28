@@ -345,7 +345,10 @@ export function useProductMaster() {
   const bulkArchiveMutation = useMutation({
     mutationFn: (ids: string[]) => productMasterService.bulkArchive(ids),
     onSuccess: async (count) => {
-      showToast(`${count} ${t('archived')}`, 'success');
+      showToast(
+        t('pmBulkArchivedToast', '{{count}} archived').replace('{{count}}', String(count)),
+        'success'
+      );
       setSelectedIds(new Set());
       await invalidateAll();
     },
@@ -355,7 +358,13 @@ export function useProductMaster() {
   const restoreSkuMutation = useMutation({
     mutationFn: (id: string) => productMasterService.restoreSku(id),
     onSuccess: async (sku) => {
-      showToast(`${sku.name || 'SKU'} ${t('unarchived') || 'unarchived'}`, 'success');
+      showToast(
+        t('pmSkuUnarchivedToast', '{{name}} unarchived').replace(
+          '{{name}}',
+          sku.name || t('sku', 'SKU')
+        ),
+        'success'
+      );
       setSelectedItem(null);
       setSelectedKind('');
       await invalidateAll();
@@ -366,7 +375,10 @@ export function useProductMaster() {
   const bulkRestoreMutation = useMutation({
     mutationFn: (ids: string[]) => productMasterService.bulkRestore(ids),
     onSuccess: async (count) => {
-      showToast(`${count} ${t('unarchived') || 'unarchived'}`, 'success');
+      showToast(
+        t('pmBulkUnarchivedToast', '{{count}} unarchived').replace('{{count}}', String(count)),
+        'success'
+      );
       setSelectedIds(new Set());
       await invalidateAll();
     },

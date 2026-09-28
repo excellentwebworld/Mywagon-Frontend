@@ -134,12 +134,12 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
       case 'email':
         shareUrl = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(msg)}`;
         window.location.href = shareUrl;
-        showToast(`${t('referral.toastOpening', '🔗 Opening')} Email...`);
+        showToast(t('referral.toastOpeningEmail', 'Opening Email…'));
         break;
       case 'whatsapp':
         shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
         window.open(shareUrl, '_blank', 'noopener,noreferrer');
-        showToast(`${t('referral.toastOpening', '🔗 Opening')} WhatsApp...`);
+        showToast(t('referral.toastOpeningWhatsApp', 'Opening WhatsApp…'));
         break;
       case 'viber': {
         try {
@@ -175,7 +175,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
         }
         shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://myvagon.com')}`;
         window.open(shareUrl, '_blank', 'noopener,noreferrer');
-        showToast(`${t('referral.toastOpening', '🔗 Opening')} LinkedIn...`);
+        showToast(t('referral.toastOpeningLinkedIn', 'Opening LinkedIn…'));
         break;
     }
   };

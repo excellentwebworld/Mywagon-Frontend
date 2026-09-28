@@ -191,7 +191,10 @@ export const ErpOrders: React.FC = () => {
       const created = await addressBookService.createLocation(payload);
       handleLocationCreated(Number(created.id));
       setLocationModalOpen(false);
-      showToast(state.t('erpOrdersLocationCreated') || `"${created.name}" created`, 'success');
+      showToast(
+        t('abLocationCreatedToast', '"{{name}}" created').replace('{{name}}', created.name),
+        'success'
+      );
     } catch (err) {
       const message = err instanceof ApiError ? err.message : t('ErpOrders.failed_to_create_location', 'Failed to create location');
       showToast(message, 'error');
@@ -233,7 +236,10 @@ export const ErpOrders: React.FC = () => {
       }));
       setCompanyData(EMPTY_COMPANY_DATA);
       setIsCompanyOpen(false);
-      showToast(`Company "${created.name}" created`, 'success');
+      showToast(
+        t('abCompanyCreatedToast', 'Company "{{name}}" created').replace('{{name}}', created.name),
+        'success'
+      );
 
       const updatedCompanies = await addressBookService.listCompanies(companyQuery.trim() || undefined);
       setApiCompanies(updatedCompanies);

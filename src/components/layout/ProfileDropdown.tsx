@@ -121,7 +121,7 @@ export function ProfileDropdown() {
     {
       kind: 'route',
       icon: 'subscription',
-      label: t('navSubscription') || t('sidebar.subscription') || 'Subscription',
+      label: t('sidebar.subscription') || t('navSubscription') || 'Subscription',
       route: '/subscription',
     },
     {

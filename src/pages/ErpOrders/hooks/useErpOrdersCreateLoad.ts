@@ -524,7 +524,13 @@ export function useErpOrdersCreateLoad() {
         }
       });
       setClState({ stops: updatedStops });
-      showToast(`${productsToAdd.length} dropoffs added from pickup details`, 'success');
+      showToast(
+        t('erpDropoffsFromPickupToast', '{{count}} dropoffs added from pickup details').replace(
+          '{{count}}',
+          String(productsToAdd.length)
+        ),
+        'success'
+      );
     }
   }, [clState.stops, calcRemaining, showToast]);
 
@@ -1074,7 +1080,10 @@ export function useErpOrdersCreateLoad() {
     }
 
     setOrderModalOpen(false);
-    showToast(`Order created: ${ref}`, 'success');
+    showToast(
+      t('erpOrderCreatedToast', 'Order created: {{ref}}').replace('{{ref}}', ref),
+      'success'
+    );
   }, [pendingOrderCtx, tryAutoFill, showToast, t]);
 
   const confirmCreateProduct = useCallback((name: string, sku: string, category: string, wpu: number) => {
@@ -1135,7 +1144,10 @@ export function useErpOrdersCreateLoad() {
     }
 
     setProductModalOpen(false);
-    showToast(`Product created: ${name}`, 'success');
+    showToast(
+      t('erpProductCreatedToast', 'Product created: {{name}}').replace('{{name}}', name),
+      'success'
+    );
   }, [pendingProductCtx, showToast, t]);
 
   const confirmCreateLocation = useCallback((name: string, address: string, city: string, country: string) => {
@@ -1168,7 +1180,10 @@ export function useErpOrdersCreateLoad() {
     }
 
     setLocationModalOpen(false);
-    showToast(`Location created: ${name}`, 'success');
+    showToast(
+      t('erpLocationCreatedToast', 'Location created: {{name}}').replace('{{name}}', name),
+      'success'
+    );
   }, [pendingLocCtx, showToast, t]);
 
   // Validation state

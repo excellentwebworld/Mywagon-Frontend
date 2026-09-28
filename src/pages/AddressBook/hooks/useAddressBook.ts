@@ -234,7 +234,10 @@ export function useAddressBook() {
       setIsCreateOpen(false);
       void syncGlobalLocations(created);
       setSelectedLoc(created);
-      showToast(`"${created.name}" created`, 'success');
+      showToast(
+        t('abLocationCreatedToast', '"{{name}}" created').replace('{{name}}', created.name),
+        'success'
+      );
     },
     onError: (err) => {
       handleApiError(err, 'Failed to create location');
@@ -247,7 +250,10 @@ export function useAddressBook() {
       setSelectedLoc(updated);
       setIsEditOpen(false);
       void syncGlobalLocations(updated);
-      showToast(`"${updated.name}" updated`, 'success');
+      showToast(
+        t('abLocationUpdatedToast', '"{{name}}" updated').replace('{{name}}', updated.name),
+        'success'
+      );
     },
     onError: (err) => {
       handleApiError(err, 'Failed to update location');
@@ -260,7 +266,12 @@ export function useAddressBook() {
       setSelectedLoc(null);
       void syncGlobalLocations();
       const loc = locations.find((l) => l.id === id);
-      showToast(`"${loc?.name || 'Location'}" archived`);
+      showToast(
+        t('abLocationArchivedToast', '"{{name}}" archived').replace(
+          '{{name}}',
+          loc?.name || t('location', 'Location')
+        )
+      );
     },
     onError: (err) => {
       handleApiError(err, 'Failed to archive location');
@@ -272,7 +283,10 @@ export function useAddressBook() {
     onSuccess: (restored) => {
       setSelectedLoc(restored);
       void syncGlobalLocations(restored);
-      showToast(`"${restored.name}" restored`, 'success');
+      showToast(
+        t('abLocationRestoredToast', '"{{name}}" restored').replace('{{name}}', restored.name),
+        'success'
+      );
     },
     onError: (err) => {
       handleApiError(err, 'Failed to restore location');
@@ -324,7 +338,13 @@ export function useAddressBook() {
     onSuccess: (created) => {
       void syncGlobalLocations(created);
       setSelectedLoc(created);
-      showToast(`Duplicated as "${created.name}"`, 'success');
+      showToast(
+        t('abLocationDuplicatedToast', 'Duplicated as "{{name}}"').replace(
+          '{{name}}',
+          created.name
+        ),
+        'success'
+      );
     },
     onError: (err) => {
       handleApiError(err, 'Failed to duplicate location');
@@ -522,14 +542,17 @@ export function useAddressBook() {
       setIsCompanyOpen(false);
       setCompanyData(EMPTY_COMPANY_DATA);
       syncCustomerDropdownCaches(queryClient, { customer: created });
-      showToast(`Company "${created.name}" created`, 'success');
+      showToast(
+        t('abCompanyCreatedToast', 'Company "{{name}}" created').replace('{{name}}', created.name),
+        'success'
+      );
     } catch (err) {
       handleApiError(err, 'Failed to create company');
       throw err;
     } finally {
       setCompanySaving(false);
     }
-  }, [handleApiError, queryClient, showToast]);
+  }, [handleApiError, queryClient, showToast, t]);
 
   const openEditModal = useCallback(
     async (loc: LocationItem) => {
@@ -630,7 +653,13 @@ export function useAddressBook() {
       setCreateStep(1);
       setCreateData(EMPTY_CREATE_DATA);
       await handleSelectLocation(loc);
-      showToast(`Selected existing location "${loc.name}"`, 'success');
+      showToast(
+        t('abExistingLocationSelectedToast', 'Selected existing location "{{name}}"').replace(
+          '{{name}}',
+          loc.name
+        ),
+        'success'
+      );
     },
     [handleSelectLocation, showToast]
   );
