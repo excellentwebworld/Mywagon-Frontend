@@ -1,8 +1,10 @@
 import React from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 export function RequestDetailDrawerSkeleton() {
+  const { t } = useTranslation();
   return (
-    <div className="support-drawer-skeleton support-skeleton" aria-busy="true" aria-label="Loading ticket">
+    <div className="support-drawer-skeleton support-skeleton" aria-busy="true" aria-label={t('loadingTicket', 'Loading ticket')}>
       <div className="support-skeleton-block support-drawer-skeleton-title" />
       <div className="support-drawer-badges">
         <div className="support-skeleton-block support-drawer-skeleton-badge" />

@@ -67,7 +67,7 @@ export default function InfrastructureSection({ data }) {
                 <code style={{ fontSize: 11, color: T.t3 }}>{reg.code}</code>
                 {reg.live && (
                   <span style={{ fontSize: 9, fontWeight: 700, color: '#10B981', marginLeft: 'auto' }}>
-                    LIVE
+                    {t('live', 'LIVE')}
                   </span>
                 )}
               </div>

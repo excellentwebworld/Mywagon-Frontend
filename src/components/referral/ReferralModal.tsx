@@ -271,7 +271,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
               {/* Social Channels (Email, WhatsApp, Viber, LinkedIn) */}
               <div className="share-channels">
                 <button type="button" className="share-ch email" onClick={() => handleShare('email')}>
-                  <Mail size={14} /> Email
+                  <Mail size={14} /> {t('emailLabel', 'Email')}
                 </button>
                 <button type="button" className="share-ch whatsapp" onClick={() => handleShare('whatsapp')}>
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">

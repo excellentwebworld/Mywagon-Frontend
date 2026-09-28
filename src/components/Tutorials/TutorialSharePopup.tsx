@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface TutorialShareChannel {
   id: string;
@@ -28,6 +29,7 @@ export const TutorialSharePopup: React.FC<TutorialSharePopupProps> = ({
   onClose,
   onCopy,
 }) => {
+  const { t } = useTranslation();
   const popupRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = React.useState(false);
 
@@ -85,7 +87,7 @@ export const TutorialSharePopup: React.FC<TutorialSharePopupProps> = ({
             type="button"
             className="tut-share-close"
             onClick={onClose}
-            aria-label="Close share dialog"
+            aria-label={t('closeShareDialog', 'Close share dialog')}
           >
             <X size={16} aria-hidden />
           </button>

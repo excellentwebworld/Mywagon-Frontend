@@ -6420,5 +6420,22 @@
     "mappedSkusCount": "Αντιστοιχισμένα SKU ({{count}})",
     "barcodePlain": "Barcode",
     "weightPlain": "Βάρος"
-  }
+  },
+  "live": "ΖΩΝΤΑΝΑ",
+  "mainNavigation": "Κύρια πλοήγηση",
+  "noShipmentLinked": "Δεν υπάρχει συνδεδεμένο φορτίο σε αυτή τη συνομιλία.",
+  "pageSections": "Ενότητες σελίδας",
+  "podFullPreview": "Πλήρης προεπισκόπηση POD",
+  "loadingTransporterProfile": "Φόρτωση προφίλ μεταφορέα",
+  "moduleFilters": "Φίλτρα ενοτήτων",
+  "closeShareDialog": "Κλείσιμο διαλόγου κοινής χρήσης",
+  "loadingArticles": "Φόρτωση άρθρων",
+  "loadingKnowledgeBase": "Φόρτωση βάσης γνώσεων",
+  "loadingForm": "Φόρτωση φόρμας",
+  "loadingRequests": "Φόρτωση αιτημάτων",
+  "loadingTicket": "Φόρτωση αιτήματος",
+  "loadingAuditLog": "Φόρτωση αρχείου καταγραφής",
+  "partnerBadge": "ΣΥΝΕΡΓΑΤΗΣ",
+  "timePickerNow": "Τώρα",
+  "emailLabel": "Email"
 }

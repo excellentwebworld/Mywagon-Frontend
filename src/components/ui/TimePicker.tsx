@@ -296,7 +296,7 @@ export const TimePicker: React.FC<Props> = ({
                   setOpen(false);
                 }}
               >
-                Now
+                {t('timePickerNow', 'Now')}
               </button>
               <span>24h</span>
             </div>

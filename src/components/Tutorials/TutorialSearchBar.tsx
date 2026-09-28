@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, X } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface TutorialSearchBarProps {
   value: string;
@@ -12,6 +13,7 @@ export const TutorialSearchBar: React.FC<TutorialSearchBarProps> = ({
   onChange,
   placeholder,
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="tut-search-wrap">
       <div className="tut-search-box">
@@ -28,7 +30,7 @@ export const TutorialSearchBar: React.FC<TutorialSearchBarProps> = ({
             type="button"
             className="tut-search-clear"
             onClick={() => onChange('')}
-            aria-label="Clear search"
+            aria-label={t('clearSearch', 'Clear search')}
           >
             <X size={14} />
           </button>

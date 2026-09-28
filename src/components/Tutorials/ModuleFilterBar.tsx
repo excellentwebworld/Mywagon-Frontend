@@ -1,5 +1,6 @@
 import React from 'react';
 import type { TutorialModuleConfig } from '../../config/tutorialModules';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface ModuleFilterBarProps {
   modules: Array<{ slug: string; config: TutorialModuleConfig }>;
@@ -16,8 +17,9 @@ export const ModuleFilterBar: React.FC<ModuleFilterBarProps> = ({
   allLabel,
   getPillLabel,
 }) => {
+  const { t } = useTranslation();
   return (
-    <div className="tut-filter-bar" role="tablist" aria-label="Module filters">
+    <div className="tut-filter-bar" role="tablist" aria-label={t('moduleFilters', 'Module filters')}>
       <button
         type="button"
         role="tab"

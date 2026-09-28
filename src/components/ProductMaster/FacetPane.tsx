@@ -91,7 +91,7 @@ export const FacetPane: React.FC<Props> = ({
         <span>{t('catalog')}</span>
         <div className="view-tog">
           <button type="button" className={viewMode === 'skus' ? 'act' : ''} onClick={() => switchView('skus')}>
-            SKUs
+            {t('productMaster.skus', 'SKUs')}
           </button>
           <button type="button" className={viewMode === 'types' ? 'act' : ''} onClick={() => switchView('types')}>
             {t('typesLabel')}

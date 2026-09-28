@@ -1451,7 +1451,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                     type="button"
                     className="sub-modal-close"
                     onClick={closeModal}
-                    aria-label="Close"
+                    aria-label={t('close', 'Close')}
                     disabled={busy || quoteLoading}
                   >
                     ✕

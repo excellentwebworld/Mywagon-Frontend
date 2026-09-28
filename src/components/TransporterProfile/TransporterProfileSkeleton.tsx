@@ -1,15 +1,17 @@
 import React from 'react';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export const TransporterProfileSkeleton: React.FC = () => {
+  const { t } = useTranslation();
   const sk = {
     baseColor: '#f1f5f9',
     highlightColor: '#e8edf3',
   };
 
   return (
-    <div className="tp-content" aria-busy="true" aria-label="Loading transporter profile">
+    <div className="tp-content" aria-busy="true" aria-label={t('loadingTransporterProfile', 'Loading transporter profile')}>
       <div className="tp-header-card">
         <Skeleton circle width={64} height={64} {...sk} />
         <div className="tp-header-text flex-1 min-w-0 space-y-2">

@@ -127,7 +127,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
               type="button"
               onClick={handleCopy}
               title={copied ? t('copied', 'Copied!') : t('copyId', 'Copy ID')}
-              aria-label="Copy ID"
+              aria-label={t('copyId', 'Copy ID')}
               className="p-1.5 rounded-md text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-90 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
             >
               {copied ? <Check size={15} className="text-[var(--mv-success)] animate-in zoom-in-50 duration-150" /> : <Copy size={15} />}

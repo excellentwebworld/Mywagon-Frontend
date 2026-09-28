@@ -78,7 +78,7 @@ export const RequestAdjustmentModal: React.FC<RequestAdjustmentModalProps> = ({
         <div className="billing-modal" onClick={(e) => e.stopPropagation()}>
           <div className="billing-modal-h">
             <h3>{t('billingPage.modalRequestAdjustment', 'Request Adjustment')}</h3>
-            <button type="button" className="b-btn-ghost billing-modal-close" onClick={onClose} aria-label="Close">
+            <button type="button" className="b-btn-ghost billing-modal-close" onClick={onClose} aria-label={t('close', 'Close')}>
               <X size={18} />
             </button>
           </div>

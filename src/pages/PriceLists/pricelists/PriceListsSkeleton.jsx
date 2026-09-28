@@ -1,6 +1,7 @@
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { useTheme } from '../../../hooks/useTheme';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 function DirectorySkeleton() {
   const { T } = useTheme();
@@ -108,10 +109,11 @@ export { DirectorySkeleton, TableSkeleton };
 
 export function AuditLogPanelSkeleton({ rows = 6 }) {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const s = { baseColor: T.bg, highlightColor: T.sf };
 
   return (
-    <div className="space-y-1" aria-busy="true" aria-label="Loading audit log">
+    <div className="space-y-1" aria-busy="true" aria-label={t('loadingAuditLog', 'Loading audit log')}>
       {Array.from({ length: rows }, (_, i) => (
         <div
           key={i}

@@ -93,7 +93,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside
         className={`sidebar ${mobileOpen ? "mobile-open" : ""} ${collapsed ? "collapsed" : ""} ${pastDueLocked ? "past-due-locked" : ""}`}
         id="sidebar"
-        aria-label="Main navigation"
+        aria-label={t("mainNavigation", "Main navigation")}
         onClickCapture={(e) => {
           if (!pastDueLocked) return;
           const anchor = (e.target as HTMLElement).closest("a");

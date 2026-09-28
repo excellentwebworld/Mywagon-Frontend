@@ -6,9 +6,11 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export default function Modal({ open, onClose, title, children, size = 'md', className = '' }) {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const sizes = { sm: 'max-w-sm', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl', full: 'max-w-full mx-4' };
 
   useEffect(() => {
@@ -45,7 +47,7 @@ export default function Modal({ open, onClose, title, children, size = 'md', cla
               onClick={onClose}
               className="p-1 rounded-lg cursor-pointer border-none"
               style={{ background: 'transparent', color: T.t3 }}
-              aria-label="Close"
+              aria-label={t('close', 'Close')}
             >
               <X size={18} />
             </button>

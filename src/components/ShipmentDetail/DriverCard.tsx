@@ -41,7 +41,7 @@ export const DriverCard: React.FC<DriverCardProps> = ({
               <TransporterNameLink id={driver.userId} type="driver" name={driver.name} />{' '}
               {driver.partner && (
                 <span className="ld-bg ld-bg-ac" style={{ fontSize: 9 }}>
-                  PARTNER
+                  {t('partnerBadge') || 'PARTNER'}
                 </span>
               )}
             </div>

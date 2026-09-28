@@ -242,7 +242,7 @@ export function TopNav() {
   return (
     <nav
       className="top-nav"
-      aria-label="Main navigation"
+      aria-label={t('mainNavigation', 'Main navigation')}
       style={{
         height: 42,
         background: T.nav,

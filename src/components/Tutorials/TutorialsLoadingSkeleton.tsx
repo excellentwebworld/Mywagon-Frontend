@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const SkeletonCard: React.FC = () => (
   <div className="tut-skeleton-card" aria-hidden>
@@ -17,10 +18,13 @@ const SkeletonCard: React.FC = () => (
   </div>
 );
 
-export const TutorialsLoadingSkeleton: React.FC = () => (
-  <div className="tut-skeleton-grid" aria-busy="true" aria-label="Loading tutorials">
-    {[0, 1, 2, 4, 5, 6].map((i) => (
-      <SkeletonCard key={i} />
-    ))}
-  </div>
-);
+export const TutorialsLoadingSkeleton: React.FC = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="tut-skeleton-grid" aria-busy="true" aria-label={t('tutorials.loading', 'Loading tutorials')}>
+      {[0, 1, 2, 4, 5, 6].map((i) => (
+        <SkeletonCard key={i} />
+      ))}
+    </div>
+  );
+};

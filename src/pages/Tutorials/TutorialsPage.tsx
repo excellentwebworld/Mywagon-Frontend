@@ -62,7 +62,7 @@ export const TutorialsPage: React.FC = () => {
         <div className="tut-error-banner" role="alert">
           <span>{page.error}</span>
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => page.refetch()}>
-            Retry
+            {page.t('retry', 'Retry')}
           </button>
         </div>
       )}

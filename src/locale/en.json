@@ -6419,5 +6419,22 @@
     "mappedSkusCount": "Mapped SKUs ({{count}})",
     "barcodePlain": "Barcode",
     "weightPlain": "Weight"
-  }
+  },
+  "live": "LIVE",
+  "mainNavigation": "Main navigation",
+  "noShipmentLinked": "No shipment linked to this conversation.",
+  "pageSections": "Page sections",
+  "podFullPreview": "POD Full Preview",
+  "loadingTransporterProfile": "Loading transporter profile",
+  "moduleFilters": "Module filters",
+  "closeShareDialog": "Close share dialog",
+  "loadingArticles": "Loading articles",
+  "loadingKnowledgeBase": "Loading knowledge base",
+  "loadingForm": "Loading form",
+  "loadingRequests": "Loading requests",
+  "loadingTicket": "Loading ticket",
+  "loadingAuditLog": "Loading audit log",
+  "partnerBadge": "PARTNER",
+  "timePickerNow": "Now",
+  "emailLabel": "Email"
 }

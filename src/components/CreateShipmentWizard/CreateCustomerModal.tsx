@@ -110,7 +110,7 @@ export const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
           </div>
           <div className="field">
             <label className="field-l" htmlFor="newCustEmail">
-              Email
+              {t('emailLabel', 'Email')}
             </label>
             <input
               id="newCustEmail"

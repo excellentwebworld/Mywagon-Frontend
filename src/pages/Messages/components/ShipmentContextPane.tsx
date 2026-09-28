@@ -48,7 +48,7 @@ export const ShipmentContextPane: React.FC<ShipmentContextPaneProps> = ({
         </div>
         <div className="ctx-scroll">
           <p style={{ fontSize: 13, color: 'var(--t3, #8E8E9A)', textAlign: 'center', marginTop: 30 }}>
-            No shipment linked to this conversation.
+            {t('noShipmentLinked') || 'No shipment linked to this conversation.'}
           </p>
         </div>
       </div>

@@ -126,7 +126,7 @@ export const TutorialVideoModal: React.FC<TutorialVideoModalProps> = ({
             <h3 id="tut-modal-title">{videoTitle}</h3>
             <div className="tut-modal-head-sub">{moduleTitle}</div>
           </div>
-          <button type="button" className="tut-modal-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="tut-modal-close" onClick={onClose} aria-label={t('close', 'Close')}>
             <X size={16} aria-hidden />
           </button>
         </div>
