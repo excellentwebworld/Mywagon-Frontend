@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Form, Formik, type FormikHelpers } from 'formik';
 import * as Yup from 'yup';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import type { CompanyFormData } from '../../pages/AddressBook/types';
 import { requiredPhoneSchema, sanitizePhoneInput } from '../../pages/AddressBook/validation/phoneValidation';
+import { useTranslation } from '../../hooks/useTranslation';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { GoogleMapAddressField } from './GoogleMapAddressField';
 import { FormFieldError } from './FormFieldError';
@@ -16,8 +17,7 @@ type Props = Pick<
   'isCompanyOpen' | 'closeCompanyModal' | 'companyData' | 'setCompanyData' | 'handleApplyCompany'
 >;
 
-const INDUSTRIES = [
-  '',
+const INDUSTRY_VALUES = [
   'Retail',
   'Wholesale',
   'Manufacturing',
@@ -26,19 +26,18 @@ const INDUSTRIES = [
   'Construction',
   'Pharmaceuticals',
   'Other',
-];
+] as const;
 
-const companyValidationSchema = Yup.object().shape({
-  name: Yup.string().trim().required('Company name is required.'),
-  email: Yup.string().trim().email('Enter a valid email address.').required('Email is required.'),
-  vat: Yup.string().trim().required('VAT number is required.'),
-  phone: requiredPhoneSchema(),
-  address: Yup.string().trim().required('Address is required.'),
-  country: Yup.string().trim().required('Country is required. Please select an address suggestion.'),
-  website: Yup.string().trim().required('Website is required.'),
-  industry: Yup.string().trim().required('Industry is required.'),
-  contactPerson: Yup.string().trim().required('Primary contact person is required.'),
-});
+const INDUSTRY_KEYS: Record<(typeof INDUSTRY_VALUES)[number], string> = {
+  Retail: 'abIndustryRetail',
+  Wholesale: 'abIndustryWholesale',
+  Manufacturing: 'abIndustryManufacturing',
+  Logistics: 'abIndustryLogistics',
+  'Food & Beverage': 'abIndustryFood',
+  Construction: 'abIndustryConstruction',
+  Pharmaceuticals: 'abIndustryPharma',
+  Other: 'abIndustryOther',
+};
 
 const API_COMPANY_FIELD_TO_FORM: Record<string, keyof CompanyFormData> = {
   name: 'name',
@@ -73,7 +72,35 @@ export const CreateCompanyModal: React.FC<Props> = ({
   companyData,
   handleApplyCompany,
 }) => {
-  useEffect(() => {
+  const { t } = useTranslation();
+
+  const companyValidationSchema = useMemo(
+    () =>
+      Yup.object().shape({
+        name: Yup.string().trim().required(t('abCompanyNameRequired', 'Company name is required.')),
+        email: Yup.string()
+          .trim()
+          .email(t('abValidEmail', 'Enter a valid email address.'))
+          .required(t('abEmailRequired', 'Email is required.')),
+        vat: Yup.string().trim().required(t('abVatRequired', 'VAT number is required.')),
+        phone: requiredPhoneSchema(
+          t('abPhoneRequired', 'Phone is required.'),
+          t('abValidPhone', 'Enter a valid phone number.')
+        ),
+        address: Yup.string().trim().required(t('abAddressRequiredMsg', 'Address is required.')),
+        country: Yup.string()
+          .trim()
+          .required(t('abCountryRequiredMsg', 'Country is required. Please select an address suggestion.')),
+        website: Yup.string().trim().required(t('abWebsiteRequired', 'Website is required.')),
+        industry: Yup.string().trim().required(t('abIndustryRequired', 'Industry is required.')),
+        contactPerson: Yup.string()
+          .trim()
+          .required(t('abContactPersonRequired', 'Primary contact person is required.')),
+      }),
+    [t]
+  );
+
+  React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isCompanyOpen) closeCompanyModal();
     };
@@ -82,6 +109,11 @@ export const CreateCompanyModal: React.FC<Props> = ({
   }, [isCompanyOpen, closeCompanyModal]);
 
   if (!isCompanyOpen) return null;
+
+  const industryOptions = INDUSTRY_VALUES.map((ind) => ({
+    value: ind,
+    label: t(INDUSTRY_KEYS[ind], ind),
+  }));
 
   const handleSubmit = async (
     values: CompanyFormData,
@@ -97,7 +129,9 @@ export const CreateCompanyModal: React.FC<Props> = ({
           helpers.setErrors(mapCompanyServerErrors(err.fieldErrors));
         }
       } else {
-        helpers.setStatus('Failed to create company. Please check the form and try again.');
+        helpers.setStatus(
+          t('abFailedCreateCompany', 'Failed to create company. Please check the form and try again.')
+        );
       }
     } finally {
       helpers.setSubmitting(false);
@@ -131,7 +165,7 @@ export const CreateCompanyModal: React.FC<Props> = ({
             <Form className="modal modal-lg ab-company-modal" onClick={(e) => e.stopPropagation()} noValidate>
               <ScrollToFormError modalBodySelector=".ab-company-body" />
               <div className="modal-header">
-                <h2>Create New Company</h2>
+                <h2>{t('abCreateCompanyTitle', 'Create New Company')}</h2>
                 <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeCompanyModal}>
                   ✕
                 </button>
@@ -142,17 +176,19 @@ export const CreateCompanyModal: React.FC<Props> = ({
                     {status}
                   </div>
                 )}
-                <h4 style={{ fontSize: '14px', fontWeight: 700, margin: '0 0 14px' }}>Company Details</h4>
-                
+                <h4 style={{ fontSize: '14px', fontWeight: 700, margin: '0 0 14px' }}>
+                  {t('abCompanyDetails', 'Company Details')}
+                </h4>
+
                 <div className={fieldClass(showError('name'))}>
                   <label htmlFor="company-name">
-                    Company Name <span className="req">*</span>
+                    {t('companyName', 'Company Name')} <span className="req">*</span>
                   </label>
                   <input
                     id="company-name"
                     name="name"
                     type="text"
-                    placeholder="e.g. Acme Corp"
+                    placeholder={t('abEgCompanyName', 'e.g. Acme Corp')}
                     value={values.name}
                     onChange={handleChange}
                     onBlur={handleBlur}
@@ -163,13 +199,13 @@ export const CreateCompanyModal: React.FC<Props> = ({
                 <div className="mf-row">
                   <div className={fieldClass(showError('email'))}>
                     <label htmlFor="company-email">
-                      Email <span className="req">*</span>
+                      {t('email', 'Email')} <span className="req">*</span>
                     </label>
                     <input
                       id="company-email"
                       name="email"
                       type="email"
-                      placeholder="info@company.com"
+                      placeholder={t('abEgEmail', 'info@company.com')}
                       value={values.email}
                       onChange={handleChange}
                       onBlur={handleBlur}
@@ -178,13 +214,13 @@ export const CreateCompanyModal: React.FC<Props> = ({
                   </div>
                   <div className={fieldClass(showError('vat'))}>
                     <label htmlFor="company-vat">
-                      VAT Number <span className="req">*</span>
+                      {t('vatNumber', 'VAT Number')} <span className="req">*</span>
                     </label>
                     <input
                       id="company-vat"
                       name="vat"
                       type="text"
-                      placeholder="e.g. EL094123456"
+                      placeholder={t('abEgVat', 'e.g. EL094123456')}
                       value={values.vat}
                       onChange={handleChange}
                       onBlur={handleBlur}
@@ -195,7 +231,7 @@ export const CreateCompanyModal: React.FC<Props> = ({
 
                 <div className={fieldClass(showError('phone'))}>
                   <label htmlFor="company-phone">
-                    Phone <span className="req">*</span>
+                    {t('phone', 'Phone')} <span className="req">*</span>
                   </label>
                   <input
                     id="company-phone"
@@ -203,7 +239,7 @@ export const CreateCompanyModal: React.FC<Props> = ({
                     type="tel"
                     inputMode="tel"
                     autoComplete="tel"
-                    placeholder="+30 210 ..."
+                    placeholder={t('abPhonePlaceholder', '+30 210 ...')}
                     value={values.phone}
                     onChange={(e) => setFieldValue('phone', sanitizePhoneInput(e.target.value))}
                     onBlur={handleBlur}
@@ -236,13 +272,13 @@ export const CreateCompanyModal: React.FC<Props> = ({
                 <div className="mf-row">
                   <div className={fieldClass(showError('country'))}>
                     <label htmlFor="company-country">
-                      Country <span className="req">*</span>
+                      {t('abCountry', 'Country')} <span className="req">*</span>
                     </label>
                     <input
                       id="company-country"
                       name="country"
                       type="text"
-                      placeholder="Greece"
+                      placeholder={t('abCountryPlaceholder', 'Greece')}
                       value={values.country}
                       onChange={handleChange}
                       onBlur={handleBlur}
@@ -251,13 +287,13 @@ export const CreateCompanyModal: React.FC<Props> = ({
                   </div>
                   <div className={fieldClass(showError('website'))}>
                     <label htmlFor="company-website">
-                      Website <span className="req">*</span>
+                      {t('abWebsite', 'Website')} <span className="req">*</span>
                     </label>
                     <input
                       id="company-website"
                       name="website"
                       type="text"
-                      placeholder="https://www.company.com"
+                      placeholder={t('abWebsitePlaceholder', 'https://www.company.com')}
                       value={values.website}
                       onChange={handleChange}
                       onBlur={handleBlur}
@@ -269,12 +305,12 @@ export const CreateCompanyModal: React.FC<Props> = ({
                 <div className="mf-row">
                   <div className={fieldClass(showError('industry'))}>
                     <label>
-                      Industry <span className="req">*</span>
+                      {t('abIndustry', 'Industry')} <span className="req">*</span>
                     </label>
                     <SearchableSelect
                       value={values.industry}
-                      options={INDUSTRIES.filter(Boolean).map((ind) => ({ value: ind, label: ind }))}
-                      placeholder="— Select —"
+                      options={industryOptions}
+                      placeholder={t('abSelectPlaceholder', '— Select —')}
                       hasError={showError('industry')}
                       onChange={(val) => {
                         setFieldValue('industry', val);
@@ -285,13 +321,13 @@ export const CreateCompanyModal: React.FC<Props> = ({
                   </div>
                   <div className={fieldClass(showError('contactPerson'))}>
                     <label htmlFor="company-contact-person">
-                      Primary Contact Person <span className="req">*</span>
+                      {t('abPrimaryContact', 'Primary Contact Person')} <span className="req">*</span>
                     </label>
                     <input
                       id="company-contact-person"
                       name="contactPerson"
                       type="text"
-                      placeholder="Full name"
+                      placeholder={t('abFullNamePlaceholder', 'Full name')}
                       value={values.contactPerson}
                       onChange={handleChange}
                       onBlur={handleBlur}
@@ -302,10 +338,10 @@ export const CreateCompanyModal: React.FC<Props> = ({
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={closeCompanyModal}>
-                  Cancel
+                  {t('abCancel', 'Cancel')}
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                  Create Company
+                  {t('abCreateCompanyBtn', 'Create Company')}
                 </button>
               </div>
             </Form>

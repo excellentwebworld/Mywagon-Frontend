@@ -13,7 +13,7 @@
  */
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import {
   Search, Download, ChevronDown, ChevronRight, X, Clock, Loader2,
 } from 'lucide-react';
@@ -195,7 +195,7 @@ export default function AuditLogSection() {
             onChange={(v) => { setDateFrom(v); setPage(1); }}
             max={dateTo || undefined}
             direction="auto"
-            placeholder="dd/MM/yyyy"
+            placeholder={t('Settings.dd_mm_yyyy', 'dd/MM/yyyy')}
           />
         </div>
         <span style={{ fontSize: 12, color: T.t3 }}>→</span>
@@ -205,7 +205,7 @@ export default function AuditLogSection() {
             onChange={(v) => { setDateTo(v); setPage(1); }}
             min={dateFrom || undefined}
             direction="auto"
-            placeholder="dd/MM/yyyy"
+            placeholder={t('Settings.dd_mm_yyyy', 'dd/MM/yyyy')}
           />
         </div>
 

@@ -180,13 +180,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 to="/shipments/create"
                 onClick={(e) => onFeatureNav(e, "/shipments/create")}
                 className={`ni ${isLinkActive("/shipments/create") ? "active" : ""}`}
-                title={t("createShipment")}
+                title={t("createShipment.label", "Create Shipment")}
                 data-tour="create-shipment"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 5v14M5 12h14" />
                 </svg>
-                <span>{t("createShipment")}</span>
+                <span>{t("createShipment.label", "Create Shipment")}</span>
               </Link>
               )}
 

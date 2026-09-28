@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import {
@@ -248,7 +248,7 @@ export default function KycSection({ onStatusChange }) {
                 className="hidden"
                 onChange={onFileChange}
               />
-              <div style={{ fontSize: 10, color: T.t3, marginTop: 6 }}>PDF, JPG, PNG, WEBP · Max 5MB</div>
+              <div style={{ fontSize: 10, color: T.t3, marginTop: 6 }}>{t('Settings.pdf_jpg_png_webp_max_5mb', 'PDF, JPG, PNG, WEBP · Max 5MB')}</div>
               {fileError && <div style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{fileError}</div>}
             </>
           )}

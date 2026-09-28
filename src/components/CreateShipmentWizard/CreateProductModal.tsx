@@ -85,7 +85,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-h">
           <span>{t('createNewProduct')}</span>
-          <button className="modal-close" onClick={onClose} aria-label="Close modal">
+          <button className="modal-close" onClick={onClose} aria-label={t('createShipment.closeModal', 'Close modal')}>
             ✕
           </button>
         </div>
@@ -125,7 +125,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             <input
               id="newProdName"
               className="inp"
-              placeholder="e.g. Olive Oil 5L"
+              placeholder={t('createShipment.egOliveOil', 'e.g. Olive Oil 5L')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -138,7 +138,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
             <input
               id="newProdSku"
               className="inp"
-              placeholder="e.g. FOD-050"
+              placeholder={t('createShipment.egFod050', 'e.g. FOD-050')}
               value={number}
               onChange={(e) => setNumber(e.target.value)}
               required
@@ -153,7 +153,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               className="inp"
               type="number"
               step="0.1"
-              placeholder="e.g. 30"
+              placeholder={t('createShipment.eg30', 'e.g. 30')}
               value={weight}
               onChange={(e) => setWeight(e.target.value)}
             />

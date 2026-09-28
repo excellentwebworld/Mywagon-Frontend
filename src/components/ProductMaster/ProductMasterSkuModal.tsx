@@ -222,7 +222,7 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
                     <label>{t('weightKg')}</label>
                     <input
                       name="weight"
-                      placeholder="e.g. 25"
+                      placeholder={t('productMaster.weightPlaceholder', 'e.g. 25')}
                       value={values.weight}
                       onChange={handleChange}
                       onBlur={handleBlur}

@@ -113,7 +113,7 @@ export default function ConfirmTwoFactorModal({
                       setResendSeconds(60);
                       toast.success(t('settings.securitySection.mfa.codeSent', { defaultValue: 'Verification code sent' }));
                     })
-                    .catch((e) => setError(e instanceof ApiError ? e.message : 'Failed'));
+                    .catch((e) => setError(e instanceof ApiError ? e.message : t('Settings.failed', 'Failed')));
                 }}
                 className="mt-2 cursor-pointer border-none bg-transparent"
                 style={{ fontSize: 12, color: T.ac, opacity: resendSeconds > 0 ? 0.6 : 1 }}

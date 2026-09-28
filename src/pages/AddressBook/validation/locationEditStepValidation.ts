@@ -1,9 +1,11 @@
 import * as Yup from 'yup';
 import type { LocationFormValues } from './locationFormSchema';
-import { locationEditValidationSchema } from './locationFormSchema';
+import { getLocationEditValidationSchema } from './locationFormSchema';
 import { normalizeLocationFormValues } from './locationFormUtils';
 
 export type EditStepErrors = Partial<Record<keyof LocationFormValues, string>>;
+
+type TFn = (key: string, fallback?: string) => string;
 
 function mapYupErrors(err: unknown): EditStepErrors {
   if (!Yup.ValidationError.isError(err)) return {};
@@ -26,15 +28,17 @@ const STEP_FIELDS: Record<number, (keyof LocationFormValues)[]> = {
 
 export async function validateEditStep(
   step: number,
-  values: LocationFormValues
+  values: LocationFormValues,
+  t?: TFn
 ): Promise<EditStepErrors> {
   const fields = STEP_FIELDS[step];
   if (!fields?.length) return {};
 
   const normalized = normalizeLocationFormValues(values);
+  const schema = getLocationEditValidationSchema(t);
 
   try {
-    await locationEditValidationSchema.pick(fields).validate(normalized, {
+    await schema.pick(fields).validate(normalized, {
       abortEarly: false,
     });
     return {};

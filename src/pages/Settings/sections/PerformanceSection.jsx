@@ -3,7 +3,7 @@
  * KPIs load first; reviews paginate on scroll so the page never stays stuck on skeleton.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { BarChart2, Star } from 'lucide-react';
@@ -52,7 +52,7 @@ export default function PerformanceSection() {
       } catch (e) {
         if (!cancelled) {
           toastRef.current.error(
-            e instanceof Error ? e.message : 'Failed to load personal settings'
+            e instanceof Error ? e.message : t('Settings.failed_to_load_personal_settings', 'Failed to load personal settings')
           );
         }
       } finally {
@@ -62,7 +62,7 @@ export default function PerformanceSection() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   const fetchReviewsPage = useCallback(async (page) => {
     const result = await personalSettingsService.getRatings(page, PAGE_SIZE);
@@ -91,7 +91,7 @@ export default function PerformanceSection() {
           setReviewsLastPage(1);
           setReviewsTotal(0);
           toastRef.current.error(
-            e instanceof Error ? e.message : 'Failed to load reviews'
+            e instanceof Error ? e.message : t('Settings.failed_to_load_reviews', 'Failed to load reviews')
           );
         }
       } finally {
@@ -101,7 +101,7 @@ export default function PerformanceSection() {
     return () => {
       cancelled = true;
     };
-  }, [fetchReviewsPage]);
+  }, [fetchReviewsPage, t]);
 
   const loadMore = useCallback(async () => {
     if (loadingMoreRef.current || reviewsPage >= reviewsLastPage) return;
@@ -110,12 +110,12 @@ export default function PerformanceSection() {
     try {
       await fetchReviewsPage(reviewsPage + 1);
     } catch (e) {
-      toastRef.current.error(e instanceof Error ? e.message : 'Failed to load reviews');
+      toastRef.current.error(e instanceof Error ? e.message : t('Settings.failed_to_load_reviews', 'Failed to load reviews'));
     } finally {
       loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }, [reviewsPage, reviewsLastPage, fetchReviewsPage]);
+  }, [reviewsPage, reviewsLastPage, fetchReviewsPage, t]);
 
   useEffect(() => {
     if (loading || reviewsLoading || reviewsPage >= reviewsLastPage) return;
@@ -247,13 +247,14 @@ export default function PerformanceSection() {
 }
 
 function PerformanceSkeleton({ T }) {
+  const { t } = useTranslation();
   const sk = { baseColor: T.sa, highlightColor: T.bd };
   return (
     <div
       className="rounded-xl overflow-hidden"
       style={{ background: T.sf, border: `1px solid ${T.bd}` }}
       aria-busy="true"
-      aria-label="Loading"
+      aria-label={t('Settings.loading', 'Loading')}
     >
       <div className="flex items-center gap-2 px-5 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
         <Skeleton circle width={16} height={16} {...sk} />

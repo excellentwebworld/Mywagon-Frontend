@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type Props = {
   value: string;
@@ -51,6 +52,7 @@ export const TimePicker: React.FC<Props> = ({
   hasError = false,
   disabled = false,
 }) => {
+  const { t } = useTranslation();
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -183,8 +185,8 @@ export const TimePicker: React.FC<Props> = ({
         inputMode="numeric"
         autoComplete="off"
         spellCheck={false}
-        placeholder="HH:mm"
-        aria-label="Time (24-hour)"
+        placeholder={t('ui.hh_mm', 'HH:mm')}
+        aria-label={t('ui.time_24_hour', 'Time (24-hour)')}
         aria-expanded={open}
         aria-controls={open ? `${id}-menu` : undefined}
         style={style}
@@ -208,7 +210,7 @@ export const TimePicker: React.FC<Props> = ({
         className="time-picker-icon-btn"
         tabIndex={-1}
         disabled={disabled}
-        aria-label="Open 24-hour time picker"
+        aria-label={t('ui.open_24_hour_time_picker', 'Open 24-hour time picker')}
         onClick={toggleOpen}
       >
         <span className="time-picker-icon" aria-hidden="true">
@@ -237,12 +239,12 @@ export const TimePicker: React.FC<Props> = ({
             className="time-picker-menu"
             style={{ top: menuStyle.top, left: menuStyle.left }}
             role="dialog"
-            aria-label="Select time (24-hour)"
+            aria-label={t('ui.select_time_24_hour', 'Select time (24-hour)')}
           >
             <div className="time-picker-menu-cols">
               <div className="time-picker-menu-col">
                 <div className="time-picker-menu-label">HH</div>
-                <div ref={hourListRef} className="time-picker-menu-list" role="listbox" aria-label="Hour">
+                <div ref={hourListRef} className="time-picker-menu-list" role="listbox" aria-label={t('ui.hour', 'Hour')}>
                   {HOURS.map((h) => (
                     <button
                       key={h}
@@ -265,7 +267,7 @@ export const TimePicker: React.FC<Props> = ({
                   ref={minuteListRef}
                   className="time-picker-menu-list"
                   role="listbox"
-                  aria-label="Minute"
+                  aria-label={t('ui.minute', 'Minute')}
                 >
                   {MINUTES.map((m) => (
                     <button

@@ -70,7 +70,7 @@ const SECTIONS: NavSection[] = [
       },
       {
         id: 'create',
-        labelKey: 'createShipment',
+        labelKey: 'createShipment.label',
         fallback: 'Create Shipment',
         route: '/shipments/create',
         icon: PlusCircle,

@@ -8,6 +8,7 @@ describe('getHeaderPageTitle (BUG-10)', () => {
       notifications: 'Notifications',
       navMessages: 'Messages',
       createShipment: 'Create Shipment',
+      'createShipment.label': 'Create Shipment',
       manageShipments: 'Shipments',
       satPageTitle: 'Search Trucks',
       truckAvailability: 'Search Trucks',

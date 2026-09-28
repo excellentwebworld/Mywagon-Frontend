@@ -7,7 +7,7 @@ import {
   RefreshCw,
   Clock,
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import { DatePicker } from '../../../../components/ui/DatePicker';
 
 interface WeeklyReportsFilterBarProps {
@@ -50,12 +50,12 @@ export const WeeklyReportsFilterBar: React.FC<WeeklyReportsFilterBarProps> = ({
   const { t } = useTranslation();
 
   const presets = [
-    { key: 'all', label: 'All Reports' },
-    { key: '1w', label: 'Last Week' },
-    { key: '4w', label: 'Last 4 Weeks' },
-    { key: '8w', label: 'Last 8 Weeks' },
-    { key: '12w', label: 'Last 12 Weeks' },
-    { key: 'year', label: 'This Year' },
+    { key: 'all', label: t('analytics.weeklyReports.presetAll', 'All Reports') },
+    { key: '1w', label: t('analytics.weeklyReports.presetLastWeek', 'Last Week') },
+    { key: '4w', label: t('analytics.weeklyReports.presetLast4Weeks', 'Last 4 Weeks') },
+    { key: '8w', label: t('analytics.weeklyReports.presetLast8Weeks', 'Last 8 Weeks') },
+    { key: '12w', label: t('analytics.weeklyReports.presetLast12Weeks', 'Last 12 Weeks') },
+    { key: 'year', label: t('analytics.weeklyReports.presetThisYear', 'This Year') },
   ];
 
   const hasActiveFilters = Boolean(
@@ -159,7 +159,7 @@ export const WeeklyReportsFilterBar: React.FC<WeeklyReportsFilterBarProps> = ({
               type="button"
               className="wr-search-clear"
               onClick={() => onSearchChange('')}
-              aria-label="Clear search"
+              aria-label={t('analytics.weeklyReports.clearSearch', 'Clear search')}
             >
               <X size={13} />
             </button>
@@ -168,14 +168,20 @@ export const WeeklyReportsFilterBar: React.FC<WeeklyReportsFilterBarProps> = ({
 
         <div className="wr-filter-meta-actions">
           {dateRangeLabel && (
-            <span className="wr-range-indicator" title="Active reporting window">
+            <span
+              className="wr-range-indicator"
+              title={t('analytics.weeklyReports.activeReportingWindow', 'Active reporting window')}
+            >
               <span className="wr-range-indicator-dot" />
               <span>{dateRangeLabel}</span>
             </span>
           )}
 
           <span className="wr-total-badge">
-            <strong>{totalCount}</strong> {totalCount === 1 ? 'weekly report' : 'weekly reports'}
+            <strong>{totalCount}</strong>{' '}
+            {totalCount === 1
+              ? t('analytics.weeklyReports.weeklyReportSingular', 'weekly report')
+              : t('analytics.weeklyReports.weeklyReportPlural', 'weekly reports')}
           </span>
 
           <button

@@ -1,5 +1,6 @@
 import React from 'react';
 import { getTimeRangeError } from '../../pages/AddressBook/validation/timeRangeValidation';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface TimeRangeRow {
   id?: number;
@@ -42,6 +43,8 @@ export const TimeRangeFormList: React.FC<TimeRangeFormListProps> = ({
   timeRanges,
   onChange,
 }) => {
+  const { t } = useTranslation();
+
   const update = (index: number, field: keyof TimeRangeRow, value: string) => {
     const updated = [...timeRanges];
     updated[index] = { ...updated[index], [field]: value };
@@ -61,15 +64,17 @@ export const TimeRangeFormList: React.FC<TimeRangeFormListProps> = ({
   return (
     <div className="time-range-list">
       {timeRanges.map((range, i) => {
-        const rangeError = getTimeRangeError(range);
+        const rangeError = getTimeRangeError(range, t);
 
         return (
           <div key={i} className="time-range-block">
-            <div className="time-range-title">Time Range {i + 1}</div>
+            <div className="time-range-title">
+              {t('abTimeRangeN', 'Time Range {{n}}', { n: i + 1 })}
+            </div>
             <div className="time-range-row">
               <div className={`mf${rangeError ? ' has-error' : ''}`} style={{ marginBottom: 0 }}>
                 <label className="form-label">
-                  Start Time <span className="req">*</span>
+                  {t('abStartTime', 'Start Time')} <span className="req">*</span>
                 </label>
                 <div className={`time-select-wrapper${rangeError ? ' has-error' : ''}`}>
                   <select
@@ -92,7 +97,7 @@ export const TimeRangeFormList: React.FC<TimeRangeFormListProps> = ({
               </div>
               <div className={`mf${rangeError ? ' has-error' : ''}`} style={{ marginBottom: 0 }}>
                 <label className="form-label">
-                  End Time <span className="req">*</span>
+                  {t('abEndTime', 'End Time')} <span className="req">*</span>
                 </label>
                 <div className={`time-select-wrapper${rangeError ? ' has-error' : ''}`}>
                   <select
@@ -119,7 +124,7 @@ export const TimeRangeFormList: React.FC<TimeRangeFormListProps> = ({
                     type="button"
                     className="range-action-btn add-range-btn"
                     onClick={add}
-                    aria-label="Add time range"
+                    aria-label={t('abAddTimeRange', 'Add time range')}
                   >
                     +
                   </button>
@@ -128,7 +133,7 @@ export const TimeRangeFormList: React.FC<TimeRangeFormListProps> = ({
                     type="button"
                     className="range-action-btn remove-range-btn"
                     onClick={() => remove(i)}
-                    aria-label="Remove time range"
+                    aria-label={t('abRemoveTimeRange', 'Remove time range')}
                   >
                     −
                   </button>

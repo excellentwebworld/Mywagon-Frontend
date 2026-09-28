@@ -624,7 +624,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   <input
                     type="email"
                     className="flex-1 p-2 border rounded-lg text-xs outline-none"
-                    placeholder="email@example.com"
+                    placeholder={t('createShipment.emailPlaceholder', 'email@example.com')}
                     value={em}
                     onChange={(e) => updateEmailField(o.orderId, emIdx, e.target.value)}
                   />

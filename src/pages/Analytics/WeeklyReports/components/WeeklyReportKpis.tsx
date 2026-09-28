@@ -6,6 +6,7 @@ import {
   Truck,
   Calendar,
 } from 'lucide-react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import type { WeeklyReportItem, WeeklyReportsMeta } from '../../../../api/types/weeklyReports';
 
 interface WeeklyReportKpisProps {
@@ -25,6 +26,8 @@ export const WeeklyReportKpis: React.FC<WeeklyReportKpisProps> = ({
   dateTo,
   activePreset,
 }) => {
+  const { t } = useTranslation();
+
   if (loading && (!meta || reports.length === 0)) {
     return (
       <div className="wr-kpi-grid">
@@ -72,57 +75,65 @@ export const WeeklyReportKpis: React.FC<WeeklyReportKpisProps> = ({
   const getPeriodSubtitle = () => {
     const fromLabel = formatDateLabel(dateFrom || meta?.date_range_start);
     const toLabel = formatDateLabel(dateTo || meta?.date_range_end);
+    const range = fromLabel && toLabel ? ` (${fromLabel} – ${toLabel})` : '';
 
     if (activePreset === '1w' || activePreset === 'last_week') {
-      return fromLabel && toLabel ? `Last Week (${fromLabel} – ${toLabel})` : 'Last Week';
+      return `${t('analytics.weeklyReports.presetLastWeek', 'Last Week')}${range}`;
     }
     if (activePreset === '4w') {
-      return fromLabel && toLabel ? `Last 4 Weeks (${fromLabel} – ${toLabel})` : 'Last 4 Weeks';
+      return `${t('analytics.weeklyReports.presetLast4Weeks', 'Last 4 Weeks')}${range}`;
     }
     if (activePreset === '8w') {
-      return fromLabel && toLabel ? `Last 8 Weeks (${fromLabel} – ${toLabel})` : 'Last 8 Weeks';
+      return `${t('analytics.weeklyReports.presetLast8Weeks', 'Last 8 Weeks')}${range}`;
     }
     if (activePreset === '12w') {
-      return fromLabel && toLabel ? `Last 12 Weeks (${fromLabel} – ${toLabel})` : 'Last 12 Weeks';
+      return `${t('analytics.weeklyReports.presetLast12Weeks', 'Last 12 Weeks')}${range}`;
     }
     if (activePreset === 'year') {
-      return fromLabel && toLabel ? `This Year (${fromLabel} – ${toLabel})` : 'This Year';
+      return `${t('analytics.weeklyReports.presetThisYear', 'This Year')}${range}`;
     }
     if (fromLabel && toLabel) {
       return `${fromLabel} – ${toLabel}`;
     }
     if (meta?.date_range_start && meta?.date_range_end) {
-      return `${formatDateLabel(meta.date_range_start)} – ${formatDateLabel(meta.date_range_end)} (All available)`;
+      return t(
+        'analytics.weeklyReports.allAvailableRange',
+        '{{from}} – {{to}} (All available)',
+        {
+          from: formatDateLabel(meta.date_range_start),
+          to: formatDateLabel(meta.date_range_end),
+        }
+      );
     }
-    return 'All Available Reports';
+    return t('analytics.weeklyReports.allAvailableReports', 'All Available Reports');
   };
 
   const kpis = [
     {
-      label: 'Total Weekly Reports',
+      label: t('analytics.weeklyReports.kpiTotalReports', 'Total Weekly Reports'),
       val: totalReports,
       sub: getPeriodSubtitle(),
       icon: <FileText size={18} className="text-blue-500" />,
       accent: 'blue',
     },
     {
-      label: 'Loads Fulfilled',
+      label: t('analytics.weeklyReports.kpiLoadsFulfilled', 'Loads Fulfilled'),
       val: totalFulfilled,
-      sub: 'Completed shipments in period',
+      sub: t('analytics.weeklyReports.kpiFulfilledSub', 'Completed shipments in period'),
       icon: <CheckCircle size={18} className="text-[var(--mv-success)]" />,
       accent: 'emerald',
     },
     {
-      label: 'Loads Created',
+      label: t('analytics.weeklyReports.kpiLoadsCreated', 'Loads Created'),
       val: totalCreated,
-      sub: 'New shipments placed in period',
+      sub: t('analytics.weeklyReports.kpiCreatedSub', 'New shipments placed in period'),
       icon: <PlusCircle size={18} className="text-indigo-500" />,
       accent: 'indigo',
     },
     {
-      label: 'Active In Transit',
+      label: t('analytics.weeklyReports.kpiActiveInTransit', 'Active In Transit'),
       val: totalInProgress,
-      sub: 'On trip · Scheduled · Ready',
+      sub: t('analytics.weeklyReports.kpiInTransitSub', 'On trip · Scheduled · Ready'),
       icon: <Truck size={18} className="text-amber-500" />,
       accent: 'amber',
     },

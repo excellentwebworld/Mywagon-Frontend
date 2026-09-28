@@ -22,7 +22,14 @@ type Section = 'form' | 'progress' | 'error' | 'preview' | 'result';
 
 type LogEntry = { type: 'info' | 'success' | 'error' | 'warning'; message: string; ts: string };
 
-type ColCheckResult = { label: string; icon: string; desc: string; found: boolean };
+type ColCheckResult = {
+  label: string;
+  labelKey?: string;
+  descKey?: string;
+  icon: string;
+  desc: string;
+  found: boolean;
+};
 
 interface Props {
   isOpen: boolean;
@@ -241,10 +248,10 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
             appendLog('warning', `${t('aiWizardMissingColsLog')}: ${(data.missing_columns ?? []).join(', ')}`);
             const missingSet = new Set((data.missing_columns ?? []).map((c) => c.toLowerCase()));
             const checkResults: ColCheckResult[] = [
-              { label: 'SKU Name', icon: '📦', desc: 'Product / item name', found: !missingSet.has('sku name') },
-              { label: 'SKU Number', icon: '#️⃣', desc: 'Unique SKU code', found: !missingSet.has('sku number') },
-              { label: 'Category', icon: '🗂️', desc: 'Product category', found: !missingSet.has('category') },
-              { label: 'Product Type', icon: '🏷️', desc: 'Type of product', found: !missingSet.has('product type') },
+              { label: 'SKU Name', labelKey: 'productMaster.skuName', descKey: 'productMaster.skuNameDescShort', icon: '📦', desc: 'Product / item name', found: !missingSet.has('sku name') },
+              { label: 'SKU Number', labelKey: 'productMaster.skuNumberField', descKey: 'productMaster.skuNumberDescShort', icon: '#️⃣', desc: 'Unique SKU code', found: !missingSet.has('sku number') },
+              { label: 'Category', labelKey: 'productMaster.category', descKey: 'productMaster.categoryDescShort', icon: '🗂️', desc: 'Product category', found: !missingSet.has('category') },
+              { label: 'Product Type', labelKey: 'productMaster.productType', descKey: 'productMaster.productTypeDescShort', icon: '🏷️', desc: 'Type of product', found: !missingSet.has('product type') },
             ];
             showMissingColumnsError(data.file_headers ?? [], checkResults);
             return;
@@ -594,9 +601,9 @@ export const AiWizardModal: React.FC<Props> = ({ isOpen, onClose, onImportSucces
                             </div>
                             <div className="ai-req-col-info">
                               <div className="ai-req-col-label">
-                                {col.icon} {col.label}
+                                {col.icon} {col.labelKey ? t(col.labelKey) : col.label}
                               </div>
-                              <div className="ai-req-col-desc">{col.desc}</div>
+                              <div className="ai-req-col-desc">{col.descKey ? t(col.descKey) : col.desc}</div>
                             </div>
                           </div>
                         ))}

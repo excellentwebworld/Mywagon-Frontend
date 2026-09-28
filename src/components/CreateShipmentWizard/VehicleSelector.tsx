@@ -234,7 +234,7 @@ export const VehicleSelector: React.FC<VehicleSelectorProps> = ({
                         {selectedFlag && (
                           <div
                             className="ck"
-                            title="Deselect"
+                            title={t('createShipment.deselect', 'Deselect')}
                             onClick={(e) => deselectVehicle(vt, e)}
                           >
                             ✓

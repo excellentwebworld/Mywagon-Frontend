@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -282,9 +282,7 @@ export default function OrganizationSection() {
         category: 'shipper_company_description',
         type: 'single',
         input_type: 'textarea',
-        label: t('settings.orgSection.operational.fields.company_description', {
-          defaultValue: 'Tell us briefly what your company does.',
-        }),
+        label: t('Settings.tell_us_briefly_what_your_company_does', 'Tell us briefly what your company does.'),
         required: false,
         options: [],
       };
@@ -1919,7 +1917,7 @@ function OpsField({ field, value, editing, onChange, T }) {
             }}
             className="w-full px-3 py-2 rounded-lg outline-none"
             style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
-            placeholder="a, b, c"
+            placeholder={t('Settings.a_b_c', 'a, b, c')}
           />
         ) : (
           <div className="flex flex-wrap gap-1.5">
@@ -2078,10 +2076,11 @@ function LegalField({ label, value, onChange, locked, editing, required }) {
 }
 
 function OrgSkeleton({ T }) {
+  const { t } = useTranslation();
   const sk = { baseColor: T.sa, highlightColor: T.bd };
 
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="Loading">
+    <div className="space-y-4" aria-busy="true" aria-label={t('Settings.loading', 'Loading')}>
       {/* Completion gauge */}
       <div className="rounded-xl px-5 py-4" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
         <div className="flex items-center justify-between gap-3 mb-3">

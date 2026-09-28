@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { LocationItem } from '../../context/AppContext';
-import { DOCK_TYPES, getQuickTemplateFacilityLabel, getQuickTemplateFacilityOptions } from '../../pages/AddressBook/constants';
+import { getDockTypeOptions, getQuickTemplateFacilityLabel, getQuickTemplateFacilityOptions } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { inferQuickTemplateFromType } from '../../pages/AddressBook/utils/locationUtils';
 import {
@@ -96,12 +96,12 @@ export const CreateLocationModal: React.FC<Props> = ({
 
   const facilityOptions = getQuickTemplateFacilityOptions(t);
 
-  const dockOptions = DOCK_TYPES.map((dock) => ({ value: dock, label: dock }));
+  const dockOptions = getDockTypeOptions(t);
 
   const roleOptions = [
-    { value: 'both', label: 'Both (Pickup & Drop-off)' },
-    { value: 'pickup', label: 'Pickup only' },
-    { value: 'delivery', label: 'Drop-off only' },
+    { value: 'both', label: t('abRoleBoth', 'Both (Pickup & Drop-off)') },
+    { value: 'pickup', label: t('abRolePickupOnly', 'Pickup only') },
+    { value: 'delivery', label: t('abRoleDropoffOnly', 'Drop-off only') },
   ];
 
   const scrollToErrors = () => {
@@ -131,7 +131,7 @@ export const CreateLocationModal: React.FC<Props> = ({
   };
 
   const handleSubmit = () => {
-    const errors = validateCreateAll(createData);
+    const errors = validateCreateAll(createData, t);
     if (Object.keys(errors).length > 0) {
       showValidationErrors(errors);
       return;
@@ -214,7 +214,7 @@ export const CreateLocationModal: React.FC<Props> = ({
         <SearchableSelect
           value={createData.type}
           options={facilityOptions}
-          placeholder="— Select —"
+          placeholder={t('abSelectPlaceholder', '— Select —')}
           hasError={Boolean(fieldErrors.type)}
           onChange={(val) => {
             const template = inferQuickTemplateFromType(val);
@@ -283,7 +283,7 @@ export const CreateLocationModal: React.FC<Props> = ({
         </label>
         <input
           type="text"
-          placeholder="e.g. Κεντρική Αποθήκη, DC Θήβα…"
+          placeholder={t('abEgLocationName', 'e.g. Central Warehouse, DC Thiva…')}
           value={createData.name}
           onChange={(e) => update({ name: e.target.value })}
         />
@@ -321,7 +321,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           <label>
             {t('abPostalCode')}
           </label>
-          <input type="text" placeholder="e.g. 45500" value={createData.postal} onChange={(e) => update({ postal: e.target.value })} />
+          <input type="text" placeholder={t('abEgPostal', 'e.g. 45500')} value={createData.postal} onChange={(e) => update({ postal: e.target.value })} />
           <FormFieldError message={fieldErrors.postal} />
         </div>
       </div>
@@ -341,7 +341,7 @@ export const CreateLocationModal: React.FC<Props> = ({
 
         <div className="mf">
           <label>{t('abInternalCode')}</label>
-          <input type="text" placeholder="e.g. WH-IOA-01" value={createData.code} onChange={(e) => update({ code: e.target.value })} />
+          <input type="text" placeholder={t('abEgLocationCode', 'e.g. WH-IOA-01')} value={createData.code} onChange={(e) => update({ code: e.target.value })} />
         </div>
       </div>
 
@@ -390,8 +390,8 @@ export const CreateLocationModal: React.FC<Props> = ({
           </label>
           <SearchableSelect
             value={createData.dock}
-            options={[{ value: '', label: '— Select —' }, ...dockOptions]}
-            placeholder="— Select —"
+            options={[{ value: '', label: t('abSelectPlaceholder', '— Select —') }, ...dockOptions]}
+            placeholder={t('abSelectPlaceholder', '— Select —')}
             hasError={Boolean(fieldErrors.dock)}
             onChange={(val) => update({ dock: val })}
           />
@@ -416,12 +416,12 @@ export const CreateLocationModal: React.FC<Props> = ({
       <div className="mf-grid">
         <div className={`mf${fieldErrors.maxTruck ? ' has-error' : ''}`}>
           <label>{t('abMaxTruckLength')}</label>
-          <input type="text" placeholder="e.g. 18.75m" value={createData.maxTruck} onChange={(e) => update({ maxTruck: e.target.value })} />
+          <input type="text" placeholder={t('abEgMaxTruck', 'e.g. 18.75m')} value={createData.maxTruck} onChange={(e) => update({ maxTruck: e.target.value })} />
           <FormFieldError message={fieldErrors.maxTruck} />
         </div>
         <div className={`mf${fieldErrors.maxWeight ? ' has-error' : ''}`}>
           <label>{t('abMaxWeight')}</label>
-          <input type="text" placeholder="e.g. 40T" value={createData.maxWeight} onChange={(e) => update({ maxWeight: e.target.value })} />
+          <input type="text" placeholder={t('abEgMaxWeight', 'e.g. 40T')} value={createData.maxWeight} onChange={(e) => update({ maxWeight: e.target.value })} />
           <FormFieldError message={fieldErrors.maxWeight} />
         </div>
       </div>
@@ -435,7 +435,7 @@ export const CreateLocationModal: React.FC<Props> = ({
         <label>
           {t('abEstLoadTime')} <span className="req">*</span>
         </label>
-        <input type="number" min={1} placeholder="e.g. 45" value={createData.loadTime} onChange={(e) => update({ loadTime: e.target.value })} />
+        <input type="number" min={1} placeholder={t('abEgLoadTime', 'e.g. 45')} value={createData.loadTime} onChange={(e) => update({ loadTime: e.target.value })} />
         <FormFieldError message={fieldErrors.loadTime} />
       </div>
 
@@ -477,7 +477,7 @@ export const CreateLocationModal: React.FC<Props> = ({
         : '—';
 
     const loadTimeStr = String(createData.loadTime ?? '').trim();
-    const loadTimeLabel = loadTimeStr ? `${loadTimeStr} min` : '—';
+    const loadTimeLabel = loadTimeStr ? t('abMinSuffix', '{{n}} min', { n: loadTimeStr }) : '—';
 
     return (
       <>
@@ -596,7 +596,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           <button type="button" className="btn btn-secondary" onClick={closeCreateModal}>
             {t('abCancel')}
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => goNext(2, () => validateCreateStep1(createData))}>
+          <button type="button" className="btn btn-primary" onClick={() => goNext(2, () => validateCreateStep1(createData, t))}>
             {t('abNext')}
           </button>
         </>
@@ -608,7 +608,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           <button type="button" className="btn btn-secondary" onClick={() => setCreateStep(1)}>
             {t('abBack')}
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => goNext(3, () => validateCreateStep2(createData))}>
+          <button type="button" className="btn btn-primary" onClick={() => goNext(3, () => validateCreateStep2(createData, t))}>
             {t('abNext')}
           </button>
         </>
@@ -620,7 +620,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           <button type="button" className="btn btn-secondary" onClick={() => setCreateStep(2)}>
             {t('abBack')}
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => goNext(4, () => validateCreateStep3(createData))}>
+          <button type="button" className="btn btn-primary" onClick={() => goNext(4, () => validateCreateStep3(createData, t))}>
             {t('abReview')}
           </button>
         </>

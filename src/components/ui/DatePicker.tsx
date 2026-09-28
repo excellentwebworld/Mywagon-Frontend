@@ -33,7 +33,7 @@ type Props = {
 export const DatePicker: React.FC<Props> = ({
   value,
   onChange,
-  placeholder = 'dd/MM/yyyy',
+  placeholder,
   disabled = false,
   hasError = false,
   className = '',
@@ -47,7 +47,8 @@ export const DatePicker: React.FC<Props> = ({
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { lang } = useTranslation();
+  const { t, lang } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t('ui.dd_mm_yyyy', 'dd/MM/yyyy');
   const [open, setOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState<{ top: number; left: number } | null>(null);
 
@@ -362,7 +363,7 @@ export const DatePicker: React.FC<Props> = ({
         aria-expanded={open}
       >
         <span className={value ? 'date-picker-value' : 'date-picker-placeholder'}>
-          {value ? formatDateForDisplay(value) : placeholder}
+          {value ? formatDateForDisplay(value) : resolvedPlaceholder}
         </span>
         <span className="date-picker-actions">
           {value && !disabled && (
@@ -370,7 +371,7 @@ export const DatePicker: React.FC<Props> = ({
               role="button"
               tabIndex={0}
               className="date-picker-clear"
-              aria-label="Clear date"
+              aria-label={t('ui.clear_date', 'Clear date')}
               onClick={(e) => {
                 e.stopPropagation();
                 handleClear();
@@ -418,7 +419,7 @@ export const DatePicker: React.FC<Props> = ({
               className="date-picker-nav-btn"
               disabled={isPrevDisabled}
               onClick={handlePrevMonth}
-              aria-label="Previous Month"
+              aria-label={t('ui.previous_month', 'Previous Month')}
             >
               ‹
             </button>
@@ -427,7 +428,7 @@ export const DatePicker: React.FC<Props> = ({
                 value={currentMonth}
                 onChange={(e) => setCurrentMonth(Number(e.target.value))}
                 className="date-picker-select"
-                aria-label="Select Month"
+                aria-label={t('ui.select_month', 'Select Month')}
               >
                 {monthsList.map((m) => {
                   const isDisabled = isMonthDisabled(currentYear, m.value) || isMonthAfterMax(currentYear, m.value);
@@ -442,7 +443,7 @@ export const DatePicker: React.FC<Props> = ({
                 value={currentYear}
                 onChange={(e) => setCurrentYear(Number(e.target.value))}
                 className="date-picker-select"
-                aria-label="Select Year"
+                aria-label={t('ui.select_year', 'Select Year')}
               >
                 {yearRange.map((y) => {
                   const isDisabled = isYearDisabled(y) || isYearAfterMax(y);
@@ -459,7 +460,7 @@ export const DatePicker: React.FC<Props> = ({
               className="date-picker-nav-btn"
               disabled={isNextDisabled}
               onClick={handleNextMonth}
-              aria-label="Next Month"
+              aria-label={t('ui.next_month', 'Next Month')}
             >
               ›
             </button>

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface ConfirmationModalProps {
   isOpen: boolean;
@@ -21,12 +22,16 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   onConfirm,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText,
+  cancelText,
   type = 'danger',
   confirmLoading = false,
   className,
 }) => {
+  const { t } = useTranslation();
+  const resolvedConfirmText = confirmText ?? t('ui.confirm', 'Confirm');
+  const resolvedCancelText = cancelText ?? t('ui.cancel', 'Cancel');
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) onClose();
@@ -105,7 +110,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       >
         <div className="modal-header">
           <h2 style={{ color: titleColor }}>{title}</h2>
-          <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={onClose} aria-label="Close">
+          <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={onClose} aria-label={t('ui.close', 'Close')}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
@@ -124,7 +129,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         </div>
         <div className="modal-footer">
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={confirmLoading}>
-            {cancelText}
+            {resolvedCancelText}
           </button>
           <button
             type="button"
@@ -134,7 +139,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
           >
             {confirmLoading ? <Loader2 size={14} className="animate-spin" /> : null}
-            {confirmText}
+            {resolvedConfirmText}
           </button>
         </div>
       </div>

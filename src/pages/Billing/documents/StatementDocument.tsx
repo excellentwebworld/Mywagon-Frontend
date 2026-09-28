@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import type { StatementPayload } from '../../../api/types/billing';
 import { formatCurrency, formatDate } from '../mockData';
 
@@ -7,6 +8,7 @@ interface StatementDocumentProps {
 }
 
 export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement }) => {
+  const { t } = useTranslation();
   const currency = statement.currency || 'EUR';
   const issuer = statement.issuer;
   const billTo = statement.bill_to;
@@ -30,7 +32,7 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
           {issuer?.email ? <div className="mv-doc-muted">{issuer.email}</div> : null}
         </div>
         <div className="mv-doc-title-block">
-          <h1 className="mv-doc-title">Statement</h1>
+          <h1 className="mv-doc-title">{t('billingPage.statement.title', 'Statement')}</h1>
           <div className="mv-doc-number">{statement.period}</div>
           {statement.from || statement.to ? (
             <div className="mv-doc-muted">
@@ -42,13 +44,13 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
 
       <div className="mv-doc-parties">
         <section>
-          <div className="mv-doc-label">From</div>
+          <div className="mv-doc-label">{t('billingPage.statement.from', 'From')}</div>
           <div className="mv-doc-company">{issuer?.name || 'MYVAGON'}</div>
           {issuer?.address ? <div className="mv-doc-muted">{issuer.address}</div> : null}
           {issuer?.email ? <div className="mv-doc-muted">{issuer.email}</div> : null}
         </section>
         <section>
-          <div className="mv-doc-label">Account</div>
+          <div className="mv-doc-label">{t('billingPage.statement.account', 'Account')}</div>
           <div className="mv-doc-company">{billTo?.company_name || '—'}</div>
           {billTo?.email ? <div className="mv-doc-muted">{billTo.email}</div> : null}
           {billLines.map((line) => (
@@ -56,49 +58,58 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
               {line}
             </div>
           ))}
-          {billTo?.vat_id ? <div className="mv-doc-muted">VAT {billTo.vat_id}</div> : null}
+          {billTo?.vat_id ? (
+            <div className="mv-doc-muted">
+              {t('billingPage.statement.vat', 'VAT')} {billTo.vat_id}
+            </div>
+          ) : null}
         </section>
       </div>
 
       <div className="mv-doc-kpi">
         <div className="mv-doc-kpi-card">
-          <div className="mv-doc-label">Invoices billed</div>
+          <div className="mv-doc-label">{t('billingPage.statement.invoicesBilled', 'Invoices billed')}</div>
           <div className="mv-doc-kpi-value">{formatCurrency(billed, currency)}</div>
-          <div className="mv-doc-muted">{invoices.length} invoices</div>
+          <div className="mv-doc-muted">
+            {t('billingPage.statement.invoiceCount', {
+              count: invoices.length,
+              defaultValue: '{{count}} invoices',
+            })}
+          </div>
         </div>
         <div className="mv-doc-kpi-card">
-          <div className="mv-doc-label">Paid</div>
+          <div className="mv-doc-label">{t('billingPage.statement.paid', 'Paid')}</div>
           <div className="mv-doc-kpi-value">{formatCurrency(paid, currency)}</div>
         </div>
         <div className="mv-doc-kpi-card">
-          <div className="mv-doc-label">Outstanding</div>
+          <div className="mv-doc-label">{t('billingPage.statement.outstanding', 'Outstanding')}</div>
           <div className="mv-doc-kpi-value">{formatCurrency(outstanding, currency)}</div>
         </div>
         <div className="mv-doc-kpi-card">
-          <div className="mv-doc-label">Wallet balance</div>
+          <div className="mv-doc-label">{t('billingPage.statement.walletBalance', 'Wallet balance')}</div>
           <div className="mv-doc-kpi-value">{formatCurrency(statement.wallet_balance, currency)}</div>
         </div>
       </div>
 
       <section className="mv-doc-section">
-        <div className="mv-doc-label">Invoices</div>
+        <div className="mv-doc-label">{t('billingPage.statement.invoices', 'Invoices')}</div>
         <table>
           <thead>
             <tr>
-              <th>Invoice</th>
-              <th>Type</th>
-              <th>Status</th>
-              <th>Issue date</th>
-              <th>Due date</th>
-              <th className="num">Total</th>
-              <th className="num">Remaining</th>
+              <th>{t('billingPage.statement.colInvoice', 'Invoice')}</th>
+              <th>{t('billingPage.statement.colType', 'Type')}</th>
+              <th>{t('billingPage.statement.colStatus', 'Status')}</th>
+              <th>{t('billingPage.statement.colIssueDate', 'Issue date')}</th>
+              <th>{t('billingPage.statement.colDueDate', 'Due date')}</th>
+              <th className="num">{t('billingPage.statement.colTotal', 'Total')}</th>
+              <th className="num">{t('billingPage.statement.colRemaining', 'Remaining')}</th>
             </tr>
           </thead>
           <tbody>
             {invoices.length === 0 ? (
               <tr>
                 <td className="mv-doc-empty" colSpan={7}>
-                  No invoices in this period
+                  {t('billingPage.statement.noInvoices', 'No invoices in this period')}
                 </td>
               </tr>
             ) : (
@@ -119,22 +130,22 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
       </section>
 
       <section className="mv-doc-section">
-        <div className="mv-doc-label">Wallet activity</div>
+        <div className="mv-doc-label">{t('billingPage.statement.walletActivity', 'Wallet activity')}</div>
         <table>
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Description</th>
-              <th className="num">Amount</th>
-              <th>Type</th>
-              <th>Applied to</th>
+              <th>{t('billingPage.statement.colDate', 'Date')}</th>
+              <th>{t('billingPage.statement.colDescription', 'Description')}</th>
+              <th className="num">{t('billingPage.statement.colAmount', 'Amount')}</th>
+              <th>{t('billingPage.statement.colType', 'Type')}</th>
+              <th>{t('billingPage.statement.colAppliedTo', 'Applied to')}</th>
             </tr>
           </thead>
           <tbody>
             {movements.length === 0 ? (
               <tr>
                 <td className="mv-doc-empty" colSpan={5}>
-                  No wallet movements in this period
+                  {t('billingPage.statement.noWalletMovements', 'No wallet movements in this period')}
                 </td>
               </tr>
             ) : (

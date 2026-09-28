@@ -11,7 +11,7 @@ import {
   Eye,
   FileSpreadsheet,
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import type { WeeklyReportItem } from '../../../../api/types/weeklyReports';
 import { BillingPagination } from '../../../Billing/components/BillingPagination';
 
@@ -97,7 +97,9 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
               <th className="wr-th-active">{t('weeklyReports.onTrip', 'In Progress')}</th>
               <th className="wr-th-pending">{t('weeklyReports.pending', 'Pending / Canceled')}</th>
               <th className="wr-th-partners text-right">{t('weeklyReports.newPartners', 'Partners')}</th>
-              <th className="wr-th-actions text-right">Actions</th>
+              <th className="wr-th-actions text-right">
+                {t('analytics.weeklyReports.actions', 'Actions')}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -196,7 +198,10 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     key={r.id}
                     className="wr-table-row"
                     onClick={() => onSelectReport(r)}
-                    title="Click to view weekly email report with stats"
+                    title={t(
+                      'analytics.weeklyReports.clickToView',
+                      'Click to view weekly email report with stats'
+                    )}
                   >
                     {/* Period Column */}
                     <td className="wr-td-period">
@@ -218,7 +223,11 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                         </span>
                         <span className="wr-sent-pill">
                           <CheckCircle2 size={11} />
-                          <span>{r.is_sent ? 'Sent' : 'Available'}</span>
+                          <span>
+                            {r.is_sent
+                              ? t('analytics.weeklyReports.sent', 'Sent')
+                              : t('analytics.weeklyReports.available', 'Available')}
+                          </span>
                         </span>
                       </div>
                     </td>
@@ -246,14 +255,26 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     {/* In-Progress (On Trip, Scheduled, Ready) */}
                     <td className="wr-td-progress">
                       <div className="wr-progress-chips">
-                        <span className="wr-sub-chip wr-chip-ontrip" title="Loads on trip">
-                          <strong>{onTrip}</strong> trip
+                        <span
+                          className="wr-sub-chip wr-chip-ontrip"
+                          title={t('analytics.weeklyReports.loadsOnTrip', 'Loads on trip')}
+                        >
+                          <strong>{onTrip}</strong>{' '}
+                          {t('analytics.weeklyReports.chipTrip', 'trip')}
                         </span>
-                        <span className="wr-sub-chip wr-chip-scheduled" title="Loads scheduled">
-                          <strong>{scheduled}</strong> sched
+                        <span
+                          className="wr-sub-chip wr-chip-scheduled"
+                          title={t('analytics.weeklyReports.loadsScheduled', 'Loads scheduled')}
+                        >
+                          <strong>{scheduled}</strong>{' '}
+                          {t('analytics.weeklyReports.chipSched', 'sched')}
                         </span>
-                        <span className="wr-sub-chip wr-chip-ready" title="Loads ready">
-                          <strong>{ready}</strong> ready
+                        <span
+                          className="wr-sub-chip wr-chip-ready"
+                          title={t('analytics.weeklyReports.loadsReady', 'Loads ready')}
+                        >
+                          <strong>{ready}</strong>{' '}
+                          {t('analytics.weeklyReports.chipReady', 'ready')}
                         </span>
                       </div>
                     </td>
@@ -262,11 +283,11 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     <td className="wr-td-pending">
                       <div className="wr-pending-cell">
                         <span className="wr-sub-chip wr-chip-pending">
-                          {pending} pending
+                          {pending} {t('analytics.weeklyReports.chipPending', 'pending')}
                         </span>
                         {canceled > 0 && (
                           <span className="wr-sub-chip wr-chip-canceled">
-                            {canceled} cxl
+                            {canceled} {t('analytics.weeklyReports.chipCanceled', 'cxl')}
                           </span>
                         )}
                       </div>
@@ -322,7 +343,11 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
         total={total}
         perPage={perPage}
         loading={loading}
-        label={total === 1 ? 'weekly report' : 'weekly reports'}
+        label={
+          total === 1
+            ? t('analytics.weeklyReports.weeklyReportSingular', 'weekly report')
+            : t('analytics.weeklyReports.weeklyReportPlural', 'weekly reports')
+        }
         onPageChange={onPageChange}
         onPerPageChange={onPerPageChange}
         perPageOptions={[10, 25, 50]}

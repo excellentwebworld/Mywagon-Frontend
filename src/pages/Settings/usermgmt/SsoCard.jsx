@@ -10,7 +10,7 @@
  */
 
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import {
   ShieldCheck, Copy, Check, X, ChevronRight, ChevronLeft,
   AlertTriangle, CheckCircle, ExternalLink, RefreshCw, Settings,
@@ -268,9 +268,9 @@ function SsoSetupWizard({ onClose, onActivate, sso, copyToClipboard }) {
             <div className="space-y-4">
               <div className="font-semibold mb-2" style={{ fontSize: 12, color: T.t2 }}>{t('userMgmt.sso.sp.title')}</div>
               {[
-                { label: 'ACS / Reply URL', value: sso.sp.acsUrl },
-                { label: 'Entity ID', value: sso.sp.entityId },
-                { label: 'Sign-on URL', value: sso.sp.signOnUrl },
+                { label: t('Settings.acs_reply_url', 'ACS / Reply URL'), value: sso.sp.acsUrl },
+                { label: t('Settings.entity_id', 'Entity ID'), value: sso.sp.entityId },
+                { label: t('Settings.sign_on_url', 'Sign-on URL'), value: sso.sp.signOnUrl },
               ].map(row => (
                 <div key={row.label} className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: T.sa, border: `1px solid ${T.bd}` }}>
                   <div className="flex-1 min-w-0">
@@ -321,7 +321,7 @@ function SsoSetupWizard({ onClose, onActivate, sso, copyToClipboard }) {
 
                   {domainMethod === 'dns' && (
                     <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontFamily: "var(--font-app), Poppins, sans-serif", fontVariantNumeric: 'tabular-nums', fontSize: 11, color: T.t1, border: `1px solid ${T.bd}` }}>
-                      <div style={{ color: T.t3, fontFamily: 'inherit' }}>TXT Record:</div>
+                      <div style={{ color: T.t3, fontFamily: 'inherit' }}>{t('Settings.txt_record', 'TXT Record:')}</div>
                       _myvagon-verification.{sso.domain}<br />
                       {DOMAIN_VERIFICATION_TOKEN}
                     </div>
@@ -362,7 +362,7 @@ function SsoSetupWizard({ onClose, onActivate, sso, copyToClipboard }) {
                     <option value="telephoneNumber">telephoneNumber</option>
                     <option value="department">department</option>
                     <option value="jobTitle">jobTitle</option>
-                    <option value="custom">Custom…</option>
+                    <option value="custom">{t('Settings.custom', 'Custom…')}</option>
                   </select>
                 </div>
               ))}
@@ -427,7 +427,7 @@ function SsoSetupWizard({ onClose, onActivate, sso, copyToClipboard }) {
                 <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, border: `1px solid ${T.bd}` }}>
                   <div className="font-semibold mb-2" style={{ fontSize: 11, color: T.t2 }}>{t('userMgmt.sso.enforce.backupAccounts')}</div>
                   <input value={backupEmail} onChange={(e) => setBackupEmail(e.target.value)}
-                    placeholder="admin@company.com"
+                    placeholder={t('Settings.admin_company_com', 'admin@company.com')}
                     className="w-full px-3 py-1.5 rounded-lg outline-none"
                     style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 12 }} />
                 </div>

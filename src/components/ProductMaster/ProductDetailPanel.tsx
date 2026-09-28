@@ -104,7 +104,7 @@ function SkuDetail({
           <span
             className={`src-badge ${s.source === "erp" ? "src-erp" : "src-manual"}`}
           >
-            {s.source === "erp" ? "ERP" : "Manual"}
+            {s.source === "erp" ? "ERP" : t("manual", "Manual")}
           </span>
           {s.erp.status === "conflict" && (
             <span
@@ -115,7 +115,7 @@ function SkuDetail({
                 border: "1px solid #DDD6FE",
               }}
             >
-              Conflict
+              {t("productMaster.conflict", "Conflict")}
             </span>
           )}
           {!s.typeId && (
@@ -127,7 +127,7 @@ function SkuDetail({
                 border: "1px solid var(--bobd)",
               }}
             >
-              Unmapped
+              {t("productMaster.unmapped", "Unmapped")}
             </span>
           )}
           {s.archived ? (
@@ -135,25 +135,30 @@ function SkuDetail({
               {t('abArchived') || t('archived') || 'Archived'}
             </span>
           ) : (
-            !s.active && <span className="src-badge src-manual">Inactive</span>
+            !s.active && (
+              <span className="src-badge src-manual">
+                {t("productMaster.inactive", "Inactive")}
+              </span>
+            )
           )}
         </div>
         <div className="dp-name">{s.name}</div>
         <div className="dp-sub">
-          {tp ? tp.name : "No type assigned"} · {cat ? catName(cat) : "—"}
+          {tp ? tp.name : t("productMaster.noTypeAssigned", "No type assigned")} ·{" "}
+          {cat ? catName(cat) : "—"}
         </div>
         <div className="dp-meta">
           <div>
-            <strong>SKU Number:</strong> {s.number}
+            <strong>{t("productMaster.skuNumber", "SKU Number:")}</strong> {s.number}
           </div>
           {s.barcode && (
             <div>
-              <strong>Barcode:</strong> {s.barcode}
+              <strong>{t("productMaster.barcode", "Barcode:")}</strong> {s.barcode}
             </div>
           )}
           {s.weight && (
             <div>
-              <strong>Weight:</strong>{" "}
+              <strong>{t("productMaster.weight", "Weight:")}</strong>{" "}
               {s.weight.toLowerCase().includes("kg")
                 ? s.weight
                 : `${s.weight} kg`}
@@ -187,14 +192,16 @@ function SkuDetail({
                 className="btn btn-sm"
                 onClick={() => openEditSku(s)}
               >
-                Edit
+                {t("productMaster.edit", "Edit")}
               </button>
               <button
                 type="button"
                 className={`btn btn-sm ${s.active ? "btn-danger" : "btn-primary"}`}
                 onClick={() => handleToggleActive(s)}
               >
-                {s.active ? "Deactivate" : "Activate"}
+                {s.active
+                  ? t("productMaster.deactivate", "Deactivate")
+                  : t("productMaster.activate", "Activate")}
               </button>
             </>
           )}
@@ -204,8 +211,8 @@ function SkuDetail({
       {s.source === "erp" && s.erp.status === "conflict" && (
         <div style={{ padding: "12px 20px" }}>
           <div className="conflict-banner">
-            <strong>Sync conflict:</strong>{" "}
-            {s.erp.error || "Field mismatch with ERP source"}
+            <strong>{t("productMaster.syncConflict", "Sync conflict:")}</strong>{" "}
+            {s.erp.error || t("productMaster.fieldMismatch", "Field mismatch with ERP source")}
           </div>
         </div>
       )}
@@ -218,25 +225,25 @@ function SkuDetail({
             role="button"
             tabIndex={0}
           >
-            🔌 ERP Integration
+            🔌 {t("productMaster.erpIntegration", "ERP Integration")}
             <span className={`chev${!secCollapsed.erp ? " open" : ""}`}>▼</span>
           </div>
           {!secCollapsed.erp && (
             <div className="dp-sec-body">
               <div className="dp-row">
-                <span className="label">ERP System</span>
+                <span className="label">{t("productMaster.erpSystem", "ERP System")}</span>
                 <span className="val">{s.erp.system || "—"}</span>
               </div>
               <div className="dp-row">
-                <span className="label">External ID</span>
+                <span className="label">{t("productMaster.externalId", "External ID")}</span>
                 <span className="val">{s.erp.extId || "—"}</span>
               </div>
               <div className="dp-row">
-                <span className="label">Last Synced</span>
+                <span className="label">{t("productMaster.lastSynced", "Last Synced")}</span>
                 <span className="val">{s.erp.lastSync || "—"}</span>
               </div>
               <div className="dp-row">
-                <span className="label">Sync Status</span>
+                <span className="label">{t("productMaster.syncStatus", "Sync Status")}</span>
                 <span className="val">{s.erp.status || "—"}</span>
               </div>
             </div>
@@ -251,7 +258,7 @@ function SkuDetail({
           role="button"
           tabIndex={0}
         >
-          📦 Shipping Defaults
+          📦 {t("productMaster.shippingDefaults", "Shipping Defaults")}
           <span className={`chev${!secCollapsed.shipping ? " open" : ""}`}>
             ▼
           </span>
@@ -261,25 +268,29 @@ function SkuDetail({
             {tp || s.temperature ? (
               <>
                 <div className="dp-row">
-                  <span className="label">Temperature</span>
+                  <span className="label">{t("productMaster.temperature", "Temperature")}</span>
                   <span className="val">
                     {s.temperature ?? tp?.defaults.temp}
                   </span>
                 </div>
                 <div className="dp-row">
-                  <span className="label">Hazardous</span>
+                  <span className="label">{t("productMaster.hazardous", "Hazardous")}</span>
                   <span className="val">
-                    {(s.hazardous ?? tp?.defaults.hazard) ? "Yes" : "No"}
+                    {(s.hazardous ?? tp?.defaults.hazard)
+                      ? t("productMaster.yes", "Yes")
+                      : t("productMaster.no", "No")}
                   </span>
                 </div>
                 <div className="dp-row">
-                  <span className="label">Stackable</span>
+                  <span className="label">{t("productMaster.stackable", "Stackable")}</span>
                   <span className="val">
-                    {(s.stackable ?? tp?.defaults.stackable) ? "Yes" : "No"}
+                    {(s.stackable ?? tp?.defaults.stackable)
+                      ? t("productMaster.yes", "Yes")
+                      : t("productMaster.no", "No")}
                   </span>
                 </div>
                 <div className="dp-row">
-                  <span className="label">Pallet Type</span>
+                  <span className="label">{t("productMaster.palletType", "Pallet Type")}</span>
                   <span className="val">
                     {s.palletType ?? tp?.defaults.palletType}
                   </span>
@@ -287,7 +298,7 @@ function SkuDetail({
               </>
             ) : (
               <div style={{ color: "var(--t3)", fontSize: 12 }}>
-                No type profile assigned
+                {t("productMaster.noTypeProfile", "No type profile assigned")}
               </div>
             )}
           </div>
@@ -296,7 +307,7 @@ function SkuDetail({
 
       {s.tags.length > 0 && (
         <div className="dp-sec">
-          <div className="dp-sec-h">🏷️ Tags</div>
+          <div className="dp-sec-h">🏷️ {t("productMaster.tags", "Tags")}</div>
           <div
             className="dp-sec-body"
             style={{ display: "flex", gap: 6, flexWrap: "wrap" }}
@@ -366,7 +377,7 @@ function TypeDetail({
           ✕
         </button>
         <div className="dp-badges">
-          <span className="type-pill">Product Type</span>
+          <span className="type-pill">{t("productMaster.productType", "Product Type")}</span>
         </div>
         <div className="dp-name">{tp.name}</div>
         <div className="dp-sub">
@@ -376,19 +387,19 @@ function TypeDetail({
         <div className="stat-grid" style={{ marginTop: 14 }}>
           <div className="stat-card">
             <div className="stat-val">{mappedCount}</div>
-            <div className="stat-lbl">Mapped SKUs</div>
+            <div className="stat-lbl">{t("productMaster.mappedSkus", "Mapped SKUs")}</div>
           </div>
           <div className="stat-card">
             <div className="stat-val">{tp.s30}</div>
-            <div className="stat-lbl">Shipments (30d)</div>
+            <div className="stat-lbl">{t("productMaster.shipments30d", "Shipments (30d)")}</div>
           </div>
           <div className="stat-card">
             <div className="stat-val">{tp.s90}</div>
-            <div className="stat-lbl">Shipments (90d)</div>
+            <div className="stat-lbl">{t("productMaster.shipments90d", "Shipments (90d)")}</div>
           </div>
           <div className="stat-card">
             <div className="stat-val">{tp.defaults.temp}</div>
-            <div className="stat-lbl">Temperature</div>
+            <div className="stat-lbl">{t("productMaster.temperature", "Temperature")}</div>
           </div>
         </div>
       </div>
@@ -400,7 +411,7 @@ function TypeDetail({
           role="button"
           tabIndex={0}
         >
-          📦 Shipping Defaults
+          📦 {t("productMaster.shippingDefaults", "Shipping Defaults")}
           <span className={`chev${!secCollapsed.defaults ? " open" : ""}`}>
             ▼
           </span>
@@ -408,21 +419,27 @@ function TypeDetail({
         {!secCollapsed.defaults && (
           <div className="dp-sec-body">
             <div className="dp-row">
-              <span className="label">Temperature</span>
+              <span className="label">{t("productMaster.temperature", "Temperature")}</span>
               <span className="val">{tp.defaults.temp}</span>
             </div>
             <div className="dp-row">
-              <span className="label">Hazardous</span>
-              <span className="val">{tp.defaults.hazard ? "Yes" : "No"}</span>
-            </div>
-            <div className="dp-row">
-              <span className="label">Stackable</span>
+              <span className="label">{t("productMaster.hazardous", "Hazardous")}</span>
               <span className="val">
-                {tp.defaults.stackable ? "Yes" : "No"}
+                {tp.defaults.hazard
+                  ? t("productMaster.yes", "Yes")
+                  : t("productMaster.no", "No")}
               </span>
             </div>
             <div className="dp-row">
-              <span className="label">Pallet Type</span>
+              <span className="label">{t("productMaster.stackable", "Stackable")}</span>
+              <span className="val">
+                {tp.defaults.stackable
+                  ? t("productMaster.yes", "Yes")
+                  : t("productMaster.no", "No")}
+              </span>
+            </div>
+            <div className="dp-row">
+              <span className="label">{t("productMaster.palletType", "Pallet Type")}</span>
               <span className="val">{tp.defaults.palletType}</span>
             </div>
           </div>
@@ -436,7 +453,7 @@ function TypeDetail({
           role="button"
           tabIndex={0}
         >
-          🏷️ Mapped SKUs ({mappedCount})
+          🏷️ {t("productMaster.mappedSkusCount", "Mapped SKUs ({{count}})", { count: mappedCount })}
           <span className={`chev${!secCollapsed.mapped ? " open" : ""}`}>
             ▼
           </span>
@@ -445,7 +462,7 @@ function TypeDetail({
           <div className="dp-sec-body">
             {mappedSkusLoading ? (
               <div style={{ color: "var(--t3)", fontSize: 12 }}>
-                Loading SKUs…
+                {t("productMaster.loadingSkus", "Loading SKUs…")}
               </div>
             ) : mappedSkus.length === 0 ? (
               <div style={{ color: "var(--t3)", fontSize: 12 }}>
@@ -455,8 +472,8 @@ function TypeDetail({
               <table className="mini-table">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Number</th>
+                    <th>{t("productMaster.name", "Name")}</th>
+                    <th>{t("productMaster.number", "Number")}</th>
                   </tr>
                 </thead>
                 <tbody>

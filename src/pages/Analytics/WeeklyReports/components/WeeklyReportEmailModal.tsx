@@ -9,7 +9,7 @@ import {
   Minus,
   CheckCircle2,
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import type { WeeklyReportItem } from '../../../../api/types/weeklyReports';
 
 interface WeeklyReportEmailModalProps {
@@ -31,52 +31,82 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
     {
       key: 'fulfilled' as const,
       label: t('weeklyReports.loadsFulfilled', 'Loads Fulfilled'),
-      description: 'Shipments successfully completed during this week',
+      description: t(
+        'analytics.weeklyReports.metricDescFulfilled',
+        'Shipments successfully completed during this week'
+      ),
     },
     {
       key: 'partially_fulfilled' as const,
       label: t('weeklyReports.partiallyFulfilled', 'Loads Partially Fulfilled'),
-      description: 'Shipments with partial deliveries or adjustments',
+      description: t(
+        'analytics.weeklyReports.metricDescPartiallyFulfilled',
+        'Shipments with partial deliveries or adjustments'
+      ),
     },
     {
       key: 'created' as const,
       label: t('weeklyReports.loadsCreated', 'Loads Created'),
-      description: 'New shipment orders created in the platform',
+      description: t(
+        'analytics.weeklyReports.metricDescCreated',
+        'New shipment orders created in the platform'
+      ),
     },
     {
       key: 'not_fulfilled' as const,
       label: t('weeklyReports.notFulfilled', 'Loads Not Fulfilled'),
-      description: 'Shipments that could not be completed',
+      description: t(
+        'analytics.weeklyReports.metricDescNotFulfilled',
+        'Shipments that could not be completed'
+      ),
     },
     {
       key: 'pending' as const,
       label: t('weeklyReports.pending', 'Loads Currently Pending'),
-      description: 'Active shipments awaiting assignment or confirmation',
+      description: t(
+        'analytics.weeklyReports.metricDescPending',
+        'Active shipments awaiting assignment or confirmation'
+      ),
     },
     {
       key: 'canceled' as const,
       label: t('weeklyReports.canceled', 'Loads Canceled'),
-      description: 'Shipments canceled during this period',
+      description: t(
+        'analytics.weeklyReports.metricDescCanceled',
+        'Shipments canceled during this period'
+      ),
     },
     {
       key: 'new_partners' as const,
       label: t('weeklyReports.newPartners', 'New Partners'),
-      description: 'Carrier and driver partnerships accepted',
+      description: t(
+        'analytics.weeklyReports.metricDescNewPartners',
+        'Carrier and driver partnerships accepted'
+      ),
     },
     {
       key: 'on_trip' as const,
       label: t('weeklyReports.onTrip', 'Loads On Trip'),
-      description: 'Vehicles currently in transit with your freight',
+      description: t(
+        'analytics.weeklyReports.metricDescOnTrip',
+        'Vehicles currently in transit with your freight'
+      ),
     },
     {
       key: 'scheduled' as const,
       label: t('weeklyReports.scheduled', 'Loads Scheduled'),
-      description: 'Shipments scheduled for upcoming pickup dates',
+      description: t(
+        'analytics.weeklyReports.metricDescScheduled',
+        'Shipments scheduled for upcoming pickup dates'
+      ),
     },
     {
       key: 'ready' as const,
       label: t('weeklyReports.ready', 'Loads Ready'),
-      description: 'Freight prepared and awaiting carrier pickup',
+      description: t(
+        'analytics.weeklyReports.metricDescReady',
+        'Freight prepared and awaiting carrier pickup'
+      ),
     },
   ];
 
@@ -138,16 +168,16 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
               type="button"
               className="wr-btn wr-btn-secondary no-print"
               onClick={handlePrint}
-              title="Print email"
+              title={t('analytics.weeklyReports.printEmail', 'Print email')}
             >
               <Printer size={14} />
-              <span>Print</span>
+              <span>{t('analytics.weeklyReports.print', 'Print')}</span>
             </button>
             <button
               type="button"
               className="wr-close-btn"
               onClick={onClose}
-              aria-label="Close"
+              aria-label={t('analytics.weeklyReports.close', 'Close')}
             >
               <X size={18} />
             </button>
@@ -157,31 +187,40 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
         {/* Email Client Envelope Header */}
         <div className="wr-envelope-header">
           <div className="wr-envelope-row">
-            <span className="wr-envelope-lbl">Subject:</span>
+            <span className="wr-envelope-lbl">{t('analytics.weeklyReports.subject', 'Subject:')}</span>
             <span className="wr-envelope-val wr-subject-text">{report.email_subject}</span>
           </div>
           <div className="wr-envelope-grid">
             <div className="wr-envelope-row">
-              <span className="wr-envelope-lbl">From:</span>
-              <span className="wr-envelope-val">MYVAGON Logistics &lt;reports@myvagon.com&gt;</span>
+              <span className="wr-envelope-lbl">{t('analytics.weeklyReports.from', 'From:')}</span>
+              <span className="wr-envelope-val">
+                {t(
+                  'analytics.weeklyReports.fromAddress',
+                  'MYVAGON Logistics <reports@myvagon.com>'
+                )}
+              </span>
             </div>
             <div className="wr-envelope-row">
-              <span className="wr-envelope-lbl">To:</span>
+              <span className="wr-envelope-lbl">{t('analytics.weeklyReports.to', 'To:')}</span>
               <span className="wr-envelope-val">
                 {report.recipient_name} &lt;{report.recipient_email || 'shipper@myvagon.com'}&gt;
               </span>
             </div>
             <div className="wr-envelope-row">
-              <span className="wr-envelope-lbl">Date:</span>
+              <span className="wr-envelope-lbl">{t('analytics.weeklyReports.date', 'Date:')}</span>
               <span className="wr-envelope-val">
                 {formatSentDate(report.sent_at, report.delivery_date)}
               </span>
             </div>
             <div className="wr-envelope-row">
-              <span className="wr-envelope-lbl">Status:</span>
+              <span className="wr-envelope-lbl">{t('analytics.weeklyReports.status', 'Status:')}</span>
               <span className="wr-envelope-val wr-sent-status">
                 <CheckCircle2 size={13} className="text-[var(--mv-success-ink)]" />
-                <span>{report.is_sent ? 'Delivered via Email' : 'Generated'}</span>
+                <span>
+                  {report.is_sent
+                    ? t('analytics.weeklyReports.deliveredViaEmail', 'Delivered via Email')
+                    : t('analytics.weeklyReports.generated', 'Generated')}
+                </span>
               </span>
             </div>
           </div>
@@ -198,7 +237,9 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
                   <span className="wr-logo-vagon">VAGON</span>
                 </span>
               </div>
-              <div className="wr-email-badge">Weekly Digest</div>
+              <div className="wr-email-badge">
+                {t('analytics.weeklyReports.weeklyDigest', 'Weekly Digest')}
+              </div>
             </div>
 
             {/* Email Heading & Salutation */}
@@ -207,7 +248,9 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
                 {t('weeklyReports.emailTitle', 'Your Weekly Logistics Report')}
               </h2>
               <p className="wr-card-salutation">
-                {t('weeklyReports.hello', 'Hello {{name}},', { name: report.recipient_name || 'Shipper' })}
+                {t('weeklyReports.hello', 'Hello {{name}},', {
+                  name: report.recipient_name || t('analytics.weeklyReports.shipperFallback', 'Shipper'),
+                })}
               </p>
               <p className="wr-card-intro">
                 {t(
@@ -223,9 +266,13 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
               <table className="wr-metrics-table">
                 <thead>
                   <tr>
-                    <th>Metric</th>
-                    <th className="text-right">Current Week</th>
-                    <th className="text-right">vs Last Week</th>
+                    <th>{t('analytics.weeklyReports.metric', 'Metric')}</th>
+                    <th className="text-right">
+                      {t('analytics.weeklyReports.currentWeek', 'Current Week')}
+                    </th>
+                    <th className="text-right">
+                      {t('analytics.weeklyReports.vsLastWeekHeader', 'vs Last Week')}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -284,7 +331,7 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
               <p>
                 {t('weeklyReports.thankYou', 'Thank you for using MYVAGON!')}
                 <br />
-                <strong>— The MYVAGON Team</strong>
+                <strong>{t('analytics.weeklyReports.teamSignOff', '— The MYVAGON Team')}</strong>
               </p>
             </div>
           </div>

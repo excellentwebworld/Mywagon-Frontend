@@ -1,6 +1,7 @@
 import type { AiMappedOrder, AiMappedOrderLine } from '../../api/types/erpOrders';
 import type { ErpOrderLine } from '../../pages/ErpOrders/types';
 import { EMPTY_ORDER_LINE } from '../../pages/ErpOrders/types';
+import i18n from '../../utils/i18n';
 
 export type OrderPreviewRowStatus = 'accepted' | 'rejected';
 
@@ -217,35 +218,35 @@ export const MV_ORDER_FIELD_KEYWORDS: Record<
   { label: string; keywords: string[] }
 > = {
   order_reference: {
-    label: 'Order ID',
+    label: i18n.t('ErpOrders.order_id', 'Order ID'),
     keywords: ['order id', 'order_id', 'orderid', 'order ref', 'order reference', 'order_reference', 'orderno', 'order no'],
   },
   erp_reference: {
-    label: 'ERP Reference',
+    label: i18n.t('ErpOrders.erp_reference', 'ERP Reference'),
     keywords: ['erp reference', 'erp_reference', 'erp ref', 'erp id', 'erp_id'],
   },
   ship_from: {
-    label: 'Ship From',
+    label: i18n.t('ErpOrders.ship_from', 'Ship From'),
     keywords: ['ship from', 'ship_from', 'origin', 'from location', 'pickup', 'pick up location', 'source'],
   },
   ship_to: {
-    label: 'Ship To',
+    label: i18n.t('ErpOrders.ship_to', 'Ship To'),
     keywords: ['ship to', 'ship_to', 'destination', 'to location', 'delivery location', 'dest', 'drop off'],
   },
   ship_date: {
-    label: 'Ship Date',
+    label: i18n.t('ErpOrders.ship_date', 'Ship Date'),
     keywords: ['ship date', 'ship_date', 'shipping date', 'dispatch date', 'load date'],
   },
   delivery_date: {
-    label: 'Delivery Date',
+    label: i18n.t('ErpOrders.delivery_date', 'Delivery Date'),
     keywords: ['delivery date', 'delivery_date', 'del date', 'due date', 'required date'],
   },
   notes: {
-    label: 'Notes',
+    label: i18n.t('ErpOrders.notes', 'Notes'),
     keywords: ['notes', 'note', 'comments', 'comment', 'remarks'],
   },
   high_priority: {
-    label: 'High Priority',
+    label: i18n.t('ErpOrders.high_priority', 'High Priority'),
     keywords: ['high priority', 'high_priority', 'priority', 'urgent', 'rush'],
   },
 };

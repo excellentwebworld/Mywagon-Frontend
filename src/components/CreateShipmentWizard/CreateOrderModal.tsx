@@ -37,7 +37,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-h">
           <span>{t('createNewOrderTitle')}</span>
-          <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>
+          <button className="modal-close" onClick={onClose} aria-label={t('createShipment.closeModal', 'Close modal')}>✕</button>
         </div>
         <div className="modal-body">
           <div className="field">
@@ -47,7 +47,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             <input
               id="newOrderRef"
               className="inp"
-              placeholder="e.g. PO-2026-005"
+              placeholder={t('createShipment.egOrderRef', 'e.g. PO-2026-005')}
               value={ref}
               onChange={(e) => setRef(e.target.value)}
               required

@@ -67,6 +67,7 @@ import type { ErpOrderFormState } from "../../pages/ErpOrders/types";
 import type { ApiErpOrderCustomer } from "../../api/types/erpOrders";
 import {
   checkLocationDuplicate,
+  DUPLICATE_LOCATION_KEY,
   DUPLICATE_LOCATION_MESSAGE,
 } from "../../pages/AddressBook/validation/locationDuplicateValidation";
 import { validateCreateAll } from "../../pages/AddressBook/validation/locationCreateValidation";
@@ -1093,10 +1094,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       tags: "",
     };
 
-    const errors = validateCreateAll(payload);
+    const errors = validateCreateAll(payload, t);
     if (Object.keys(errors).length > 0) {
       const firstKey = Object.keys(errors)[0];
-      showToast(errors[firstKey] ?? "Please fix validation errors", "error");
+      showToast(
+        errors[firstKey] ?? t("abValFixErrors", "Please fix validation errors"),
+        "error",
+      );
       if (firstKey === "companyEntity" || firstKey === "type") setCreateStep(1);
       else if (["name", "address", "city", "postal", "role"].includes(firstKey))
         setCreateStep(2);
@@ -1111,7 +1115,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         payload.company,
       );
       if (isDuplicate) {
-        showToast(DUPLICATE_LOCATION_MESSAGE, "error");
+        showToast(
+          t(DUPLICATE_LOCATION_KEY, DUPLICATE_LOCATION_MESSAGE),
+          "error",
+        );
         setCreateStep(4);
         return;
       }
@@ -1535,13 +1542,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       if (!sku.stackable)
         ind.push({
           key: "frag",
-          label: "Fragile",
+          label: t("createShipment.fragile", "Fragile"),
           color: "#D97706",
           bg: "#FEF3C7",
         });
       return ind;
     },
-    [pmSkus],
+    [pmSkus, t],
   );
 
   // ═══ LOAD BALANCE + VALIDATION ═══
@@ -3324,7 +3331,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                           setQfOpen(false);
                         }}
                         options={ordOpts}
-                        placeholder="Search ERP orders..."
+                        placeholder={t("createShipment.searchErpOrders", "Search ERP orders...")}
                         footerAction={{
                           label: `+ Create Order`,
                           onClick: () => {

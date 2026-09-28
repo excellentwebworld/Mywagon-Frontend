@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -60,13 +60,13 @@ export default function PersonalSection() {
         const ref = await signupService.getReference(i18n.language);
         if (!cancelled) setCountryCodes(ref.country_codes || []);
       } catch {
-        if (!cancelled) setCountryCodes([{ code: '+30', label: 'Greece (+30)' }]);
+        if (!cancelled) setCountryCodes([{ code: '+30', label: t('Settings.greece_30', 'Greece (+30)') }]);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [i18n.language]);
+  }, [i18n.language, t]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -381,7 +381,7 @@ export default function PersonalSection() {
                       ? (draft.country_code || '+30')
                       : (profile.country_code || user?.country_code || '+30')
                   }
-                  options={countryCodes.length ? countryCodes : [{ code: '+30', label: 'Greece (+30)' }]}
+                  options={countryCodes.length ? countryCodes : [{ code: '+30', label: t('Settings.greece_30', 'Greece (+30)') }]}
                   onChange={(code) => setField('country_code', code)}
                   disabled={saving || !editing || profile.phone_locked}
                   verified={Boolean(profile.phone_locked)}
@@ -642,9 +642,10 @@ function InfoRow({ label, value }) {
 }
 
 function PersonalSkeleton({ T }) {
+  const { t } = useTranslation();
   const sk = { baseColor: T.sa, highlightColor: T.bd };
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="Loading">
+    <div className="space-y-4" aria-busy="true" aria-label={t('Settings.loading', 'Loading')}>
       <div className="rounded-xl overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
         <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
           <div className="flex items-center gap-2">

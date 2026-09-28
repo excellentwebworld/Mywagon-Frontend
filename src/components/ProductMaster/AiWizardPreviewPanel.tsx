@@ -183,8 +183,8 @@ function ColumnMappingSummaryBar({
             <span className="ai-preview-col-summary-empty">{t('aiWizardNoMappedColumns')}</span>
           ) : (
             summary.mapped.map((col) => (
-              <span key={`${col.header}-${col.field}`} className="ai-detected-col-chip ai-detected-col-mapped" title={col.label}>
-                {col.header} → {col.label}
+              <span key={`${col.header}-${col.field}`} className="ai-detected-col-chip ai-detected-col-mapped" title={col.labelKey ? t(col.labelKey) : col.label}>
+                {col.header} → {col.labelKey ? t(col.labelKey) : col.label}
               </span>
             ))
           )}
@@ -405,8 +405,8 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
       return (
         <select {...common} value={val} onChange={(e) => updateProduct(row.id, { status: e.target.value })}>
           {emptyOption}
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
+          <option value="Active">{t('productMaster.active', { defaultValue: 'Active' })}</option>
+          <option value="Inactive">{t('productMaster.inactive', { defaultValue: 'Inactive' })}</option>
         </select>
       );
     }

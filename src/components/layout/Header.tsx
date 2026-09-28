@@ -68,7 +68,7 @@ export function getHeaderPageTitle(
   if (path.startsWith('/dashboard')) return t('dashboard', 'Dashboard');
   if (path.startsWith('/settings/notifications') || path.startsWith('/notifications')) return t('notifications', 'Notifications') || 'Notifications';
   if (path.startsWith('/messages') || path.startsWith('/chat')) return t('navMessages', 'Messages') || 'Messages';
-  if (path.startsWith('/shipments/create')) return t('createShipment', 'Create Shipment');
+  if (path.startsWith('/shipments/create')) return t('createShipment.label', 'Create Shipment');
   if (path.startsWith('/shipments')) return t('manageShipments', 'Shipments');
   if (path.startsWith('/search-trucks')) return t('satPageTitle') || t('truckAvailability', 'Search Trucks') || 'Search Trucks';
   if (path.startsWith('/address-book')) return t('addressBook', 'Address Book');
@@ -280,7 +280,7 @@ export const Header: React.FC<HeaderProps> = ({
           type="button"
           className="mv-topbar-icon-btn"
           onClick={onToggleMobileMenu}
-          aria-label="Open navigation"
+          aria-label={t('layout.open_navigation', 'Open navigation')}
           style={{ color: T.t2 }}
         >
           <Menu size={20} />
@@ -476,9 +476,9 @@ export const Header: React.FC<HeaderProps> = ({
                       await notificationService.markAllRead();
                       setUnreadCount(0);
                       setHeaderNotifs((prev) => prev.map((item) => ({ ...item, read: true })));
-                      showToast(lang === 'el' ? 'Σημειώθηκαν όλα ως αναγνωσμένα' : 'Marked all as read', 'success');
+                      showToast(t('markedAllAsReadSuccess', 'Marked all as read'), 'success');
                     } catch {
-                      showToast('Failed to mark all as read', 'error');
+                      showToast(t('layout.failed_to_mark_all_as_read', 'Failed to mark all as read'), 'error');
                     }
                   }}
                   style={{
@@ -491,7 +491,7 @@ export const Header: React.FC<HeaderProps> = ({
                     padding: 0,
                   }}
                 >
-                  {lang === 'el' ? 'Σήμανση όλων' : 'Mark all as read'}
+                  {t('markAllAsRead', 'Mark all as read')}
                 </button>
               )}
             </div>
@@ -568,10 +568,10 @@ export const Header: React.FC<HeaderProps> = ({
                 <div style={{ padding: '32px 16px', textAlign: 'center' }}>
                   <Bell size={24} style={{ color: T.t3, margin: '0 auto 8px', opacity: 0.6 }} />
                   <div style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>
-                    {lang === 'el' ? 'Δεν υπάρχουν ειδοποιήσεις' : 'No notifications'}
+                    {t('noNotifications', 'No notifications')}
                   </div>
                   <div style={{ fontSize: 12, color: T.t3, marginTop: 4 }}>
-                    {lang === 'el' ? 'Είστε πλήρως ενημερωμένοι!' : "You're all caught up!"}
+                    {t('allCaughtUp', "You're all caught up!")}
                   </div>
                 </div>
               ) : (
@@ -679,7 +679,7 @@ export const Header: React.FC<HeaderProps> = ({
                 e.currentTarget.style.background = T.sf;
               }}
             >
-              {lang === 'el' ? 'Δείτε όλες τις ειδοποιήσεις →' : 'View all notifications →'}
+              {t('viewAllNotifications', 'View all notifications')} →
             </button>
           </div>
         )}
@@ -723,7 +723,7 @@ export const Header: React.FC<HeaderProps> = ({
             if (!requirePermission(SHIPPER_RBAC.newShipment)) return;
             navigate('/shipments/create');
           }}
-          aria-label={t('createShipment')}
+          aria-label={t('createShipment.label', 'Create Shipment')}
           className="mv-topbar-cta"
           style={{
             background: 'var(--mv-grad-purple-blue)',
@@ -732,7 +732,7 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Plus size={16} className="mv-topbar-cta-icon" />
           <span className="mv-topbar-cta-label">
-            {t('newShipment') || t('createShipment') || 'New shipment'}
+            {t('newShipment') || t('createShipment.label', 'Create Shipment') || 'New shipment'}
           </span>
         </button>
       )}

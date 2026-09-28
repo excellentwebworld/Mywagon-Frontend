@@ -19,7 +19,7 @@ import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useAuth } from '../../../context/AuthContext';
 import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
 import { validateCreateAll } from '../validation/locationCreateValidation';
-import { checkLocationDuplicate, DUPLICATE_LOCATION_MESSAGE } from '../validation/locationDuplicateValidation';
+import { checkLocationDuplicate, DUPLICATE_LOCATION_KEY, DUPLICATE_LOCATION_MESSAGE } from '../validation/locationDuplicateValidation';
 import { applyTemplate, getDefaultCreateData } from '../utils/locationUtils';
 import type { ApiCompanyEntity, ApiCompanyLookup } from '../../../api/types/addressBook';
 import {
@@ -458,10 +458,10 @@ export function useAddressBook() {
       tags: '',
     };
 
-    const errors = validateCreateAll(payload);
+    const errors = validateCreateAll(payload, t);
     if (Object.keys(errors).length > 0) {
       const firstKey = Object.keys(errors)[0];
-      showToast(errors[firstKey] ?? 'Please fix validation errors', 'error');
+      showToast(errors[firstKey] ?? t('abValFixErrors', 'Please fix validation errors'), 'error');
       if (firstKey === 'companyEntity' || firstKey === 'type') setCreateStep(1);
       else if (['name', 'address', 'city', 'postal', 'role'].includes(firstKey)) setCreateStep(2);
       else setCreateStep(3);
@@ -472,19 +472,19 @@ export function useAddressBook() {
       setActionLoading(true);
       const isDuplicate = await checkLocationDuplicate(payload.name, payload.company);
       if (isDuplicate) {
-        showToast(DUPLICATE_LOCATION_MESSAGE, 'error');
+        showToast(t(DUPLICATE_LOCATION_KEY, DUPLICATE_LOCATION_MESSAGE), 'error');
         setCreateStep(4);
         return;
       }
     } catch (err) {
-      handleApiError(err, 'Could not verify location name');
+      handleApiError(err, t('abVerifyNameFailed', 'Could not verify location name. Please try again.'));
       return;
     } finally {
       setActionLoading(false);
     }
 
     createLocationMutation.mutate(payload);
-  }, [createData, createLocationMutation, showToast, handleApiError, user?.company_name]);
+  }, [createData, createLocationMutation, showToast, handleApiError, user?.company_name, t]);
 
   const saveEditedLocation = useCallback(
     async (loc: LocationItem) => {

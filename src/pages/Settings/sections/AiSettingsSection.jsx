@@ -476,7 +476,7 @@ function McpTab({ mcp, setMcp, T, t, toast }) {
               <Server size={20} style={{ color: mcp.enabled ? '#10B981' : T.t3 }} />
             </div>
             <div>
-              <div className="font-bold" style={{ fontSize: 14, color: T.t1 }}>MCP Server</div>
+              <div className="font-bold" style={{ fontSize: 14, color: T.t1 }}>{t('Settings.mcp_server', 'MCP Server')}</div>
               <div style={{ fontSize: 12, color: mcp.enabled ? '#10B981' : T.t3, fontWeight: 600 }}>
                 {mcp.enabled ? t('ai.mcp.active') : t('ai.mcp.inactive')}
               </div>

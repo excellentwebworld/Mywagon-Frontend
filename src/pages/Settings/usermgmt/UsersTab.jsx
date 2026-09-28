@@ -5,7 +5,7 @@
  */
 
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import {
   Search, Download, X, ChevronDown, ChevronUp,
   MoreHorizontal, Edit3, ShieldCheck,
@@ -616,7 +616,7 @@ function UserRow({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{getUserFullName(u)}</span>
-              {isOwner && <span title="Owner" style={{ fontSize: 13 }}>👑</span>}
+              {isOwner && <span title={t('Settings.owner', 'Owner')} style={{ fontSize: 13 }}>👑</span>}
             </div>
             <div style={{ fontSize: 11, color: T.t3 }}>{u.email}</div>
           </div>

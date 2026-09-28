@@ -308,13 +308,13 @@ export function useErpOrdersCreateLoad() {
   // KPI Computations
   const kpis = useMemo(() => {
     return [
-      { key: 'unplanned', label: 'Unplanned', val: orders.filter(o => o.status === 'New' || o.status === 'Ready to Plan').length, color: '#6366F1' },
-      { key: 'planned', label: 'Planned', val: orders.filter(o => o.status === 'Planned').length, color: '#3B82F6' },
-      { key: 'transit', label: 'In Transit', val: orders.filter(o => o.status === 'In Transit').length, color: '#F59E0B' },
-      { key: 'completed', label: 'Completed', val: orders.filter(o => o.status === 'Completed').length, color: '#10B981' },
-      { key: 'exceptions', label: 'Exceptions', val: orders.filter(o => o.status === 'Exception').length, color: '#EF4444' }
+      { key: 'unplanned', label: t('ErpOrders.unplanned', 'Unplanned'), val: orders.filter(o => o.status === 'New' || o.status === 'Ready to Plan').length, color: '#6366F1' },
+      { key: 'planned', label: t('ErpOrders.planned', 'Planned'), val: orders.filter(o => o.status === 'Planned').length, color: '#3B82F6' },
+      { key: 'transit', label: t('ErpOrders.in_transit', 'In Transit'), val: orders.filter(o => o.status === 'In Transit').length, color: '#F59E0B' },
+      { key: 'completed', label: t('ErpOrders.completed', 'Completed'), val: orders.filter(o => o.status === 'Completed').length, color: '#10B981' },
+      { key: 'exceptions', label: t('ErpOrders.exceptions', 'Exceptions'), val: orders.filter(o => o.status === 'Exception').length, color: '#EF4444' }
     ];
-  }, [orders]);
+  }, [orders, t]);
 
   // Tab counts
   const tabCounts = useMemo(() => {
@@ -644,14 +644,14 @@ export function useErpOrdersCreateLoad() {
 
   const goToCreateLoad = useCallback(() => {
     if (!selectedOrders.size) {
-      showToast('Select at least one order', 'warning');
+      showToast(t('ErpOrders.select_at_least_one_order', 'Select at least one order'), 'warning');
       return;
     }
     closeDrawer();
     buildStopsFromERP(selectedOrders);
     setVehicleExpanded(true);
     setViewMode('create');
-  }, [selectedOrders, buildStopsFromERP, closeDrawer, showToast]);
+  }, [selectedOrders, buildStopsFromERP, closeDrawer, showToast, t]);
 
   const goToItinerary = useCallback(() => {
     setViewMode('itin');
@@ -1035,7 +1035,7 @@ export function useErpOrdersCreateLoad() {
   // Modal confirm workflow actions
   const confirmCreateOrder = useCallback((ref: string, customer: string, notes: string) => {
     if (!ref) {
-      showToast('Order ID required', 'warning');
+      showToast(t('ErpOrders.order_id_required', 'Order ID required'), 'warning');
       return;
     }
     const newDdItem: ErpOrderDdItem = { id: ref, customer };
@@ -1075,11 +1075,11 @@ export function useErpOrdersCreateLoad() {
 
     setOrderModalOpen(false);
     showToast(`Order created: ${ref}`, 'success');
-  }, [pendingOrderCtx, tryAutoFill, showToast]);
+  }, [pendingOrderCtx, tryAutoFill, showToast, t]);
 
   const confirmCreateProduct = useCallback((name: string, sku: string, category: string, wpu: number) => {
     if (!name || !sku) {
-      showToast('Name and SKU required', 'warning');
+      showToast(t('ErpOrders.name_and_sku_required', 'Name and SKU required'), 'warning');
       return;
     }
     const newId = ++idCounterRef.current.prodId;
@@ -1136,11 +1136,11 @@ export function useErpOrdersCreateLoad() {
 
     setProductModalOpen(false);
     showToast(`Product created: ${name}`, 'success');
-  }, [pendingProductCtx, showToast]);
+  }, [pendingProductCtx, showToast, t]);
 
   const confirmCreateLocation = useCallback((name: string, address: string, city: string, country: string) => {
     if (!name || !address || !city) {
-      showToast('All fields required', 'warning');
+      showToast(t('ErpOrders.all_fields_required', 'All fields required'), 'warning');
       return;
     }
     const newId = ++idCounterRef.current.locId;
@@ -1169,7 +1169,7 @@ export function useErpOrdersCreateLoad() {
 
     setLocationModalOpen(false);
     showToast(`Location created: ${name}`, 'success');
-  }, [pendingLocCtx, showToast]);
+  }, [pendingLocCtx, showToast, t]);
 
   // Validation state
   const isFormValid = useMemo(() => {

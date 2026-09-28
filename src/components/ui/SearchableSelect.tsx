@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from '../../hooks/useTranslation';
 
 export interface SearchableSelectOption {
   value: string;
@@ -36,7 +37,7 @@ export const SearchableSelect: React.FC<Props> = ({
   options,
   value,
   onChange,
-  placeholder = 'Select…',
+  placeholder,
   searchPlaceholder = 'Search…',
   disabled = false,
   hasError = false,
@@ -54,6 +55,8 @@ export const SearchableSelect: React.FC<Props> = ({
   loadingLabel = 'Loading…',
   emptyLabel = 'No matches',
 }) => {
+  const { t } = useTranslation();
+  const resolvedPlaceholder = placeholder ?? t('ui.select', 'Select…');
   const id = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
@@ -326,7 +329,7 @@ export const SearchableSelect: React.FC<Props> = ({
           ) : loading ? (
             loadingLabel
           ) : (
-            placeholder
+            resolvedPlaceholder
           )}
         </span>
         <span className="searchable-select-chevron">▾</span>

@@ -393,7 +393,7 @@ export const ProductList: React.FC<Props> = ({
               value={perPage}
               onChange={(e) => setPerPage(Number(e.target.value))}
               disabled={listLoading}
-              aria-label="Rows per page"
+              aria-label={t('productMaster.rowsPerPage', 'Rows per page')}
             >
               {[10, 12, 25, 50, 100].map((n) => (
                 <option key={n} value={n}>

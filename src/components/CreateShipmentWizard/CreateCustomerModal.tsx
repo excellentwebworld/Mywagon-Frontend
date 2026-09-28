@@ -56,7 +56,7 @@ export const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-h">
           <span>🏪 {t('createNewCustomer')}</span>
-          <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>
+          <button className="modal-close" onClick={onClose} aria-label={t('createShipment.closeModal', 'Close modal')}>✕</button>
         </div>
         <div className="modal-body">
           <div className="field">
@@ -91,7 +91,7 @@ export const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
             <input
               id="newCustVat"
               className="inp"
-              placeholder="e.g. EL123456789"
+              placeholder={t('createShipment.egVat', 'e.g. EL123456789')}
               value={vat}
               onChange={(e) => setVat(e.target.value)}
             />
@@ -116,7 +116,7 @@ export const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
               id="newCustEmail"
               className="inp"
               type="email"
-              placeholder="info@freshco.com"
+              placeholder={t('createShipment.egEmail', 'info@freshco.com')}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />

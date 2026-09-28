@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import RecordRTC, { StereoAudioRecorder } from 'recordrtc';
 import { normalizeVoiceBlob } from '../../../utils/voiceAudioUtils';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 export interface UseVoiceRecorderReturn {
   isRecording: boolean;
@@ -21,6 +22,7 @@ export interface UseVoiceRecorderReturn {
 }
 
 export function useVoiceRecorder(): UseVoiceRecorderReturn {
+  const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -82,7 +84,12 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       recordingTimeRef.current = 0;
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Your browser does not support microphone audio recording.');
+        alert(
+          t(
+            'Messages.your_browser_does_not_support_microphone_audio_recording',
+            'Your browser does not support microphone audio recording.'
+          )
+        );
         return;
       }
 
@@ -114,9 +121,14 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
         streamRef.current = null;
       }
       setIsRecording(false);
-      alert('Could not access microphone. Please check your browser permissions.');
+      alert(
+        t(
+          'Messages.could_not_access_microphone_please_check_your_browser_permis',
+          'Could not access microphone. Please check your browser permissions.'
+        )
+      );
     }
-  }, [audioUrl]);
+  }, [audioUrl, t]);
 
   // Stop recording and transition to preview mode
   const stopRecording = useCallback(() => {
@@ -135,7 +147,12 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       const blob = normalizeVoiceBlob(rawBlob);
 
       if (!blob || blob.size === 0) {
-        alert('Recording failed. No audio was captured. Please try again.');
+        alert(
+          t(
+            'Messages.recording_failed_no_audio_was_captured_please_try_again',
+            'Recording failed. No audio was captured. Please try again.'
+          )
+        );
         try {
           recorder.destroy();
         } catch {}
@@ -190,7 +207,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
       };
       audio.load();
     });
-  }, []);
+  }, [t]);
 
   // Cancel recording and discard everything immediately
   const cancelRecording = useCallback(() => {

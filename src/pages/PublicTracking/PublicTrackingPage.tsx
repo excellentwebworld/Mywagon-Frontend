@@ -37,6 +37,7 @@ import type {
 } from './types';
 import { PublicTrackingSkeleton } from './PublicTrackingSkeleton';
 import { useLiveDropoffEta } from './useLiveDropoffEta';
+import { useTranslation } from '../../hooks/useTranslation';
 import './publicTracking.css';
 
 type Lang = 'en' | 'el';
@@ -366,6 +367,14 @@ const TrackingLiveMap: React.FC<{
   livePosition: { lat: number; lng: number } | null;
   socketStatus?: 'idle' | 'connecting' | 'connected' | 'error';
 }> = ({ data, stops: passedStops, lang, livePosition, socketStatus = 'idle' }) => {
+  const { t: tr, i18n } = useTranslation();
+
+  useEffect(() => {
+    if (i18n.language !== lang) {
+      i18n.changeLanguage(lang);
+    }
+  }, [lang, i18n]);
+
   const [routeMode, setRouteMode] = useState<'suggested' | 'actual'>('suggested');
   const enrichedStops = useMemo(
     () => stopsToEnriched(passedStops || data.stops, data.map.points || []),
@@ -413,15 +422,15 @@ const TrackingLiveMap: React.FC<{
       return t(lang, 'noGpsShort');
     }
     if (socketStatus === 'connected') {
-      return lang === 'el' ? 'Ζωντανά συνδεδεμένο' : 'Live connected';
+      return tr('PublicTracking.live_connected', 'Live connected');
     }
     if (socketStatus === 'connecting') {
-      return lang === 'el' ? 'Σύνδεση…' : 'Connecting…';
+      return tr('PublicTracking.connecting', 'Connecting…');
     }
     if (socketStatus === 'error') {
-      return lang === 'el' ? 'Σφάλμα σύνδεσης' : 'Connection error';
+      return tr('PublicTracking.connection_error', 'Connection error');
     }
-    return lang === 'el' ? 'Αναμονή GPS' : 'Waiting for GPS';
+    return tr('PublicTracking.waiting_for_gps', 'Waiting for GPS');
   })();
 
   const liveStatusClass = (() => {
@@ -455,9 +464,7 @@ const TrackingLiveMap: React.FC<{
             {!liveBlocked && livePosition
               ? ` · ${livePosition.lat.toFixed(4)}, ${livePosition.lng.toFixed(4)}`
               : !liveBlocked && socketStatus === 'connected'
-                ? lang === 'el'
-                  ? ' · αναμονή θέσης…'
-                  : ' · waiting for position…'
+                ? ` · ${tr('PublicTracking.waiting_for_position', 'waiting for position…')}`
                 : ''}
           </div>
           {showToggle ? (
@@ -529,8 +536,10 @@ const TrackingLiveMap: React.FC<{
 };
 
 /** Match StopsCard OrderStatusIcon — purple ticks for completed stops. */
-const StopCompletedIcon: React.FC = () => (
-  <div className="pt-order-tick" title="Completed">
+const StopCompletedIcon: React.FC = () => {
+  const { t: tr } = useTranslation();
+  return (
+  <div className="pt-order-tick" title={tr('PublicTracking.completed', 'Completed')}>
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="18"
@@ -546,7 +555,8 @@ const StopCompletedIcon: React.FC = () => (
       <path d="M1 5.5L5.5 10L16 -1" opacity="0.6" />
     </svg>
   </div>
-);
+  );
+};
 
 const ItineraryStop: React.FC<{
   stop: TrackingStop;
@@ -746,7 +756,14 @@ const ItineraryStop: React.FC<{
 
 export const PublicTrackingPage: React.FC = () => {
   const { encryptedId, encryptedLocationIds, guestEmail: guestFromUrl } = usePublicTrackingTokens();
+  const { t: tr, i18n } = useTranslation();
   const [lang, setLang] = useState<Lang>('en');
+
+  useEffect(() => {
+    if (i18n.language !== lang) {
+      i18n.changeLanguage(lang);
+    }
+  }, [lang, i18n]);
   const [data, setData] = useState<PublicTrackingPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1218,7 +1235,7 @@ export const PublicTrackingPage: React.FC = () => {
       });
       setRcptDone(true);
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Error');
+      showToast(e instanceof Error ? e.message : tr('PublicTracking.error', 'Error'));
     } finally {
       setRcptSaving(false);
     }
@@ -1235,7 +1252,7 @@ export const PublicTrackingPage: React.FC = () => {
       });
       setRateDone(true);
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Error');
+      showToast(e instanceof Error ? e.message : tr('PublicTracking.error', 'Error'));
     } finally {
       setRateSaving(false);
     }

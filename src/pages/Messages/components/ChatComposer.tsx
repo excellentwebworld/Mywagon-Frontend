@@ -16,6 +16,7 @@ import { TemplateDropdown } from './TemplateDropdown';
 import type { QuickTemplate, ShipmentContextInfo, ChatContext } from '../types';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import { formatShipmentAutoId } from '../../../utils/chatPartnerUtils';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface ChatComposerProps {
   messageInput: string;
@@ -52,6 +53,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
   onShowToast,
   t,
 }) => {
+  const { t: tMsg } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const tplToggleRef = useRef<HTMLButtonElement>(null);
@@ -199,7 +201,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
         <div
           className="cmp-link"
           onClick={(e) => handleSidNavigation(e, linkedSid)}
-          title="Click to view shipment details"
+          title={tMsg('Messages.click_to_view_shipment_details', 'Click to view shipment details')}
         >
           <Link2 size={13} />
           <span>{t('chatModule.linkedTo') || 'Linked to'}</span>
@@ -324,7 +326,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
               type="button"
               ref={tplToggleRef}
               className={`cmp-tool ${tplDropdownOpen ? 'active' : ''}`}
-              title="Templates"
+              title={tMsg('Messages.templates', 'Templates')}
               onClick={onToggleTemplates}
             >
               <LayoutTemplate size={18} />
@@ -367,7 +369,7 @@ export const ChatComposer: React.FC<ChatComposerProps> = ({
             className="cmp-send"
             onClick={() => onSendMessage()}
             disabled={!messageInput.trim()}
-            title="Send message"
+            title={tMsg('Messages.send_message', 'Send message')}
           >
             <Send size={18} />
           </button>
