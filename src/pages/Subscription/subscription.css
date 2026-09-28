@@ -710,8 +710,8 @@
 .subscription-page .feat-table-wrap {
   display: none;
   margin-bottom: 24px;
-  background: #fff;
-  border: 1px solid var(--bd, #e4e4e8);
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e4e4e8);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -724,28 +724,29 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--t3, #8e8e9a);
-  background: var(--sa, #f0f0f3);
-  border-bottom: 1px solid var(--bd, #e4e4e8);
+  color: var(--text-tertiary, #8e8e9a);
+  background: var(--surface-alt, #f0f0f3);
+  border-bottom: 1px solid var(--border, #e4e4e8);
 }
 .subscription-page .feat-table th:first-child { width: 40%; }
 .subscription-page .feat-table td {
   padding: 8px 16px;
   font-size: 12px;
-  border-bottom: 1px solid var(--bd, #e4e4e8);
+  color: var(--text-primary, #121217);
+  border-bottom: 1px solid var(--border, #e4e4e8);
   vertical-align: middle;
 }
 .subscription-page .feat-table .cat-row td {
-  background: var(--ap, #f5f3ff);
+  background: var(--accent-pale, #f5f3ff);
   font-weight: 700;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--ac, #9B51E0);
+  color: var(--accent, #9B51E0);
   padding: 6px 16px;
 }
-.subscription-page .feat-table .check { color: #10b981; font-size: 14px; }
-.subscription-page .feat-table .dash { color: var(--t3, #8e8e9a); opacity: 0.4; }
+.subscription-page .feat-table .check { color: var(--success, #10b981); font-size: 14px; }
+.subscription-page .feat-table .dash { color: var(--text-tertiary, #8e8e9a); opacity: 0.4; }
 .subscription-page .feat-mono {
   font-weight: 600;
   font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
@@ -789,7 +790,7 @@
   font-size: 13px;
   font-weight: 600;
   border: 1.5px solid var(--sub-border);
-  background: #fff;
+  background: var(--surface, #fff);
   color: var(--sub-text2);
   cursor: pointer;
   font-family: inherit;
@@ -815,7 +816,7 @@
   gap: 14px;
 }
 .subscription-page .ao-card {
-  background: #fff;
+  background: var(--surface, #fff);
   border: 1.5px solid var(--sub-border);
   border-radius: var(--sub-r);
   padding: 20px;
@@ -845,6 +846,7 @@
   font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.2px;
+  color: var(--text-primary, #121217);
 }
 .subscription-page .ao-price {
   font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
@@ -854,7 +856,7 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-.subscription-page .ao-price span { font-size: 11px; color: var(--t3, #8e8e9a); font-weight: 600; }
+.subscription-page .ao-price span { font-size: 11px; color: var(--text-tertiary, #8e8e9a); font-weight: 600; }
 .subscription-page .ao-desc {
   font-size: 12px;
   color: var(--sub-text2);
@@ -863,21 +865,21 @@
 }
 .subscription-page .ao-included {
   font-size: 11px;
-  color: var(--t3, #8e8e9a);
+  color: var(--text-tertiary, #8e8e9a);
   margin-bottom: 12px;
   display: flex;
   align-items: center;
   gap: 4px;
 }
-.subscription-page .ao-included .plan-inc { font-weight: 700; color: #10b981; }
+.subscription-page .ao-included .plan-inc { font-weight: 700; color: var(--success, #10b981); }
 .subscription-page .ao-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .subscription-page .ao-toggle {
   position: relative;
   width: 44px;
   height: 24px;
   border-radius: 12px;
-  background: var(--sa, #f0f0f3);
-  border: 1px solid var(--bd, #e4e4e8);
+  background: var(--surface-alt, #f0f0f3);
+  border: 1px solid var(--border, #e4e4e8);
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
@@ -896,7 +898,7 @@
   transition: all 0.2s;
 }
 .subscription-page .ao-toggle.on .knob { left: 22px; }
-.subscription-page .ao-status { font-size: 11px; font-weight: 600; color: var(--t3, #8e8e9a); }
+.subscription-page .ao-status { font-size: 11px; font-weight: 600; color: var(--text-tertiary, #8e8e9a); }
 .subscription-page .ao-status.active { color: var(--mv-purple, #9B51E0); }
 .subscription-page .ao-counter {
   display: flex;
@@ -915,10 +917,10 @@
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  color: var(--t2, #5e5e6e);
+  color: var(--text-secondary, #5e5e6e);
   font-family: inherit;
 }
-.subscription-page .ao-counter button:hover { background: var(--al, #ede9fe); color: var(--ac, #9B51E0); }
+.subscription-page .ao-counter button:hover { background: var(--accent-light, #ede9fe); color: var(--accent, #9B51E0); }
 .subscription-page .ao-counter .qty {
   width: 48px;
   text-align: center;
@@ -926,7 +928,8 @@
   font-size: 14px;
   font-weight: 600;
   border: none;
-  background: #fff;
+  background: var(--surface, #fff);
+  color: var(--text-primary, #121217);
   border-left: 1px solid var(--sub-border);
   border-right: 1px solid var(--sub-border);
 }
@@ -956,11 +959,11 @@
   justify-content: space-between;
   gap: 10px;
   padding: 8px 12px;
-  background: #ecfdf5;
+  background: var(--st-success-bg, #ecfdf5);
   border-radius: var(--sub-rr);
   margin-top: auto;
   font-size: 11px;
-  color: #047857;
+  color: var(--st-success-fg, #047857);
   font-weight: 500;
 }
 .subscription-page .ao-purchased-status {
@@ -991,7 +994,7 @@
   color: var(--sub-purple);
   font-size: 11px;
   font-weight: 700;
-  background: #fff;
+  background: var(--surface, #fff);
   cursor: pointer;
   padding: 0;
 }
@@ -1010,20 +1013,21 @@
   gap: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--t2, #5e5e6e);
+  color: var(--text-secondary, #5e5e6e);
 }
 .subscription-page .sub-contact-form input,
 .subscription-page .sub-contact-form textarea {
-  border: 1px solid var(--bd, #e4e4e8);
+  border: 1px solid var(--border, #e4e4e8);
   border-radius: 8px;
   padding: 8px 10px;
   font: inherit;
   font-weight: 500;
-  color: var(--t1, #121217);
+  color: var(--text-primary, #121217);
+  background: var(--surface, #fff);
 }
 
 .subscription-page .billing-section {
-  background: linear-gradient(135deg, #fafafa 0%, #fff 100%);
+  background: var(--surface, #fff);
   margin-bottom: 0;
 }
 .subscription-page .billing-section .sub-section-head { margin-bottom: 14px; }
@@ -1049,10 +1053,10 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--t3, #8e8e9a);
+  color: var(--text-tertiary, #8e8e9a);
   margin-bottom: 4px;
 }
-.subscription-page .b-field .b-val { font-weight: 500; color: var(--t1, #121217); }
+.subscription-page .b-field .b-val { font-weight: 500; color: var(--text-primary, #121217); }
 .subscription-page .b-field .b-link {
   color: var(--accent, #9b51e0);
   font-weight: 600;
@@ -1268,7 +1272,125 @@
   border: 1.5px solid #ef4444;
 }
 
-/* Dark mode overrides for sub-modal */
+/* ============================================================
+   Dark mode overrides — Add-Ons Marketplace & Billing
+   ============================================================ */
+
+/* Inactive addon tabs: white bg → dark surface */
+[data-theme='dark'] .subscription-page .ao-tab {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+[data-theme='dark'] .subscription-page .ao-tab:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+/* Addon cards */
+[data-theme='dark'] .subscription-page .ao-card {
+  background: var(--surface);
+  border-color: var(--border);
+}
+[data-theme='dark'] .subscription-page .ao-card:hover {
+  border-color: var(--accent);
+}
+
+/* Card text */
+[data-theme='dark'] .subscription-page .ao-name {
+  color: var(--text-primary);
+}
+[data-theme='dark'] .subscription-page .ao-desc {
+  color: var(--text-secondary);
+}
+[data-theme='dark'] .subscription-page .ao-included {
+  color: var(--text-tertiary);
+}
+
+/* Quantity counter */
+[data-theme='dark'] .subscription-page .ao-counter {
+  border-color: var(--border);
+}
+[data-theme='dark'] .subscription-page .ao-counter button {
+  background: var(--surface-alt);
+  color: var(--text-secondary);
+}
+[data-theme='dark'] .subscription-page .ao-counter button:hover {
+  background: rgba(155, 81, 224, 0.18);
+  color: var(--accent);
+}
+[data-theme='dark'] .subscription-page .ao-counter .qty {
+  background: var(--surface);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+/* Info tooltip button */
+[data-theme='dark'] .subscription-page .ao-tip {
+  background: var(--surface);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Purchased banner */
+[data-theme='dark'] .subscription-page .ao-purchased-info {
+  background: var(--st-success-bg);
+  color: var(--st-success-fg);
+}
+
+/* Remove button hover in dark */
+[data-theme='dark'] .subscription-page .ao-buy.remove:hover {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+/* Feature comparison table */
+[data-theme='dark'] .subscription-page .feat-table-wrap {
+  background: var(--surface);
+  border-color: var(--border);
+}
+[data-theme='dark'] .subscription-page .feat-table th {
+  background: var(--surface-alt);
+  border-color: var(--border);
+  color: var(--text-tertiary);
+}
+[data-theme='dark'] .subscription-page .feat-table td {
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+[data-theme='dark'] .subscription-page .feat-table .cat-row td {
+  background: rgba(155, 81, 224, 0.12);
+  color: var(--accent);
+}
+
+/* Billing section */
+[data-theme='dark'] .subscription-page .billing-section {
+  background: var(--surface);
+}
+[data-theme='dark'] .subscription-page .b-field {
+  background: var(--surface-alt);
+  border-color: var(--border);
+}
+[data-theme='dark'] .subscription-page .b-field .b-label {
+  color: var(--text-tertiary);
+}
+[data-theme='dark'] .subscription-page .b-field .b-val {
+  color: var(--text-primary);
+}
+
+/* Contact form in dark */
+[data-theme='dark'] .subscription-page .sub-contact-form label {
+  color: var(--text-secondary);
+}
+[data-theme='dark'] .subscription-page .sub-contact-form input,
+[data-theme='dark'] .subscription-page .sub-contact-form textarea {
+  background: var(--surface-alt);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+/* ============================================================
+   Dark mode overrides — sub-modal
+   ============================================================ */
 [data-theme='dark'] .sub-modal {
   background: var(--surface);
   border-color: var(--border);
