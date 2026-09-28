@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ProductMasterSortField } from '../../pages/ProductMaster/types';
 import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProductMaster';
+import { optionLabel } from '../../pages/ProductMaster/optionLabels';
 import { syncDotClass } from '../../pages/ProductMaster/utils/productUtils';
 import { ListSkeleton } from '../skeletons/ListSkeleton';
 
@@ -355,7 +356,7 @@ export const ProductList: React.FC<Props> = ({
                         </td>
                         <td>
                           {s.palletType ? (
-                            <span className="type-pill">{s.palletType}</span>
+                            <span className="type-pill">{optionLabel('pallet', s.palletType, t)}</span>
                           ) : (
                             '—'
                           )}
@@ -365,7 +366,7 @@ export const ProductList: React.FC<Props> = ({
                         </td>
                         <td>
                           {s.temperature ? (
-                            <span className="type-pill">{s.temperature}</span>
+                            <span className="type-pill">{optionLabel('temp', s.temperature, t)}</span>
                           ) : (
                             '—'
                           )}
@@ -384,9 +385,13 @@ export const ProductList: React.FC<Props> = ({
           <div className="pag-info">
             {listMeta
               ? t('showingSkusRange', {
-                count: filteredSkus.length,
-                total: listMeta.total,
-              })
+                  start:
+                    listMeta.total === 0
+                      ? 0
+                      : (currentPage - 1) * perPage + 1,
+                  end: Math.min(currentPage * perPage, listMeta.total),
+                  total: listMeta.total,
+                })
               : `${filteredSkus.length} ${t('productMaster.skus', 'SKUs')}`}
             <select
               className="pag-length-sel ml-2"

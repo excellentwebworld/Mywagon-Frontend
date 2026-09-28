@@ -459,6 +459,69 @@
   min-width: 0;
 }
 
+.tut-soon-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 4px;
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in srgb, #D97706 25%, var(--border));
+  background: color-mix(in srgb, #FFFBEB 80%, var(--surface));
+  color: var(--text-primary);
+}
+
+.tut-soon-banner svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #D97706;
+}
+
+.tut-soon-banner strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.tut-soon-banner p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.tut-soon-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #B45309;
+  background: #FFFBEB;
+  border: 1px solid color-mix(in srgb, #D97706 30%, var(--border));
+  white-space: nowrap;
+}
+
+.tut-mod-card--soon .tut-mod-card-head {
+  border-bottom: none;
+}
+
+.tut-mod-soon-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  color: #B45309;
+  background: color-mix(in srgb, #FFFBEB 55%, var(--surface));
+}
+
 /* ── Empty & loading ── */
 .tut-empty-state {
   text-align: center;

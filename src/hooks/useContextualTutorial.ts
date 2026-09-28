@@ -7,11 +7,13 @@ import {
   getContextualTutorialConfig,
   type ContextualTutorialKey,
 } from '../config/contextualTutorials';
+import { TUTORIALS_COMING_SOON } from '../config/tutorialsFeature';
 
 export function useContextualTutorial(tutorialKey: ContextualTutorialKey) {
   const { t, lang } = useTranslation();
   const { showToast } = useApp();
   const config = getContextualTutorialConfig(tutorialKey);
+  const comingSoon = TUTORIALS_COMING_SOON;
 
   const [loading, setLoading] = useState(false);
   const [modalVideo, setModalVideo] = useState<TutorialVideo | null>(null);
@@ -55,6 +57,11 @@ export function useContextualTutorial(tutorialKey: ContextualTutorialKey) {
   const openTutorial = useCallback(async () => {
     if (loading) return;
 
+    if (comingSoon) {
+      showToast(t('tutorials.comingSoonToast'), 'info');
+      return;
+    }
+
     setLoading(true);
     try {
       const videos = await tutorialsService.fetchBySection(config.section);
@@ -77,7 +84,7 @@ export function useContextualTutorial(tutorialKey: ContextualTutorialKey) {
     } finally {
       setLoading(false);
     }
-  }, [config.section, loading, showToast, t]);
+  }, [comingSoon, config.section, loading, showToast, t]);
 
   useEffect(() => {
     if (!modalVideo) return undefined;
@@ -92,6 +99,7 @@ export function useContextualTutorial(tutorialKey: ContextualTutorialKey) {
     t,
     lang,
     loading,
+    comingSoon,
     moduleTitle,
     modalVideo,
     modalPlaylist,

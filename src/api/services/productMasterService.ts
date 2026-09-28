@@ -43,6 +43,15 @@ function csvCell(val: string | number | undefined | null): string {
   return str;
 }
 
+/** Prefer row-level validation messages from `errors[]` over the generic import summary. */
+function importFailureMessage(json: { message?: string; errors?: unknown }, fallback = 'Import failed'): string {
+  if (Array.isArray(json.errors)) {
+    const details = json.errors.filter((e): e is string => typeof e === 'string' && e.trim() !== '');
+    if (details.length > 0) return details.join(' ');
+  }
+  return json.message ?? fallback;
+}
+
 export const productMasterService = {
   async getSummary(): Promise<ApiProductSummary> {
     const res = await apiGet<ApiProductSummary>('/product-master/summary');
@@ -138,8 +147,8 @@ export const productMasterService = {
       body: formData,
     });
     const json = await response.json();
-    if (!response.ok) {
-      throw new ApiError(json.message ?? 'Import failed', response.status, json.data);
+    if (!response.ok || json.success === false) {
+      throw new ApiError(importFailureMessage(json), response.status || 422, undefined, json.data);
     }
     return json.data as ApiImportResult;
   },
@@ -226,8 +235,8 @@ export const productMasterService = {
       return data;
     }
 
-    if (!response.ok) {
-      throw new ApiError(json.message ?? 'Import failed', response.status, json.errors, json.data);
+    if (!response.ok || json.success === false) {
+      throw new ApiError(importFailureMessage(json), response.status || 422, undefined, json.data);
     }
 
     return data as ApiImportResult;

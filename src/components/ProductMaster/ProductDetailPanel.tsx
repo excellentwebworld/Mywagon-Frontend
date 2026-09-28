@@ -3,6 +3,7 @@ import { ProductDetailSkeleton } from "../skeletons/ProductDetailSkeleton";
 import { useTranslation } from "../../hooks/useTranslation";
 import type { ProductType, SKU } from "../../context/AppContext";
 import type { ProductMasterState } from "../../pages/ProductMaster/hooks/useProductMaster";
+import { optionLabel } from "../../pages/ProductMaster/optionLabels";
 
 type Props = Pick<
   ProductMasterState,
@@ -166,7 +167,7 @@ function SkuDetail({
           )}
           {s.uom && (
             <div>
-              <strong>{t("uom")}:</strong> {s.uom}
+              <strong>{t("uom")}:</strong> {optionLabel("uom", s.uom, t)}
             </div>
           )}
         </div>
@@ -270,7 +271,11 @@ function SkuDetail({
                 <div className="dp-row">
                   <span className="label">{t("productMaster.temperature", "Temperature")}</span>
                   <span className="val">
-                    {s.temperature ?? tp?.defaults.temp}
+                    {optionLabel(
+                      "temp",
+                      s.temperature ?? tp?.defaults.temp ?? "",
+                      t
+                    )}
                   </span>
                 </div>
                 <div className="dp-row">
@@ -292,7 +297,11 @@ function SkuDetail({
                 <div className="dp-row">
                   <span className="label">{t("productMaster.palletType", "Pallet Type")}</span>
                   <span className="val">
-                    {s.palletType ?? tp?.defaults.palletType}
+                    {optionLabel(
+                      "pallet",
+                      s.palletType ?? tp?.defaults.palletType ?? "",
+                      t
+                    )}
                   </span>
                 </div>
               </>
@@ -398,7 +407,7 @@ function TypeDetail({
             <div className="stat-lbl">{t("productMaster.shipments90d", "Shipments (90d)")}</div>
           </div>
           <div className="stat-card">
-            <div className="stat-val">{tp.defaults.temp}</div>
+            <div className="stat-val">{optionLabel("temp", tp.defaults.temp, t)}</div>
             <div className="stat-lbl">{t("productMaster.temperature", "Temperature")}</div>
           </div>
         </div>
@@ -420,7 +429,7 @@ function TypeDetail({
           <div className="dp-sec-body">
             <div className="dp-row">
               <span className="label">{t("productMaster.temperature", "Temperature")}</span>
-              <span className="val">{tp.defaults.temp}</span>
+              <span className="val">{optionLabel("temp", tp.defaults.temp, t)}</span>
             </div>
             <div className="dp-row">
               <span className="label">{t("productMaster.hazardous", "Hazardous")}</span>
@@ -440,7 +449,7 @@ function TypeDetail({
             </div>
             <div className="dp-row">
               <span className="label">{t("productMaster.palletType", "Pallet Type")}</span>
-              <span className="val">{tp.defaults.palletType}</span>
+              <span className="val">{optionLabel("pallet", tp.defaults.palletType, t)}</span>
             </div>
           </div>
         )}

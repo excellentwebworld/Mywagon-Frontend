@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { skuValidationSchema } from './ProductMasterSkuModal';
+import { createSkuValidationSchema, skuValidationSchema } from './ProductMasterSkuModal';
 
 describe('ProductMaster SKU Validation', () => {
   const baseValid = {
@@ -76,5 +76,12 @@ describe('ProductMaster SKU Validation', () => {
     await expect(
       skuValidationSchema.validateAt('number', { number: '' })
     ).rejects.toThrow('SKU Number is required');
+  });
+
+  it('uses translated messages from createSkuValidationSchema', async () => {
+    const schema = createSkuValidationSchema((key, fallback) => fallback || key);
+    await expect(schema.validateAt('catId', { catId: '' })).rejects.toThrow(
+      'Category is required'
+    );
   });
 });

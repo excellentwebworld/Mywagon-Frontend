@@ -17,6 +17,7 @@ import { productMasterService } from '../../api/services/productMasterService';
 import { mapReferenceToProductTypes } from '../../api/mappers/productMasterMapper';
 import type { ApiReferenceCategory } from '../../api/types/productMaster';
 import type { ProductType } from '../../context/AppContext';
+import { optionLabel } from '../../pages/ProductMaster/optionLabels';
 import { isPositiveMeasurement } from '../../utils/measurementValidation';
 import '../../styles/product-master-sku-modal.css';
 
@@ -31,6 +32,32 @@ export const skuValidationSchema = Yup.object().shape({
       isPositiveMeasurement(val, /(kg|g|t|tons?|lbs?|oz)$/i)
     ),
 });
+
+type TranslateFn = (key: string, fallback?: string) => string;
+
+export function createSkuValidationSchema(t: TranslateFn) {
+  return Yup.object().shape({
+    catId: Yup.string()
+      .trim()
+      .required(t('productMaster.categoryRequired', 'Category is required')),
+    typeId: Yup.string()
+      .trim()
+      .required(t('productMaster.productTypeRequired', 'Please select a product type')),
+    name: Yup.string()
+      .trim()
+      .required(t('productMaster.skuNameRequired', 'SKU Name is required')),
+    number: Yup.string()
+      .trim()
+      .required(t('productMaster.skuNumberRequired', 'SKU Number is required')),
+    weight: Yup.string()
+      .trim()
+      .test(
+        'positive-weight',
+        t('productMaster.weightPositive', 'Must be greater than 0'),
+        (val) => isPositiveMeasurement(val, /(kg|g|t|tons?|lbs?|oz)$/i)
+      ),
+  });
+}
 
 function fieldClass(hasError: boolean): string {
   return hasError ? 'mf has-error' : 'mf';
@@ -75,9 +102,20 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
     [apiCategories]
   );
 
-  const uomOptions = useMemo(() => UOM_OPTIONS.map((u) => ({ value: u, label: u })), []);
-  const tempOptions = useMemo(() => TEMP_OPTIONS.map((v) => ({ value: v, label: v })), []);
-  const palletOptions = useMemo(() => PALLET_OPTIONS.map((v) => ({ value: v, label: v })), []);
+  const uomOptions = useMemo(
+    () => UOM_OPTIONS.map((u) => ({ value: u, label: optionLabel('uom', u, t) })),
+    [t]
+  );
+  const tempOptions = useMemo(
+    () => TEMP_OPTIONS.map((v) => ({ value: v, label: optionLabel('temp', v, t) })),
+    [t]
+  );
+  const palletOptions = useMemo(
+    () => PALLET_OPTIONS.map((v) => ({ value: v, label: optionLabel('pallet', v, t) })),
+    [t]
+  );
+
+  const validationSchema = useMemo(() => createSkuValidationSchema(t), [t]);
 
   const formInitialValues = useMemo(
     () => ({ ...EMPTY_NEW_SKU, ...initialValues }),
@@ -91,7 +129,7 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
   return createPortal(
     <Formik
       initialValues={formInitialValues}
-      validationSchema={skuValidationSchema}
+      validationSchema={validationSchema}
       enableReinitialize={editMode}
       validateOnChange
       validateOnBlur
