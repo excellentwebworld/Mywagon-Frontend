@@ -820,7 +820,7 @@ const ItineraryStop: React.FC<{
 export const PublicTrackingPage: React.FC = () => {
   const { encryptedId, encryptedLocationIds, guestEmail: guestFromUrl } = usePublicTrackingTokens();
   const { t: tr } = useTranslation();
-  const [lang, setLang] = useState<Lang>(() => {
+  const [lang, setLangState] = useState<Lang>(() => {
     try {
       const stored = localStorage.getItem('shipment-lang');
       return stored === 'el' || stored === 'en' ? stored : 'en';
@@ -829,7 +829,16 @@ export const PublicTrackingPage: React.FC = () => {
     }
   });
 
-  // Local EN/GR only — never sync into global i18n (conflicts with AppContext language).
+  const setLang = useCallback((next: Lang) => {
+    setLangState(next);
+    try {
+      localStorage.setItem('shipment-lang', next);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  // Local EN/GR chrome only — API labels refetch with Accept-Language when lang changes.
   const [data, setData] = useState<PublicTrackingPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1009,13 +1018,17 @@ export const PublicTrackingPage: React.FC = () => {
         setError(t('en', 'notFound'));
         return;
       }
-      setLoading(true);
+      const softReload = Boolean(data);
+      if (!softReload) {
+        setLoading(true);
+      }
       setError(null);
       try {
         const payload = await publicTrackingService.getTracking(
           encryptedId,
           encryptedLocationIds,
-          guestFromUrl || undefined
+          guestFromUrl || undefined,
+          lang
         );
         if (cancelled) return;
         setData(payload);
@@ -1038,7 +1051,8 @@ export const PublicTrackingPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [encryptedId, encryptedLocationIds, guestFromUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keep prior payload while soft-reloading on lang change
+  }, [encryptedId, encryptedLocationIds, guestFromUrl, lang]);
 
   // Live tracking socket (Laravel traking.js parity)
   useEffect(() => {
@@ -1287,18 +1301,23 @@ export const PublicTrackingPage: React.FC = () => {
     if (!data) return;
     setRcptSaving(true);
     try {
-      await publicTrackingService.confirmReceipt(encryptedId, encryptedLocationIds, {
-        confirmation_type: rcptType,
-        reason_code: rcptType === 'partial' ? rcptReason || undefined : undefined,
-        notes: rcptNotes || undefined,
-        guest_email: resolvedGuestEmail || undefined,
-        items: rcptItems.map((it) => ({
-          location_id: it.location_id,
-          order_id: it.order_id,
-          ordered_qty: it.ordered_qty,
-          received_qty: rcptType === 'full' ? it.ordered_qty : it.received_qty,
-        })),
-      });
+      await publicTrackingService.confirmReceipt(
+        encryptedId,
+        encryptedLocationIds,
+        {
+          confirmation_type: rcptType,
+          reason_code: rcptType === 'partial' ? rcptReason || undefined : undefined,
+          notes: rcptNotes || undefined,
+          guest_email: resolvedGuestEmail || undefined,
+          items: rcptItems.map((it) => ({
+            location_id: it.location_id,
+            order_id: it.order_id,
+            ordered_qty: it.ordered_qty,
+            received_qty: rcptType === 'full' ? it.ordered_qty : it.received_qty,
+          })),
+        },
+        lang
+      );
       setRcptDone(true);
     } catch (e) {
       showToast(e instanceof Error ? e.message : tr('PublicTracking.error', 'Error'));
@@ -1311,11 +1330,16 @@ export const PublicTrackingPage: React.FC = () => {
     if (!data || stars < 1) return;
     setRateSaving(true);
     try {
-      await publicTrackingService.submitRating(encryptedId, encryptedLocationIds, {
-        rating: stars,
-        review: review || undefined,
-        guest_email: resolvedGuestEmail || undefined,
-      });
+      await publicTrackingService.submitRating(
+        encryptedId,
+        encryptedLocationIds,
+        {
+          rating: stars,
+          review: review || undefined,
+          guest_email: resolvedGuestEmail || undefined,
+        },
+        lang
+      );
       setRateDone(true);
     } catch (e) {
       showToast(e instanceof Error ? e.message : tr('PublicTracking.error', 'Error'));

@@ -44,19 +44,25 @@ function apiErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-async function getTracking(
-  id: string,
-  locationId: string,
-  guestEmail?: string | null
-): Promise<PublicTrackingPayload> {
-  const base = publicApiBase();
-  let acceptLang = 'en';
+function acceptLanguageHeader(lang?: string | null): string {
+  if (lang === 'el' || lang === 'en') return lang;
   try {
     const stored = localStorage.getItem('shipment-lang');
-    if (stored === 'el' || stored === 'en') acceptLang = stored;
+    if (stored === 'el' || stored === 'en') return stored;
   } catch {
     /* ignore */
   }
+  return 'en';
+}
+
+async function getTracking(
+  id: string,
+  locationId: string,
+  guestEmail?: string | null,
+  lang?: string | null
+): Promise<PublicTrackingPayload> {
+  const base = publicApiBase();
+  const acceptLang = acceptLanguageHeader(lang);
   try {
     const res = await axios.get<ApiEnvelope<PublicTrackingPayload>>(`${base}/track-shipment`, {
       params: trackingQuery(id, locationId, guestEmail),
@@ -85,14 +91,18 @@ async function confirmReceipt(
       ordered_qty?: number | null;
       received_qty?: number | null;
     }>;
-  }
+  },
+  lang?: string | null
 ) {
   const base = publicApiBase();
   try {
     const res = await axios.post<ApiEnvelope<unknown>>(
       `${base}/track-shipment/confirm-receipt`,
       body,
-      { params: trackingQuery(id, locationId, body.guest_email) }
+      {
+        params: trackingQuery(id, locationId, body.guest_email),
+        headers: { 'Accept-Language': acceptLanguageHeader(lang) },
+      }
     );
     if (!res.data?.success) {
       throw new Error(res.data?.message || 'Failed to confirm receipt');
@@ -111,14 +121,18 @@ async function submitRating(
     review?: string;
     guest_email?: string;
     delivery_on_time?: boolean;
-  }
+  },
+  lang?: string | null
 ) {
   const base = publicApiBase();
   try {
     const res = await axios.post<ApiEnvelope<{ rated: boolean; guest_display_name?: string }>>(
       `${base}/track-shipment/rating`,
       body,
-      { params: trackingQuery(id, locationId, body.guest_email) }
+      {
+        params: trackingQuery(id, locationId, body.guest_email),
+        headers: { 'Accept-Language': acceptLanguageHeader(lang) },
+      }
     );
     if (!res.data?.success) {
       throw new Error(res.data?.message || 'Failed to submit rating');
