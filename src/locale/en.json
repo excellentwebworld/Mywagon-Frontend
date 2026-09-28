@@ -5238,6 +5238,12 @@
     "actionFailed": "Unable to complete this action.",
     "retry": "Retry",
     "settlingPayment": "Confirming your payment…",
+    "billingDetails": "Billing Details",
+    "companyName": "Company Name",
+    "vatId": "VAT / Tax ID",
+    "billingAddress": "Billing Address",
+    "invoiceEmail": "Invoice Email",
+    "viewInvoices": "View Invoices",
     "usage": {
       "number_of_fleet_manager_users": "Number of Fleet Manager Users",
       "number_of_driver_users": "Number of Driver Users",

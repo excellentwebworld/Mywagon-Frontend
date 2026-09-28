@@ -5241,6 +5241,12 @@
     "actionFailed": "Αδυναμία ολοκλήρωσης αυτής της ενέργειας.",
     "retry": "Επανάληψη",
     "settlingPayment": "Επιβεβαίωση πληρωμής…",
+    "billingDetails": "Στοιχεία τιμολόγησης",
+    "companyName": "Επωνυμία εταιρείας",
+    "vatId": "ΑΦΜ / Αριθμός φορολογικού μητρώου",
+    "billingAddress": "Διεύθυνση τιμολόγησης",
+    "invoiceEmail": "Email τιμολογίων",
+    "viewInvoices": "Προβολή τιμολογίων",
     "usage": {
       "number_of_fleet_manager_users": "Αριθμός διαχειριστών στόλου",
       "number_of_driver_users": "Αριθμός οδηγών",
