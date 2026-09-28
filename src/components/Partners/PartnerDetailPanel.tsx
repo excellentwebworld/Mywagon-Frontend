@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { PartnerDetailSkeleton } from "../skeletons/PartnerDetailSkeleton";
 import type { Partner } from "../../pages/Partners/types";
 import type { PartnersState } from "../../pages/Partners/hooks/usePartners";
@@ -19,6 +20,10 @@ type Props = Pick<
   | "acceptPartner"
   | "declinePartner"
   | "canAcceptDeclinePartner"
+  | "acceptLoading"
+  | "declineLoading"
+  | "acceptLoadingId"
+  | "declineLoadingId"
   | "togglePreferred"
   | "deleteContractLane"
   | "openGenericModal"
@@ -78,6 +83,10 @@ export const PartnerDetailPanel: React.FC<Props> = ({
   acceptPartner,
   declinePartner,
   canAcceptDeclinePartner,
+  acceptLoading,
+  declineLoading,
+  acceptLoadingId,
+  declineLoadingId,
   togglePreferred,
   deleteContractLane,
   openGenericModal,
@@ -233,20 +242,34 @@ export const PartnerDetailPanel: React.FC<Props> = ({
                 📥 {t("invitationReceived")}
               </div>
               <div className="ptn-inv-actions-container">
-                <button
-                  type="button"
-                  className="btn-decline-inv"
-                  onClick={() => declinePartner(p)}
-                >
-                  ✕ {t("decline")}
-                </button>
-                <button
-                  type="button"
-                  className="btn-accept-inv"
-                  onClick={() => acceptPartner(p)}
-                >
-                  ✓ {t("accept")}
-                </button>
+                {(() => {
+                  const pid = String(p.id);
+                  const isAccepting = acceptLoading && acceptLoadingId === pid;
+                  const isDeclining = declineLoading && declineLoadingId === pid;
+                  const busy = isAccepting || isDeclining;
+                  return (
+                    <>
+                      <button
+                        type="button"
+                        className="btn-decline-inv"
+                        disabled={busy}
+                        onClick={() => declinePartner(p)}
+                        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                      >
+                        {isDeclining ? <Loader2 size={14} className="animate-spin" /> : "✕"} {t("decline")}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-accept-inv"
+                        disabled={busy}
+                        onClick={() => acceptPartner(p)}
+                        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                      >
+                        {isAccepting ? <Loader2 size={14} className="animate-spin" /> : "✓"} {t("accept")}
+                      </button>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           )}

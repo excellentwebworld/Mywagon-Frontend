@@ -143,6 +143,10 @@ const Partners: React.FC = () => {
           acceptPartner={state.acceptPartner}
           declinePartner={state.declinePartner}
           canAcceptDeclinePartner={state.canAcceptDeclinePartner}
+          acceptLoading={state.acceptLoading}
+          declineLoading={state.declineLoading}
+          acceptLoadingId={state.acceptLoadingId}
+          declineLoadingId={state.declineLoadingId}
         />
 
         <PartnerDetailPanel
@@ -159,6 +163,10 @@ const Partners: React.FC = () => {
           acceptPartner={state.acceptPartner}
           declinePartner={state.declinePartner}
           canAcceptDeclinePartner={state.canAcceptDeclinePartner}
+          acceptLoading={state.acceptLoading}
+          declineLoading={state.declineLoading}
+          acceptLoadingId={state.acceptLoadingId}
+          declineLoadingId={state.declineLoadingId}
           togglePreferred={state.togglePreferred}
           deleteContractLane={state.deleteContractLane}
           openGenericModal={state.openGenericModal}
@@ -193,8 +201,9 @@ const Partners: React.FC = () => {
           confirmText={confirmConfig.confirmLabel}
           cancelText={state.t('cancel')}
           type={confirmConfig.variant === 'primary' ? 'success' : 'danger'}
+          confirmLoading={state.confirmLoading}
           onConfirm={state.executeConfirm}
-          onClose={() => state.setConfirmAction(null)}
+          onClose={() => !state.confirmLoading && state.setConfirmAction(null)}
         />
       )}
     </div>

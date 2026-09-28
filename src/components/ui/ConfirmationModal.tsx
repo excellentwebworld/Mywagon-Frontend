@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { Loader2 } from 'lucide-react';
 
 export interface ConfirmationModalProps {
   isOpen: boolean;
@@ -125,8 +126,15 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <button type="button" className="btn btn-secondary" onClick={onClose} disabled={confirmLoading}>
             {cancelText}
           </button>
-          <button type="button" className={`btn ${confirmBtnClass}`} onClick={onConfirm} disabled={confirmLoading}>
-            {confirmLoading ? '...' : confirmText}
+          <button
+            type="button"
+            className={`btn ${confirmBtnClass}`}
+            onClick={onConfirm}
+            disabled={confirmLoading}
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          >
+            {confirmLoading ? <Loader2 size={14} className="animate-spin" /> : null}
+            {confirmText}
           </button>
         </div>
       </div>

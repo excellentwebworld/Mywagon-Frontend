@@ -1,4 +1,5 @@
 import React from 'react';
+import { Loader2 } from 'lucide-react';
 import type { Partner } from '../../pages/Partners/types';
 import type { PartnersSortField } from '../../pages/Partners/types';
 import type { PartnersState } from '../../pages/Partners/hooks/usePartners';
@@ -56,6 +57,10 @@ type Props = Pick<
   | 'acceptPartner'
   | 'declinePartner'
   | 'canAcceptDeclinePartner'
+  | 'acceptLoading'
+  | 'declineLoading'
+  | 'acceptLoadingId'
+  | 'declineLoadingId'
 >;
 
 function getTypeClass(type: Partner['type']) {
@@ -101,6 +106,10 @@ export const PartnersList: React.FC<Props> = ({
   acceptPartner,
   declinePartner,
   canAcceptDeclinePartner,
+  acceptLoading,
+  declineLoading,
+  acceptLoadingId,
+  declineLoadingId,
 }) => {
   const total = listMeta.total ?? 0;
   const lastPage = listMeta.last_page ?? 1;
@@ -184,22 +193,34 @@ export const PartnersList: React.FC<Props> = ({
                     <span className={`ptn-st ${getStatusClass(p.status)}`}>{p.statusLabel}</span>
                     {p.canAcceptDecline && canAcceptDeclinePartner && (
                       <div style={{ marginTop: 6, display: 'flex', gap: 4 }} onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          className="btn btn-ok btn-sm"
-                          style={{ padding: '2px 6px', fontSize: 10 }}
-                          onClick={() => acceptPartner(p)}
-                        >
-                          ✓ {t('accept')}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          style={{ padding: '2px 6px', fontSize: 10 }}
-                          onClick={() => declinePartner(p)}
-                        >
-                          ✕ {t('decline')}
-                        </button>
+                        {(() => {
+                          const pid = String(p.id);
+                          const isAccepting = acceptLoading && acceptLoadingId === pid;
+                          const isDeclining = declineLoading && declineLoadingId === pid;
+                          const busy = isAccepting || isDeclining;
+                          return (
+                            <>
+                              <button
+                                type="button"
+                                className="btn btn-ok btn-sm"
+                                style={{ padding: '2px 6px', fontSize: 10, minWidth: 64, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+                                disabled={busy}
+                                onClick={() => acceptPartner(p)}
+                              >
+                                {isAccepting ? <Loader2 size={12} className="animate-spin" /> : '✓'} {t('accept')}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-danger btn-sm"
+                                style={{ padding: '2px 6px', fontSize: 10, minWidth: 64, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+                                disabled={busy}
+                                onClick={() => declinePartner(p)}
+                              >
+                                {isDeclining ? <Loader2 size={12} className="animate-spin" /> : '✕'} {t('decline')}
+                              </button>
+                            </>
+                          );
+                        })()}
                       </div>
                     )}
                   </td>
