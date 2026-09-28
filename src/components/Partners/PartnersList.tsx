@@ -87,6 +87,24 @@ const FACET_LABEL_MAP: Record<string, string> = {
   st_suspended: 'suspendedPartners',
 };
 
+const TYPE_LABEL_KEYS: Record<Partner['type'], string> = {
+  carrier_company: 'carriersType',
+  freelancer_driver: 'freelancersType',
+  supplier: 'suppliersType',
+};
+
+function partnerStatusText(p: Partner, t: (key: string, fallback?: string) => string): string {
+  if (p.status === 'active') return t('activePartners');
+  if (p.status === 'invited') return t('invitationSent');
+  if (p.status === 'pending') return t('invitationReceived');
+  return t('suspendedPartners');
+}
+
+function partnerTypeText(p: Partner, t: (key: string, fallback?: string) => string): string {
+  const key = TYPE_LABEL_KEYS[p.type];
+  return key ? t(key) : p.typeLabel || p.type;
+}
+
 export const PartnersList: React.FC<Props> = ({
   t,
   filteredPartners,
@@ -187,10 +205,10 @@ export const PartnersList: React.FC<Props> = ({
                     )}
                   </td>
                   <td>
-                    <span className={`ptn-tp ${getTypeClass(p.type)}`}>{p.typeLabel}</span>
+                    <span className={`ptn-tp ${getTypeClass(p.type)}`}>{partnerTypeText(p, t)}</span>
                   </td>
                   <td>
-                    <span className={`ptn-st ${getStatusClass(p.status)}`}>{p.statusLabel}</span>
+                    <span className={`ptn-st ${getStatusClass(p.status)}`}>{partnerStatusText(p, t)}</span>
                     {p.canAcceptDecline && canAcceptDeclinePartner && (
                       <div style={{ marginTop: 6, display: 'flex', gap: 4 }} onClick={(e) => e.stopPropagation()}>
                         {(() => {

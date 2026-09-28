@@ -44,6 +44,24 @@ function getStatusClass(status: Partner["status"]) {
   return "ptn-st-su";
 }
 
+const TYPE_LABEL_KEYS: Record<Partner["type"], string> = {
+  carrier_company: "carriersType",
+  freelancer_driver: "freelancersType",
+  supplier: "suppliersType",
+};
+
+function partnerStatusText(p: Partner, t: (key: string, fallback?: string) => string): string {
+  if (p.status === "active") return t("activePartners");
+  if (p.status === "invited") return t("invitationSent");
+  if (p.status === "pending") return t("invitationReceived");
+  return t("suspendedPartners");
+}
+
+function partnerTypeText(p: Partner, t: (key: string, fallback?: string) => string): string {
+  const key = TYPE_LABEL_KEYS[p.type];
+  return key ? t(key) : p.typeLabel || p.type;
+}
+
 function SectionHeader({
   label,
   sectionKey,
@@ -166,17 +184,10 @@ export const PartnerDetailPanel: React.FC<Props> = ({
 
           <div className="ptn-dp-badges">
             <span className={`ptn-tp ${getTypeClass(p.type)}`}>
-              {p.typeLabel}
+              {partnerTypeText(p, t)}
             </span>
             <span className={`ptn-st ${getStatusClass(p.status)}`}>
-              {p.statusLabel ||
-                (p.status === "active"
-                  ? t("activePartners")
-                  : p.status === "invited"
-                    ? t("invitationSent")
-                    : p.status === "pending"
-                      ? t("invitationReceived")
-                      : t("suspendedPartners"))}
+              {partnerStatusText(p, t)}
             </span>
             {p.isPreferred && (
               <span className="ptn-tag ptn-tag-pref">★ {t("preferred")}</span>
