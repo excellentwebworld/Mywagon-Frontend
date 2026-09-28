@@ -95,7 +95,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
               <th className="wr-th-fulfilled text-right">{t('weeklyReports.loadsFulfilled', 'Fulfilled')}</th>
               <th className="wr-th-created text-right">{t('weeklyReports.loadsCreated', 'Created')}</th>
               <th className="wr-th-active">{t('weeklyReports.onTrip', 'In Progress')}</th>
-              <th className="wr-th-pending">{t('weeklyReports.pending', 'Pending / Canceled')}</th>
+              <th className="wr-th-pending">{t('weeklyReports.pending', 'Loads Currently Pending')}</th>
               <th className="wr-th-partners text-right">{t('weeklyReports.newPartners', 'Partners')}</th>
               <th className="wr-th-actions text-right">
                 {t('analytics.weeklyReports.actions', 'Actions')}
@@ -188,7 +188,6 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                 const scheduled = r.metrics.scheduled?.value ?? 0;
                 const ready = r.metrics.ready?.value ?? 0;
                 const pending = r.metrics.pending?.value ?? 0;
-                const canceled = r.metrics.canceled?.value ?? 0;
                 const newPartners = r.metrics.new_partners?.value ?? 0;
 
                 const isExportingThis = exportingReportId === r.id;
@@ -279,17 +278,12 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                       </div>
                     </td>
 
-                    {/* Pending & Canceled */}
+                    {/* Pending */}
                     <td className="wr-td-pending">
                       <div className="wr-pending-cell">
                         <span className="wr-sub-chip wr-chip-pending">
                           {pending} {t('analytics.weeklyReports.chipPending', 'pending')}
                         </span>
-                        {canceled > 0 && (
-                          <span className="wr-sub-chip wr-chip-canceled">
-                            {canceled} {t('analytics.weeklyReports.chipCanceled', 'cxl')}
-                          </span>
-                        )}
                       </div>
                     </td>
 
