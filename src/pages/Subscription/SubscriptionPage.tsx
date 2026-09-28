@@ -958,7 +958,12 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
     return <SubscriptionSkeleton />;
   }
 
-  const pageClass = isWebView ? 'subscription-page webview-subscription' : 'subscription-page';
+  const pageClass = [
+    isWebView ? 'subscription-page webview-subscription' : 'subscription-page',
+    locale === 'el' ? 'lang-el' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   if (error && !data) {
     return (
@@ -1174,7 +1179,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
                   {!isWebView && p.description ? <div className="pds">{p.description}</div> : null}
                   <div className="pr">
                     <span className="c">€</span>
-                    <span className="a">{pr === 0 ? '0' : pr.toLocaleString('de-DE')}</span>
+                    <span className="a">{pr === 0 ? '0' : pr.toLocaleString(locale === 'el' ? 'el-GR' : 'de-DE')}</span>
                     <span className="p">{tf('perMonth', '/month')}</span>
                   </div>
                   <div className="pnt">{p.is_free ? tf('freePlan', 'Free plan') : ''}</div>

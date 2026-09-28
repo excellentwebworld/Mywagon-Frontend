@@ -301,14 +301,19 @@ export function Toggle({ checked, onChange, label, disabled }) {
 /* 9. USAGE METER — brand gradient; functional colour only near the limit */
 /* ------------------------------------------------------------------ */
 export function UsageMeter({ label, used, limit }) {
+  const { t } = useTranslation();
   const unlimited = limit == null;
   const pct = unlimited ? 0 : Math.min(100, (used / limit) * 100);
   const fill = pct >= 100 ? 'var(--mv-danger)' : pct >= 85 ? 'var(--mv-warning)' : 'var(--mv-grad-purple-blue)';
+  const unlimitedLabel = t('subscriptionPage.unlimitedDays', { defaultValue: 'Unlimited' });
   return (
-    <div style={{ padding: 16, borderRadius: 12, border: '1px solid var(--app-border)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-        <span style={{ color: 'var(--app-text-2)', fontWeight: 500 }}>{label}</span>
-        <span style={{ fontVariantNumeric: 'tabular-nums' }}><b>{used}</b><span style={{ color: 'var(--app-text-3)' }}> / {unlimited ? 'Unlimited' : limit}</span></span>
+    <div style={{ padding: 16, borderRadius: 12, border: '1px solid var(--app-border)', minWidth: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13, alignItems: 'flex-start' }}>
+        <span style={{ color: 'var(--app-text-2)', fontWeight: 500, minWidth: 0, lineHeight: 1.35, overflowWrap: 'anywhere' }}>{label}</span>
+        <span style={{ fontVariantNumeric: 'tabular-nums', flexShrink: 0, textAlign: 'right', whiteSpace: 'nowrap' }}>
+          <b>{used}</b>
+          <span style={{ color: 'var(--app-text-3)' }}> / {unlimited ? unlimitedLabel : limit}</span>
+        </span>
       </div>
       <div style={{ marginTop: 12, height: 6, borderRadius: 3, background: 'var(--mv-grey-100)' }}>
         {!unlimited && <div style={{ width: pct + '%', height: '100%', borderRadius: 3, background: fill }} />}

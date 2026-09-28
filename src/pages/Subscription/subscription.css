@@ -333,16 +333,20 @@
 .subscription-page .cycle-btn.active { background: var(--mv-navy, #1F1F41); color: #fff; }
 .subscription-page .cycle-btn .save-tag {
   position: absolute;
-  top: -8px;
-  right: -4px;
+  top: -10px;
+  right: -8px;
   background: var(--sub-gold);
   color: #000;
   font-size: 8px;
   font-weight: 700;
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: 100px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .subscription-page .usage-section { margin-bottom: 0; }
@@ -502,11 +506,14 @@
   color: #fff;
   font-size: 10px;
   font-weight: 700;
-  padding: 5px 16px;
+  padding: 5px 14px;
   border-radius: 100px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.4px;
   white-space: nowrap;
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  text-overflow: ellipsis;
   z-index: 3;
 }
 .subscription-page .pop-tag { background: var(--sub-purple); }
@@ -534,21 +541,31 @@
   line-height: 1.4;
   min-height: 32px;
 }
-.subscription-page .pr { display: flex; align-items: baseline; gap: 3px; margin-bottom: 2px; }
+.subscription-page .pr { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 6px; margin-bottom: 2px; min-width: 0; }
 .subscription-page .pr .c {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 16px;
   font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1;
 }
 .subscription-page .pr .a {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 38px;
+  font-size: clamp(28px, 4.2vw, 36px);
   font-weight: 800;
-  letter-spacing: -2px;
+  letter-spacing: -0.5px;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-.subscription-page .pr .p { font-size: 13px; color: var(--sub-text3); margin-left: 2px; }
-.subscription-page .pr .o { font-size: 13px; color: var(--sub-text3); text-decoration: line-through; margin-left: 8px; }
+.subscription-page .pr .p {
+  font-size: 13px;
+  color: var(--sub-text3);
+  margin-left: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.subscription-page .pr .o { font-size: 13px; color: var(--sub-text3); text-decoration: line-through; margin-left: 4px; }
 .subscription-page .pnt { font-size: 11px; color: var(--sub-text3); margin-bottom: 14px; min-height: 14px; }
 .subscription-page .cta {
   display: block;
@@ -563,6 +580,9 @@
   transition: all 0.2s;
   border: none;
   text-decoration: none;
+  white-space: normal;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 .subscription-page .cta.pri {
   background: var(--sub-purple);
@@ -604,23 +624,24 @@
 .subscription-page .fl { list-style: none; display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; }
 .subscription-page .fi {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 7px;
   font-size: 12.5px;
   color: var(--sub-text2);
   min-height: 28px;
   height: auto;
-  white-space: nowrap;
+  padding: 4px 0;
+  white-space: normal;
   overflow: visible;
 }
 .subscription-page .fi > .fi-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: unset;
   min-width: 0;
   flex: 1;
-}
-.subscription-page .fi.off .fi-label {
-  text-decoration: line-through;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .subscription-page .fi .ic {
   flex-shrink: 0;
@@ -629,6 +650,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-top: 2px;
+}
+.subscription-page .fi.off .fi-label {
+  text-decoration: line-through;
 }
 .subscription-page .fi .ic.ok { color: var(--sub-green); }
 .subscription-page .fi .ic.no { color: var(--sub-border); }
@@ -646,6 +671,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  margin-top: 1px;
 }
 .subscription-page .fi .sub-feat-val.is-infinity {
   font-size: 15px;
@@ -682,6 +708,7 @@
   white-space: nowrap;
   border: none;
   box-sizing: border-box;
+  margin-top: 2px;
 }
 .subscription-page .fi.mp-feat {
   background: linear-gradient(90deg, rgba(108, 60, 224, 0.06), transparent);
@@ -1606,7 +1633,32 @@
   .subscription-page .pcard-top { padding: 22px 16px 0; }
   .subscription-page .pcard-cta,
   .subscription-page .pcard-features { padding-left: 16px; padding-right: 16px; }
-  .subscription-page .pr .a { font-size: 32px; letter-spacing: -1.5px; }
+  .subscription-page .pr .a { font-size: 28px; letter-spacing: -0.4px; }
+}
+
+.subscription-page.lang-el .pr .a {
+  font-size: clamp(26px, 3.8vw, 34px);
+  letter-spacing: -0.35px;
+}
+.subscription-page.lang-el .cta {
+  font-size: 13px;
+  padding: 11px 12px;
+  line-height: 1.3;
+}
+.subscription-page.lang-el .fi {
+  font-size: 12px;
+}
+.subscription-page.lang-el .cur-tag,
+.subscription-page.lang-el .pop-tag {
+  font-size: 9px;
+  letter-spacing: 0.2px;
+  padding: 5px 12px;
+}
+.subscription-page.lang-el .cycle-btn {
+  padding: 7px 14px;
+}
+.subscription-page.lang-el .cycle-btn .save-tag {
+  max-width: 118px;
 }
 
 .webview-subscription.subscription-page {
