@@ -95,7 +95,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               {t('category')} <span className="req">*</span>
             </label>
             <select className="inp" value={catId} onChange={(e) => { setCatId(e.target.value); setTypeId(''); }}>
-              <option value="">— Select —</option>
+              <option value="">{t('selectCat', '— Select —')}</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {catName(c)}
@@ -108,7 +108,7 @@ export const CreateProductModal: React.FC<CreateProductModalProps> = ({
               {t('productType')} <span className="req">*</span>
             </label>
             <select className="inp" value={typeId} onChange={(e) => setTypeId(e.target.value)} disabled={!catId}>
-              <option value="">— Select —</option>
+              <option value="">{t('selectCat', '— Select —')}</option>
               {productTypes
                 .filter((tp) => tp.catId === catId)
                 .map((tp) => (

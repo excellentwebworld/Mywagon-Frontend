@@ -470,7 +470,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-  text-align: left;
+  text-align: center;
 }
 
 .wr-table th {
@@ -483,6 +483,7 @@
   padding: 12px 18px;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
+  text-align: center;
 }
 
 .wr-table td {
@@ -490,6 +491,7 @@
   border-bottom: 1px solid var(--border);
   color: var(--text-primary);
   vertical-align: middle;
+  text-align: center;
 }
 
 .wr-table tr.wr-table-row {
@@ -509,6 +511,7 @@
 .wr-period-cell {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
 }
 
@@ -527,6 +530,7 @@
 .wr-period-info {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 2px;
 }
 
@@ -546,6 +550,7 @@
 .wr-delivery-cell {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 4px;
 }
 
@@ -573,7 +578,7 @@
 .wr-metric-cell {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 3px;
 }
 
@@ -614,6 +619,7 @@
 .wr-pending-cell {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   flex-wrap: wrap;
 }
@@ -642,7 +648,7 @@
 .wr-row-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 6px;
 }
 

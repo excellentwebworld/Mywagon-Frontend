@@ -27,7 +27,7 @@ export const AdminShipmentDetailPage: React.FC = () => {
     if (!shipmentId || !/^\d+$/.test(shipmentId)) {
       setShipment(null);
       setLoading(false);
-      setError('Invalid admin shipment link.');
+      setError(t('AdminShipmentDetail.invalid_link', 'Invalid admin shipment link.'));
       return;
     }
 
@@ -44,7 +44,11 @@ export const AdminShipmentDetailPage: React.FC = () => {
       .catch((err: unknown) => {
         if (cancelled) return;
         setShipment(null);
-        setError(err instanceof Error ? err.message : 'Failed to load shipment');
+        setError(
+          err instanceof Error
+            ? err.message
+            : t('AdminShipmentDetail.failed_to_load_shipment', 'Failed to load shipment')
+        );
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -53,16 +57,16 @@ export const AdminShipmentDetailPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [shipmentId]);
+  }, [shipmentId, t]);
 
   return (
     <UpgradeGateProvider>
       <div className="min-h-screen bg-[var(--bg)] text-[var(--text)]">
         <header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-sm">
           <div className="max-w-[1280px] mx-auto px-5 lg:px-7 py-3 flex items-center justify-between gap-3">
-            <img src={fullLogo} alt="MyVagon" className="h-8 w-auto" />
+            <img src={fullLogo} alt={t('AdminShipmentDetail.myvagon', 'MyVagon')} className="h-8 w-auto" />
             <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700">
-              Admin view · Read only
+              {t('AdminShipmentDetail.admin_view_read_only', 'Admin view · Read only')}
             </span>
           </div>
         </header>

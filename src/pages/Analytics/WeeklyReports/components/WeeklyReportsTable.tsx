@@ -1,8 +1,6 @@
 import React from 'react';
 import {
   Calendar,
-  Mail,
-  Download,
   CheckCircle2,
   ArrowUpRight,
   ArrowDownRight,
@@ -92,12 +90,12 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
             <tr>
               <th className="wr-th-period">{t('weeklyReports.period', 'Week Period')}</th>
               <th className="wr-th-delivery">{t('weeklyReports.deliveryDate', 'Delivered On')}</th>
-              <th className="wr-th-fulfilled text-right">{t('weeklyReports.loadsFulfilled', 'Fulfilled')}</th>
-              <th className="wr-th-created text-right">{t('weeklyReports.loadsCreated', 'Created')}</th>
+              <th className="wr-th-fulfilled">{t('weeklyReports.loadsFulfilled', 'Fulfilled')}</th>
+              <th className="wr-th-created">{t('weeklyReports.loadsCreated', 'Created')}</th>
               <th className="wr-th-active">{t('weeklyReports.onTrip', 'In Progress')}</th>
               <th className="wr-th-pending">{t('weeklyReports.pending', 'Loads Currently Pending')}</th>
-              <th className="wr-th-partners text-right">{t('weeklyReports.newPartners', 'Partners')}</th>
-              <th className="wr-th-actions text-right">
+              <th className="wr-th-partners">{t('weeklyReports.newPartners', 'Partners')}</th>
+              <th className="wr-th-actions">
                 {t('analytics.weeklyReports.actions', 'Actions')}
               </th>
             </tr>
@@ -110,7 +108,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                   <td className="wr-td-period">
                     <div className="wr-period-cell">
                       <div className="wr-sk-box wr-sk-shimmer" style={{ width: 32, height: 32, borderRadius: 8 }} />
-                      <div className="wr-period-info" style={{ flex: 1 }}>
+                      <div className="wr-period-info">
                         <div className="wr-sk-line wr-sk-shimmer" style={{ width: '130px', height: '14px' }} />
                       </div>
                     </div>
@@ -123,14 +121,14 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     </div>
                   </td>
                   {/* Fulfilled */}
-                  <td className="wr-td-metric text-right">
+                  <td className="wr-td-metric">
                     <div className="wr-metric-cell">
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '36px', height: '16px', marginBottom: '4px' }} />
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '32px', height: '14px', borderRadius: '4px' }} />
                     </div>
                   </td>
                   {/* Created */}
-                  <td className="wr-td-metric text-right">
+                  <td className="wr-td-metric">
                     <div className="wr-metric-cell">
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '36px', height: '16px', marginBottom: '4px' }} />
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '32px', height: '14px', borderRadius: '4px' }} />
@@ -144,18 +142,18 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '52px', height: '20px', borderRadius: '6px' }} />
                     </div>
                   </td>
-                  {/* Pending / Canceled */}
+                  {/* Pending */}
                   <td className="wr-td-pending">
                     <div className="wr-pending-cell">
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '76px', height: '20px', borderRadius: '6px' }} />
                     </div>
                   </td>
                   {/* Partners */}
-                  <td className="wr-td-partners text-right">
-                    <div className="wr-sk-line wr-sk-shimmer" style={{ width: '28px', height: '16px', marginLeft: 'auto' }} />
+                  <td className="wr-td-partners">
+                    <div className="wr-sk-line wr-sk-shimmer" style={{ width: '28px', height: '16px', margin: '0 auto' }} />
                   </td>
                   {/* Actions */}
-                  <td className="wr-td-actions text-right">
+                  <td className="wr-td-actions">
                     <div className="wr-row-actions">
                       <div className="wr-sk-box wr-sk-shimmer" style={{ width: 32, height: 32, borderRadius: 8 }} />
                       <div className="wr-sk-box wr-sk-shimmer" style={{ width: 32, height: 32, borderRadius: 8 }} />
@@ -232,7 +230,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     </td>
 
                     {/* Fulfilled Metric */}
-                    <td className="wr-td-metric text-right">
+                    <td className="wr-td-metric">
                       <div className="wr-metric-cell">
                         <span className="wr-metric-main-val font-semibold">
                           {fulfilled?.value ?? 0}
@@ -242,7 +240,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     </td>
 
                     {/* Created Metric */}
-                    <td className="wr-td-metric text-right">
+                    <td className="wr-td-metric">
                       <div className="wr-metric-cell">
                         <span className="wr-metric-main-val font-semibold">
                           {created?.value ?? 0}
@@ -288,15 +286,15 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     </td>
 
                     {/* New Partners */}
-                    <td className="wr-td-partners text-right">
+                    <td className="wr-td-partners">
                       <span className="wr-partner-badge">
-                        {newPartners > 0 ? `+${newPartners}` : '—'}
+                        {newPartners > 0 ? `+${newPartners}` : '0'}
                       </span>
                     </td>
 
                     {/* Row Actions */}
                     <td
-                      className="wr-td-actions text-right"
+                      className="wr-td-actions"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="wr-row-actions">

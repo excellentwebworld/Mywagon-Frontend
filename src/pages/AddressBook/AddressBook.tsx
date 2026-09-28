@@ -29,7 +29,7 @@ export const AddressBook: React.FC = () => {
 
       {ab.subscriptionBlocked && (
         <div className="ab-subscription-banner" role="alert">
-          {ab.error ?? 'Address Book access requires an active subscription.'}
+          {ab.error ?? ab.t('abSubscriptionRequired', 'Address Book access requires an active subscription.')}
         </div>
       )}
 

@@ -27,34 +27,38 @@ function getTutorialVideoShareUrl(embedId: string): string {
   return `https://youtu.be/${embedId}`;
 }
 
-function buildTutorialShareChannels(url: string, title: string): TutorialShareChannel[] {
+function buildTutorialShareChannels(
+  url: string,
+  title: string,
+  t: (key: string, fallback?: string) => string
+): TutorialShareChannel[] {
   const encodedUrl = encodeURIComponent(url);
   const encodedText = encodeURIComponent(`${title} — ${url}`);
 
   return [
     {
       id: 'whatsapp',
-      label: 'WhatsApp',
+      label: t('Tutorials.whatsapp', 'WhatsApp'),
       href: `https://wa.me/?text=${encodedText}`,
     },
     {
       id: 'facebook',
-      label: 'Facebook',
+      label: t('Tutorials.facebook', 'Facebook'),
       href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
     },
     {
       id: 'x',
-      label: 'X',
+      label: t('Tutorials.x', 'X'),
       href: `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(title)}`,
     },
     {
       id: 'email',
-      label: 'Email',
+      label: t('Tutorials.email', 'Email'),
       href: `mailto:?subject=${encodeURIComponent(title)}&body=${encodedText}`,
     },
     {
       id: 'reddit',
-      label: 'Reddit',
+      label: t('Tutorials.reddit', 'Reddit'),
       href: `https://www.reddit.com/submit?url=${encodedUrl}&title=${encodeURIComponent(title)}`,
     },
   ];
@@ -102,8 +106,8 @@ export const TutorialVideoModal: React.FC<TutorialVideoModalProps> = ({
   const videoTitle = video ? getTutorialVideoTitle(video, lang) : '';
   const shareUrl = video?.embed_id ? getTutorialVideoShareUrl(video.embed_id) : '';
   const shareChannels = useMemo(
-    () => (shareUrl ? buildTutorialShareChannels(shareUrl, videoTitle) : []),
-    [shareUrl, videoTitle]
+    () => (shareUrl ? buildTutorialShareChannels(shareUrl, videoTitle, t) : []),
+    [shareUrl, videoTitle, t]
   );
 
   if (!open || !video) return null;
