@@ -3529,7 +3529,9 @@
       "daysLeft": "{{n}}d left"
     },
     "deps": {
-      "linkedDep": "Auto-enabled (dependency)"
+      "linkedDep": "Auto-enabled (dependency)",
+      "autoEnabled": "Also enabled required permission(s): {{perms}}",
+      "cannotDisable": "Cannot disable — still required by: {{perms}}"
     },
     "permGroup": {
       "shipments": "Shipments",

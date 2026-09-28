@@ -46,6 +46,21 @@ export default function PermissionGrid({
     [catalogGroups],
   );
 
+  const labelByKey = useMemo(() => {
+    const map = {};
+    catalogGroups.forEach((g) => {
+      g.permissions.forEach((p) => {
+        map[p.name] = p.label || p.name;
+      });
+    });
+    return map;
+  }, [catalogGroups]);
+
+  const formatPermLabels = useCallback(
+    (keys) => keys.map((k) => labelByKey[k] || k).join(', '),
+    [labelByKey],
+  );
+
   const isFullAdmin = permissions === null;
   const permSet = useMemo(() => {
     if (isFullAdmin) return new Set(allKeys);
@@ -74,7 +89,7 @@ export default function PermissionGrid({
       const dependents = PERMISSION_DEPENDENTS[permKey] || [];
       const activeDependents = dependents.filter((d) => newSet.has(d));
       if (activeDependents.length > 0) {
-        toast.error(t('userMgmt.deps.cannotDisable', { perms: activeDependents.join(', ') }));
+        toast.error(t('userMgmt.deps.cannotDisable', { perms: formatPermLabels(activeDependents) }));
         return;
       }
       newSet.delete(permKey);
@@ -91,13 +106,13 @@ export default function PermissionGrid({
         }
       });
       if (newlyEnabled.length > 0) {
-        toast.info(t('userMgmt.deps.autoEnabled', { perms: newlyEnabled.join(', ') }));
+        toast.info(t('userMgmt.deps.autoEnabled', { perms: formatPermLabels(newlyEnabled) }));
       }
     }
 
     onChange(Array.from(newSet));
     onAutoEnabled?.(autoSet);
-  }, [permSet, onChange, isFullAdmin, autoEnabledKeys, onAutoEnabled, t, toast]);
+  }, [permSet, onChange, isFullAdmin, autoEnabledKeys, onAutoEnabled, t, toast, formatPermLabels]);
 
   const handleToggleGroup = useCallback((group) => {
     if (!onChange || isFullAdmin) return;
@@ -113,7 +128,7 @@ export default function PermissionGrid({
         const dependents = PERMISSION_DEPENDENTS[permKey] || [];
         const activeDependents = dependents.filter((d) => newSet.has(d) && !groupPermKeys.includes(d));
         if (activeDependents.length > 0) {
-          toast.error(t('userMgmt.deps.cannotDisable', { perms: activeDependents.join(', ') }));
+          toast.error(t('userMgmt.deps.cannotDisable', { perms: formatPermLabels(activeDependents) }));
           blocked = true;
           break;
         }
@@ -138,13 +153,13 @@ export default function PermissionGrid({
         });
       });
       if (newlyEnabled.length > 0) {
-        toast.info(t('userMgmt.deps.autoEnabled', { perms: newlyEnabled.join(', ') }));
+        toast.info(t('userMgmt.deps.autoEnabled', { perms: formatPermLabels(newlyEnabled) }));
       }
     }
 
     onChange(Array.from(newSet));
     onAutoEnabled?.(autoSet);
-  }, [permSet, onChange, isFullAdmin, autoEnabledKeys, onAutoEnabled, t, toast]);
+  }, [permSet, onChange, isFullAdmin, autoEnabledKeys, onAutoEnabled, t, toast, formatPermLabels]);
 
   const filteredGroups = useMemo(() => {
     if (!searchQuery) return catalogGroups;
