@@ -30,7 +30,12 @@ export const Dashboard: React.FC = () => {
     setSelectedScheduleShipmentId(id);
   }, []);
 
-  const companyName = user?.company_name?.trim() || '—';
+  const personalName = [user?.first_name, user?.last_name].filter(Boolean).join(' ').trim();
+  const isSubUser = user?.is_sub_user === true || user?.type === 'sub_user';
+  // Sub-users (dispatchers) greet by their own name; primary keeps company name.
+  const welcomeName = isSubUser
+    ? (personalName || user?.company_name?.trim() || '—')
+    : (user?.company_name?.trim() || personalName || '—');
 
   return (
     <div className="animate-fade-in dashboard-page">
@@ -46,7 +51,7 @@ export const Dashboard: React.FC = () => {
           {t('welcomeBack')}
         </p>
         <h1 className="company" style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-0.5px' }}>
-          {companyName}
+          {welcomeName}
         </h1>
       </div>
 
