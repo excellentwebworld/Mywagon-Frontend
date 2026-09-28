@@ -3,7 +3,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { ChevronDown, ChevronRight, Link2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
@@ -89,7 +89,10 @@ export default function PermissionGrid({
       const dependents = PERMISSION_DEPENDENTS[permKey] || [];
       const activeDependents = dependents.filter((d) => newSet.has(d));
       if (activeDependents.length > 0) {
-        toast.error(t('userMgmt.deps.cannotDisable', { perms: formatPermLabels(activeDependents) }));
+        toast.error(t('userMgmt.deps.cannotDisable', {
+          perms: formatPermLabels(activeDependents),
+          defaultValue: 'Cannot disable — still required by: {{perms}}',
+        }));
         return;
       }
       newSet.delete(permKey);
@@ -106,7 +109,10 @@ export default function PermissionGrid({
         }
       });
       if (newlyEnabled.length > 0) {
-        toast.info(t('userMgmt.deps.autoEnabled', { perms: formatPermLabels(newlyEnabled) }));
+        toast.info(t('userMgmt.deps.autoEnabled', {
+          perms: formatPermLabels(newlyEnabled),
+          defaultValue: 'Also enabled required permission(s): {{perms}}',
+        }));
       }
     }
 
@@ -128,7 +134,10 @@ export default function PermissionGrid({
         const dependents = PERMISSION_DEPENDENTS[permKey] || [];
         const activeDependents = dependents.filter((d) => newSet.has(d) && !groupPermKeys.includes(d));
         if (activeDependents.length > 0) {
-          toast.error(t('userMgmt.deps.cannotDisable', { perms: formatPermLabels(activeDependents) }));
+          toast.error(t('userMgmt.deps.cannotDisable', {
+            perms: formatPermLabels(activeDependents),
+            defaultValue: 'Cannot disable — still required by: {{perms}}',
+          }));
           blocked = true;
           break;
         }
@@ -153,7 +162,10 @@ export default function PermissionGrid({
         });
       });
       if (newlyEnabled.length > 0) {
-        toast.info(t('userMgmt.deps.autoEnabled', { perms: formatPermLabels(newlyEnabled) }));
+        toast.info(t('userMgmt.deps.autoEnabled', {
+          perms: formatPermLabels(newlyEnabled),
+          defaultValue: 'Also enabled required permission(s): {{perms}}',
+        }));
       }
     }
 
@@ -261,7 +273,7 @@ export default function PermissionGrid({
                       </span>
 
                       {isAutoEnabled && (
-                        <Link2 size={11} style={{ color: T.ac, opacity: 0.6 }} title={t('userMgmt.deps.linkedDep')} />
+                        <Link2 size={11} style={{ color: T.ac, opacity: 0.6 }} title={t('userMgmt.deps.linkedDep', { defaultValue: 'Auto-enabled (dependency)' })} />
                       )}
                     </div>
                   );

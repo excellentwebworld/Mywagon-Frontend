@@ -3483,6 +3483,7 @@
       "roleCreated": "Το πρότυπο δημιουργήθηκε",
       "roleDeleted": "Το πρότυπο διαγράφηκε",
       "roleDuplicated": "Το πρότυπο αντιγράφηκε",
+      "saveFailed": "Η αποθήκευση απέτυχε",
       "userUpdated": "Τα στοιχεία χρήστη ενημερώθηκαν",
       "invited": "Πρόσκληση στάλθηκε στο {{email}}",
       "inviteResent": "Η πρόσκληση επαναστάλθηκε στο {{email}}",
@@ -3709,7 +3710,8 @@
       "editDetailsHint": "Ενημέρωση ονόματος, χρώματος και περιγραφής",
       "permissionsSection": "Δικαιώματα",
       "selectAll": "Επιλογή όλων",
-      "selectAllInGroup": "Επιλογή όλων στην ομάδα"
+      "selectAllInGroup": "Επιλογή όλων στην ομάδα",
+      "loadingPermissions": "Φόρτωση δικαιωμάτων…"
     },
     "security": {
       "mfaTitle": "Αυθεντικοποίηση Δύο Παραγόντων",
@@ -3759,6 +3761,8 @@
       "actionType": "Τύπος Ενέργειας",
       "export": "Εξαγωγή CSV",
       "exportStarted": "Η εξαγωγή CSV ξεκίνησε",
+      "exportTruncated": "Η εξαγωγή περιορίστηκε στις 10.000 πιο πρόσφατες καταχωρήσεις.",
+      "exportError": "Αποτυχία εξαγωγής αρχείου ελέγχου",
       "type_login": "Σύνδεση",
       "type_invited": "Πρόσκληση Χρήστη",
       "type_roleChanged": "Αλλαγή Ρόλου",

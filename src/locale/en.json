@@ -3483,6 +3483,7 @@
       "roleDeleted": "Role deleted",
       "roleDuplicated": "Role duplicated",
       "roleUpdating": "Updating role…",
+      "saveFailed": "Save failed",
       "userUpdated": "User details updated",
       "invited": "Invitation sent to {{email}}",
       "inviteResent": "Invitation resent to {{email}}",
@@ -3709,7 +3710,8 @@
       "editDetailsHint": "Update name, color, and description",
       "permissionsSection": "Permissions",
       "selectAll": "Select all",
-      "selectAllInGroup": "Select all in group"
+      "selectAllInGroup": "Select all in group",
+      "loadingPermissions": "Loading permissions…"
     },
     "security": {
       "mfaTitle": "Multi-Factor Authentication",
@@ -3759,6 +3761,8 @@
       "actionType": "Action Type",
       "export": "Export CSV",
       "exportStarted": "Audit log CSV export started",
+      "exportTruncated": "Export limited to 10,000 most recent entries.",
+      "exportError": "Failed to export audit log",
       "type_login": "Login",
       "type_invited": "User Invited",
       "type_roleChanged": "Role Changed",
