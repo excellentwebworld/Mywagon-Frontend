@@ -238,7 +238,7 @@ export default function AuditLogSection() {
           {grouped.map((group, gi) => (
             <div key={gi}>
               {/* Date header */}
-              <div className="sticky top-0 px-2 py-1.5 mb-1 mt-3" style={{ fontSize: 11, fontWeight: 700, color: T.t3, textTransform: 'uppercase', letterSpacing: 0.5, background: T.sa, borderRadius: 6 }}>
+              <div className="px-2 py-1.5 mb-1 mt-3" style={{ fontSize: 11, fontWeight: 700, color: T.t3, textTransform: 'uppercase', letterSpacing: 0.5, background: T.sa, borderRadius: 6 }}>
                 {group.label}
               </div>
 
