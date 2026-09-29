@@ -83,8 +83,7 @@ export const LoginPage: React.FC = () => {
   const socialHandoffStarted = useRef(false);
 
   const from =
-    (location.state as { from?: string } | null)?.from ||
-    (import.meta.env.BASE_URL.replace(/\/$/, '') ? '/address-book' : '/address-book');
+    (location.state as { from?: string } | null)?.from || '/dashboard';
 
   const laravelBase = (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '') ?? '';
   const oauthParams = new URLSearchParams(location.search);

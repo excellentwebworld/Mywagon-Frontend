@@ -24,6 +24,11 @@ export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'):
     return '/dashboard';
   }
 
+  // Social user with accepted KYC lands on dashboard
+  if (isSocialShipper(user) && user.kyc_status === 'accepted') {
+    return '/dashboard';
+  }
+
   // Social after company details: KYC first
   if (isSocialShipper(user) && needsKycGate(user)) {
     return '/settings/compliance';

@@ -157,9 +157,9 @@ export const router = createBrowserRouter(
         ...webViewRoutes,
         ...publicTrackingRoutes,
         ...adminViewRoutes,
-        { path: '/', element: <RootRedirect fallback="/address-book" /> },
+        { path: '/', element: <RootRedirect fallback="/dashboard" /> },
         protectedLayout,
-        { path: '*', element: <Navigate to="/address-book" replace /> },
+        { path: '*', element: <Navigate to="/dashboard" replace /> },
       ]
     : [
         ...authRoutes,

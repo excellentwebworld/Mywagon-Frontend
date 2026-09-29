@@ -1289,25 +1289,50 @@ function OpsField({ field, value, editing, onChange, T }) {
     return false;
   };
 
-  const otherOption = options.find(
-    (o) =>
-      String(o.value).toLowerCase() === 'other' ||
-      slugify(o.label) === 'other' ||
-      String(o.label).toLowerCase() === 'other'
-  );
+  // Match "Other", "other", "Other please specify", slug other_please_specify, etc.
+  const otherOption = options.find((o) => isOtherLike(o.value) || isOtherLike(o.label)) || null;
+
+  const isOtherSelectedValue = (v) => {
+    if (isOtherLike(v)) return true;
+    if (otherOption && String(v) === String(otherOption.value)) return true;
+    return false;
+  };
 
   // Multi-choice state for "Other" custom specify text
   const multiSelected = isMulti ? (Array.isArray(value) ? value.map(String) : []) : [];
   const multiCustomOther = multiSelected.filter((v) => !findOption(v));
   const isMultiOtherActive =
     Boolean(otherOption) &&
-    (multiSelected.some(
-      (v) =>
-        String(v).toLowerCase() === 'other' ||
-        (otherOption && String(v) === String(otherOption.value)) ||
-        slugify(v) === 'other'
-    ) ||
-      multiCustomOther.length > 0);
+    (multiSelected.some((v) => isOtherSelectedValue(v)) || multiCustomOther.length > 0);
+
+  const otherDisplayLabel = (customText) => {
+    const base = otherOption?.label || t('common.other', { defaultValue: 'Other' });
+    const trimmed = String(customText || '').trim();
+    return trimmed ? `${base}: ${trimmed}` : base;
+  };
+
+  /** Chips for view / selected-summary: merge bare "Other" + custom text into one chip. */
+  const multiDisplayChips = (() => {
+    if (!isMulti) return [];
+    const chips = [];
+    for (const v of multiSelected) {
+      if (otherOption && isOtherSelectedValue(v)) continue;
+      if (otherOption && !findOption(v)) continue;
+      chips.push({ key: v, label: labelFor(v), isOtherGroup: false });
+    }
+    if (isMultiOtherActive) {
+      chips.push({
+        key: '__other__',
+        label: otherDisplayLabel(multiCustomOther.join(', ')),
+        isOtherGroup: true,
+      });
+    } else if (!otherOption) {
+      for (const v of multiCustomOther) {
+        chips.push({ key: v, label: labelFor(v), isOtherGroup: false });
+      }
+    }
+    return chips;
+  })();
 
   const [multiOtherText, setMultiOtherText] = useState(multiCustomOther.join(', '));
 
@@ -1316,18 +1341,21 @@ function OpsField({ field, value, editing, onChange, T }) {
       const custom = (Array.isArray(value) ? value.map(String) : []).filter((v) => !findOption(v));
       setMultiOtherText(custom.join(', '));
     }
+    // findOption identity changes each render; value/isMulti are the real deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, isMulti]);
+
+  const clearMultiOther = () => {
+    const without = multiSelected.filter((v) => findOption(v) && !isOtherSelectedValue(v));
+    setMultiOtherText('');
+    onChange(without);
+  };
 
   const handleMultiOtherTextChange = (text) => {
     setMultiOtherText(text);
     const predefined = multiSelected.filter((v) => findOption(v));
     const canonical = otherOption ? String(otherOption.value) : 'other';
-    const withoutOther = predefined.filter(
-      (v) =>
-        String(v).toLowerCase() !== 'other' &&
-        String(v) !== canonical &&
-        slugify(v) !== 'other'
-    );
+    const withoutOther = predefined.filter((v) => !isOtherSelectedValue(v));
     const next = [...withoutOther, canonical];
     if (text.trim()) {
       next.push(text.trim());
@@ -1341,20 +1369,18 @@ function OpsField({ field, value, editing, onChange, T }) {
   const isSingleOtherActive =
     !isMulti &&
     Boolean(otherOption) &&
-    (singleCurrent === String(otherOption.value) ||
-      singleCurrent.toLowerCase() === 'other' ||
-      slugify(singleCurrent) === 'other' ||
+    (isOtherSelectedValue(singleCurrent) ||
       (!singleMatched && singleCurrent !== ''));
 
   const [singleOtherText, setSingleOtherText] = useState(
-    !singleMatched && singleCurrent && singleCurrent !== 'other' ? singleCurrent : ''
+    !singleMatched && singleCurrent && !isOtherLike(singleCurrent) ? singleCurrent : ''
   );
 
   useEffect(() => {
     if (!isMulti) {
-      if (!singleMatched && singleCurrent && singleCurrent !== 'other') {
+      if (!singleMatched && singleCurrent && !isOtherLike(singleCurrent)) {
         setSingleOtherText(singleCurrent);
-      } else if (singleMatched && String(singleMatched.value).toLowerCase() !== 'other') {
+      } else if (singleMatched && !isOtherLike(singleMatched.value) && !isOtherLike(singleMatched.label)) {
         setSingleOtherText('');
       }
     }
@@ -1564,16 +1590,16 @@ function OpsField({ field, value, editing, onChange, T }) {
         {renderHeader()}
         {!editing ? (
           <div className="flex flex-wrap gap-1.5">
-            {selected.length === 0 ? (
+            {multiDisplayChips.length === 0 ? (
               <span style={{ fontSize: 13, color: T.t3 }}>—</span>
             ) : (
-              selected.map((v) => (
+              multiDisplayChips.map((chip) => (
                 <span
-                  key={v}
+                  key={chip.key}
                   className="px-2.5 py-1 rounded-full font-medium"
                   style={{ background: T.al, fontSize: 11, color: T.ac }}
                 >
-                  {labelFor(v)}
+                  {chip.label}
                 </span>
               ))
             )}
@@ -1583,7 +1609,7 @@ function OpsField({ field, value, editing, onChange, T }) {
             {renderSearchBox()}
 
             {/* Selected chips summary bar */}
-            {selected.length > 0 && (
+            {multiDisplayChips.length > 0 && (
               <div
                 className="flex flex-wrap items-center gap-1.5 mb-2.5 p-2 rounded-lg"
                 style={{
@@ -1603,9 +1629,9 @@ function OpsField({ field, value, editing, onChange, T }) {
                         defaultValue: `Selected (${selected.length}):`,
                       })}
                 </span>
-                {selected.map((val) => (
+                {multiDisplayChips.map((chip) => (
                   <span
-                    key={val}
+                    key={chip.key}
                     className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-medium"
                     style={{
                       background: T.sf,
@@ -1615,36 +1641,21 @@ function OpsField({ field, value, editing, onChange, T }) {
                       boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                     }}
                   >
-                    <span>✓ {labelFor(val)}</span>
+                    <span>✓ {chip.label}</span>
                     <button
                       type="button"
                       onClick={() => {
-                        const isThisOther =
-                          otherOption &&
-                          (String(val) === String(otherOption.value) ||
-                            String(val).toLowerCase() === 'other' ||
-                            slugify(val) === 'other');
-                        if (isThisOther) {
-                          const canonical = String(otherOption.value);
-                          const without = selected.filter(
-                            (v) =>
-                              findOption(v) &&
-                              String(v).toLowerCase() !== 'other' &&
-                              String(v) !== canonical &&
-                              slugify(v) !== 'other'
-                          );
-                          onChange(without);
-                          setMultiOtherText('');
-                        } else {
-                          const canonical = String(val);
-                          const aliases = new Set([
-                            canonical,
-                            slugify(val),
-                            slugify(labelFor(val)),
-                          ]);
-                          const without = selected.filter((v) => !aliases.has(String(v)));
-                          onChange(without);
+                        if (chip.isOtherGroup) {
+                          clearMultiOther();
+                          return;
                         }
+                        const canonical = String(chip.key);
+                        const aliases = new Set([
+                          canonical,
+                          slugify(chip.key),
+                          slugify(chip.label),
+                        ]);
+                        onChange(selected.filter((v) => !aliases.has(String(v))));
                       }}
                       className="border-none bg-transparent cursor-pointer p-0 ml-0.5 flex items-center"
                       style={{ color: T.ac }}
@@ -1710,11 +1721,11 @@ function OpsField({ field, value, editing, onChange, T }) {
                 }}
               >
                 {displayOptions.map((opt) => {
-                  const isThisOther =
-                    otherOption &&
-                    (String(opt.value) === String(otherOption.value) ||
-                      String(opt.value).toLowerCase() === 'other' ||
-                      slugify(opt.label) === 'other');
+                  const isThisOther = otherOption && (
+                    String(opt.value) === String(otherOption.value) ||
+                    isOtherLike(opt.value) ||
+                    isOtherLike(opt.label)
+                  );
                   const active = isThisOther ? isMultiOtherActive : isSelected(opt, selected);
 
                   return (
@@ -1724,16 +1735,7 @@ function OpsField({ field, value, editing, onChange, T }) {
                       onClick={() => {
                         if (isThisOther) {
                           if (isMultiOtherActive) {
-                            const canonical = String(opt.value);
-                            const without = selected.filter(
-                              (v) =>
-                                findOption(v) &&
-                                String(v).toLowerCase() !== 'other' &&
-                                String(v) !== canonical &&
-                                slugify(v) !== 'other'
-                            );
-                            onChange(without);
-                            setMultiOtherText('');
+                            clearMultiOther();
                           } else {
                             if (maxSelection && selected.length >= maxSelection) {
                               toast.warning(
@@ -1872,7 +1874,9 @@ function OpsField({ field, value, editing, onChange, T }) {
     const current = singleCurrent;
     const matched = singleMatched;
     const selectValue = matched ? String(matched.value) : current;
-    const label = matched?.label || labelFor(current) || '';
+    const singleViewLabel = isSingleOtherActive
+      ? otherDisplayLabel(singleOtherText || (!isOtherLike(current) ? current : ''))
+      : (matched?.label || labelFor(current) || '');
 
     const displayOptions = isSearching ? filteredOptions : options;
 
@@ -1880,8 +1884,8 @@ function OpsField({ field, value, editing, onChange, T }) {
       <div id={`ops-field-${field.key}`} style={containerStyle}>
         {renderHeader()}
         {!editing ? (
-          <div style={{ fontSize: 13, color: label ? T.t1 : T.t3 }}>
-            {label || '—'}
+          <div style={{ fontSize: 13, color: singleViewLabel ? T.t1 : T.t3 }}>
+            {singleViewLabel || '—'}
           </div>
         ) : (
           <div>
@@ -1942,11 +1946,11 @@ function OpsField({ field, value, editing, onChange, T }) {
                 }}
               >
                 {displayOptions.map((opt) => {
-                  const isThisOther =
-                    otherOption &&
-                    (String(opt.value) === String(otherOption.value) ||
-                      String(opt.value).toLowerCase() === 'other' ||
-                      slugify(opt.label) === 'other');
+                  const isThisOther = otherOption && (
+                    String(opt.value) === String(otherOption.value) ||
+                    isOtherLike(opt.value) ||
+                    isOtherLike(opt.label)
+                  );
                   const active = isThisOther ? isSingleOtherActive : selectValue === String(opt.value);
 
                   return (
@@ -2339,6 +2343,19 @@ function slugify(text) {
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '')
     .replace(/_+/g, '_');
+}
+
+/** Detect "Other" / "Other please specify" / Greek Άλλο option labels & values. */
+function isOtherLike(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return false;
+  const lower = raw.toLowerCase();
+  if (lower === 'other' || lower === 'άλλο' || lower === 'αλλo') return true;
+  const slug = slugify(raw);
+  if (slug === 'other' || slug.startsWith('other_')) return true;
+  if (lower.startsWith('other ') || lower.startsWith('other,')) return true;
+  if (lower.includes('please specify') && lower.includes('other')) return true;
+  return false;
 }
 
 function normalizeSearch(str) {
