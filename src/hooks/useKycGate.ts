@@ -12,17 +12,6 @@ export function needsKycGate(user: ShipperUser | null | undefined): boolean {
   return false;
 }
 
-/**
- * Hard redirect to compliance.
- * Social users who already submitted KYC (`pending`) may reach the dashboard / tour;
- * they still see compliance for `not_started` / `rejected`.
- */
-export function needsKycHardGate(user: ShipperUser | null | undefined): boolean {
-  if (!needsKycGate(user)) return false;
-  if (isSocialShipper(user) && user?.kyc_status === 'pending') return false;
-  return true;
-}
-
 export function needsCompanyInfoGate(user: ShipperUser | null | undefined): boolean {
   if (!user || user.kyc_status !== 'accepted') return false;
   // Social users fill address in organization settings before KYC — skip company-info gate for them.
@@ -32,16 +21,18 @@ export function needsCompanyInfoGate(user: ShipperUser | null | undefined): bool
 
 /**
  * Paths allowed while KYC gate is active.
- * Organization allowed so Info Form can be completed while KYC is pending
- * (same for normal + social).
+ * Normal: organization allowed so Info Form can run before KYC.
+ * Social: KYC first — do not open mandatory/org until KYC is accepted.
  */
 export function isKycGateAllowedPath(
   pathname: string,
-  _user?: ShipperUser | null,
+  user?: ShipperUser | null,
 ): boolean {
   const path = pathname.replace(/\/$/, '') || '/';
   if (path === '/billing' || path.startsWith('/billing/')) return true;
   if (path === '/settings/compliance' || path.startsWith('/settings/compliance/')) return true;
+  // Social must finish KYC before mandatory form / organization.
+  if (isSocialShipper(user)) return false;
   if (path === '/settings/organization' || path.startsWith('/settings/organization/')) return true;
   return false;
 }

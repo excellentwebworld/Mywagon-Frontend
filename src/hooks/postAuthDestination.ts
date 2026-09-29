@@ -1,5 +1,5 @@
 import type { ShipperUser } from '../api/auth';
-import { needsCompanyInfoGate, needsKycHardGate } from './useKycGate';
+import { needsCompanyInfoGate, needsKycGate } from './useKycGate';
 import { needsInfoFormHardGate } from './useInfoFormGate';
 import {
   isSocialShipper,
@@ -14,8 +14,7 @@ function isSubUser(user: ShipperUser): boolean {
  * Post-login destination.
  *
  * Social incomplete: dashboard (browse) — features soft-gated with modal → settings.
- * Social after company + KYC submit (pending): Info Form → dashboard / tour (not forced back to KYC).
- * Social not_started / rejected KYC: compliance.
+ * Social after profile: KYC first → after accepted → mandatory Info Form → dashboard / tour
  * Normal email signup (unchanged): Info Form → KYC → company info → dashboard / tour
  * Sub-users: always dashboard (never restore previous session route).
  */
@@ -25,21 +24,18 @@ export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'):
     return '/dashboard';
   }
 
-  // Social user with accepted KYC lands on dashboard
-  if (isSocialShipper(user) && user.kyc_status === 'accepted') {
-    return '/dashboard';
-  }
-
-  // Social still needs to submit / fix KYC (not pending review)
-  if (isSocialShipper(user) && needsKycHardGate(user)) {
+  // Social: KYC before mandatory form
+  if (isSocialShipper(user) && needsKycGate(user)) {
     return '/settings/compliance';
   }
 
+  // Social after KYC accepted (or normal): mandatory info form when required
   if (needsInfoFormHardGate(user)) {
     return '/settings/organization?from=info_form';
   }
 
-  if (needsKycHardGate(user)) {
+  // Normal: KYC after info form
+  if (needsKycGate(user)) {
     return '/settings/compliance';
   }
 
@@ -60,15 +56,14 @@ export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'):
 }
 
 /**
- * Tour auto-start after signup + mandatory info form clear.
- * Social with KYC pending (already submitted) may start the tour; normal users wait for KYC.
+ * Tour auto-start only after required signup + KYC + mandatory info form gates clear.
  */
 export function canStartOnboardingTour(user: ShipperUser | null | undefined): boolean {
   if (!user) return false;
   if (user.onboarding_completed !== false) return false;
   if (needsSignupComplete(user)) return false;
   if (needsInfoFormHardGate(user)) return false;
-  if (needsKycHardGate(user)) return false;
+  if (needsKycGate(user)) return false;
   if (needsCompanyInfoGate(user)) return false;
   return true;
 }

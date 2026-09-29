@@ -17,7 +17,6 @@ import { useAuth } from '../../../context/AuthContext';
 import { useShipperPermission } from '../../../hooks/useShipperPermission';
 import { ACTION_RBAC } from '../../../utils/shipperRbacMap';
 import { needsInfoFormHardGate } from '../../../hooks/useInfoFormGate';
-import { needsKycHardGate } from '../../../hooks/useKycGate';
 import {
   isSocialShipper,
   needsSignupComplete,
@@ -589,18 +588,15 @@ export default function OrganizationSection() {
 
       // Completion flag is on payload.completion (not operations_meta).
       const mandatoryDone = payload?.completion?.is_mandatory_completed === true;
-      const socialSignupDone =
-        isSocialShipper(nextUser) && !needsSignupComplete(nextUser);
+      const socialAfterKyc =
+        isSocialShipper(nextUser) &&
+        !needsSignupComplete(nextUser) &&
+        nextUser?.kyc_status === 'accepted';
 
-      if (mandatoryDone && socialSignupDone) {
-        // Social already submitted KYC during complete-signup (pending) → dashboard + tour.
-        // Still send to compliance when KYC was never started or was rejected.
-        if (needsKycHardGate(nextUser)) {
-          navigate('/settings/compliance', { replace: true });
-        } else {
-          safeSessionSet(FORCE_TOUR_SESSION_KEY, '1');
-          navigate('/dashboard', { replace: true });
-        }
+      if (mandatoryDone && socialAfterKyc) {
+        // Social: KYC accepted → mandatory saved → dashboard + tour.
+        safeSessionSet(FORCE_TOUR_SESSION_KEY, '1');
+        navigate('/dashboard', { replace: true });
       } else if (mandatoryDone && fromInfoForm) {
         // Normal email signup: Info Form → KYC.
         navigate('/settings/compliance', { replace: true });
