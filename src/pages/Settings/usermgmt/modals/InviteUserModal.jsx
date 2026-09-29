@@ -12,12 +12,15 @@ import { useTheme } from '../../../../hooks/useTheme';
 import { useUserMgmt } from '../../../../context/UserMgmtContext';
 import { useAuth } from '../../../../context/AuthContext';
 import { usersSettingsService } from '../../../../api/services/usersSettingsService';
+import { signupService } from '../../../../api/auth';
 import { ApiError } from '../../../../api/client';
 import { SHIPPER_ROLES } from '../../../../utils/shipperAccessPresets';
-import { isValidPhoneNumber, sanitizePhoneInput } from '../../../../utils/phoneValidation';
+import { CountryCodeSelect } from '../../../Register/components/CountryCodeSelect';
+import { validateCountryCode, validatePhone } from '../../../Register/registerValidation';
+import '../../../Register/RegisterPage.css';
 
 const EMPTY_FORM = {
-  firstName: '', lastName: '', email: '', phone: '',
+  firstName: '', lastName: '', email: '', countryCode: '+30', phone: '',
   role: '', message: '',
 };
 
@@ -27,6 +30,7 @@ function formFromUser(user) {
     firstName: user.firstName || user.first_name || '',
     lastName: user.lastName || user.last_name || '',
     email: user.email || '',
+    countryCode: user.countryCode || user.country_code || '+30',
     phone: user.phone || '',
     role: user.role || '',
     message: '',
@@ -41,13 +45,30 @@ function seatsFromErrorData(data) {
 }
 
 export default function InviteUserModal({ open, onClose, onInvite, onSaved, user = null }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const navigate = useNavigate();
   const { roles, seats, setSeats } = useUserMgmt();
   const { user: authUser, refreshUser } = useAuth();
   const isEdit = !!user;
   const atSeatLimit = !isEdit && seats && seats.can_invite === false;
+
+  const [countryCodes, setCountryCodes] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const ref = await signupService.getReference(i18n.language);
+        if (!cancelled) setCountryCodes(ref.country_codes || []);
+      } catch {
+        if (!cancelled) setCountryCodes([{ code: '+30', label: t('Settings.greece_30', 'Greece (+30)') }]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [i18n.language, t]);
 
   const roleOptions = roles.length
     ? roles.map((r) => ({
@@ -74,23 +95,46 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
   const set = (key, val) => {
     setForm((prev) => ({ ...prev, [key]: val }));
     // Clear the field error as soon as the user modifies the field
-    setErrors((prev) => (prev[key] ? { ...prev, [key]: undefined } : prev));
+    setErrors((prev) => {
+      if (!prev[key] && !prev.countryCode && !prev.phone) return prev;
+      const next = { ...prev };
+      delete next[key];
+      if (key === 'countryCode' || key === 'phone') {
+        delete next.countryCode;
+        delete next.phone;
+      }
+      return next;
+    });
   };
 
   const validate = () => {
     const errs = {};
-    if (!form.firstName.trim()) errs.firstName = t('userMgmt.invite.required');
-    if (!form.lastName.trim()) errs.lastName = t('userMgmt.invite.required');
+    if (!form.firstName.trim()) errs.firstName = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    if (!form.lastName.trim()) errs.lastName = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
     if (!isEdit) {
-      if (!form.email.trim()) errs.email = t('userMgmt.invite.required');
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = t('userMgmt.invite.invalidEmail');
+      if (!form.email.trim()) errs.email = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = t('userMgmt.invite.invalidEmail', { defaultValue: 'Invalid email address' });
     }
-    if (form.phone && form.phone.trim()) {
-      if (!isValidPhoneNumber(form.phone)) {
-        errs.phone = t('userMgmt.invite.invalidPhone', { defaultValue: 'Please enter a valid phone number (8–15 digits)' });
+    
+    if (!form.countryCode || !form.countryCode.trim()) {
+      errs.countryCode = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    }
+
+    const trimmedPhone = (form.phone || '').trim();
+    if (!trimmedPhone) {
+      errs.phone = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    } else {
+      const digits = trimmedPhone.replace(/\D/g, '');
+      if (!/^\d+$/.test(digits)) {
+        errs.phone = t('registerPhoneInvalid', { defaultValue: 'Please enter valid phone number' });
+      } else if (digits.length < 8) {
+        errs.phone = t('registerPhoneMinLength', { defaultValue: 'Please enter minimum 8 digits' });
+      } else if (digits.length > 10) {
+        errs.phone = t('registerPhoneMaxLength', { defaultValue: 'Phone must not exceed 10 digits' });
       }
     }
-    if (!form.role) errs.role = t('userMgmt.invite.selectRole');
+
+    if (!form.role) errs.role = t('userMgmt.invite.selectRole', { defaultValue: 'Please select a role' });
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -109,6 +153,7 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
           first_name: form.firstName.trim(),
           last_name: form.lastName.trim(),
           email: form.email.trim(),
+          country_code: form.countryCode ? form.countryCode.trim() : '+30',
           phone: form.phone.trim() || null,
           role: form.role,
         });
@@ -129,6 +174,10 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
         }
         if (e instanceof ApiError && e.fieldErrors?.email?.[0]) {
           setErrors({ email: e.fieldErrors.email[0] });
+        } else if (e instanceof ApiError && e.fieldErrors?.phone?.[0]) {
+          setErrors({ phone: e.fieldErrors.phone[0] });
+        } else if (e instanceof ApiError && e.fieldErrors?.country_code?.[0]) {
+          setErrors({ countryCode: e.fieldErrors.country_code[0] });
         } else {
           setErrors({ form: msg });
         }
@@ -144,6 +193,7 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
       const updated = await usersSettingsService.update(user.id, {
         first_name: form.firstName.trim(),
         last_name: form.lastName.trim(),
+        country_code: form.countryCode ? form.countryCode.trim() : '+30',
         phone: form.phone.trim() || null,
         ...(isOwner ? {} : { role: form.role }),
       });
@@ -160,6 +210,7 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
         const mapped = {};
         if (e.fieldErrors.first_name?.[0]) mapped.firstName = e.fieldErrors.first_name[0];
         if (e.fieldErrors.last_name?.[0]) mapped.lastName = e.fieldErrors.last_name[0];
+        if (e.fieldErrors.country_code?.[0]) mapped.countryCode = e.fieldErrors.country_code[0];
         if (e.fieldErrors.phone?.[0]) mapped.phone = e.fieldErrors.phone[0];
         if (e.fieldErrors.role?.[0]) mapped.role = e.fieldErrors.role[0];
         setErrors(Object.keys(mapped).length ? mapped : { form: msg });
@@ -252,15 +303,48 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
               }}
             />
           </Field>
-          <Field label={t('userMgmt.invite.phone')} error={errors.phone}>
-            <input
-              value={form.phone}
-              onChange={(e) => set('phone', sanitizePhoneInput(e.target.value))}
-              placeholder="+30 6XX XXX XXXX"
-              className="w-full px-3 py-2 rounded-lg outline-none"
-              style={{ border: `1px solid ${errors.phone ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
-            />
-          </Field>
+          <div>
+            <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600 }}>
+              {t('registerPhone', { defaultValue: 'Mobile phone' })} <span style={{ color: '#EF4444' }}>*</span>
+            </label>
+            <div className="flex gap-2 items-start">
+              <div style={{ minWidth: 95, flexShrink: 0 }}>
+                <CountryCodeSelect
+                  id="invite-country-code"
+                  value={form.countryCode}
+                  options={countryCodes.length ? countryCodes : [{ code: '+30', label: t('Settings.greece_30', 'Greece (+30)') }]}
+                  onChange={(code) => set('countryCode', code)}
+                  disabled={submitting}
+                  error={errors.countryCode}
+                />
+                {errors.countryCode && (
+                  <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{errors.countryCode}</p>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <input
+                  id="invite-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={form.phone}
+                  onChange={(e) => set('phone', e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
+                  placeholder={t('registerPhonePlaceholder', { defaultValue: '6941234567' })}
+                  disabled={submitting}
+                  className="w-full px-3 py-2 rounded-lg outline-none"
+                  style={{
+                    border: `1px solid ${errors.phone ? '#EF4444' : T.bd}`,
+                    background: T.sf,
+                    color: T.t1,
+                    fontSize: 13,
+                  }}
+                />
+                {errors.phone && (
+                  <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{errors.phone}</p>
+                )}
+              </div>
+            </div>
+          </div>
 
           <div>
             <label className="block mb-2" style={{ fontSize: 12, fontWeight: 600, color: T.t1 }}>

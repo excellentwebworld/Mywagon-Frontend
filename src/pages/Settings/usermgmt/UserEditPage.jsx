@@ -18,9 +18,12 @@ import {
   getUserFullName,
 } from '../../../mocks/userMgmtData';
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
+import { signupService } from '../../../api/auth';
 import { ApiError } from '../../../api/client';
-import { isValidPhoneNumber, sanitizePhoneInput } from '../../../utils/phoneValidation';
 import { expandPermissionDependencies } from '../../../utils/shipperAccessPresets';
+import { CountryCodeSelect } from '../../Register/components/CountryCodeSelect';
+import { validateCountryCode, validatePhone } from '../../Register/registerValidation';
+import '../../Register/RegisterPage.css';
 
 function effectivePermissions(user) {
   if (!user) return [];
@@ -34,10 +37,27 @@ export default function UserEditPage() {
   const { userId: userIdParam, tab } = useParams();
   const userId = userIdParam || tab;
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
   const { getUser, updateUser, roles, refresh, loading: listLoading, permissionGroups } = useUserMgmt();
+
+  const [countryCodes, setCountryCodes] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const ref = await signupService.getReference(i18n.language);
+        if (!cancelled) setCountryCodes(ref.country_codes || []);
+      } catch {
+        if (!cancelled) setCountryCodes([{ code: '+30', label: t('Settings.greece_30', 'Greece (+30)') }]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [i18n.language, t]);
 
   const catalogKeys = useMemo(
     () => permissionGroups.flatMap((g) => g.permissions.map((p) => p.name)),
@@ -76,6 +96,7 @@ export default function UserEditPage() {
       setDraft({
         firstName: user.firstName || user.first_name || '',
         lastName: user.lastName || user.last_name || '',
+        countryCode: user.countryCode || user.country_code || '+30',
         phone: user.phone || '',
         jobTitle: user.jobTitle || user.job_title || '',
         role: user.role || 'dispatcher',
@@ -84,7 +105,7 @@ export default function UserEditPage() {
       setEditedPerms(null);
       setAutoEnabled(new Set());
     }
-  }, [user?.id, user?.role, user?.firstName, user?.first_name]);
+  }, [user?.id, user?.role, user?.firstName, user?.first_name, user?.country_code, user?.countryCode, user?.phone]);
 
   const goBack = () => navigate('/settings/users');
 
@@ -131,13 +152,27 @@ export default function UserEditPage() {
 
   const validateProfile = () => {
     const errs = {};
-    if (!draft.firstName.trim()) errs.firstName = t('userMgmt.invite.required');
-    if (!draft.lastName.trim()) errs.lastName = t('userMgmt.invite.required');
-    if (draft.phone && draft.phone.trim()) {
-      if (!isValidPhoneNumber(draft.phone)) {
-        errs.phone = t('userMgmt.invite.invalidPhone', { defaultValue: 'Please enter a valid phone number (8–15 digits)' });
+    if (!draft.firstName.trim()) errs.firstName = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    if (!draft.lastName.trim()) errs.lastName = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    
+    if (!draft.countryCode || !draft.countryCode.trim()) {
+      errs.countryCode = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    }
+
+    const trimmedPhone = (draft.phone || '').trim();
+    if (!trimmedPhone) {
+      errs.phone = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    } else {
+      const digits = trimmedPhone.replace(/\D/g, '');
+      if (!/^\d+$/.test(digits)) {
+        errs.phone = t('registerPhoneInvalid', { defaultValue: 'Please enter valid phone number' });
+      } else if (digits.length < 8) {
+        errs.phone = t('registerPhoneMinLength', { defaultValue: 'Please enter minimum 8 digits' });
+      } else if (digits.length > 10) {
+        errs.phone = t('registerPhoneMaxLength', { defaultValue: 'Phone must not exceed 10 digits' });
       }
     }
+
     setProfileErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -149,6 +184,7 @@ export default function UserEditPage() {
       const updated = await usersSettingsService.update(user.id, {
         first_name: draft.firstName.trim(),
         last_name: draft.lastName.trim(),
+        country_code: draft.countryCode ? draft.countryCode.trim() : '+30',
         phone: draft.phone.trim() || null,
         job_title: draft.jobTitle.trim() || null,
         role: isOwner ? undefined : draft.role,
@@ -161,6 +197,7 @@ export default function UserEditPage() {
         const mapped = {};
         if (e.fieldErrors.first_name?.[0]) mapped.firstName = e.fieldErrors.first_name[0];
         if (e.fieldErrors.last_name?.[0]) mapped.lastName = e.fieldErrors.last_name[0];
+        if (e.fieldErrors.country_code?.[0]) mapped.countryCode = e.fieldErrors.country_code[0];
         if (e.fieldErrors.phone?.[0]) mapped.phone = e.fieldErrors.phone[0];
         setProfileErrors(mapped);
       }
@@ -315,18 +352,54 @@ export default function UserEditPage() {
           <Field label={t('userMgmt.invite.email')} T={T}>
             <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 13, color: T.t3 }}>{user.email}</div>
           </Field>
-          <Field label={t('userMgmt.invite.phone')} error={profileErrors.phone} T={T}>
-            <input
-              value={draft.phone}
-              onChange={(e) => {
-                setDraft((d) => ({ ...d, phone: sanitizePhoneInput(e.target.value) }));
-                if (profileErrors.phone) setProfileErrors((p) => ({ ...p, phone: undefined }));
-              }}
-              placeholder="+30 6XX XXX XXXX"
-              className="w-full px-3 py-2 rounded-lg outline-none"
-              style={{ border: `1px solid ${profileErrors.phone ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
-            />
-          </Field>
+          <div>
+            <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600 }}>
+              {t('registerPhone', { defaultValue: 'Mobile phone' })} <span style={{ color: '#EF4444' }}>*</span>
+            </label>
+            <div className="flex gap-2 items-start">
+              <div style={{ minWidth: 95, flexShrink: 0 }}>
+                <CountryCodeSelect
+                  id="user-edit-country-code"
+                  value={draft.countryCode}
+                  options={countryCodes.length ? countryCodes : [{ code: '+30', label: t('Settings.greece_30', 'Greece (+30)') }]}
+                  onChange={(code) => {
+                    setDraft((d) => ({ ...d, countryCode: code }));
+                    if (profileErrors.countryCode) setProfileErrors((p) => ({ ...p, countryCode: undefined }));
+                  }}
+                  disabled={saving}
+                  error={profileErrors.countryCode}
+                />
+                {profileErrors.countryCode && (
+                  <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{profileErrors.countryCode}</p>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <input
+                  id="user-edit-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={draft.phone}
+                  onChange={(e) => {
+                    setDraft((d) => ({ ...d, phone: e.target.value.replace(/[^0-9]/g, '').slice(0, 10) }));
+                    if (profileErrors.phone) setProfileErrors((p) => ({ ...p, phone: undefined }));
+                  }}
+                  placeholder={t('registerPhonePlaceholder', { defaultValue: '6941234567' })}
+                  disabled={saving}
+                  className="w-full px-3 py-2 rounded-lg outline-none"
+                  style={{
+                    border: `1px solid ${profileErrors.phone ? '#EF4444' : T.bd}`,
+                    background: T.sf,
+                    color: T.t1,
+                    fontSize: 13,
+                  }}
+                />
+                {profileErrors.phone && (
+                  <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{profileErrors.phone}</p>
+                )}
+              </div>
+            </div>
+          </div>
           <Field label={t('userMgmt.editPage.jobTitle')} T={T}>
             <input value={draft.jobTitle} onChange={(e) => setDraft((d) => ({ ...d, jobTitle: e.target.value }))}
               className="w-full px-3 py-2 rounded-lg outline-none" style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />

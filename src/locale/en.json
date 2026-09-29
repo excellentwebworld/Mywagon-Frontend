@@ -3802,7 +3802,7 @@
       "firstName": "First Name",
       "lastName": "Last Name",
       "email": "Email Address",
-      "phone": "Phone (optional)",
+      "phone": "Mobile phone",
       "role": "Select Role",
       "personalMessage": "Personal Message",
       "personalMessagePlaceholder": "Welcome to the team! …",
