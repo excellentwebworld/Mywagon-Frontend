@@ -123,9 +123,20 @@ export default function PersonalSection() {
       return;
     }
     const phoneDigits = String(draft.phone || '').replace(/[^0-9]/g, '');
-    if ((needsSocialPhone(user) || data.profile.phone_required) && !phoneDigits) {
-      toast.error(t('settings.profileSection.phoneRequired', { defaultValue: 'Phone number is required.' }));
+    const isPhoneRequired = Boolean(needsSocialPhone(user) || data?.profile?.phone_required);
+    if (isPhoneRequired && !phoneDigits) {
+      toast.error(t('registerPhoneRequired', { defaultValue: 'Please enter mobile phone' }));
       return;
+    }
+    if (phoneDigits) {
+      if (phoneDigits.length < 8) {
+        toast.error(t('registerPhoneMinLength', { defaultValue: 'Please enter minimum 8 digits' }));
+        return;
+      }
+      if (phoneDigits.length > 10) {
+        toast.error(t('registerPhoneMaxLength', { defaultValue: 'Phone must not exceed 10 digits' }));
+        return;
+      }
     }
     setSaving(true);
     try {
@@ -389,12 +400,15 @@ export default function PersonalSection() {
               </div>
               {editing && !profile.phone_locked ? (
                 <input
+                  id="settings-personal-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   value={draft.phone || ''}
-                  onChange={(e) => setField('phone', e.target.value.replace(/[^0-9]/g, ''))}
+                  onChange={(e) => setField('phone', e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
                   className="w-full px-3 py-2 rounded-lg outline-none"
                   style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
-                  placeholder={t('settings.profileSection.phonePlaceholder', { defaultValue: 'Phone number' })}
-                  inputMode="numeric"
+                  placeholder={t('registerPhone', { defaultValue: 'Mobile phone' })}
                 />
               ) : (
                 <div
