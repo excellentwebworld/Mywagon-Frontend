@@ -471,6 +471,8 @@ export interface ApiShipmentCoOwner {
   phone?: string;
   avatar?: string | null;
   role?: string;
+  role_key?: string;
+  role_label?: string;
 }
 
 export interface ApiCoOwnersResponse {
