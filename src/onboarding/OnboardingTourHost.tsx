@@ -10,14 +10,28 @@ import {
   destroyOnboardingTour,
   FORCE_TOUR_SESSION_KEY,
   isOnboardingTourRunning,
+  notifyOnboardingTourFinished,
   startOnboardingTour,
 } from './startOnboardingTour';
 import { canStartOnboardingTour } from '../hooks/postAuthDestination';
+import { needsSignupComplete } from '../hooks/useSignupCompleteGate';
+import { needsInfoFormHardGate } from '../hooks/useInfoFormGate';
+import { needsCompanyInfoGate, needsKycGate } from '../hooks/useKycGate';
+import type { ShipperUser } from '../api/auth';
 
 const AUTO_START_DELAY_MS = 1200;
 
 interface OnboardingTourHostProps {
   expandSidebar?: () => void;
+}
+
+/** FORCE_TOUR must not skip signup / KYC / mandatory gates (avoids stacking over Get Started). */
+function tourGatesClear(user: ShipperUser): boolean {
+  if (needsSignupComplete(user)) return false;
+  if (needsInfoFormHardGate(user)) return false;
+  if (needsKycGate(user)) return false;
+  if (needsCompanyInfoGate(user)) return false;
+  return true;
 }
 
 export const OnboardingTourHost: React.FC<OnboardingTourHostProps> = ({ expandSidebar }) => {
@@ -37,6 +51,8 @@ export const OnboardingTourHost: React.FC<OnboardingTourHostProps> = ({ expandSi
     if (markingRef.current) return;
     markingRef.current = true;
     try {
+      // Clear force flag before refresh so soft reminder can open after tour.
+      safeSessionRemove(FORCE_TOUR_SESSION_KEY);
       if (incomplete) {
         await onboardingService.complete();
         // refreshUser flips soft_reminder/enforce flags (Laravel: reminder after tour)
@@ -45,13 +61,15 @@ export const OnboardingTourHost: React.FC<OnboardingTourHostProps> = ({ expandSi
           t('tour.welcomeAboard', 'Welcome aboard! You are ready to start using MYVAGON.'),
           'success',
         );
+      } else {
+        await refreshUser().catch(() => null);
       }
     } catch {
       // Still succeed locally; next refresh will reconcile
     } finally {
       markingRef.current = false;
-      safeSessionRemove(FORCE_TOUR_SESSION_KEY);
       startedRef.current = false;
+      notifyOnboardingTourFinished();
     }
   }, [incomplete, refreshUser, showToast, t]);
 
@@ -65,12 +83,24 @@ export const OnboardingTourHost: React.FC<OnboardingTourHostProps> = ({ expandSi
     });
   }, [expandSidebar, markComplete, t]);
 
-  // Auto-start on dashboard after KYC + mandatory info form gates clear.
+  // Auto-start on dashboard only after signup + KYC + mandatory gates clear.
+  // Never stack over the social “Get Started” welcome modal.
   useEffect(() => {
     if (!user || !isDashboard) return;
 
+    // Incomplete social → welcome modal only; clear any stale force flag.
+    if (needsSignupComplete(user)) {
+      safeSessionRemove(FORCE_TOUR_SESSION_KEY);
+      return;
+    }
+
     const forced = safeSessionGet(FORCE_TOUR_SESSION_KEY) === '1';
-    const readyForTour = canStartOnboardingTour(user) || forced;
+    if (forced && !tourGatesClear(user)) {
+      safeSessionRemove(FORCE_TOUR_SESSION_KEY);
+      return;
+    }
+
+    const readyForTour = canStartOnboardingTour(user) || (forced && tourGatesClear(user));
 
     if (!forced && !incomplete) {
       return;

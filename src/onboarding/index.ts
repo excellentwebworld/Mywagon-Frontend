@@ -1,2 +1,9 @@
 export { OnboardingTourHost } from './OnboardingTourHost';
-export { FORCE_TOUR_SESSION_KEY, startOnboardingTour, destroyOnboardingTour } from './startOnboardingTour';
+export {
+  FORCE_TOUR_SESSION_KEY,
+  ONBOARDING_TOUR_FINISHED_EVENT,
+  notifyOnboardingTourFinished,
+  startOnboardingTour,
+  destroyOnboardingTour,
+  isOnboardingTourRunning,
+} from './startOnboardingTour';

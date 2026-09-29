@@ -5,6 +5,14 @@ import { buildOnboardingSteps, type TourTranslate } from './tourSteps';
 
 export const FORCE_TOUR_SESSION_KEY = 'shipper_force_onboarding_tour';
 
+/** Fired after the guided tour finishes (or is skipped) so soft reminders can open. */
+export const ONBOARDING_TOUR_FINISHED_EVENT = 'shipper:onboarding-tour-finished';
+
+export function notifyOnboardingTourFinished(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent(ONBOARDING_TOUR_FINISHED_EVENT));
+}
+
 let activeDriver: Driver | null = null;
 let persistOnDestroy = true;
 
