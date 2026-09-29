@@ -250,18 +250,14 @@ export const PartnersList: React.FC<Props> = ({
                     </div>
                   </td>
                   <td>
-                    {p.rating != null || p.trips > 0 ? (
-                      <div style={{ fontSize: 13, fontWeight: 500 }}>
-                        <span style={{ color: '#F59E0B', fontWeight: 700, marginRight: 6 }}>
-                          ★ {p.rating ?? '—'}
-                        </span>
-                        <span style={{ color: 'var(--text-secondary)' }}>
-                          {p.trips} {p.trips === 1 ? t('trip') : t('trips')}
-                        </span>
-                      </div>
-                    ) : (
-                      <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>—</span>
-                    )}
+                    <div style={{ fontSize: 13, fontWeight: 500 }}>
+                      <span style={{ color: '#F59E0B', fontWeight: 700, marginRight: 6 }}>
+                        ★ {p.rating != null ? p.rating : '0.00'}
+                      </span>
+                      <span style={{ color: 'var(--text-secondary)' }}>
+                        {p.trips} {p.trips === 1 ? t('trip') : t('trips')}
+                      </span>
+                    </div>
                   </td>
                   <td>
                     {p.capabilities.length > 0 ? (
