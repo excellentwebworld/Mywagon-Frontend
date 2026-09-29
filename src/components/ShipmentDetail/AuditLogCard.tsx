@@ -290,39 +290,39 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
     switch (evt.tone) {
       case 'accept':
         return {
-          pill: 'bg-[#D1FAE5] text-[#065F46] border-[#A7F3D0]',
-          border: 'border-[#A7F3D0]',
-          rowBg: 'bg-white border-[#E2E8F0]',
-          icon: <CheckCircle2 size={11} className="text-[#065F46]" />,
+          pill: 'bg-emerald-100 dark:bg-emerald-950/60 text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)] border-emerald-200 dark:border-emerald-800',
+          border: 'border-emerald-200 dark:border-emerald-800',
+          rowBg: 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800',
+          icon: <CheckCircle2 size={11} className="text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]" />,
         };
       case 'counter':
         return {
-          pill: 'bg-[#FEF3C7] text-[#92400E] border-[#FDE68A]',
-          border: 'border-[#FDE68A]',
-          rowBg: 'bg-white border-[#E2E8F0]',
-          icon: <ArrowRight size={11} className="text-[#92400E]" />,
+          pill: 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+          border: 'border-amber-200 dark:border-amber-800',
+          rowBg: 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800',
+          icon: <ArrowRight size={11} className="text-amber-700 dark:text-amber-400" />,
         };
       case 'reject':
         return {
-          pill: 'bg-[#FEE2E2] text-[#991B1B] border-[#FECACA]',
-          border: 'border-[#FECACA]',
-          rowBg: 'bg-[#FEF2F2]/40 border-[#FECACA]',
-          icon: <AlertCircle size={11} className="text-[#991B1B]" />,
+          pill: 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800',
+          border: 'border-red-200 dark:border-red-800',
+          rowBg: 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800',
+          icon: <AlertCircle size={11} className="text-red-600 dark:text-red-400" />,
         };
       case 'bid':
         return {
-          pill: 'bg-[#EDE9FE] text-[#5B21B6] border-[#DDD6FE]',
-          border: 'border-[#DDD6FE]',
-          rowBg: 'bg-white border-[#E2E8F0]',
-          icon: <Tag size={11} className="text-[#5B21B6]" />,
+          pill: 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+          border: 'border-purple-200 dark:border-purple-800',
+          rowBg: 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800',
+          icon: <Tag size={11} className="text-purple-600 dark:text-purple-400" />,
         };
       case 'operations':
       default:
         return {
-          pill: 'bg-[#F1F5F9] text-[#334155] border-[#CBD5E1]',
-          border: 'border-[#E2E8F0]',
-          rowBg: 'bg-white border-[#E2E8F0]',
-          icon: <Activity size={11} className="text-[#64748B]" />,
+          pill: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700',
+          border: 'border-slate-200 dark:border-slate-700',
+          rowBg: 'bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800',
+          icon: <Activity size={11} className="text-slate-500 dark:text-slate-400" />,
         };
     }
   };
@@ -480,25 +480,17 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
                                     isReject
                                       ? 'bg-red-500'
                                       : isAccept
-                                      ? 'bg-[var(--mv-success-bg)]0'
+                                      ? 'bg-emerald-500'
                                       : isCounter
                                       ? 'bg-amber-500'
-                                      : 'bg-indigo-500'
+                                      : 'bg-purple-500'
                                   }`}
                                 >
                                   {nIdx + 1}
                                 </div>
 
                                 <div
-                                  className={`p-3 rounded-xl border shadow-2xs ${
-                                    isReject
-                                      ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800'
-                                      : isAccept
-                                      ? 'bg-[var(--mv-success-bg)] dark:bg-emerald-950/40 border-[var(--mv-success-bg)] dark:border-[var(--st-success-bg)]'
-                                      : isCounter
-                                      ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
-                                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
-                                  }`}
+                                  className="p-3 rounded-xl border shadow-2xs bg-white dark:bg-slate-900/60 border-slate-200 dark:border-slate-800"
                                 >
                                   <div className="flex items-start justify-between gap-2 flex-wrap">
                                     <div className="min-w-0 flex-1">
