@@ -15,7 +15,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
 import {
-  Search, Download, ChevronDown, ChevronRight, X, Clock, Loader2,
+  Search, Download, ChevronDown, ChevronRight, ChevronLeft, X, Clock, Loader2,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
@@ -141,6 +141,42 @@ export default function AuditLogSection() {
   }, [paged]);
 
   const catIcon = (key) => AUDIT_CATEGORIES.find(c => c.key === key)?.icon || '📌';
+
+  // Pagination items calculation (with windowing & ellipsis)
+  const paginationItems = useMemo(() => {
+    const siblings = 1;
+    if (totalPages <= 1) return [1];
+
+    const totalNumbers = siblings * 2 + 5; // e.g. 7
+    if (totalPages <= totalNumbers) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    const leftSibling = Math.max(page - siblings, 1);
+    const rightSibling = Math.min(page + siblings, totalPages);
+
+    const showLeftDots = leftSibling > 2;
+    const showRightDots = rightSibling < totalPages - 1;
+
+    if (!showLeftDots && showRightDots) {
+      const leftCount = 3 + 2 * siblings;
+      const leftRange = Array.from({ length: leftCount }, (_, i) => i + 1);
+      return [...leftRange, '...', totalPages];
+    }
+
+    if (showLeftDots && !showRightDots) {
+      const rightCount = 3 + 2 * siblings;
+      const rightRange = Array.from({ length: rightCount }, (_, i) => totalPages - rightCount + 1 + i);
+      return [1, '...', ...rightRange];
+    }
+
+    if (showLeftDots && showRightDots) {
+      const middleRange = Array.from({ length: rightSibling - leftSibling + 1 }, (_, i) => leftSibling + i);
+      return [1, '...', ...middleRange, '...', totalPages];
+    }
+
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }, [page, totalPages]);
 
   return (
     <div>
@@ -318,18 +354,77 @@ export default function AuditLogSection() {
           ))}
 
           {/* Pagination */}
-          <div className="flex items-center justify-between mt-4 px-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-5 px-2 pt-3" style={{ borderTop: `1px solid ${T.bd}` }}>
             <span style={{ fontSize: 12, color: T.t3 }}>
-              {t('compliance.audit.showing', { from: total > 0 ? (page - 1) * PAGE_SIZE + 1 : 0, to: Math.min(page * PAGE_SIZE, total), total })}
+              {t('compliance.audit.showing', {
+                from: total > 0 ? (page - 1) * PAGE_SIZE + 1 : 0,
+                to: Math.min(page * PAGE_SIZE, total),
+                total,
+                defaultValue: `Showing ${total > 0 ? (page - 1) * PAGE_SIZE + 1 : 0}–${Math.min(page * PAGE_SIZE, total)} of ${total} entries`,
+              })}
             </span>
-            <div className="flex gap-1">
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button key={i} onClick={() => setPage(i + 1)}
-                  className="w-7 h-7 rounded-lg cursor-pointer border-none font-semibold"
-                  style={{ background: page === i + 1 ? T.ac : T.sa, color: page === i + 1 ? '#fff' : T.t2, fontSize: 11 }}>
-                  {i + 1}
-                </button>
-              ))}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                aria-label="Previous page"
+                className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer border-none font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: T.sa,
+                  border: `1px solid ${T.bd}`,
+                  color: T.t2,
+                }}
+              >
+                <ChevronLeft size={14} />
+              </button>
+
+              {paginationItems.map((item, idx) => {
+                if (item === '...') {
+                  return (
+                    <span
+                      key={`dots-${idx}`}
+                      className="w-6 h-8 flex items-center justify-center font-semibold select-none"
+                      style={{ color: T.t3, fontSize: 12 }}
+                    >
+                      …
+                    </span>
+                  );
+                }
+
+                const isCurrent = page === item;
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setPage(item)}
+                    className="min-w-[32px] h-8 px-2 rounded-lg cursor-pointer border-none font-semibold transition-all flex items-center justify-center"
+                    style={{
+                      background: isCurrent ? T.ac : T.sa,
+                      color: isCurrent ? '#fff' : T.t2,
+                      border: `1px solid ${isCurrent ? T.ac : T.bd}`,
+                      fontSize: 12,
+                    }}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                aria-label="Next page"
+                className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer border-none font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: T.sa,
+                  border: `1px solid ${T.bd}`,
+                  color: T.t2,
+                }}
+              >
+                <ChevronRight size={14} />
+              </button>
             </div>
           </div>
         </div>
