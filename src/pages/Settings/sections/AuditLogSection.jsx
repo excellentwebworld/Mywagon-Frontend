@@ -285,6 +285,25 @@ export default function AuditLogSection() {
                 const sev = SEVERITY_CONFIG[entry.severity] || SEVERITY_CONFIG.info;
                 const isExpanded = expandedId === entry.id;
                 const time = new Date(entry.ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                const actorName = entry.actor?.name || '—';
+                const actorRoleKey = entry.actor?.role_key || entry.actor?.roleKey || null;
+                const actorRoleRaw = entry.actor?.role || null;
+                const roleLookupKey = String(actorRoleKey || actorRoleRaw || '')
+                  .trim()
+                  .toLowerCase()
+                  .replace(/\s+/g, '_');
+                const actorRole = actorRoleRaw || actorRoleKey
+                  ? t(`roles.${roleLookupKey}`, {
+                      defaultValue: t(actorRoleRaw || roleLookupKey, {
+                        defaultValue: actorRoleRaw || roleLookupKey,
+                      }),
+                    })
+                  : null;
+                const actorEmail = entry.actor?.email || null;
+                const target = entry.target && entry.target !== actorName ? entry.target : (actorEmail || '');
+                const subtitleParts = [actorName, actorRole, target].filter(Boolean);
+                // Avoid "Name · Name" / "Name · Role · Name" duplicates
+                const subtitle = [...new Set(subtitleParts)].join(' · ');
 
                 return (
                   <div key={entry.id} className="rounded-lg mb-1.5 overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
@@ -295,14 +314,19 @@ export default function AuditLogSection() {
                       {isExpanded ? <ChevronDown size={12} style={{ color: T.t3 }} /> : <ChevronRight size={12} style={{ color: T.t3 }} />}
                       <span style={{ fontSize: 16 }}>{catIcon(entry.category)}</span>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold truncate" style={{ fontSize: 12, color: T.t1 }}>{entry.action}</span>
+                          {actorRole && (
+                            <span className="px-1.5 py-0.5 rounded-full shrink-0" style={{ fontSize: 9, fontWeight: 700, background: T.al, color: T.ac }}>
+                              {actorRole}
+                            </span>
+                          )}
                           <span className="px-1.5 py-0.5 rounded-full shrink-0" style={{ fontSize: 9, fontWeight: 700, background: sev.bg, color: sev.color }}>
                             {t(`severityValue.${entry.severity}`, { defaultValue: sev.label })}
                           </span>
                         </div>
                         <div style={{ fontSize: 11, color: T.t3, marginTop: 1 }}>
-                          {entry.actor?.name || '—'} · {entry.target}
+                          {subtitle}
                         </div>
                       </div>
                       <span className="shrink-0" style={{ fontSize: 11, color: T.t3 }}>{time}</span>
@@ -313,7 +337,7 @@ export default function AuditLogSection() {
                       <div className="px-4 pb-4 pt-2" style={{ borderTop: `1px solid ${T.bd}` }}>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
                           <DetailItem label={t('compliance.audit.detail.actor')} value={`${entry.actor?.name || '—'} (${entry.actor?.email || '—'})`} T={T} />
-                          <DetailItem label={t('compliance.audit.detail.role')} value={entry.actor?.role || '—'} T={T} />
+                          <DetailItem label={t('compliance.audit.detail.role')} value={actorRole || '—'} T={T} />
                           <DetailItem label={t('compliance.audit.detail.ip')} value={entry.actor?.ip || '—'} T={T} />
                           <DetailItem label={t('compliance.audit.detail.device')} value={entry.actor?.device || '—'} T={T} />
                           <DetailItem label={t('compliance.audit.detail.location')} value={[entry.actor?.city, entry.actor?.country].filter(Boolean).join(', ') || '—'} T={T} />

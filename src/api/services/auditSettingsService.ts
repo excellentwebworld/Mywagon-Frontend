@@ -13,6 +13,7 @@ export type PlatformAuditEntry = {
     name: string | null;
     email: string | null;
     role: string | null;
+    role_key?: string | null;
     ip?: string | null;
     device?: string | null;
     city?: string | null;
