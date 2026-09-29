@@ -113,11 +113,11 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
 
   const vehicleTypes = loadSummary.vehicleTypes?.length
     ? loadSummary.vehicleTypes
-    : ['Semi-Trailer'];
+    : [];
 
   const cargoSpecs = loadSummary.cargoSpecs?.length
     ? loadSummary.cargoSpecs
-    : ['Curtainside'];
+    : [];
 
   const parsedNotes: ParsedInstructionNote[] = useMemo(() => {
     if (notes && notes.length > 0) {

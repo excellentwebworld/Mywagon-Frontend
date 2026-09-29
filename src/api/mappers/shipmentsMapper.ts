@@ -6,6 +6,43 @@ import {
   utcToLocalParts,
 } from '../../utils/timezone';
 import { groupItineraryStops } from '../../pages/ManageShipments/utils/listingUtils';
+import i18n from 'i18next';
+
+type BilingualLabel = { en?: string; el?: string; label?: string };
+
+function uiLocale(): 'en' | 'el' {
+  const lang =
+    localStorage.getItem('shipment-lang') ||
+    localStorage.getItem('app_locale') ||
+    i18n.language ||
+    'en';
+  return String(lang).toLowerCase().startsWith('el') ? 'el' : 'en';
+}
+
+/** Pick EN/EL from API bilingual master-data payload (DB english/greek). */
+function pickBilingualLabel(
+  value: string | BilingualLabel | null | undefined,
+  locale: 'en' | 'el' = uiLocale()
+): string {
+  if (value == null) return '';
+  if (typeof value === 'string') return value.trim();
+  const en = String(value.en || '').trim();
+  const el = String(value.el || '').trim();
+  const label = String(value.label || '').trim();
+  if (locale === 'el') return el || label || en;
+  return en || label || el;
+}
+
+function pickBilingualList(
+  values: Array<string | BilingualLabel> | null | undefined,
+  locale: 'en' | 'el' = uiLocale()
+): string[] {
+  if (!Array.isArray(values)) return [];
+  return values
+    .map((v) => pickBilingualLabel(v, locale))
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
 
 /** Driver/app dropoff on-time is hidden on shipper Load Details. */
 function isHiddenDriverDropoffOnTimeLog(text?: string | null): boolean {
@@ -514,8 +551,8 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     })),
     loadSummary: detail.load_summary
       ? {
-          vehicleTypes: detail.load_summary.vehicle_types || [],
-          cargoSpecs: detail.load_summary.cargo_specs || [],
+          vehicleTypes: pickBilingualList(detail.load_summary.vehicle_types),
+          cargoSpecs: pickBilingualList(detail.load_summary.cargo_specs),
           quote: detail.load_summary.quote || '',
           loadValue: detail.load_summary.load_value || '',
           channel: detail.load_summary.channel || 'Private',
@@ -668,8 +705,14 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
             label: s.label || s.company_name || s.location_name || 'Pickup',
             locationName: s.location_name ?? null,
             companyName: s.company_name ?? null,
-            pickupDelayText: cleanPerformanceStatusText(s.pickup_delay_text) || 'Not reported yet',
-            loadingWaitText: cleanPerformanceStatusText(s.loading_wait_text) || 'Not reported yet',
+            pickupDelayText:
+              cleanPerformanceStatusText(
+                pickBilingualLabel(s.pickup_delay_text_i18n) || s.pickup_delay_text
+              ) || pickBilingualLabel({ en: 'Not reported yet', el: 'Δεν έχει αναφερθεί ακόμη' }),
+            loadingWaitText:
+              cleanPerformanceStatusText(
+                pickBilingualLabel(s.loading_wait_text_i18n) || s.loading_wait_text
+              ) || pickBilingualLabel({ en: 'Not reported yet', el: 'Δεν έχει αναφερθεί ακόμη' }),
             canReportDelay: Boolean(s.can_report_delay),
           })),
           dropoffStops: ((detail.trip_performance as any).dropoff_stops || []).map((s: any) => ({
@@ -678,8 +721,11 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
             locationName: s.location_name ?? null,
             companyName: s.company_name ?? null,
             loadingWaitText:
-              cleanPerformanceStatusText(s.loading_wait_text ?? s.unloading_wait_text) ||
-              'Not reported yet',
+              cleanPerformanceStatusText(
+                pickBilingualLabel(s.loading_wait_text_i18n || s.unloading_wait_text_i18n) ||
+                  s.loading_wait_text ||
+                  s.unloading_wait_text
+              ) || pickBilingualLabel({ en: 'Not reported yet', el: 'Δεν έχει αναφερθεί ακόμη' }),
             canReportDelay: Boolean(s.can_report_delay),
           })),
           reports: (detail.trip_performance.reports || []).map((r) => ({
