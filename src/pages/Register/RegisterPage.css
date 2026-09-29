@@ -484,6 +484,9 @@
   min-width: 0;
   cursor: pointer;
   font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .reg-cert-display:hover,
