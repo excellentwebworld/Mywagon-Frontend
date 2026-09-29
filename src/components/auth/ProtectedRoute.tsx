@@ -8,7 +8,7 @@ import {
   isCompanyInfoGateAllowedPath,
   isKycGateAllowedPath,
   needsCompanyInfoGate,
-  needsKycGate,
+  needsKycHardGate,
 } from '../../hooks/useKycGate';
 import {
   isInfoFormAllowedPath,
@@ -30,7 +30,8 @@ interface ProtectedRouteProps {
  * Gate sequence:
  *   past-due →
  *   social incomplete: dashboard only (+ settings/billing for profile & past-due) →
- *   social after profile: KYC → Info Form → panel
+ *   social after profile: submit KYC if needed → Info Form → dashboard / tour
+ *     (KYC pending = already submitted — do not hard-lock to compliance)
  *   normal: Info Form → KYC → company info → panel
  */
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
@@ -86,7 +87,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   if (
     signupDone &&
     social &&
-    needsKycGate(user) &&
+    needsKycHardGate(user) &&
     !isKycGateAllowedPath(location.pathname, user)
   ) {
     return <Navigate to="/settings/compliance" replace />;
@@ -100,7 +101,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/settings/organization?from=info_form" replace />;
   }
 
-  if (!social && needsKycGate(user) && !isKycGateAllowedPath(location.pathname, user)) {
+  if (!social && needsKycHardGate(user) && !isKycGateAllowedPath(location.pathname, user)) {
     return <Navigate to="/settings/compliance" replace />;
   }
 

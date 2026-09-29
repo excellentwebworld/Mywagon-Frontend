@@ -17,7 +17,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useShipperPermission } from '../../../hooks/useShipperPermission';
 import { ACTION_RBAC } from '../../../utils/shipperRbacMap';
 import { needsInfoFormHardGate } from '../../../hooks/useInfoFormGate';
-import { needsKycGate } from '../../../hooks/useKycGate';
+import { needsKycHardGate } from '../../../hooks/useKycGate';
 import {
   isSocialShipper,
   needsSignupComplete,
@@ -28,6 +28,8 @@ import { organizationSettingsService } from '../../../api/services/organizationS
 import { signupService } from '../../../api/auth';
 import { GoogleMapAddressField } from '../../../components/AddressBook/GoogleMapAddressField';
 import { ContextualTutorialTrigger } from '../../../components/Tutorials';
+import { FORCE_TOUR_SESSION_KEY } from '../../../onboarding';
+import { safeSessionSet } from '../../../utils/safeStorage';
 import '../../../styles/tutorials.css';
 import '../../../styles/address-book.css';
 import '../../Register/RegisterPage.css';
@@ -587,13 +589,20 @@ export default function OrganizationSection() {
 
       // Completion flag is on payload.completion (not operations_meta).
       const mandatoryDone = payload?.completion?.is_mandatory_completed === true;
-      const socialNeedsKyc =
-        isSocialShipper(nextUser) &&
-        !needsSignupComplete(nextUser) &&
-        needsKycGate(nextUser);
+      const socialSignupDone =
+        isSocialShipper(nextUser) && !needsSignupComplete(nextUser);
 
-      // After mandatory form → KYC (normal info-form gate + social signup).
-      if (mandatoryDone && (fromInfoForm || socialNeedsKyc)) {
+      if (mandatoryDone && socialSignupDone) {
+        // Social already submitted KYC during complete-signup (pending) → dashboard + tour.
+        // Still send to compliance when KYC was never started or was rejected.
+        if (needsKycHardGate(nextUser)) {
+          navigate('/settings/compliance', { replace: true });
+        } else {
+          safeSessionSet(FORCE_TOUR_SESSION_KEY, '1');
+          navigate('/dashboard', { replace: true });
+        }
+      } else if (mandatoryDone && fromInfoForm) {
+        // Normal email signup: Info Form → KYC.
         navigate('/settings/compliance', { replace: true });
       }
     } catch (e) {

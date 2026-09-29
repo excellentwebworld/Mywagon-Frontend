@@ -12,6 +12,17 @@ export function needsKycGate(user: ShipperUser | null | undefined): boolean {
   return false;
 }
 
+/**
+ * Hard redirect to compliance.
+ * Social users who already submitted KYC (`pending`) may reach the dashboard / tour;
+ * they still see compliance for `not_started` / `rejected`.
+ */
+export function needsKycHardGate(user: ShipperUser | null | undefined): boolean {
+  if (!needsKycGate(user)) return false;
+  if (isSocialShipper(user) && user?.kyc_status === 'pending') return false;
+  return true;
+}
+
 export function needsCompanyInfoGate(user: ShipperUser | null | undefined): boolean {
   if (!user || user.kyc_status !== 'accepted') return false;
   // Social users fill address in organization settings before KYC — skip company-info gate for them.
