@@ -3568,7 +3568,7 @@
     },
     "audit": {
       "title": "Audit Log",
-      "subtitle": "Every action on the platform, logged and searchable",
+      "subtitle": "Your actions on this account, logged and searchable",
       "searchPlaceholder": "Search audit log…",
       "category": "Category",
       "severity": "Severity",
