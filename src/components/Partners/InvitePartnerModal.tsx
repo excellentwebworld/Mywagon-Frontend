@@ -345,7 +345,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
                       {t('phone')} <span className="rq">*</span>
                     </label>
                     <div className="ptn-phone-row" style={{ display: 'flex', gap: 12 }}>
-                      <div style={{ width: '160px', flexShrink: 0 }}>
+                      <div style={{ width: '100px', flexShrink: 0 }}>
                         <div className="ptn-custom-select" ref={dropdownRef}>
                           <button
                             type="button"
@@ -355,12 +355,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
                               setSearchQuery('');
                             }}
                           >
-                            <span>
-                              {(() => {
-                                const selected = COUNTRIES.find((c) => c.code === values.countryCode) || { en: 'Greece', el: 'Ελλάδα', code: '+30' };
-                                return `${selected.code} (${lang === 'el' ? selected.el : selected.en})`;
-                              })()}
-                            </span>
+                            <span>{values.countryCode || '+30'}</span>
                             <span className="arrow">{isDropdownOpen ? '▲' : '▼'}</span>
                           </button>
                           {isDropdownOpen && (
