@@ -1325,7 +1325,12 @@
   }
   .wr-modal-toolbar,
   .wr-envelope-header,
-  .no-print {
+  .no-print,
+  .wr-modal-toolbar .wr-toolbar-actions,
+  .wr-modal-toolbar button,
+  .wr-close-btn,
+  .wr-row-actions {
     display: none !important;
+    visibility: hidden !important;
   }
 }

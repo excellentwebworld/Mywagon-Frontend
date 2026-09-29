@@ -144,7 +144,7 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
           <div className="wr-toolbar-actions">
             <button
               type="button"
-              className="wr-btn wr-btn-secondary"
+              className="wr-btn wr-btn-secondary no-print"
               onClick={() => onExportCsv(report)}
               title={t('weeklyReports.exportCsv', 'Export CSV')}
             >
@@ -162,7 +162,7 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
             </button>
             <button
               type="button"
-              className="wr-close-btn"
+              className="wr-close-btn no-print"
               onClick={onClose}
               aria-label={t('analytics.weeklyReports.close', 'Close')}
             >
