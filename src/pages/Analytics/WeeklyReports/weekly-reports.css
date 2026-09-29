@@ -113,6 +113,12 @@
   background: #fee2e2;
 }
 
+.dark .wr-btn-danger:hover:not(:disabled),
+[data-theme='dark'] .wr-btn-danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.25);
+  color: #FCA5A5;
+}
+
 .wr-btn-export {
   background: #f0fdf4;
   color: #16a34a;
@@ -121,6 +127,13 @@
 .wr-btn-export:hover:not(:disabled) {
   background: #dcfce7;
   border-color: #16a34a;
+}
+
+.dark .wr-btn-export:hover:not(:disabled),
+[data-theme='dark'] .wr-btn-export:hover:not(:disabled) {
+  background: rgba(22, 163, 74, 0.25);
+  border-color: #34D399;
+  color: #6EE7B7;
 }
 
 .wr-btn:disabled {

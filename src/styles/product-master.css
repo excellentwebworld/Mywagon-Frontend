@@ -46,29 +46,19 @@
   --th:  64px;
 }
 
-/* ─── Reset & Base ─── */
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: var(--font-app), 'Poppins', sans-serif; background: var(--bg); color: var(--t1); min-height: 100vh; }
-
-/* ─── Layout: full-height panes (scoped to Product Master route) ─── */
-.pm-container {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - var(--topbar-h, 64px));
-  overflow: hidden;
-}
-
-/* ─── Buttons ─── */
-.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--rs); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; border: 1px solid var(--bd); background: var(--sf); color: var(--t2); transition: all .15s; white-space: nowrap; }
-.btn:hover { background: var(--sa); border-color: var(--bf); color: var(--t1); }
-.btn svg { width: 14px; height: 14px; }
-.btn-p { background: var(--ac); color: #fff; border: none; }
-.btn-p:hover { background: var(--ah); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(155,81,224,.3); }
-.btn-sm { padding: 5px 10px; font-size: 11px; }
-.btn-danger { color: var(--er); border-color: var(--er); }
-.btn-danger:hover { background: #FEF2F2; }
-.btn-ghost { border: none; background: none; color: var(--t3); padding: 6px 8px; }
-.btn-ghost:hover { color: var(--t1); background: var(--sa); }
+/* ─── Buttons (scoped to Product Master) ─── */
+.pm-container .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: var(--rs); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; border: 1px solid var(--bd); background: var(--sf); color: var(--t2); transition: all .15s; white-space: nowrap; }
+.pm-container .btn:hover { background: var(--sa); border-color: var(--bf); color: var(--t1); }
+.pm-container .btn svg { width: 14px; height: 14px; }
+.pm-container .btn-p { background: var(--ac); color: #fff; border: none; }
+.pm-container .btn-p:hover { background: var(--ah); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(155,81,224,.3); }
+.pm-container .btn-sm { padding: 5px 10px; font-size: 11px; }
+.pm-container .btn-danger { color: var(--er); border-color: var(--er); background: transparent; }
+.pm-container .btn-danger:hover { background: rgba(239, 68, 68, 0.12); color: var(--er); }
+.dark .pm-container .btn-danger:hover,
+[data-theme='dark'] .pm-container .btn-danger:hover { background: rgba(239, 68, 68, 0.25); color: #FCA5A5; }
+.pm-container .btn-ghost { border: none; background: none; color: var(--t3); padding: 6px 8px; }
+.pm-container .btn-ghost:hover { color: var(--t1); background: var(--sa); }
 .sp { flex: 1; }
 
 /* ─── Page Header ─── */
