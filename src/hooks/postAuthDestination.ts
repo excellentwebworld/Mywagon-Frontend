@@ -6,12 +6,17 @@ import {
   needsSignupComplete,
 } from './useSignupCompleteGate';
 
+function isSubUser(user: ShipperUser): boolean {
+  return user.is_sub_user === true || user.type === 'sub_user';
+}
+
 /**
  * Post-login destination.
  *
  * Social incomplete: dashboard (browse) — features soft-gated with modal → settings.
  * Social after company details: KYC first.
  * Normal email signup (unchanged): Info Form → KYC → company info → dashboard / tour
+ * Sub-users: always dashboard (never restore previous session route).
  */
 export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'): string {
   // Incomplete social prospects land on dashboard; profile soft-gated on feature use.
@@ -37,6 +42,11 @@ export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'):
   }
 
   if (user.onboarding_completed === false) {
+    return '/dashboard';
+  }
+
+  // Sub-users always land on dashboard after login / re-login.
+  if (isSubUser(user)) {
     return '/dashboard';
   }
 
