@@ -296,6 +296,14 @@ export interface Shipment {
   isPaid?: boolean;
   paidDate?: string | null;
   ownerName?: string | null;
+  coOwners?: Array<{
+    id: number;
+    name: string;
+    email?: string;
+    phone?: string;
+    avatar?: string | null;
+    role?: string;
+  }>;
   negotiable?: boolean;
   navigation?: boolean;
   loadSummary?: {

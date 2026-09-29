@@ -464,6 +464,16 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     isPaid: Boolean(detail.is_paid ?? (detail.mark_as_paid === '1')),
     paidDate: detail.paid_date ?? null,
     ownerName: detail.owner_name ?? null,
+    coOwners: detail.co_owners
+      ? detail.co_owners.map((co) => ({
+          id: Number(co.id),
+          name: co.name || 'User',
+          email: co.email,
+          phone: co.phone,
+          avatar: co.avatar ?? null,
+          role: co.role,
+        }))
+      : undefined,
     stops: mappedStops,
     journeyDistanceKm: journeyKm,
     journeyTime: detail.journey_time ?? null,

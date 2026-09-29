@@ -26,6 +26,7 @@ import {
   UploadDocumentModal,
   ViewPodModal,
   CounterOfferModal,
+  AssignCoOwnerModal,
 } from '../../components/ShipmentDetail';
 import type { PhysicalStop } from '../../components/ShipmentDetail/StopsCard';
 import { useApp } from '../../context/AppContext';
@@ -101,6 +102,7 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
   const [sections, setSections] = useState(DEFAULT_SECTIONS);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [isAssignCoOwnerOpen, setIsAssignCoOwnerOpen] = useState(false);
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [isBidsHistoryOpen, setIsBidsHistoryOpen] = useState(false);
   const [selectedPartnerForHistory, setSelectedPartnerForHistory] = useState<PartnerBidItem | null>(null);
@@ -768,6 +770,11 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
               ? undefined
               : () => setIsCancelOpen(true)
           }
+          onAssignCoOwner={
+            readOnly || !canAction('assignCoOwner')
+              ? undefined
+              : () => setIsAssignCoOwnerOpen(true)
+          }
           onToast={(msg) => showToast(msg, 'info')}
           t={t}
         />
@@ -1264,6 +1271,19 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
         submitting={counterSubmitting}
         onClose={() => setPendingCounterBid(null)}
         onSubmit={handleSendCounterBid}
+        t={t}
+      />
+
+      {/* Assign Co-Owner Modal */}
+      <AssignCoOwnerModal
+        open={isAssignCoOwnerOpen}
+        shipmentId={vm.id}
+        shipmentDisplayId={vm.displayId}
+        onClose={() => setIsAssignCoOwnerOpen(false)}
+        onSuccess={() => {
+          refetch?.();
+        }}
+        onToast={(msg, type) => showToast(msg, type || 'info')}
         t={t}
       />
         </>

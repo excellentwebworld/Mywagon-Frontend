@@ -232,6 +232,7 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
   is_paid?: boolean;
   paid_date?: string | null;
   owner_name?: string | null;
+  co_owners?: ApiShipmentCoOwner[];
   carrier_partner?: boolean;
   unable_to_complete_reason?: string | null;
   stops?: ApiShipmentStop[];
@@ -462,3 +463,20 @@ export interface PaginatedShipmentsResult {
     last_page: number;
   };
 }
+
+export interface ApiShipmentCoOwner {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  avatar?: string | null;
+  role?: string;
+}
+
+export interface ApiCoOwnersResponse {
+  shipment_id: number;
+  assigned_ids: number[];
+  co_owners: ApiShipmentCoOwner[];
+  available_users: ApiShipmentCoOwner[];
+}
+
