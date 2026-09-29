@@ -7,6 +7,7 @@ import {
   Inbox,
   Eye,
   FileSpreadsheet,
+  Loader2,
 } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { WeeklyReportItem } from '../../../../api/types/weeklyReports';
@@ -305,7 +306,11 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                           title={t('weeklyReports.exportCsv', 'Export CSV')}
                           aria-label={t('weeklyReports.exportCsv', 'Export CSV')}
                         >
-                          <FileSpreadsheet size={15} />
+                          {isExportingThis ? (
+                            <Loader2 size={15} className="animate-spin" />
+                          ) : (
+                            <FileSpreadsheet size={15} />
+                          )}
                         </button>
                       </div>
                     </td>
