@@ -151,6 +151,15 @@ const MANDATORY_OPS_KEYS = new Set(
   OPS_SECTIONS_CONFIG.find((s) => s.id === 'mandatory')?.keys || []
 );
 
+const OPS_FIELD_MAX_SELECTIONS = {
+  product_types: 5,
+  frequent_pickups: 5,
+  frequent_dropoffs: 10,
+  truck_types_needed: 3,
+  top_challenges: 3,
+  myvagon_goals: 3,
+};
+
 function isMandatoryField(field) {
   if (!field) return false;
   return Boolean(field.required) || MANDATORY_OPS_KEYS.has(field.key);
@@ -486,7 +495,7 @@ export default function OrganizationSection() {
     const missingMandatory = opsFields.find(
       (field) => isMandatoryField(field) && !isOpsValueFilled(field, opsDraft[field.key])
     );
-    if (fromInfoForm && missingMandatory) {
+    if (missingMandatory) {
       toast.error(
         t(
           'settings.orgSection.infoFormRequiredError',
@@ -503,6 +512,68 @@ export default function OrganizationSection() {
       if (el) {
         scrollWithinSettings(el, { behavior: 'smooth', block: 'center' });
       }
+      return;
+    }
+
+    // Validate max selection limits on multi-select fields (e.g. product_types max 5)
+    for (const field of opsFields) {
+      const maxAllowed = field.max_selection || field.max || OPS_FIELD_MAX_SELECTIONS[field.key];
+      const val = opsDraft[field.key];
+      if (maxAllowed && Array.isArray(val) && val.length > maxAllowed) {
+        toast.error(
+          t('settings.orgSection.operational.maxSelectionsField', {
+            field: field.label,
+            max: maxAllowed,
+            defaultValue: `You can select up to ${maxAllowed} items for "${field.label}".`,
+          })
+        );
+        const parentSection = groupedOpsSections.find((s) =>
+          s.fields.some((f) => f.key === field.key)
+        );
+        if (parentSection) {
+          setOpenOpsSections((prev) => ({ ...prev, [parentSection.id]: true }));
+        }
+        const el = document.getElementById(`ops-field-${field.key}`);
+        if (el) {
+          scrollWithinSettings(el, { behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+    }
+
+    // If uses_erp_system is 'Yes', erp_software_name is required (mirrors Laravel Parsley validation)
+    if (
+      String(opsDraft['uses_erp_system'] || '').toLowerCase() === 'yes' &&
+      !String(opsDraft['erp_software_name'] || '').trim()
+    ) {
+      toast.error(
+        t(
+          'settings.orgSection.operational.erpSoftwareRequired',
+          'Please specify ERP software name.'
+        )
+      );
+      const processesSec = groupedOpsSections.find((s) => s.id === 'processes');
+      if (processesSec) {
+        setOpenOpsSections((prev) => ({ ...prev, processes: true }));
+      }
+      const el = document.getElementById('ops-field-erp_software_name');
+      if (el) {
+        scrollWithinSettings(el, { behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
+    // Validate company description length (max 250 chars as in Laravel Parsley)
+    if (
+      opsDraft['company_description'] &&
+      String(opsDraft['company_description']).length > 250
+    ) {
+      toast.error(
+        t(
+          'settings.orgSection.operational.companyDescriptionMax',
+          'Maximum 250 characters are allowed for company description.'
+        )
+      );
       return;
     }
     setSavingOps(true);
@@ -1161,10 +1232,14 @@ export default function OrganizationSection() {
 
 function OpsField({ field, value, editing, onChange, T }) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const options = field.options || [];
   const isMulti = field.type === 'multi';
+  const maxSelection = isMulti
+    ? (field.max_selection || field.max || OPS_FIELD_MAX_SELECTIONS[field.key] || null)
+    : null;
   const inputType = (field.input_type || '').toLowerCase();
   const useTextarea = inputType.includes('textarea') || inputType.includes('text_area');
 
@@ -1364,6 +1439,23 @@ function OpsField({ field, value, editing, onChange, T }) {
           </span>
         )}
 
+        {maxSelection && isMulti && (
+          <span
+            className="inline-flex items-center px-2 py-0.5 rounded-full font-semibold whitespace-nowrap"
+            style={{
+              background: T.al,
+              color: T.ac,
+              border: `1px solid ${T.bd}`,
+              fontSize: 10.5,
+            }}
+          >
+            {t('settings.orgSection.operational.maxBadge', {
+              max: maxSelection,
+              defaultValue: `Max ${maxSelection}`,
+            })}
+          </span>
+        )}
+
         {editing && mandatory && (
           filled ? (
             <span
@@ -1500,10 +1592,16 @@ function OpsField({ field, value, editing, onChange, T }) {
                 }}
               >
                 <span style={{ fontSize: 11, fontWeight: 700, color: T.ac, marginRight: 2 }}>
-                  {t('settings.orgSection.operational.selectedCount', {
-                    count: selected.length,
-                    defaultValue: `Selected (${selected.length}):`,
-                  })}
+                  {maxSelection
+                    ? t('settings.orgSection.operational.selectedCountWithMax', {
+                        count: selected.length,
+                        max: maxSelection,
+                        defaultValue: `Selected (${selected.length}/${maxSelection}):`,
+                      })
+                    : t('settings.orgSection.operational.selectedCount', {
+                        count: selected.length,
+                        defaultValue: `Selected (${selected.length}):`,
+                      })}
                 </span>
                 {selected.map((val) => (
                   <span
@@ -1637,6 +1735,15 @@ function OpsField({ field, value, editing, onChange, T }) {
                             onChange(without);
                             setMultiOtherText('');
                           } else {
+                            if (maxSelection && selected.length >= maxSelection) {
+                              toast.warning(
+                                t('settings.orgSection.operational.maxReached', {
+                                  max: maxSelection,
+                                  defaultValue: `You can select up to ${maxSelection} items only.`,
+                                })
+                              );
+                              return;
+                            }
                             const canonical = String(opt.value);
                             const next = [...selected, canonical];
                             if (multiOtherText.trim()) {
@@ -1652,7 +1759,20 @@ function OpsField({ field, value, editing, onChange, T }) {
                             slugify(opt.value),
                           ]);
                           const without = selected.filter((v) => !aliases.has(v));
-                          onChange(active ? without : [...without, canonical]);
+                          if (active) {
+                            onChange(without);
+                          } else {
+                            if (maxSelection && selected.length >= maxSelection) {
+                              toast.warning(
+                                t('settings.orgSection.operational.maxReached', {
+                                  max: maxSelection,
+                                  defaultValue: `You can select up to ${maxSelection} items only.`,
+                                })
+                              );
+                              return;
+                            }
+                            onChange([...without, canonical]);
+                          }
                         }
                       }}
                       className="px-2.5 py-1 rounded-full border-none cursor-pointer transition-all"
@@ -1955,13 +2075,21 @@ function OpsField({ field, value, editing, onChange, T }) {
       {renderHeader()}
       {editing ? (
         useTextarea ? (
-          <textarea
-            value={text}
-            onChange={(e) => onChange(e.target.value)}
-            rows={3}
-            className="w-full px-3 py-2 rounded-lg outline-none resize-none"
-            style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
-          />
+          <div>
+            <textarea
+              value={text}
+              maxLength={field.key === 'company_description' ? 250 : undefined}
+              onChange={(e) => onChange(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg outline-none resize-none"
+              style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+            />
+            {field.key === 'company_description' && (
+              <div className="text-right mt-1" style={{ fontSize: 11, color: text.length > 250 ? '#DC2626' : T.t3 }}>
+                {text.length}/250
+              </div>
+            )}
+          </div>
         ) : (
           <input
             value={text}
