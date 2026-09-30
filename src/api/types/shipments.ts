@@ -234,12 +234,14 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
   is_paid?: boolean;
   paid_date?: string | null;
   owner_name?: string | null;
+  co_owners?: ApiShipmentCoOwner[];
   carrier_partner?: boolean;
   unable_to_complete_reason?: string | null;
   stops?: ApiShipmentStop[];
   partners_count?: number;
   cargo_value?: number | null;
   truck_types?: string[];
+  truck_types_i18n?: Array<{ en?: string; el?: string; label?: string }>;
   total_weight?: number | null;
   total_qty?: number | null;
   weight_unit?: string | null;
@@ -248,8 +250,8 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
   invitees?: ApiShipmentInvitee[];
   bid_window_ends_at?: string | null;
   load_summary?: {
-    vehicle_types?: string[];
-    cargo_specs?: string[];
+    vehicle_types?: Array<string | { en?: string; el?: string; label?: string }>;
+    cargo_specs?: Array<string | { en?: string; el?: string; label?: string }>;
     quote?: string | null;
     load_value?: string | null;
     channel?: string;
@@ -344,7 +346,9 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
       location_name?: string | null;
       company_name?: string | null;
       pickup_delay_text?: string | null;
+      pickup_delay_text_i18n?: { en?: string; el?: string; label?: string } | null;
       loading_wait_text?: string | null;
+      loading_wait_text_i18n?: { en?: string; el?: string; label?: string } | null;
       can_report_delay?: boolean;
     }> | null;
     dropoff_stops?: Array<{
@@ -353,6 +357,10 @@ export interface ApiShipmentDetail extends ApiShipmentListItem {
       location_name?: string | null;
       company_name?: string | null;
       dropoff_delay_text?: string | null;
+      loading_wait_text?: string | null;
+      loading_wait_text_i18n?: { en?: string; el?: string; label?: string } | null;
+      unloading_wait_text?: string | null;
+      unloading_wait_text_i18n?: { en?: string; el?: string; label?: string } | null;
       can_report_delay?: boolean;
     }> | null;
     reports?: Array<{
@@ -457,3 +465,22 @@ export interface PaginatedShipmentsResult {
     last_page: number;
   };
 }
+
+export interface ApiShipmentCoOwner {
+  id: number;
+  name: string;
+  email?: string;
+  phone?: string;
+  avatar?: string | null;
+  role?: string;
+  role_key?: string;
+  role_label?: string;
+}
+
+export interface ApiCoOwnersResponse {
+  shipment_id: number;
+  assigned_ids: number[];
+  co_owners: ApiShipmentCoOwner[];
+  available_users: ApiShipmentCoOwner[];
+}
+

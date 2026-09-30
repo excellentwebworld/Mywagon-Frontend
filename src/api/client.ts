@@ -44,7 +44,12 @@ function coalesceInflight<T>(key: string, run: () => Promise<T>): Promise<T> {
 const originalAxiosGet = axiosInstance.get.bind(axiosInstance);
 axiosInstance.get = ((url: string, config?: AxiosRequestConfig) => {
   const params = config?.params == null ? '' : JSON.stringify(config.params);
-  return coalesceInflight(`axios-get:${url}?${params}`, () => originalAxiosGet(url, config));
+  const lang =
+    (config?.headers as Record<string, string> | undefined)?.['Accept-Language'] ||
+    localStorage.getItem('shipment-lang') ||
+    localStorage.getItem('app_locale') ||
+    'en';
+  return coalesceInflight(`axios-get:${url}?${params}&lang=${lang}`, () => originalAxiosGet(url, config));
 }) as typeof axiosInstance.get;
 
 axiosInstance.interceptors.request.use((config) => {
@@ -53,13 +58,13 @@ axiosInstance.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
   const currentLang =
+    localStorage.getItem('shipment-lang') ||
     localStorage.getItem('app_locale') ||
     localStorage.getItem('i18nextLng') ||
     'en';
   const normLang = currentLang.toLowerCase().startsWith('el') ? 'el' : 'en';
-  if (!config.headers['Accept-Language']) {
-    config.headers['Accept-Language'] = normLang;
-  }
+  // Always send current UI locale so API __('…') matches React language.
+  config.headers['Accept-Language'] = normLang;
   config.headers['X-Client-Timezone'] = getBrowserTimezone();
   return config;
 });
@@ -84,6 +89,19 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 403 && error.response?.data?.code === 'signup_incomplete') {
       window.dispatchEvent(new CustomEvent('shipper:signup-incomplete'));
       window.dispatchEvent(new CustomEvent('shipper:signup-incomplete-modal'));
+    }
+    // Spatie / shipper_permissions RBAC (no plan-upgrade code) — toast without redirect.
+    if (
+      error.response?.status === 403 &&
+      !error.response?.data?.code &&
+      !error.response?.data?.upgrade_url
+    ) {
+      const msg = error.response?.data?.message;
+      if (typeof msg === 'string' && /permission/i.test(msg)) {
+        window.dispatchEvent(
+          new CustomEvent('shipper:rbac-denied', { detail: { message: msg } }),
+        );
+      }
     }
     return Promise.reject(error);
   }

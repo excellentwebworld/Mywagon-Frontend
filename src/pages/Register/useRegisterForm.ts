@@ -148,6 +148,18 @@ export function useRegisterForm(t: Translate, lang: 'en' | 'el' = 'en') {
     return () => window.clearTimeout(id);
   }, [resendSeconds]);
 
+  // After submit, field error strings are frozen in the old language.
+  // Re-run client validation when locale changes so messages match GR/EN.
+  const prevLangRef = useRef(lang);
+  useEffect(() => {
+    if (prevLangRef.current === lang) return;
+    prevLangRef.current = lang;
+    setFieldErrors((prev) => {
+      if (Object.keys(prev).length === 0) return prev;
+      return validateFullRegister(draft, certificateFile, t);
+    });
+  }, [lang, t, draft, certificateFile]);
+
   const updateDraft = useCallback((patch: Partial<SignupDraft>) => {
     setDraft((prev) => patchSignupDraft(prev, patch));
     setFieldErrors((prev) => {

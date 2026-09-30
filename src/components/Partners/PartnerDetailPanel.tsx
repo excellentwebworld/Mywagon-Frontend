@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Loader2 } from "lucide-react";
 import { PartnerDetailSkeleton } from "../skeletons/PartnerDetailSkeleton";
 import type { Partner } from "../../pages/Partners/types";
 import type { PartnersState } from "../../pages/Partners/hooks/usePartners";
@@ -19,6 +20,10 @@ type Props = Pick<
   | "acceptPartner"
   | "declinePartner"
   | "canAcceptDeclinePartner"
+  | "acceptLoading"
+  | "declineLoading"
+  | "acceptLoadingId"
+  | "declineLoadingId"
   | "togglePreferred"
   | "deleteContractLane"
   | "openGenericModal"
@@ -37,6 +42,24 @@ function getStatusClass(status: Partner["status"]) {
   if (status === "invited") return "ptn-st-in";
   if (status === "pending") return "ptn-st-pe";
   return "ptn-st-su";
+}
+
+const TYPE_LABEL_KEYS: Record<Partner["type"], string> = {
+  carrier_company: "carriersType",
+  freelancer_driver: "freelancersType",
+  supplier: "suppliersType",
+};
+
+function partnerStatusText(p: Partner, t: (key: string, fallback?: string) => string): string {
+  if (p.status === "active") return t("activePartners");
+  if (p.status === "invited") return t("invitationSent");
+  if (p.status === "pending") return t("invitationReceived");
+  return t("suspendedPartners");
+}
+
+function partnerTypeText(p: Partner, t: (key: string, fallback?: string) => string): string {
+  const key = TYPE_LABEL_KEYS[p.type];
+  return key ? t(key) : p.typeLabel || p.type;
 }
 
 function SectionHeader({
@@ -78,6 +101,10 @@ export const PartnerDetailPanel: React.FC<Props> = ({
   acceptPartner,
   declinePartner,
   canAcceptDeclinePartner,
+  acceptLoading,
+  declineLoading,
+  acceptLoadingId,
+  declineLoadingId,
   togglePreferred,
   deleteContractLane,
   openGenericModal,
@@ -157,17 +184,10 @@ export const PartnerDetailPanel: React.FC<Props> = ({
 
           <div className="ptn-dp-badges">
             <span className={`ptn-tp ${getTypeClass(p.type)}`}>
-              {p.typeLabel}
+              {partnerTypeText(p, t)}
             </span>
             <span className={`ptn-st ${getStatusClass(p.status)}`}>
-              {p.statusLabel ||
-                (p.status === "active"
-                  ? t("activePartners")
-                  : p.status === "invited"
-                    ? t("invitationSent")
-                    : p.status === "pending"
-                      ? t("invitationReceived")
-                      : t("suspendedPartners"))}
+              {partnerStatusText(p, t)}
             </span>
             {p.isPreferred && (
               <span className="ptn-tag ptn-tag-pref">★ {t("preferred")}</span>
@@ -233,20 +253,34 @@ export const PartnerDetailPanel: React.FC<Props> = ({
                 📥 {t("invitationReceived")}
               </div>
               <div className="ptn-inv-actions-container">
-                <button
-                  type="button"
-                  className="btn-decline-inv"
-                  onClick={() => declinePartner(p)}
-                >
-                  ✕ {t("decline")}
-                </button>
-                <button
-                  type="button"
-                  className="btn-accept-inv"
-                  onClick={() => acceptPartner(p)}
-                >
-                  ✓ {t("accept")}
-                </button>
+                {(() => {
+                  const pid = String(p.id);
+                  const isAccepting = acceptLoading && acceptLoadingId === pid;
+                  const isDeclining = declineLoading && declineLoadingId === pid;
+                  const busy = isAccepting || isDeclining;
+                  return (
+                    <>
+                      <button
+                        type="button"
+                        className="btn-decline-inv"
+                        disabled={busy}
+                        onClick={() => declinePartner(p)}
+                        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                      >
+                        {isDeclining ? <Loader2 size={14} className="animate-spin" /> : "✕"} {t("decline")}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-accept-inv"
+                        disabled={busy}
+                        onClick={() => acceptPartner(p)}
+                        style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                      >
+                        {isAccepting ? <Loader2 size={14} className="animate-spin" /> : "✓"} {t("accept")}
+                      </button>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           )}

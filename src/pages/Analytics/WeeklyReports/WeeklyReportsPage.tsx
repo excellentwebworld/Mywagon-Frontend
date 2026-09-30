@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import {
   BarChart3,
   RefreshCw,
@@ -15,6 +15,7 @@ import { WeeklyReportsFilterBar } from './components/WeeklyReportsFilterBar';
 import { WeeklyReportKpis } from './components/WeeklyReportKpis';
 import { WeeklyReportsTable } from './components/WeeklyReportsTable';
 import { WeeklyReportEmailModal } from './components/WeeklyReportEmailModal';
+import { formatWeeklyDateLabel } from './weeklyReportsDates';
 
 import './weekly-reports.css';
 
@@ -203,7 +204,9 @@ export const WeeklyReportsPage: React.FC = () => {
         setMeta(res.meta);
       } catch (err: unknown) {
         showToast(
-          err instanceof Error ? err.message : 'Failed to load weekly reports',
+          err instanceof Error
+            ? err.message
+            : t('analytics.weeklyReports.loadFailed', 'Failed to load weekly reports'),
           'error'
         );
       } finally {
@@ -211,7 +214,7 @@ export const WeeklyReportsPage: React.FC = () => {
         setRefreshing(false);
       }
     },
-    [appliedFrom, appliedTo, debouncedSearch, page, perPage, showToast]
+    [appliedFrom, appliedTo, debouncedSearch, page, perPage, showToast, t]
   );
 
   useEffect(() => {
@@ -308,10 +311,17 @@ export const WeeklyReportsPage: React.FC = () => {
     setExportingReportId(report.id);
     try {
       const result = await weeklyReportsService.exportReport(report.week_start);
-      showToast(`Exported ${result.filename || 'weekly report CSV'}`, 'success');
+      showToast(
+        t('analytics.weeklyReports.exportSuccess', 'Exported {{filename}}', {
+          filename: result.filename || t('analytics.weeklyReports.exportCsvFallback', 'weekly report CSV'),
+        }),
+        'success'
+      );
     } catch (err: unknown) {
       showToast(
-        err instanceof Error ? err.message : 'Could not export weekly report.',
+        err instanceof Error
+          ? err.message
+          : t('analytics.weeklyReports.exportFailed', 'Could not export weekly report.'),
         'error'
       );
     } finally {
@@ -326,10 +336,19 @@ export const WeeklyReportsPage: React.FC = () => {
         from: appliedFrom || undefined,
         to: appliedTo || undefined,
       });
-      showToast(`Exported ${result.filename || 'weekly reports register'}`, 'success');
+      showToast(
+        t('analytics.weeklyReports.exportSuccess', 'Exported {{filename}}', {
+          filename:
+            result.filename ||
+            t('analytics.weeklyReports.exportAllFallback', 'weekly reports register'),
+        }),
+        'success'
+      );
     } catch (err: unknown) {
       showToast(
-        err instanceof Error ? err.message : 'Could not export weekly reports.',
+        err instanceof Error
+          ? err.message
+          : t('analytics.weeklyReports.exportAllFailed', 'Could not export weekly reports.'),
         'error'
       );
     } finally {
@@ -337,25 +356,27 @@ export const WeeklyReportsPage: React.FC = () => {
     }
   };
 
-  const formatDateLabel = (dStr?: string) => {
-    if (!dStr) return '';
-    try {
-      const d = new Date(dStr);
-      if (isNaN(d.getTime())) return dStr;
-      return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-    } catch {
-      return dStr;
-    }
-  };
+  const formatDateLabel = (dStr?: string) => formatWeeklyDateLabel(dStr);
 
   const dateRangeLabel = (() => {
     const fromLabel = formatDateLabel(appliedFrom || meta?.date_range_start);
     const toLabel = formatDateLabel(appliedTo || meta?.date_range_end);
-    if (activePreset === '1w' || activePreset === 'last_week') return `Last Week (${fromLabel} – ${toLabel})`;
-    if (activePreset === '4w') return `Last 4 Weeks (${fromLabel} – ${toLabel})`;
-    if (activePreset === '8w') return `Last 8 Weeks (${fromLabel} – ${toLabel})`;
-    if (activePreset === '12w') return `Last 12 Weeks (${fromLabel} – ${toLabel})`;
-    if (activePreset === 'year') return `This Year (${fromLabel} – ${toLabel})`;
+    const range = `(${fromLabel} – ${toLabel})`;
+    if (activePreset === '1w' || activePreset === 'last_week') {
+      return `${t('analytics.weeklyReports.presetLastWeek', 'Last Week')} ${range}`;
+    }
+    if (activePreset === '4w') {
+      return `${t('analytics.weeklyReports.presetLast4Weeks', 'Last 4 Weeks')} ${range}`;
+    }
+    if (activePreset === '8w') {
+      return `${t('analytics.weeklyReports.presetLast8Weeks', 'Last 8 Weeks')} ${range}`;
+    }
+    if (activePreset === '12w') {
+      return `${t('analytics.weeklyReports.presetLast12Weeks', 'Last 12 Weeks')} ${range}`;
+    }
+    if (activePreset === 'year') {
+      return `${t('analytics.weeklyReports.presetThisYear', 'This Year')} ${range}`;
+    }
     if (fromLabel && toLabel) return `${fromLabel} – ${toLabel}`;
     return undefined;
   })();
@@ -388,10 +409,10 @@ export const WeeklyReportsPage: React.FC = () => {
               className="wr-btn wr-btn-secondary"
               onClick={() => fetchReports(true)}
               disabled={refreshing || loading}
-              title="Refresh reports"
+              title={t('analytics.weeklyReports.refreshReports', 'Refresh reports')}
             >
               <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
-              <span>Refresh</span>
+              <span>{t('analytics.weeklyReports.refresh', 'Refresh')}</span>
             </button>
           </div>
         </div>

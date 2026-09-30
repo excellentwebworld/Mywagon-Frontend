@@ -18,7 +18,8 @@ import { useUserMgmt } from '../../../context/UserMgmtContext';
 import { rolesSettingsService } from '../../../api/services/rolesSettingsService';
 import { ApiError } from '../../../api/client';
 import { useAuth } from '../../../context/AuthContext';
-import { canManageShipperUsers } from '../../../utils/shipperAccessPresets';
+import { canManageShipperUsers, expandPermissionDependencies } from '../../../utils/shipperAccessPresets';
+import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 
 const COLORS = ['#9B51E0', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#EC4899', '#9B51E0'];
 
@@ -76,10 +77,16 @@ export default function RolesTab() {
     roles,
     setRoles: setApiRoles,
     setPermissionGroups,
+    permissionGroups,
     refresh,
     loading,
   } = useUserMgmt();
   const isGreek = i18n.language === 'el';
+
+  const catalogKeys = useMemo(
+    () => permissionGroups.flatMap((g) => g.permissions.map((p) => p.name)),
+    [permissionGroups],
+  );
 
   const [selectedKey, setSelectedKey] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -95,6 +102,50 @@ export default function RolesTab() {
   const [newRoleColor, setNewRoleColor] = useState('#3B82F6');
   const [newRoleDescription, setNewRoleDescription] = useState('');
   const [nameError, setNameError] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState(null);
+
+  const allPermissionKeys = useMemo(
+    () => (permissionGroups || []).flatMap((g) => (g.permissions || []).map((p) => p.name)),
+    [permissionGroups],
+  );
+
+  const filteredPermissionKeys = useMemo(() => {
+    if (!permSearch) return allPermissionKeys;
+    const q = permSearch.toLowerCase();
+    return (permissionGroups || []).flatMap((g) =>
+      (g.permissions || [])
+        .filter(
+          (p) =>
+            (p.label || '').toLowerCase().includes(q) ||
+            (p.name || '').toLowerCase().includes(q) ||
+            (g.label || '').toLowerCase().includes(q),
+        )
+        .map((p) => p.name),
+    );
+  }, [permissionGroups, allPermissionKeys, permSearch]);
+
+  const targetPermKeys = permSearch ? filteredPermissionKeys : allPermissionKeys;
+  const selectedTargetCount = useMemo(() => {
+    const currentSet = new Set(editPerms || []);
+    return targetPermKeys.filter((k) => currentSet.has(k)).length;
+  }, [targetPermKeys, editPerms]);
+
+  const isAllSelected = targetPermKeys.length > 0 && selectedTargetCount === targetPermKeys.length;
+  const isIndeterminate = selectedTargetCount > 0 && selectedTargetCount < targetPermKeys.length;
+
+  const handleToggleSelectAll = () => {
+    if (!targetPermKeys.length) return;
+    const currentSet = new Set(editPerms || []);
+
+    if (isAllSelected) {
+      targetPermKeys.forEach((k) => currentSet.delete(k));
+      setEditPerms(Array.from(currentSet));
+    } else {
+      targetPermKeys.forEach((k) => currentSet.add(k));
+      setEditPerms(expandPermissionDependencies(Array.from(currentSet), catalogKeys));
+    }
+    setAutoEnabled(new Set());
+  };
 
   useEffect(() => {
     if (!selectedKey && roles.length) {
@@ -126,7 +177,10 @@ export default function RolesTab() {
     setEditPerms(
       selectedRole.permissions === null
         ? []
-        : [...(selectedRole.permission_names || selectedRole.permissions || [])],
+        : expandPermissionDependencies(
+          selectedRole.permission_names || selectedRole.permissions || [],
+          catalogKeys,
+        ),
     );
     setEditName(selectedRole.name || '');
     setEditColor(selectedRole.color || '#3B82F6');
@@ -250,27 +304,39 @@ export default function RolesTab() {
     }
   };
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     if (!selectedRole || isSystem) return;
     if (usersOnRole.length > 0) {
       toast.error(t('userMgmt.roles.cannotDelete', { n: usersOnRole.length }));
       return;
     }
 
-    setSaving(true);
-    try {
-      const data = await rolesSettingsService.destroy(selectedRole.key);
-      applyRolesPayload(data, setApiRoles, setPermissionGroups);
-      setSelectedKey(data.roles?.[0]?.key || null);
-      cancelEdit();
-      toast.success(t('userMgmt.toast.roleDeleted'));
-      await refresh();
-    } catch (e) {
-      const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' });
-      toast.error(msg);
-    } finally {
-      setSaving(false);
-    }
+    setConfirmDialog({
+      title: t('userMgmt.roles.deleteRoleTitle', { defaultValue: 'Delete this role?' }),
+      message: t('userMgmt.roles.deleteRoleMsg', {
+        name: selectedRole.name,
+        defaultValue: `Are you sure you want to delete "${selectedRole.name}"? This action cannot be undone.`,
+      }),
+      variant: 'danger',
+      confirmLabel: t('common.confirm', { defaultValue: 'Confirm' }),
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        setSaving(true);
+        try {
+          const data = await rolesSettingsService.destroy(selectedRole.key);
+          applyRolesPayload(data, setApiRoles, setPermissionGroups);
+          setSelectedKey(data.roles?.[0]?.key || null);
+          cancelEdit();
+          toast.success(t('userMgmt.toast.roleDeleted'));
+          await refresh();
+        } catch (e) {
+          const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' });
+          toast.error(msg);
+        } finally {
+          setSaving(false);
+        }
+      },
+    });
   };
 
   if (loading && !roles.length) {
@@ -570,7 +636,7 @@ export default function RolesTab() {
                       {isCustom && (
                         <button
                           type="button"
-                          onClick={() => void handleDelete()}
+                          onClick={handleDelete}
                           disabled={saving}
                           className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none"
                           style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#EF4444', fontSize: 12 }}
@@ -627,10 +693,37 @@ export default function RolesTab() {
             )}
 
             {editing && (
-              <div className="mb-2">
-                <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: T.t3 }}>
-                  {t('userMgmt.roles.permissionsSection', { defaultValue: 'Permissions' })}
-                </span>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, color: T.t3 }}>
+                    {t('userMgmt.roles.permissionsSection', { defaultValue: 'Permissions' })}
+                  </span>
+                  {allPermissionKeys.length > 0 && (
+                    <span style={{ fontSize: 11, color: T.t3, fontWeight: 500 }}>
+                      ({(editPerms || []).length}/{allPermissionKeys.length})
+                    </span>
+                  )}
+                </div>
+                {selectedRole.key !== 'admin' && targetPermKeys.length > 0 && (
+                  <label
+                    htmlFor="select-all-permissions"
+                    className="flex items-center gap-1.5 cursor-pointer select-none"
+                    style={{ fontSize: 12, color: T.t1, fontWeight: 500 }}
+                  >
+                    <input
+                      type="checkbox"
+                      id="select-all-permissions"
+                      ref={(el) => {
+                        if (el) el.indeterminate = isIndeterminate;
+                      }}
+                      checked={isAllSelected}
+                      onChange={handleToggleSelectAll}
+                      className="w-4 h-4 rounded cursor-pointer shrink-0"
+                      style={{ accentColor: T.ac }}
+                    />
+                    <span>{t('userMgmt.roles.selectAll', { defaultValue: 'Select all' })}</span>
+                  </label>
+                )}
               </div>
             )}
 
@@ -666,6 +759,16 @@ export default function RolesTab() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!confirmDialog}
+        onClose={() => setConfirmDialog(null)}
+        onConfirm={confirmDialog?.onConfirm}
+        title={confirmDialog?.title}
+        message={confirmDialog?.message}
+        variant={confirmDialog?.variant || 'danger'}
+        confirmLabel={confirmDialog?.confirmLabel}
+      />
     </div>
   );
 }

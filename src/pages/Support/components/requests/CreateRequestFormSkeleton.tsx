@@ -1,8 +1,10 @@
 import React from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 export function CreateRequestFormSkeleton() {
+  const { t } = useTranslation();
   return (
-    <div className="ticket-form support-skeleton" aria-busy="true" aria-label="Loading form">
+    <div className="ticket-form support-skeleton" aria-busy="true" aria-label={t('loadingForm', 'Loading form')}>
       <div className="support-skeleton-block support-skeleton-app-ref" />
 
       <div className="form-row">

@@ -365,8 +365,8 @@ export default function BusinessCentralConnectPanel({ T, t, toast, onChanged }) 
               className="px-3 py-2 rounded-lg outline-none cursor-pointer"
               style={inputStyle}
             >
-              <option value="Production">Production</option>
-              <option value="Sandbox">Sandbox</option>
+              <option value="Production">{t('Settings.production', 'Production')}</option>
+              <option value="Sandbox">{t('Settings.sandbox', 'Sandbox')}</option>
             </select>
           </label>
 

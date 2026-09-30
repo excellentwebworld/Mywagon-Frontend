@@ -3,6 +3,10 @@ import { resolveLanePricingRows, type LaneLike } from './laneMetricDisplay';
 import { cityLabel, resolveCity } from '../../mocks/priceListsData';
 import { laneHasConflict, type LaneConflictCandidate } from './laneConflict';
 
+/** Optional translator — English fallback when omitted (tests / non-UI callers). */
+export type CsvTranslateFn = (key: string, fallback?: string) => string;
+const defaultT: CsvTranslateFn = (_key, fallback) => fallback ?? _key;
+
 const isLikelyIsoCode = (s: string) => /^[A-Za-z]{2}$/.test(s);
 
 /** Google Places stop shape used for CSV import/export. */
@@ -274,6 +278,8 @@ export type CsvParseResult = {
 
 export type ParseCsvOptions = {
   existingLanes?: LaneLike[];
+  /** When provided, validation messages are translated; otherwise English fallbacks. */
+  t?: CsvTranslateFn;
 };
 
 function normalizeText(value: unknown): string {
@@ -348,7 +354,11 @@ function resolveStopFromCsv(args: {
   };
 }
 
-export function parseMetricValue(metric: string, value: string): { metricValue: Record<string, unknown>; error?: CsvRowError } {
+export function parseMetricValue(
+  metric: string,
+  value: string,
+  t: CsvTranslateFn = defaultT,
+): { metricValue: Record<string, unknown>; error?: CsvRowError } {
   const raw = normalizeText(value).replace(/\s+/g, '_');
   const trimmed = String(value || '').trim();
 
@@ -357,7 +367,11 @@ export function parseMetricValue(metric: string, value: string): { metricValue: 
     if (raw === 'ton' || raw.includes('ton')) return { metricValue: { unit: 'ton' } };
     return {
       metricValue: {},
-      error: { code: 'INVALID_METRIC_VALUE', field: 'metric_value', message: 'Weight metric requires kg or ton.' },
+      error: {
+        code: 'INVALID_METRIC_VALUE',
+        field: 'metric_value',
+        message: t('priceLists.csv.weightMetricValue', 'Weight metric requires kg or ton.'),
+      },
     };
   }
 
@@ -375,7 +389,10 @@ export function parseMetricValue(metric: string, value: string): { metricValue: 
       error: {
         code: 'INVALID_METRIC_VALUE',
         field: 'metric_value',
-        message: 'Unit transport requires: eur pallet, us pallet, box, unit, or big bag.',
+        message: t(
+          'priceLists.csv.unitTransportMetricValue',
+          'Unit transport requires: eur pallet, us pallet, box, unit, or big bag.',
+        ),
       },
     };
   }
@@ -384,7 +401,11 @@ export function parseMetricValue(metric: string, value: string): { metricValue: 
     if (!trimmed) {
       return {
         metricValue: {},
-        error: { code: 'INVALID_METRIC_VALUE', field: 'metric_value', message: 'FTL truck type requires a vehicle type slug.' },
+        error: {
+          code: 'INVALID_METRIC_VALUE',
+          field: 'metric_value',
+          message: t('priceLists.csv.ftlTruckTypeMetricValue', 'FTL truck type requires a vehicle type slug.'),
+        },
       };
     }
     return { metricValue: { vehicle_type: trimmed, truck_type_ids: [] } };
@@ -396,7 +417,11 @@ export function parseMetricValue(metric: string, value: string): { metricValue: 
 
   return {
     metricValue: {},
-    error: { code: 'INVALID_METRIC_VALUE', field: 'metric_value', message: 'Load metric requires per load.' },
+    error: {
+      code: 'INVALID_METRIC_VALUE',
+      field: 'metric_value',
+      message: t('priceLists.csv.loadMetricValue', 'Load metric requires per load.'),
+    },
   };
 }
 
@@ -763,7 +788,7 @@ function rowConflictsWithExistingLane(
   return existingLanes.some((lane) => laneHasConflict(candidate, lane));
 }
 
-function applyGroupErrors(rows: ParsedCsvRow[]): void {
+function applyGroupErrors(rows: ParsedCsvRow[], t: CsvTranslateFn = defaultT): void {
   const groups = new Map<string, ParsedCsvRow[]>();
 
   rows.forEach((row) => {
@@ -778,7 +803,7 @@ function applyGroupErrors(rows: ParsedCsvRow[]): void {
         row.errors.push({
           code: 'LANE_GROUP_TOO_MANY_METRICS',
           field: 'metric',
-          message: 'A lane cannot have more than 4 pricing metrics.',
+          message: t('priceLists.csv.laneGroupTooManyMetrics', 'A lane cannot have more than 4 pricing metrics.'),
         });
       });
     }
@@ -793,6 +818,7 @@ export function parseCsvText(
     ? { existingLanes: existingLanesOrOptions }
     : (existingLanesOrOptions || {});
   const { existingLanes } = options;
+  const t = options.t || defaultT;
 
   const sep = detectSeparator(text);
   const lines = text.split(/\r?\n/).filter((line) => line.trim());
@@ -837,14 +863,26 @@ export function parseCsvText(
     });
 
     if (!oResolved.valid) {
-      errors.push({ code: 'INVALID_ORIGIN_CITY', field: 'origin_city', message: 'Missing origin city.' });
+      errors.push({
+        code: 'INVALID_ORIGIN_CITY',
+        field: 'origin_city',
+        message: t('priceLists.csv.missingOriginCity', 'Missing origin city.'),
+      });
     }
     if (!dResolved.valid) {
-      errors.push({ code: 'INVALID_DESTINATION_CITY', field: 'destination_city', message: 'Missing destination city.' });
+      errors.push({
+        code: 'INVALID_DESTINATION_CITY',
+        field: 'destination_city',
+        message: t('priceLists.csv.missingDestinationCity', 'Missing destination city.'),
+      });
     }
 
     if (!price || price <= 0) {
-      errors.push({ code: 'INVALID_PRICE', field: 'price', message: 'Price must be greater than zero.' });
+      errors.push({
+        code: 'INVALID_PRICE',
+        field: 'price',
+        message: t('priceLists.csv.priceMustBePositive', 'Price must be greater than zero.'),
+      });
     }
 
     const rawMetricInput = colMap.metric >= 0
@@ -856,7 +894,10 @@ export function parseCsvText(
       errors.push({
         code: 'INVALID_METRIC',
         field: 'metric',
-        message: 'Metric must be one of: weight, unit transport, ftl truck type, load any size.',
+        message: t(
+          'priceLists.csv.invalidMetric',
+          'Metric must be one of: weight, unit transport, ftl truck type, load any size.',
+        ),
       });
     }
 
@@ -864,7 +905,7 @@ export function parseCsvText(
       ? (vals[colMap.metricValue] || '')
       : (colMap.unit >= 0 ? vals[colMap.unit] : 'per_load');
 
-    const { metricValue, error: metricValueError } = parseMetricValue(metricRaw, metricValueRaw);
+    const { metricValue, error: metricValueError } = parseMetricValue(metricRaw, metricValueRaw, t);
     if (metricValueError) errors.push(metricValueError);
 
     const tripType = colMap.trip >= 0 && normalizeText(vals[colMap.trip]) === 'roundtrip' ? 'roundtrip' : 'direct';
@@ -948,7 +989,7 @@ export function parseCsvText(
     });
   }
 
-  applyGroupErrors(rows);
+  applyGroupErrors(rows, t);
 
   const isRowValid = (row: ParsedCsvRow) =>
     !row.dupe

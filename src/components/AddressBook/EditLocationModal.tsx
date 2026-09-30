@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Form, Formik, type FormikHelpers } from 'formik';
 import type { LocationItem } from '../../context/AppContext';
 import { ApiError } from '../../api';
-import { DOCK_TYPES, getQuickTemplateFacilityLabel, getQuickTemplateFacilityOptions, TEMPLATE_ID_TO_FACILITY_TYPE } from '../../pages/AddressBook/constants';
+import { getDockTypeOptions, getQuickTemplateFacilityLabel, getQuickTemplateFacilityOptions, TEMPLATE_ID_TO_FACILITY_TYPE } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { applyTemplate, inferQuickTemplateFromType } from '../../pages/AddressBook/utils/locationUtils';
 import { EMPTY_CREATE_DATA } from '../../pages/AddressBook/types';
@@ -11,10 +11,9 @@ import {
   validateEditStep,
   type EditStepErrors,
 } from '../../pages/AddressBook/validation/locationEditStepValidation';
-import { checkLocationDuplicate } from '../../pages/AddressBook/validation/locationDuplicateValidation';
+import { checkLocationDuplicate, DUPLICATE_LOCATION_KEY, DUPLICATE_LOCATION_MESSAGE } from '../../pages/AddressBook/validation/locationDuplicateValidation';
 import {
-  DUPLICATE_LOCATION_MESSAGE,
-  locationEditValidationSchema,
+  getLocationEditValidationSchema,
   type LocationFormValues,
 } from '../../pages/AddressBook/validation/locationFormSchema';
 import {
@@ -52,12 +51,6 @@ function mapServerErrors(fieldErrors: Record<string, string[]>): Partial<Record<
   return mapped;
 }
 
-const ROLE_OPTIONS = [
-  { value: 'both', label: 'Both (Pickup & Drop-off)' },
-  { value: 'pickup', label: 'Pickup only' },
-  { value: 'delivery', label: 'Drop-off only' },
-];
-
 export const EditLocationModal: React.FC<Props> = ({
   editData,
   isEditOpen,
@@ -70,6 +63,14 @@ export const EditLocationModal: React.FC<Props> = ({
   const [stepErrors, setStepErrors] = useState<EditStepErrors>({});
   const [selectedTemplate, setSelectedTemplate] = useState('');
   const modalRef = useRef<HTMLFormElement>(null);
+
+  const roleOptions = [
+    { value: 'both', label: t('abRoleBoth', 'Both (Pickup & Drop-off)') },
+    { value: 'pickup', label: t('abRolePickupOnly', 'Pickup only') },
+    { value: 'delivery', label: t('abRoleDropoffOnly', 'Drop-off only') },
+  ];
+
+  const validationSchema = React.useMemo(() => getLocationEditValidationSchema(t), [t]);
 
   const scrollToStepError = () => {
     window.setTimeout(() => {
@@ -99,7 +100,7 @@ export const EditLocationModal: React.FC<Props> = ({
 
   const facilityOptions = getQuickTemplateFacilityOptions(t);
 
-  const dockOptions = DOCK_TYPES.map((dock) => ({ value: dock, label: dock }));
+  const dockOptions = getDockTypeOptions(t);
 
   const handleSubmit = async (
     values: LocationFormValues,
@@ -115,10 +116,12 @@ export const EditLocationModal: React.FC<Props> = ({
         if (err.fieldErrors) {
           helpers.setErrors(mapServerErrors(err.fieldErrors));
         } else if (/already exist/i.test(err.message)) {
-          helpers.setFieldError('name', DUPLICATE_LOCATION_MESSAGE);
+          helpers.setFieldError('name', t(DUPLICATE_LOCATION_KEY, DUPLICATE_LOCATION_MESSAGE));
         }
       } else {
-        helpers.setStatus('Failed to save location. Please check the form and try again.');
+        helpers.setStatus(
+          t('abFailedSaveLocation', 'Failed to save location. Please check the form and try again.')
+        );
       }
     } finally {
       helpers.setSubmitting(false);
@@ -128,7 +131,7 @@ export const EditLocationModal: React.FC<Props> = ({
   return (
     <Formik
       initialValues={locationToFormValues(editData)}
-      validationSchema={locationEditValidationSchema}
+      validationSchema={validationSchema}
       enableReinitialize
       validateOnBlur
       validateOnChange={false}
@@ -156,7 +159,7 @@ export const EditLocationModal: React.FC<Props> = ({
         const clearStepErrors = () => setStepErrors({});
 
         const goNext = async (to: number) => {
-          const validationErrors = await validateEditStep(editStep, values);
+          const validationErrors = await validateEditStep(editStep, values, t);
           if (Object.keys(validationErrors).length > 0) {
             setStepErrors(validationErrors);
             scrollToStepError();
@@ -173,12 +176,14 @@ export const EditLocationModal: React.FC<Props> = ({
                   editData.id
                 );
                 if (isDuplicate) {
-                  setStepErrors({ name: DUPLICATE_LOCATION_MESSAGE });
+                  setStepErrors({ name: t(DUPLICATE_LOCATION_KEY, DUPLICATE_LOCATION_MESSAGE) });
                   scrollToStepError();
                   return;
                 }
               } catch {
-                setStepErrors({ name: 'Could not verify location name. Please try again.' });
+                setStepErrors({
+                  name: t('abVerifyNameFailed', 'Could not verify location name. Please try again.'),
+                });
                 scrollToStepError();
                 return;
               }
@@ -215,7 +220,7 @@ export const EditLocationModal: React.FC<Props> = ({
         };
 
         const roleLabel =
-          ROLE_OPTIONS.find((r) => r.value === values.role)?.label ?? values.role ?? '—';
+          roleOptions.find((r) => r.value === values.role)?.label ?? values.role ?? '—';
 
         const locationAddress =
           [values.address, values.city, values.postalCode, values.region].filter(Boolean).join(', ') ||
@@ -227,7 +232,7 @@ export const EditLocationModal: React.FC<Props> = ({
             : '—';
 
         const loadTimeStr = String(values.loadTime ?? '').trim();
-        const loadTimeLabel = loadTimeStr ? `${loadTimeStr} min` : '—';
+        const loadTimeLabel = loadTimeStr ? t('abMinSuffix', '{{n}} min', { n: loadTimeStr }) : '—';
 
         const contextLabel =
           locationContext === 'customer' ? t('abCustomerLocation') : t('abMyCompany');
@@ -238,7 +243,9 @@ export const EditLocationModal: React.FC<Props> = ({
                 {
                   value: values.companyVat || values.company,
                   label: values.company || values.companyVat,
-                  sublabel: values.companyVat ? `VAT: ${values.companyVat}` : undefined,
+                  sublabel: values.companyVat
+                    ? t('abVatPrefix', 'VAT: {{vat}}', { vat: values.companyVat })
+                    : undefined,
                 },
               ]
             : [];
@@ -283,7 +290,7 @@ export const EditLocationModal: React.FC<Props> = ({
               <SearchableSelect
                 value={values.type}
                 options={facilityOptions}
-                placeholder="— Select —"
+                placeholder={t('abSelectPlaceholder', '— Select —')}
                 hasError={showError('type')}
                 onChange={(val) => {
                   const template = inferQuickTemplateFromType(val);
@@ -327,7 +334,7 @@ export const EditLocationModal: React.FC<Props> = ({
           <>
             <div className={fieldClass(showError('name'))}>
               <label htmlFor="edit-name">
-                Location Name <span className="req">*</span>
+                {t('abLocationName', 'Location Name')} <span className="req">*</span>
               </label>
               <input
                 id="edit-name"
@@ -379,7 +386,7 @@ export const EditLocationModal: React.FC<Props> = ({
             <div className="mf-grid">
               <div className={fieldClass(showError('city'))}>
                 <label htmlFor="edit-city">
-                  City <span className="req">*</span>
+                  {t('abCity', 'City')} <span className="req">*</span>
                 </label>
                 <input
                   id="edit-city"
@@ -395,7 +402,7 @@ export const EditLocationModal: React.FC<Props> = ({
                 <FormFieldError message={errorMessage('city')} />
               </div>
               <div className={fieldClass(showError('postalCode'))}>
-                <label htmlFor="edit-postal">Postal Code</label>
+                <label htmlFor="edit-postal">{t('abPostalCode', 'Postal Code')}</label>
                 <input
                   id="edit-postal"
                   name="postalCode"
@@ -411,7 +418,7 @@ export const EditLocationModal: React.FC<Props> = ({
             <div className="mf-grid">
               <div className={fieldClass(showError('role'))}>
                 <label htmlFor="edit-role">
-                  Location Role <span className="req">*</span>
+                  {t('abLocationRole', 'Location Role')} <span className="req">*</span>
                 </label>
                 <select
                   id="edit-role"
@@ -423,7 +430,7 @@ export const EditLocationModal: React.FC<Props> = ({
                   }}
                   onBlur={handleBlur}
                 >
-                  {ROLE_OPTIONS.map((opt) => (
+                  {roleOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
                     </option>
@@ -432,7 +439,7 @@ export const EditLocationModal: React.FC<Props> = ({
                 <FormFieldError message={errorMessage('role')} />
               </div>
               <div className={fieldClass(showError('code'))}>
-                <label htmlFor="edit-code">Internal Location Code</label>
+                <label htmlFor="edit-code">{t('abInternalCode', 'Internal Location Code')}</label>
                 <input
                   id="edit-code"
                   name="code"
@@ -469,10 +476,10 @@ export const EditLocationModal: React.FC<Props> = ({
 
         const renderStep3 = () => (
           <>
-            <h4 className="ab-form-heading">Operational Profile</h4>
+            <h4 className="ab-form-heading">{t('abOperationalProfile', 'Operational Profile')}</h4>
             <div className="mf-row">
               <div className="mf">
-                <label>Appointment required</label>
+                <label>{t('abAppointmentRequired', 'Appointment required')}</label>
                 <ToggleField
                   label=""
                   value={values.appt ?? false}
@@ -488,12 +495,12 @@ export const EditLocationModal: React.FC<Props> = ({
               </div>
               <div className={fieldClass(showError('dock'))}>
                 <label>
-                  Dock Type <span className="req">*</span>
+                  {t('abDockType', 'Dock Type')} <span className="req">*</span>
                 </label>
                 <SearchableSelect
                   value={values.dock}
-                  options={[{ value: '', label: '— Select —' }, ...dockOptions]}
-                  placeholder="— Select —"
+                  options={[{ value: '', label: t('abSelectPlaceholder', '— Select —') }, ...dockOptions]}
+                  placeholder={t('abSelectPlaceholder', '— Select —')}
                   hasError={showError('dock')}
                   onChange={(val) => {
                     setFieldValue('dock', val);
@@ -508,7 +515,7 @@ export const EditLocationModal: React.FC<Props> = ({
             {values.appt && (
               <div className={`mf ab-preferred-times${showError('timeRanges') ? ' has-error' : ''}`}>
                 <label className="ab-section-label">
-                  Pickup/Dropoff Preferred Times <span className="req">*</span>
+                  {t('abPreferredTimes', 'Pickup/Dropoff Preferred Times')} <span className="req">*</span>
                 </label>
                 <TimeRangeFormList
                   timeRanges={values.timeRanges ?? []}
@@ -534,7 +541,7 @@ export const EditLocationModal: React.FC<Props> = ({
                   id="edit-max-truck"
                   name="maxTruck"
                   type="text"
-                  placeholder="e.g. 18.75m"
+                  placeholder={t('abEgMaxTruck', 'e.g. 18.75m')}
                   value={values.maxTruck}
                   onChange={(e) => {
                     handleChange(e);
@@ -550,7 +557,7 @@ export const EditLocationModal: React.FC<Props> = ({
                   id="edit-max-weight"
                   name="maxWeight"
                   type="text"
-                  placeholder="e.g. 40T"
+                  placeholder={t('abEgMaxWeight', 'e.g. 40T')}
                   value={values.maxWeight}
                   onChange={(e) => {
                     handleChange(e);
@@ -564,12 +571,12 @@ export const EditLocationModal: React.FC<Props> = ({
 
             <div className="mf-grid">
               <ToggleField
-                label="Pallet Exchange"
+                label={t('abPalletExchange', 'Pallet Exchange')}
                 value={values.palletExchange ?? false}
                 onChange={(palletExchange) => setFieldValue('palletExchange', palletExchange)}
               />
               <ToggleField
-                label="ADR Allowed"
+                label={t('abAdrAllowed', 'ADR Allowed')}
                 value={values.adr ?? false}
                 onChange={(adr) => setFieldValue('adr', adr)}
               />
@@ -577,14 +584,14 @@ export const EditLocationModal: React.FC<Props> = ({
 
             <div className={fieldClass(showError('loadTime'))}>
               <label htmlFor="edit-load-time">
-                Est. Loading/Unloading Time (min) <span className="req">*</span>
+                {t('abEstLoadTime', 'Est. Loading/Unloading Time (min)')} <span className="req">*</span>
               </label>
               <input
                 id="edit-load-time"
                 name="loadTime"
                 type="number"
                 min={1}
-                placeholder="e.g. 45"
+                placeholder={t('abEgLoadTime', 'e.g. 45')}
                 value={values.loadTime}
                 onChange={(e) => {
                   setFieldValue('loadTime', e.target.value);
@@ -595,24 +602,24 @@ export const EditLocationModal: React.FC<Props> = ({
               <FormFieldError message={errorMessage('loadTime')} />
             </div>
 
-            <h4 className="ab-form-section-title">Notes</h4>
+            <h4 className="ab-form-section-title">{t('abNotes', 'Notes')}</h4>
             <div className="mf">
-              <label htmlFor="edit-note-internal">Internal Note</label>
+              <label htmlFor="edit-note-internal">{t('abInternalNote', 'Internal Note')}</label>
               <textarea
                 id="edit-note-internal"
                 name="noteInternal"
-                placeholder="Visible only to your team…"
+                placeholder={t('abInternalNotePlaceholder', 'Visible only to your team…')}
                 value={values.noteInternal}
                 onChange={handleChange}
                 onBlur={handleBlur}
               />
             </div>
             <div className="mf">
-              <label htmlFor="edit-note-carrier">Carrier-Visible Note</label>
+              <label htmlFor="edit-note-carrier">{t('abCarrierNote', 'Carrier-Visible Note')}</label>
               <textarea
                 id="edit-note-carrier"
                 name="noteCarrier"
-                placeholder="Drivers/carriers will see this…"
+                placeholder={t('abCarrierNotePlaceholder', 'Drivers/carriers will see this…')}
                 value={values.noteCarrier}
                 onChange={handleChange}
                 onBlur={handleBlur}
@@ -643,7 +650,9 @@ export const EditLocationModal: React.FC<Props> = ({
                   <div className="review-label">{t('abCompanyEntity')}</div>
                   <div className="review-val">{reviewValue(values.company)}</div>
                   {values.companyVat ? (
-                    <div className="review-sub">{`VAT: ${values.companyVat}`}</div>
+                    <div className="review-sub">
+                      {t('abVatPrefix', 'VAT: {{vat}}', { vat: values.companyVat })}
+                    </div>
                   ) : null}
                 </div>
               )}
@@ -694,27 +703,27 @@ export const EditLocationModal: React.FC<Props> = ({
 
               <div className="review-row-grid">
                 <div className="review-row">
-                  <div className="review-label">ADR Allowed</div>
-                  <div className="review-val">{values.adr ? 'Yes' : 'No'}</div>
+                  <div className="review-label">{t('abAdrAllowed', 'ADR Allowed')}</div>
+                  <div className="review-val">{values.adr ? t('abYes') : t('abNo')}</div>
                 </div>
                 <div className="review-row">
-                  <div className="review-label">Pallet Exchange</div>
-                  <div className="review-val">{values.palletExchange ? 'Yes' : 'No'}</div>
+                  <div className="review-label">{t('abPalletExchange', 'Pallet Exchange')}</div>
+                  <div className="review-val">{values.palletExchange ? t('abYes') : t('abNo')}</div>
                 </div>
               </div>
 
               <div className="review-row">
-                <div className="review-label">Est. Loading/Unloading Time</div>
+                <div className="review-label">{t('abEstLoadTimeShort', 'Est. Loading/Unloading Time')}</div>
                 <div className="review-val">{loadTimeLabel}</div>
               </div>
 
               <div className="review-row">
-                <div className="review-label">Internal Note</div>
+                <div className="review-label">{t('abInternalNote', 'Internal Note')}</div>
                 <div className="review-val review-val-left">{reviewValue(values.noteInternal)}</div>
               </div>
 
               <div className="review-row">
-                <div className="review-label">Carrier-Visible Note</div>
+                <div className="review-label">{t('abCarrierNote', 'Carrier-Visible Note')}</div>
                 <div className="review-val review-val-left">{reviewValue(values.noteCarrier)}</div>
               </div>
             </div>
@@ -722,7 +731,7 @@ export const EditLocationModal: React.FC<Props> = ({
         );
 
         const handleSave = async () => {
-          const validationErrors = await validateEditStep(3, values);
+          const validationErrors = await validateEditStep(3, values, t);
           if (Object.keys(validationErrors).length > 0) {
             setStepErrors(validationErrors);
             setEditStep(3);
@@ -739,10 +748,10 @@ export const EditLocationModal: React.FC<Props> = ({
             return (
               <>
                 <button type="button" className="btn btn-secondary" onClick={closeEditModal}>
-                  Cancel
+                  {t('abCancel', 'Cancel')}
                 </button>
                 <button type="button" className="btn btn-primary" onClick={() => goNext(2)}>
-                  Next →
+                  {t('abNext', 'Next →')}
                 </button>
               </>
             );
@@ -751,14 +760,14 @@ export const EditLocationModal: React.FC<Props> = ({
             return (
               <>
                 <button type="button" className="btn btn-secondary ab-review-back" onClick={() => setEditStep(1)}>
-                  ← Back
+                  {t('abBack', '← Back')}
                 </button>
                 <div className="ab-review-footer-actions">
                   <button type="button" className="btn btn-secondary" onClick={closeEditModal}>
-                    Cancel
+                    {t('abCancel', 'Cancel')}
                   </button>
                   <button type="button" className="btn btn-primary" onClick={() => goNext(3)}>
-                    Next →
+                    {t('abNext', 'Next →')}
                   </button>
                 </div>
               </>
@@ -768,14 +777,14 @@ export const EditLocationModal: React.FC<Props> = ({
             return (
               <>
                 <button type="button" className="btn btn-secondary ab-review-back" onClick={() => setEditStep(2)}>
-                  ← Back
+                  {t('abBack', '← Back')}
                 </button>
                 <div className="ab-review-footer-actions">
                   <button type="button" className="btn btn-secondary" onClick={closeEditModal}>
-                    Cancel
+                    {t('abCancel', 'Cancel')}
                   </button>
                   <button type="button" className="btn btn-primary" onClick={() => goNext(4)}>
-                    Next →
+                    {t('abNext', 'Next →')}
                   </button>
                 </div>
               </>
@@ -784,11 +793,11 @@ export const EditLocationModal: React.FC<Props> = ({
           return (
             <>
               <button type="button" className="btn btn-secondary ab-review-back" onClick={() => setEditStep(3)}>
-                ← Back
+                {t('abBack', '← Back')}
               </button>
               <div className="ab-review-footer-actions">
                 <button type="button" className="btn btn-secondary" onClick={closeEditModal}>
-                  Cancel
+                  {t('abCancel', 'Cancel')}
                 </button>
                 <button
                   type="button"
@@ -796,7 +805,9 @@ export const EditLocationModal: React.FC<Props> = ({
                   disabled={saving || isSubmitting}
                   onClick={handleSave}
                 >
-                  {saving || isSubmitting ? 'Saving…' : 'Save Changes'}
+                  {saving || isSubmitting
+                    ? t('saving', 'Saving…')
+                    : t('saveChanges', 'Save Changes')}
                 </button>
               </div>
             </>
@@ -808,7 +819,7 @@ export const EditLocationModal: React.FC<Props> = ({
             <Form ref={modalRef} className="modal modal-form" noValidate onClick={(e) => e.stopPropagation()}>
               <ScrollToFormError modalBodySelector=".ab-modal-body" />
               <div className="modal-header ab-modal-header-sticky">
-                <h2>Edit Location — {editData.name}</h2>
+                <h2>{t('abEditLocationTitle', 'Edit Location — {{name}}', { name: editData.name })}</h2>
                 <button type="button" className="btn btn-ghost btn-icon btn-sm" onClick={closeEditModal}>
                   ✕
                 </button>

@@ -16,7 +16,9 @@ export const ContextualTutorialTrigger: React.FC<ContextualTutorialTriggerProps>
   className,
 }) => {
   const ctx = useContextualTutorial(tutorialKey);
-  const label = ctx.t('tutorials.contextual.watchTutorial');
+  const label = ctx.comingSoon
+    ? ctx.t('tutorials.comingSoonBadge')
+    : ctx.t('tutorials.contextual.watchTutorial');
 
   return (
     <>

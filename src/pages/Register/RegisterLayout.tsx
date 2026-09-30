@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import fullLogo from '../../assets/logo/fullLogo.svg';
 import { useApp } from '../../context/AppContext';
+import { useTranslation } from '../../hooks/useTranslation';
 import { signupVideoUrl } from './registerConstants';
 import './RegisterPage.css';
 
@@ -28,6 +29,7 @@ export const RegisterLayout: React.FC<Props> = ({
   onLogoClick,
 }) => {
   const { toast, hideToast } = useApp();
+  const { t } = useTranslation();
   const resolvedVideo = videoSrc || signupVideoUrl(variant);
 
   return (
@@ -35,7 +37,7 @@ export const RegisterLayout: React.FC<Props> = ({
       {toast.show ? (
         <div className={`reg-toast reg-toast--${toast.type}`} role="status">
           <span>{toast.message}</span>
-          <button type="button" onClick={hideToast} aria-label="Close">
+          <button type="button" onClick={hideToast} aria-label={t('Register.close', 'Close')}>
             ×
           </button>
         </div>
@@ -44,7 +46,7 @@ export const RegisterLayout: React.FC<Props> = ({
         <div className="reg-form-col">
           <div className="reg-form-inner">
             <div className="reg-card-body">
-              <label className="reg-lang-switch" title="Language">
+              <label className="reg-lang-switch" title={t('Register.language', 'Language')}>
                 <input
                   type="checkbox"
                   checked={lang !== 'el'}

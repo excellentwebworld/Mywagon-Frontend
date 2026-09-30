@@ -58,7 +58,11 @@ interface ShipmentTableProps {
   onRemoveInvitee: (s: Shipment, inviteeId: number) => void;
   onInviteMore: (s: Shipment) => void;
   onEditBlocked?: () => void;
-  t: (key: string, opts?: Record<string, unknown>) => string;
+  t: (
+    key: string,
+    fallbackOrOptions?: string | Record<string, unknown>,
+    options?: Record<string, unknown>,
+  ) => string;
 }
 
 function LaneCell({
@@ -66,7 +70,11 @@ function LaneCell({
   t,
 }: {
   shipment: Shipment;
-  t: (key: string, opts?: Record<string, unknown>) => string;
+  t: (
+    key: string,
+    fallbackOrOptions?: string | Record<string, unknown>,
+    options?: Record<string, unknown>,
+  ) => string;
 }) {
   const pickLabel = s.pickDt || '';
   const delLabel = s.delDt || '';
@@ -95,7 +103,11 @@ function BidsCell({
   t,
 }: {
   shipment: Shipment;
-  t: (key: string, opts?: Record<string, unknown>) => string;
+  t: (
+    key: string,
+    fallbackOrOptions?: string | Record<string, unknown>,
+    options?: Record<string, unknown>,
+  ) => string;
 }) {
   if (s.status === 'draft') {
     return <span className="sub">—</span>;

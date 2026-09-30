@@ -41,7 +41,7 @@ export const JumpNav: React.FC<JumpNavProps> = ({
     <div
       className="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1 select-none scrollbar-thin scrollbar-thumb-gray-200"
       role="navigation"
-      aria-label="Page sections"
+      aria-label={t('pageSections', 'Page sections')}
     >
       {visibleTabs.map((tab) => {
         const isAct = active === tab.id;

@@ -5,7 +5,7 @@
  */
 
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import {
   Search, Download, X, ChevronDown, ChevronUp,
   MoreHorizontal, Edit3, ShieldCheck,
@@ -23,9 +23,10 @@ import PaginationBar from '../../../components/ui/PaginationBar';
 import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 import InviteUserModal from './modals/InviteUserModal';
 import {
-  USER_STATUS_CONFIG, getUserInitials, getUserFullName, getUserAvatarColor,
+  USER_STATUS_CONFIG, getUserFullName,
   getInviteStatus,
 } from '../../../mocks/userMgmtData';
+import UserAvatar from './UserAvatar';
 import { canManageShipperUsers, hasCustomDirectPermissions, SHIPPER_ROLES } from '../../../utils/shipperAccessPresets';
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
 import { ApiError } from '../../../api/client';
@@ -157,11 +158,7 @@ export default function UsersTab() {
       (seats && seats.can_invite === false) ||
       (dispatcherRemaining !== null && dispatcherRemaining <= 0)
     ) {
-      openUpgradeGate({
-        title: t('satUpgradeTitle', { defaultValue: 'Upgrade' }),
-        body: t('userMgmt.seats.atLimitHint'),
-        upgradeUrl: '/subscription',
-      });
+      openUpgradeGate({ variant: 'limit' });
       return;
     }
     setModalUser(null);
@@ -201,21 +198,11 @@ export default function UsersTab() {
         try {
           const updated = await usersSettingsService.deactivate(u.id);
           updateUser(updated);
+          await refresh();
           toast.success(t('userMgmt.toast.deactivated', { name: getUserFullName(u) }));
         } catch (e) {
           toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Action failed' }));
         }
-        setConfirmDialog(null);
-      },
-    });
-  };
-  const handleDeletePermanently = (u) => {
-    setConfirmDialog({
-      title: t('userMgmt.confirm.deleteTitle'),
-      message: t('userMgmt.confirm.deleteMsg', { name: getUserFullName(u) }),
-      variant: 'danger',
-      onConfirm: () => {
-        toast.info(t('userMgmt.toast.deleteNotAvailable', { defaultValue: 'Permanent delete is not available yet. Deactivate the user instead.' }));
         setConfirmDialog(null);
       },
     });
@@ -232,6 +219,7 @@ export default function UsersTab() {
         try {
           const updated = await usersSettingsService.deactivate(u.id);
           updateUser(updated);
+          await refresh();
           toast.success(t('userMgmt.toast.inviteCancelled'));
         } catch (e) {
           toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Action failed' }));
@@ -296,7 +284,7 @@ export default function UsersTab() {
 
     setExporting(true);
     try {
-      const header = ['first_name', 'last_name', 'email', 'role', 'status', 'last_active', 'created', 'phone', 'job_title'];
+      const header = ['first_name', 'last_name', 'email', 'role', 'status', 'last_active', 'created', 'phone'];
       const rows = filtered.map((u) => [
         u.firstName || u.first_name || '',
         u.lastName || u.last_name || '',
@@ -306,9 +294,10 @@ export default function UsersTab() {
         u.lastActive || u.last_active
           ? (formatIsoDisplayDateTime(u.lastActive || u.last_active) || '')
           : '',
-        u.created || u.created_at || '',
+        u.created || u.created_at || u.createdAt
+          ? (formatIsoDisplayDateTime(u.created || u.created_at || u.createdAt) || '')
+          : '',
         u.phone || '',
-        u.jobTitle || u.job_title || '',
       ]);
       const csv = `\uFEFF${header.join(',')}\n${rows.map((row) => row.map(escapeCsvCell).join(',')).join('\n')}`;
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -379,7 +368,7 @@ export default function UsersTab() {
           </button>
           {showStatusFilter && (
             <div className="absolute top-full left-0 mt-1 rounded-xl shadow-xl overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}`, zIndex: 50, minWidth: 180 }}>
-              {['active', 'invited', 'suspended', 'deactivated'].map((s) => {
+              {['active', 'invited', 'deactivated'].map((s) => {
                 const sc = USER_STATUS_CONFIG[s];
                 return (
                   <label key={s} className="flex items-center gap-2 px-3 py-2 cursor-pointer" style={{ fontSize: 12, color: T.t1 }}>
@@ -481,7 +470,6 @@ export default function UsersTab() {
                 }}
                 onReactivate={() => handleReactivate(u)}
                 onDeactivate={() => { handleDeactivate(u); setActionMenu(null); }}
-                onDelete={() => { handleDeletePermanently(u); setActionMenu(null); }}
                 onCancelInvite={() => { handleCancelInvite(u); setActionMenu(null); }}
                 onForceSignout={() => { handleForceSignOut(u); setActionMenu(null); }}
                 relTime={relTime}
@@ -584,7 +572,7 @@ function UsersTableSkeleton({ T, rows = 6 }) {
 function UserRow({
   user: u, T, t, onEdit, rolesByKey, canManageUsers = true,
   actionMenu, onActionMenuToggle,
-  onReactivate, onDeactivate, onDelete,
+  onReactivate, onDeactivate,
   onCancelInvite, onForceSignout,
   relTime, formatDateTime, formatDate, actionMenuRef,
 }) {
@@ -624,14 +612,11 @@ function UserRow({
     <tr style={{ borderBottom: `1px solid ${T.bd}` }}>
       <td className="px-3 py-3">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold shrink-0"
-            style={{ background: getUserAvatarColor(u.id), fontSize: 12 }}>
-            {getUserInitials(u)}
-          </div>
+          <UserAvatar user={u} size={36} fontSize={12} />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{getUserFullName(u)}</span>
-              {isOwner && <span title="Owner" style={{ fontSize: 13 }}>👑</span>}
+              {isOwner && <span title={t('Settings.owner', 'Owner')} style={{ fontSize: 13 }}>👑</span>}
             </div>
             <div style={{ fontSize: 11, color: T.t3 }}>{u.email}</div>
           </div>
@@ -657,7 +642,16 @@ function UserRow({
       </td>
       <td className="px-3 py-3" style={{ fontSize: 12, color: T.t3 }}>
         {status === 'invited' ? (
-          <span style={{ color: '#F59E0B' }}>{t('userMgmt.invite.sentAgo', { time: relTime(u.inviteSentAt) })}</span>
+          (() => {
+            const sentAt = u.inviteSentAt || u.invite_sent_at || u.created || u.created_at;
+            return (
+              <span style={{ color: '#F59E0B' }}>
+                {sentAt
+                  ? t('userMgmt.invite.sentAgo', { time: relTime(sentAt) })
+                  : t('userMgmt.invite.sent', { defaultValue: 'Sent' })}
+              </span>
+            );
+          })()
         ) : formatDateTime(u.lastActive || u.last_active)}
       </td>
       <td className="px-3 py-3" style={{ fontSize: 12, color: T.t3 }}>{formatDate(u.created || u.created_at)}</td>
@@ -709,18 +703,9 @@ function UserRow({
             {status === 'invited' && (
               <ActionItem icon={XCircle} label={t('userMgmt.actions.cancelInvite')} onClick={onCancelInvite} T={T} danger />
             )}
-            {status === 'suspended' && (
-              <>
-                <ActionItem icon={Edit3} label={t('userMgmt.actions.edit')} onClick={onEdit} T={T} />
-                <ActionItem icon={RotateCcw} label={t('userMgmt.actions.reactivate')} onClick={onReactivate} T={T} />
-                <ActionItem icon={XCircle} label={t('userMgmt.actions.deactivate')} onClick={onDeactivate} T={T} danger />
-              </>
-            )}
+
             {status === 'deactivated' && (
-              <>
-                <ActionItem icon={RotateCcw} label={t('userMgmt.actions.reactivate')} onClick={onReactivate} T={T} />
-                <ActionItem icon={Trash2} label={t('userMgmt.actions.deletePerm')} onClick={onDelete} T={T} danger />
-              </>
+              <ActionItem icon={RotateCcw} label={t('userMgmt.actions.reactivate')} onClick={onReactivate} T={T} />
             )}
           </div>,
           document.body,
@@ -747,17 +732,22 @@ function ActionItem({ icon: Icon, label, onClick, T, danger }) {
   );
 }
 
-function MobileUserCard({ user: u, T, t, onClick, formatDateTime }) {
+function MobileUserCard({ user: u, T, t, onClick, formatDateTime, relTime }) {
   const role = ROLES_BY_KEY[u.role];
   const sc = USER_STATUS_CONFIG[u.status] || USER_STATUS_CONFIG.active;
+  const status = String(u.status || 'active').toLowerCase();
+  const sentAt = u.inviteSentAt || u.invite_sent_at || u.created || u.created_at;
+  const lastActiveLabel = status === 'invited'
+    ? (sentAt
+      ? t('userMgmt.invite.sentAgo', { time: relTime(sentAt) })
+      : t('userMgmt.invite.sent', { defaultValue: 'Sent' }))
+    : formatDateTime(u.lastActive || u.last_active);
+
   return (
     <button type="button" onClick={onClick} className="w-full p-3 rounded-xl cursor-pointer border-none text-left"
       style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shrink-0"
-          style={{ background: getUserAvatarColor(u.id), fontSize: 13 }}>
-          {getUserInitials(u)}
-        </div>
+        <UserAvatar user={u} size={40} fontSize={13} />
         <div className="flex-1 min-w-0">
           <div style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{getUserFullName(u)}</div>
           <div style={{ fontSize: 11, color: T.t3 }}>{u.email}</div>
@@ -771,8 +761,8 @@ function MobileUserCard({ user: u, T, t, onClick, formatDateTime }) {
           </span>
         </div>
       </div>
-      <div className="mt-2" style={{ fontSize: 10, color: T.t3 }}>
-        {t('userMgmt.table.col_lastActive')}: {formatDateTime(u.lastActive || u.last_active)}
+      <div className="mt-2" style={{ fontSize: 10, color: status === 'invited' ? '#F59E0B' : T.t3 }}>
+        {t('userMgmt.table.col_lastActive')}: {lastActiveLabel}
       </div>
     </button>
   );

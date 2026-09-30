@@ -67,6 +67,7 @@ import type { ErpOrderFormState } from "../../pages/ErpOrders/types";
 import type { ApiErpOrderCustomer } from "../../api/types/erpOrders";
 import {
   checkLocationDuplicate,
+  DUPLICATE_LOCATION_KEY,
   DUPLICATE_LOCATION_MESSAGE,
 } from "../../pages/AddressBook/validation/locationDuplicateValidation";
 import { validateCreateAll } from "../../pages/AddressBook/validation/locationCreateValidation";
@@ -507,17 +508,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const addStop = useCallback(() => {
     if (stopsRef.current.length >= 2 && !can('allow_multiple_stops')) {
-      openUpgradeGate({
-        title: t('satUpgradeTitle'),
-        body:
-          t('multiStopUpgradeBody') ||
-          'Multi-stop shipments require a plan upgrade or the multi-stop add-on.',
-        upgradeUrl: '/subscription',
-      });
+      openUpgradeGate();
       return;
     }
     setStops((prev) => [...prev, createNewStop(true)]);
-  }, [can, openUpgradeGate, setStops, t]);
+  }, [can, openUpgradeGate, setStops]);
 
   const delStop = useCallback(
     (sid: string) => {
@@ -1053,8 +1048,19 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           companyVat: created.vat_number || "",
           companyEntityId: created.id,
         }));
+        setErpCompanies((prev) =>
+          prev.some((c) => Number(c.id) === Number(created.id))
+            ? prev
+            : [created, ...prev],
+        );
+        setErpOrderForm((f) => ({
+          ...f,
+          companyEntityId: created.id,
+          customerName: created.name,
+        }));
+        setCompanyData(EMPTY_COMPANY_DATA);
         setIsCompanyOpen(false);
-        syncCustomerDropdownCaches(queryClient);
+        syncCustomerDropdownCaches(queryClient, { customer: created });
         showToast(
           t("erpOrdersCompanyCreated") || "Company created successfully.",
           "success",
@@ -1088,10 +1094,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       tags: "",
     };
 
-    const errors = validateCreateAll(payload);
+    const errors = validateCreateAll(payload, t);
     if (Object.keys(errors).length > 0) {
       const firstKey = Object.keys(errors)[0];
-      showToast(errors[firstKey] ?? "Please fix validation errors", "error");
+      showToast(
+        errors[firstKey] ?? t("abValFixErrors", "Please fix validation errors"),
+        "error",
+      );
       if (firstKey === "companyEntity" || firstKey === "type") setCreateStep(1);
       else if (["name", "address", "city", "postal", "role"].includes(firstKey))
         setCreateStep(2);
@@ -1106,7 +1115,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         payload.company,
       );
       if (isDuplicate) {
-        showToast(DUPLICATE_LOCATION_MESSAGE, "error");
+        showToast(
+          t(DUPLICATE_LOCATION_KEY, DUPLICATE_LOCATION_MESSAGE),
+          "error",
+        );
         setCreateStep(4);
         return;
       }
@@ -1530,13 +1542,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       if (!sku.stackable)
         ind.push({
           key: "frag",
-          label: "Fragile",
+          label: t("createShipment.fragile", "Fragile"),
           color: "#D97706",
           bg: "#FEF3C7",
         });
       return ind;
     },
-    [pmSkus],
+    [pmSkus, t],
   );
 
   // ═══ LOAD BALANCE + VALIDATION ═══
@@ -1709,9 +1721,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   }, [runContinue]);
 
   const handleSaveDraftClick = useCallback(async () => {
-    if (!requirePermission('draft_shipment', {
-      body: t('draftShipmentUpgradeBody') || 'Saving drafts requires a plan that includes draft shipments.',
-    })) {
+    if (!requirePermission('draft_shipment')) {
       return;
     }
     setShowAll(true);
@@ -1721,7 +1731,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     } catch {
       // Error toast handled by parent
     }
-  }, [requirePermission, runSaveDraft, setShowAll, t]);
+  }, [requirePermission, runSaveDraft, setShowAll]);
 
   const stopConflicts = useCallback(
     (idx: number) => {
@@ -1906,7 +1916,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         </div>
                       ) : (
                         <span className="text-sm" style={{ color: T.t3 }}>
-                          Empty Stop
+                          {t("createShipment.emptyStop", "Empty Stop")}
                         </span>
                       )}
                     </div>
@@ -1961,7 +1971,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         className="text-sm font-semibold"
                         style={{ color: T.t1 }}
                       >
-                        Stop {idx + 1}
+                        {t("createShipment.stopN", "Stop {{n}}", { n: idx + 1 })}
                       </span>
                       {getStopTags(stop).map((tg) => (
                         <span
@@ -2013,7 +2023,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           className="block text-[11px] font-semibold mb-1 uppercase tracking-wide"
                           style={{ color: T.t3 }}
                         >
-                          Location
+                          {t("location", "Location")}
                         </label>
                         <div
                           className="flex items-center gap-1"
@@ -2082,7 +2092,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                             className="block text-[11px] font-semibold mb-1 uppercase tracking-wide"
                             style={{ color: T.t3 }}
                           >
-                            From
+                            {t("from", "From")}
                           </label>
                           <div className="flex gap-1 items-center">
                             <DatePicker
@@ -2129,7 +2139,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                               className="text-[11px] font-semibold uppercase tracking-wide"
                               style={{ color: T.t3 }}
                             >
-                              To (Optional)
+                              {t("createShipment.toOptional", "To (Optional)")}
                             </label>
                           </div>
                           <div className="flex gap-1 items-center">
@@ -2247,7 +2257,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         style={{ background: "#1F1F41", fontFamily: "inherit" }}
                         onClick={() => handleStopDone(stop.id)}
                       >
-                        <Check size={14} /> Done
+                        <Check size={14} /> {t("done", "Done")}
                       </button>
                       <button
                         type="button"
@@ -2298,7 +2308,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
             style={{ color: T.ac }}
             onClick={addStop}
           >
-            Add Stop
+            {t("addStopLabel", "Add Stop")}
           </span>
         </div>
       </div>
@@ -2445,6 +2455,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           });
           setMLoc(true);
         }}
+        onAddCompany={() => {
+          setCompanyData(EMPTY_COMPANY_DATA);
+          setIsCompanyOpen(true);
+        }}
         onAddProduct={(index) => {
           setPCtx((p: any) => ({
             ...p,
@@ -2518,7 +2532,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         className="text-[10px] mt-0.5"
                         style={{ color: T.t3 }}
                       >
-                        Stop {c.stopIndex + 1}
+                        {t("createShipment.stopN", "Stop {{n}}", {
+                          n: c.stopIndex + 1,
+                        })}
                         {stops[c.stopIndex]?.locationName
                           ? ` — ${stops[c.stopIndex].locationName}`
                           : ""}
@@ -2879,7 +2895,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       headerAction={
                         ln.orderId
                           ? {
-                              label: `+ Create Product`,
+                              label: t('createProductPlus', '+ Create Product'),
                               onClick: () => onNewProd(ln.id),
                             }
                           : undefined
@@ -2946,7 +2962,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         }}
                         onClick={() => onSetField(ln.id, "action", "pickup")}
                       >
-                        Pick
+                        {t("createShipment.pick", "Pick")}
                       </button>
                       <button
                         type="button"
@@ -2959,7 +2975,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         }}
                         onClick={() => onSetField(ln.id, "action", "dropoff")}
                       >
-                        Drop
+                        {t("createShipment.drop", "Drop")}
                       </button>
                     </div>
                   </td>
@@ -3306,7 +3322,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                     }}
                     onClick={onAddLine}
                   >
-                    <Plus size={14} /> Add Line
+                    <Plus size={14} /> {t("createShipment.addLine", "Add Line")}
                   </button>
                   <div style={{ width: qfOpen ? 220 : "auto" }}>
                     {qfOpen ? (
@@ -3317,9 +3333,9 @@ const CargoTable: React.FC<CargoTableProps> = ({
                           setQfOpen(false);
                         }}
                         options={ordOpts}
-                        placeholder="Search ERP orders..."
+                        placeholder={t("createShipment.searchErpOrders", "Search ERP orders...")}
                         footerAction={{
-                          label: `+ Create Order`,
+                          label: t("createShipment.createOrderPlus", "+ Create Order"),
                           onClick: () => {
                             setQfOpen(false);
                             onQuickFillNew();
@@ -3338,7 +3354,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         }}
                         onClick={() => setQfOpen(true)}
                       >
-                        <FileText size={12} /> Quick Fill
+                        <FileText size={12} /> {t("createShipment.quickFill", "Quick Fill")}
                       </button>
                     )}
                   </div>
@@ -3439,7 +3455,7 @@ const OrderCell: React.FC<OrderCellProps> = ({
       placeholder="—"
       hasError={hasError}
       footerAction={{
-        label: `+ Create Order`,
+        label: t("createShipment.createOrderPlus", "+ Create Order"),
         onClick: onNewOrd,
       }}
       menuFixed={true}
@@ -3481,7 +3497,7 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
         onClick={() => hasData && setBalExp(!balExp)}
       >
         <span className="text-sm font-semibold" style={{ color: T.t1 }}>
-          Load Balance
+          {t("createShipment.loadBalance", "Load Balance")}
         </span>
         <div className="flex-1 mx-1">
           <div
@@ -3543,7 +3559,7 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
             className="text-[10px] font-bold px-1.5 py-0.5 rounded"
             style={{ background: "#D1FAE5", color: "#059669" }}
           >
-            ✓ Balanced
+            ✓ {t("createShipment.balanced", "Balanced")}
           </span>
         )}
         <ChevronDown
@@ -3564,12 +3580,12 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
                 style={{ color: "#1F1F41" }}
               >
                 <ArrowUp size={13} />
-                Total Pickup
+                {t("createShipment.totalPickup", "Total Pickup")}
               </div>
               <div className="text-lg font-bold" style={{ color: T.t1 }}>
                 {bal.pkU}{" "}
                 <span className="text-xs font-normal" style={{ color: T.t3 }}>
-                  units
+                  {t("createShipment.units", "units")}
                 </span>
               </div>
               <div className="text-sm font-semibold" style={{ color: T.t2 }}>
@@ -3582,12 +3598,12 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
                 style={{ color: "#000001" }}
               >
                 <ArrowDown size={13} />
-                Total Dropoff
+                {t("createShipment.totalDropoff", "Total Dropoff")}
               </div>
               <div className="text-lg font-bold" style={{ color: T.t1 }}>
                 {bal.doU}{" "}
                 <span className="text-xs font-normal" style={{ color: T.t3 }}>
-                  units
+                  {t("createShipment.units", "units")}
                 </span>
               </div>
               <div className="text-sm font-semibold" style={{ color: T.t2 }}>
@@ -3604,7 +3620,7 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
                 className="text-[10px] font-bold uppercase tracking-wider mb-2"
                 style={{ color: T.t3 }}
               >
-                Per Product
+                {t("createShipment.perProduct", "Per Product")}
               </div>
               {Object.entries(bal.byP).map(([nm, v]: [string, any]) => {
                 const label = nm.includes("||") ? nm.split("||")[0] : nm;
@@ -3680,17 +3696,28 @@ function getStopTags(stop: any) {
 function fmtStopBrief(s: any, t: any) {
   const parts = [];
   if (s.dateFrom) {
-    let str = `From ${formatDisplayDate(s.dateFrom)}`;
+    let str = t("createShipment.stopBriefFrom", "From {{date}}", {
+      date: formatDisplayDate(s.dateFrom),
+    });
     if (s.timeFrom) str += ` ${formatDisplayTime(s.timeFrom)}`;
     if (s.dateTo) {
-      str += ` To ${formatDisplayDate(s.dateTo)}`;
+      str += ` ${t("createShipment.stopBriefTo", "To {{date}}", {
+        date: formatDisplayDate(s.dateTo),
+      })}`;
       if (s.timeTo) str += ` ${formatDisplayTime(s.timeTo)}`;
     } else if (s.timeTo) {
-      str += ` To ${formatDisplayTime(s.timeTo)}`;
+      str += ` ${t("createShipment.stopBriefTo", "To {{date}}", {
+        date: formatDisplayTime(s.timeTo),
+      })}`;
     }
     parts.push(str);
   }
   const cargoCount = (s.lines || []).filter((l: any) => l.productId).length;
-  if (cargoCount) parts.push(`${cargoCount} lines`);
+  if (cargoCount)
+    parts.push(
+      t("createShipment.stopBriefLines", "{{count}} lines", {
+        count: cargoCount,
+      }),
+    );
   return parts.join(" · ");
 }

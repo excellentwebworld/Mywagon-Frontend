@@ -37,13 +37,13 @@ export function RequestContextChips() {
         : '—';
 
     return [
-      { label: 'USER', value: user.email || '—' },
-      { label: 'ORG', value: user.company || '—' },
-      { label: 'BROWSER', value: `${detectBrowser(ua)} / ${detectOs(ua)}` },
-      { label: 'TIME', value: time },
-      { label: 'TZ', value: tz },
+      { label: t('support.request.ctxUser', 'USER'), value: user.email || '—' },
+      { label: t('support.request.ctxOrg', 'ORG'), value: user.company || '—' },
+      { label: t('support.request.ctxBrowser', 'BROWSER'), value: `${detectBrowser(ua)} / ${detectOs(ua)}` },
+      { label: t('support.request.ctxTime', 'TIME'), value: time },
+      { label: t('support.request.ctxTz', 'TZ'), value: tz },
     ];
-  }, [lang, user.company, user.email]);
+  }, [lang, t, user.company, user.email]);
 
   return (
     <div className="form-group">

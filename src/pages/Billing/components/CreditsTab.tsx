@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Users } from 'lucide-react';
 import type { CreditNote } from '../types';
-import { formatDate } from '../mockData';
+import { formatDate, walletReasonLabel } from '../mockData';
 import { Money, MvButton, Tag } from '../../../components/ui/mv';
 import { BillingCreditsSkeleton, BillingTableSkeleton } from './BillingSkeleton';
 import { BillingPagination } from './BillingPagination';
@@ -119,7 +119,7 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
                         <Money value={Math.abs(cn.amt)} overdue={!isCredit} />
                       </strong>
                     </div>
-                    <div className="wv-wallet-card__reason">{cn.reason}</div>
+                    <div className="wv-wallet-card__reason">{walletReasonLabel(cn.reason, t)}</div>
                     {cn.applied ? (
                       <div className="wv-wallet-card__applied billing-mono">{cn.applied}</div>
                     ) : null}
@@ -162,7 +162,7 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
                           {isCredit ? '+' : '−'}
                           <Money value={Math.abs(cn.amt)} overdue={!isCredit} />
                         </td>
-                        <td className="text-xs text-gray-700">{cn.reason}</td>
+                        <td className="text-xs text-gray-700">{walletReasonLabel(cn.reason, t)}</td>
                         <td className="text-xs">
                           {cn.applied ? (
                             <span className="billing-mono text-purple-700 font-semibold">{cn.applied}</span>

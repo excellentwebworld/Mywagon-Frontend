@@ -51,15 +51,19 @@ export function socialProfileNextPath(user: ShipperUser | null | undefined): str
 }
 
 /**
- * Soft browse: incomplete social users may open the panel.
- * Operational actions use useRequireSignupComplete (modal → settings).
- * Kept for any remaining hard-path callers; returns true for all paths now.
+ * Incomplete social users may only browse the dashboard.
+ * Settings (and billing for past-due) stay allowed so “Complete Now” / profile
+ * KYC steps and payment recovery still work — no other feature pages.
  */
 export function isSignupCompleteAllowedPath(
-  _pathname: string,
+  pathname: string,
   _user?: ShipperUser | null,
 ): boolean {
-  return true;
+  const path = pathname.replace(/\/$/, '') || '/';
+  if (path === '/dashboard') return true;
+  if (path === '/settings' || path.startsWith('/settings/')) return true;
+  if (path === '/billing' || path.startsWith('/billing/')) return true;
+  return false;
 }
 
 /** @deprecated use socialProfileNextPath — kept for older call sites */

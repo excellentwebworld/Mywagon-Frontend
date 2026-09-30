@@ -37,6 +37,7 @@ import type {
 } from './types';
 import { PublicTrackingSkeleton } from './PublicTrackingSkeleton';
 import { useLiveDropoffEta } from './useLiveDropoffEta';
+import { useTranslation } from '../../hooks/useTranslation';
 import './publicTracking.css';
 
 type Lang = 'en' | 'el';
@@ -123,6 +124,20 @@ const I18N: Record<string, { en: string; el: string }> = {
   quantityMismatch: { en: 'Quantity mismatch', el: 'Διαφορά ποσότητας' },
   notAssigned: { en: 'Not assigned', el: 'Δεν έχει ανατεθεί' },
   transporterNotAssigned: { en: 'Transporter is not assigned yet', el: 'Δεν έχει ανατεθεί μεταφορέας ακόμη' },
+  tlCreated: { en: 'Created', el: 'Δημιουργία' },
+  waitingForBid: { en: 'Waiting for Bid', el: 'Αναμονή προσφοράς' },
+  privateShipmentAccepted: { en: 'Private Shipment Accepted', el: 'Ιδιωτική αποστολή αποδεκτή' },
+  publicShipmentAccepted: { en: 'Public Shipment Accepted', el: 'Δημόσια αποστολή αποδεκτή' },
+  shipmentAccepted: { en: 'Shipment Accepted', el: 'Αποστολή αποδεκτή' },
+  canceledShipment: { en: 'Canceled Shipment', el: 'Ακυρωμένη αποστολή' },
+  startTrip: { en: 'Start Trip', el: 'Έναρξη διαδρομής' },
+  arrival: { en: 'Arrival', el: 'Άφιξη' },
+  tripCompleted: { en: 'Trip Completed', el: 'Ολοκλήρωση διαδρομής' },
+  podUploaded: { en: 'POD Uploaded', el: 'POD Μεταφορτώθηκε' },
+  podUploadPending: { en: 'POD Upload Pending', el: 'Εκκρεμεί μεταφόρτωση POD' },
+  latestBidAt: { en: 'latest bid at', el: 'τελευταία προσφορά στις' },
+  tlPickup: { en: 'Pickup', el: 'Παραλαβή' },
+  tlDropoff: { en: 'Drop-off', el: 'Παράδοση' },
 };
 
 /** Visible live-driver pin (data URI) — clearer than the tiny Laravel SVG path. */
@@ -149,6 +164,59 @@ const PARTIAL_REASONS: Array<{ key: string; labelKey: string }> = [
 
 function t(lang: Lang, key: string): string {
   return I18N[key]?.[lang] ?? key;
+}
+
+/** Localize API timeline labels (backend may return EN or locale strings). */
+function timelineLabel(lang: Lang, step: TrackingTimelineItem): string {
+  const key = step.key || '';
+  const raw = step.label || '';
+  const company =
+    raw.includes(' - ') ? raw.split(' - ').slice(1).join(' - ').trim() : '';
+
+  if (key === 'created') return t(lang, 'tlCreated');
+  if (key === 'waiting_bid') return t(lang, 'waitingForBid');
+  if (key === 'canceled') return t(lang, 'canceledShipment');
+  if (key === 'start_trip' || key === 'start_trip_unable') return t(lang, 'startTrip');
+  if (key === 'trip_completed') return t(lang, 'tripCompleted');
+  if (key === 'accepted_private' || (key === 'accepted' && /private/i.test(raw))) {
+    return t(lang, 'privateShipmentAccepted');
+  }
+  if (key === 'accepted_public' || key === 'accepted') {
+    return /private/i.test(raw)
+      ? t(lang, 'privateShipmentAccepted')
+      : /public/i.test(raw) || key === 'accepted_public'
+        ? t(lang, 'publicShipmentAccepted')
+        : t(lang, 'shipmentAccepted');
+  }
+  if (key === 'transporter_freelancer' || (key === 'transporter' && /freelancer/i.test(raw))) {
+    return `${t(lang, 'freelancer')}:`;
+  }
+  if (key === 'transporter_carrier' || key === 'transporter') {
+    return `${t(lang, 'carrier')}:`;
+  }
+  if (key === 'pod_uploaded') return t(lang, 'podUploaded');
+  if (key === 'pod_pending') return t(lang, 'podUploadPending');
+  if (key === 'pod') {
+    return step.state === 'done' || /uploaded/i.test(raw)
+      ? t(lang, 'podUploaded')
+      : t(lang, 'podUploadPending');
+  }
+  if (key.startsWith('arrival')) {
+    return company ? `${t(lang, 'arrival')} - ${company}` : t(lang, 'arrival');
+  }
+  if (key.startsWith('complete')) {
+    const isPickup = key.includes('pickup') || /^pickup/i.test(raw);
+    const verbLabel = t(lang, isPickup ? 'tlPickup' : 'tlDropoff');
+    return company ? `${verbLabel} - ${company}` : verbLabel;
+  }
+
+  return raw;
+}
+
+function timelineDetail(lang: Lang, detail?: string | null): string | null {
+  if (!detail) return null;
+  if (/latest bid at/i.test(detail)) return t(lang, 'latestBidAt');
+  return detail;
 }
 
 function initials(name?: string | null): string {
@@ -196,7 +264,7 @@ function timelineDotClass(step: TrackingTimelineItem): string {
   } else if (step.state === 'cur') {
     classes.push('cur');
   } else if (step.state === 'done') {
-    classes.push('done', 'success');
+    classes.push('done');
   } else if (step.state === 'pending') {
     classes.push('pending');
   } else {
@@ -366,6 +434,10 @@ const TrackingLiveMap: React.FC<{
   livePosition: { lat: number; lng: number } | null;
   socketStatus?: 'idle' | 'connecting' | 'connected' | 'error';
 }> = ({ data, stops: passedStops, lang, livePosition, socketStatus = 'idle' }) => {
+  // Do NOT call i18n.changeLanguage here — AppContext syncs global locale and would
+  // fight this page's local EN/GR toggle (maximum update depth).
+  const { t: tr } = useTranslation();
+
   const [routeMode, setRouteMode] = useState<'suggested' | 'actual'>('suggested');
   const enrichedStops = useMemo(
     () => stopsToEnriched(passedStops || data.stops, data.map.points || []),
@@ -413,15 +485,15 @@ const TrackingLiveMap: React.FC<{
       return t(lang, 'noGpsShort');
     }
     if (socketStatus === 'connected') {
-      return lang === 'el' ? 'Ζωντανά συνδεδεμένο' : 'Live connected';
+      return tr('PublicTracking.live_connected', 'Live connected');
     }
     if (socketStatus === 'connecting') {
-      return lang === 'el' ? 'Σύνδεση…' : 'Connecting…';
+      return tr('PublicTracking.connecting', 'Connecting…');
     }
     if (socketStatus === 'error') {
-      return lang === 'el' ? 'Σφάλμα σύνδεσης' : 'Connection error';
+      return tr('PublicTracking.connection_error', 'Connection error');
     }
-    return lang === 'el' ? 'Αναμονή GPS' : 'Waiting for GPS';
+    return tr('PublicTracking.waiting_for_gps', 'Waiting for GPS');
   })();
 
   const liveStatusClass = (() => {
@@ -455,9 +527,7 @@ const TrackingLiveMap: React.FC<{
             {!liveBlocked && livePosition
               ? ` · ${livePosition.lat.toFixed(4)}, ${livePosition.lng.toFixed(4)}`
               : !liveBlocked && socketStatus === 'connected'
-                ? lang === 'el'
-                  ? ' · αναμονή θέσης…'
-                  : ' · waiting for position…'
+                ? ` · ${tr('PublicTracking.waiting_for_position', 'waiting for position…')}`
                 : ''}
           </div>
           {showToggle ? (
@@ -529,8 +599,10 @@ const TrackingLiveMap: React.FC<{
 };
 
 /** Match StopsCard OrderStatusIcon — purple ticks for completed stops. */
-const StopCompletedIcon: React.FC = () => (
-  <div className="pt-order-tick" title="Completed">
+const StopCompletedIcon: React.FC = () => {
+  const { t: tr } = useTranslation();
+  return (
+  <div className="pt-order-tick" title={tr('PublicTracking.completed', 'Completed')}>
     <svg
       xmlns="http://www.w3.org/2000/svg"
       width="18"
@@ -546,7 +618,8 @@ const StopCompletedIcon: React.FC = () => (
       <path d="M1 5.5L5.5 10L16 -1" opacity="0.6" />
     </svg>
   </div>
-);
+  );
+};
 
 const ItineraryStop: React.FC<{
   stop: TrackingStop;
@@ -746,7 +819,26 @@ const ItineraryStop: React.FC<{
 
 export const PublicTrackingPage: React.FC = () => {
   const { encryptedId, encryptedLocationIds, guestEmail: guestFromUrl } = usePublicTrackingTokens();
-  const [lang, setLang] = useState<Lang>('en');
+  const { t: tr } = useTranslation();
+  const [lang, setLangState] = useState<Lang>(() => {
+    try {
+      const stored = localStorage.getItem('shipment-lang');
+      return stored === 'el' || stored === 'en' ? stored : 'en';
+    } catch {
+      return 'en';
+    }
+  });
+
+  const setLang = useCallback((next: Lang) => {
+    setLangState(next);
+    try {
+      localStorage.setItem('shipment-lang', next);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  // Local EN/GR chrome only — API labels refetch with Accept-Language when lang changes.
   const [data, setData] = useState<PublicTrackingPayload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -926,13 +1018,17 @@ export const PublicTrackingPage: React.FC = () => {
         setError(t('en', 'notFound'));
         return;
       }
-      setLoading(true);
+      const softReload = Boolean(data);
+      if (!softReload) {
+        setLoading(true);
+      }
       setError(null);
       try {
         const payload = await publicTrackingService.getTracking(
           encryptedId,
           encryptedLocationIds,
-          guestFromUrl || undefined
+          guestFromUrl || undefined,
+          lang
         );
         if (cancelled) return;
         setData(payload);
@@ -955,7 +1051,8 @@ export const PublicTrackingPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [encryptedId, encryptedLocationIds, guestFromUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keep prior payload while soft-reloading on lang change
+  }, [encryptedId, encryptedLocationIds, guestFromUrl, lang]);
 
   // Live tracking socket (Laravel traking.js parity)
   useEffect(() => {
@@ -1204,21 +1301,26 @@ export const PublicTrackingPage: React.FC = () => {
     if (!data) return;
     setRcptSaving(true);
     try {
-      await publicTrackingService.confirmReceipt(encryptedId, encryptedLocationIds, {
-        confirmation_type: rcptType,
-        reason_code: rcptType === 'partial' ? rcptReason || undefined : undefined,
-        notes: rcptNotes || undefined,
-        guest_email: resolvedGuestEmail || undefined,
-        items: rcptItems.map((it) => ({
-          location_id: it.location_id,
-          order_id: it.order_id,
-          ordered_qty: it.ordered_qty,
-          received_qty: rcptType === 'full' ? it.ordered_qty : it.received_qty,
-        })),
-      });
+      await publicTrackingService.confirmReceipt(
+        encryptedId,
+        encryptedLocationIds,
+        {
+          confirmation_type: rcptType,
+          reason_code: rcptType === 'partial' ? rcptReason || undefined : undefined,
+          notes: rcptNotes || undefined,
+          guest_email: resolvedGuestEmail || undefined,
+          items: rcptItems.map((it) => ({
+            location_id: it.location_id,
+            order_id: it.order_id,
+            ordered_qty: it.ordered_qty,
+            received_qty: rcptType === 'full' ? it.ordered_qty : it.received_qty,
+          })),
+        },
+        lang
+      );
       setRcptDone(true);
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Error');
+      showToast(e instanceof Error ? e.message : tr('PublicTracking.error', 'Error'));
     } finally {
       setRcptSaving(false);
     }
@@ -1228,14 +1330,19 @@ export const PublicTrackingPage: React.FC = () => {
     if (!data || stars < 1) return;
     setRateSaving(true);
     try {
-      await publicTrackingService.submitRating(encryptedId, encryptedLocationIds, {
-        rating: stars,
-        review: review || undefined,
-        guest_email: resolvedGuestEmail || undefined,
-      });
+      await publicTrackingService.submitRating(
+        encryptedId,
+        encryptedLocationIds,
+        {
+          rating: stars,
+          review: review || undefined,
+          guest_email: resolvedGuestEmail || undefined,
+        },
+        lang
+      );
       setRateDone(true);
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Error');
+      showToast(e instanceof Error ? e.message : tr('PublicTracking.error', 'Error'));
     } finally {
       setRateSaving(false);
     }
@@ -1444,32 +1551,42 @@ export const PublicTrackingPage: React.FC = () => {
 
       <div className="pt-ms-bar">
         <div className="pt-ms-card">
-          <div className="pt-ms-row">
-            {timeline.map((step, idx) => {
-              const isLast = idx === timeline.length - 1;
-              const connectorClass = timelineConnectorClass(step, isLast, data.shipment.status);
-              return (
-                <div className={`pt-ms-step ${timelineStepClass(step)}`} key={`${step.key}-${idx}`}>
-                  <div className="pt-ms-track">
-                    <div className={`pt-ms-dot ${timelineDotClass(step)}`} />
-                    {!isLast || connectorClass === 'dashed' ? (
-                      <div className={`pt-ms-connector ${connectorClass}`} />
-                    ) : null}
+          <div className="pt-ms-scroll">
+            <div className="pt-ms-row">
+              {timeline.map((step, idx) => {
+                const isLast = idx === timeline.length - 1;
+                const connectorClass = timelineConnectorClass(step, isLast, data.shipment.status);
+                const detailText = timelineDetail(lang, step.detail);
+                return (
+                  <div className={`pt-ms-step ${timelineStepClass(step)}`} key={`${step.key}-${idx}`}>
+                    <div className="pt-ms-track">
+                      <div className={`pt-ms-dot ${timelineDotClass(step)}`} />
+                      {!isLast && (
+                        <div
+                          className={`pt-ms-connector ${
+                            step.state === 'done' ? 'done' : ''
+                          }`}
+                        />
+                      )}
+                      {isLast && connectorClass === 'dashed' && (
+                        <div className="pt-ms-connector dashed" />
+                      )}
+                    </div>
+                    <div className="pt-ms-body">
+                      <div className="pt-ms-label">{timelineLabel(lang, step)}</div>
+                      {step.highlight ? <div className="pt-ms-highlight">{step.highlight}</div> : null}
+                      {detailText ? <div className="pt-ms-detail">{detailText}</div> : null}
+                      {step.at ? (
+                        <div className="pt-ms-at">
+                          <p>{formatUtcToDisplayDate(step.at)}</p>
+                          <p>{formatUtcToDisplayTime(step.at)}</p>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                  <div className="pt-ms-body">
-                    <div className="pt-ms-label">{step.label}</div>
-                    {step.highlight ? <div className="pt-ms-highlight">{step.highlight}</div> : null}
-                    {step.detail ? <div className="pt-ms-detail">{step.detail}</div> : null}
-                    {step.at ? (
-                      <div className="pt-ms-at">
-                        <p>{formatUtcToDisplayDate(step.at)}</p>
-                        <p>{formatUtcToDisplayTime(step.at)}</p>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

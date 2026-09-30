@@ -3,15 +3,14 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { ChevronDown, ChevronRight, Link2 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { useUserMgmt } from '../../../context/UserMgmtContext';
 import {
-  PERMISSION_DEPENDENCIES,
-  PERMISSION_DEPENDENTS,
+  buildPermissionDependencyMaps,
 } from '../../../utils/shipperAccessPresets';
 
 const GROUP_ICONS = {
@@ -46,6 +45,26 @@ export default function PermissionGrid({
     [catalogGroups],
   );
 
+  const { dependencies: PERMISSION_DEPENDENCIES, dependents: PERMISSION_DEPENDENTS } = useMemo(
+    () => buildPermissionDependencyMaps(allKeys),
+    [allKeys],
+  );
+
+  const labelByKey = useMemo(() => {
+    const map = {};
+    catalogGroups.forEach((g) => {
+      g.permissions.forEach((p) => {
+        map[p.name] = p.label || p.name;
+      });
+    });
+    return map;
+  }, [catalogGroups]);
+
+  const formatPermLabels = useCallback(
+    (keys) => keys.map((k) => labelByKey[k] || k).join(', '),
+    [labelByKey],
+  );
+
   const isFullAdmin = permissions === null;
   const permSet = useMemo(() => {
     if (isFullAdmin) return new Set(allKeys);
@@ -74,7 +93,10 @@ export default function PermissionGrid({
       const dependents = PERMISSION_DEPENDENTS[permKey] || [];
       const activeDependents = dependents.filter((d) => newSet.has(d));
       if (activeDependents.length > 0) {
-        toast.error(t('userMgmt.deps.cannotDisable', { perms: activeDependents.join(', ') }));
+        toast.error(t('userMgmt.deps.cannotDisable', {
+          perms: formatPermLabels(activeDependents),
+          defaultValue: 'Cannot disable — still required by: {{perms}}',
+        }));
         return;
       }
       newSet.delete(permKey);
@@ -91,13 +113,69 @@ export default function PermissionGrid({
         }
       });
       if (newlyEnabled.length > 0) {
-        toast.info(t('userMgmt.deps.autoEnabled', { perms: newlyEnabled.join(', ') }));
+        toast.info(t('userMgmt.deps.autoEnabled', {
+          perms: formatPermLabels(newlyEnabled),
+          defaultValue: 'Also enabled required permission(s): {{perms}}',
+        }));
       }
     }
 
     onChange(Array.from(newSet));
     onAutoEnabled?.(autoSet);
-  }, [permSet, onChange, isFullAdmin, autoEnabledKeys, onAutoEnabled, t, toast]);
+  }, [permSet, onChange, isFullAdmin, autoEnabledKeys, onAutoEnabled, t, toast, formatPermLabels, PERMISSION_DEPENDENCIES, PERMISSION_DEPENDENTS]);
+
+  const handleToggleGroup = useCallback((group) => {
+    if (!onChange || isFullAdmin) return;
+
+    const groupPermKeys = group.permissions.map((p) => p.name);
+    const newSet = new Set(permSet);
+    const autoSet = new Set(autoEnabledKeys || []);
+    const allGroupSelected = groupPermKeys.every((k) => newSet.has(k));
+
+    if (allGroupSelected) {
+      let blocked = false;
+      for (const permKey of groupPermKeys) {
+        const dependents = PERMISSION_DEPENDENTS[permKey] || [];
+        const activeDependents = dependents.filter((d) => newSet.has(d) && !groupPermKeys.includes(d));
+        if (activeDependents.length > 0) {
+          toast.error(t('userMgmt.deps.cannotDisable', {
+            perms: formatPermLabels(activeDependents),
+            defaultValue: 'Cannot disable — still required by: {{perms}}',
+          }));
+          blocked = true;
+          break;
+        }
+      }
+      if (blocked) return;
+
+      groupPermKeys.forEach((k) => {
+        newSet.delete(k);
+        autoSet.delete(k);
+      });
+    } else {
+      const newlyEnabled = [];
+      groupPermKeys.forEach((permKey) => {
+        newSet.add(permKey);
+        const deps = PERMISSION_DEPENDENCIES[permKey] || [];
+        deps.forEach((dep) => {
+          if (!newSet.has(dep)) {
+            newSet.add(dep);
+            autoSet.add(dep);
+            newlyEnabled.push(dep);
+          }
+        });
+      });
+      if (newlyEnabled.length > 0) {
+        toast.info(t('userMgmt.deps.autoEnabled', {
+          perms: formatPermLabels(newlyEnabled),
+          defaultValue: 'Also enabled required permission(s): {{perms}}',
+        }));
+      }
+    }
+
+    onChange(Array.from(newSet));
+    onAutoEnabled?.(autoSet);
+  }, [permSet, onChange, isFullAdmin, autoEnabledKeys, onAutoEnabled, t, toast, formatPermLabels, PERMISSION_DEPENDENCIES, PERMISSION_DEPENDENTS]);
 
   const filteredGroups = useMemo(() => {
     if (!searchQuery) return catalogGroups;
@@ -147,9 +225,24 @@ export default function PermissionGrid({
                 <Icon size={14} style={{ color: T.ac }} />
                 <span style={{ fontSize: 12, fontWeight: 600 }}>{groupLabel}</span>
               </div>
-              <span style={{ fontSize: 11, fontWeight: 500, color: enabledCount === totalCount ? '#10B981' : T.t3 }}>
-                {enabledCount}/{totalCount}
-              </span>
+              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                {editing && !isFullAdmin && (
+                  <input
+                    type="checkbox"
+                    checked={enabledCount === totalCount && totalCount > 0}
+                    ref={(el) => {
+                      if (el) el.indeterminate = enabledCount > 0 && enabledCount < totalCount;
+                    }}
+                    onChange={() => handleToggleGroup(group)}
+                    className="cursor-pointer shrink-0"
+                    style={{ accentColor: T.ac }}
+                    title={t('userMgmt.roles.selectAllInGroup', { defaultValue: 'Select all in group' })}
+                  />
+                )}
+                <span style={{ fontSize: 11, fontWeight: 500, color: enabledCount === totalCount ? '#10B981' : T.t3 }}>
+                  {enabledCount}/{totalCount}
+                </span>
+              </div>
             </button>
 
             {!isCollapsed && (
@@ -159,19 +252,16 @@ export default function PermissionGrid({
                   const isAutoEnabled = autoEnabledKeys?.has?.(perm.name);
                   const label = t(`userMgmt.perm.${perm.name}`, { defaultValue: perm.label });
 
-                  return (
-                    <div
-                      key={perm.name}
-                      className="flex items-center gap-2 px-3 py-2"
-                      style={{ borderTop: `1px solid ${T.bd}` }}
-                    >
+                  const content = (
+                    <>
                       {editing ? (
                         <input
                           type="checkbox"
                           checked={enabled}
                           disabled={isFullAdmin}
                           onChange={() => handleToggle(perm.name)}
-                          className="shrink-0"
+                          className="shrink-0 cursor-pointer"
+                          style={{ accentColor: T.ac }}
                         />
                       ) : (
                         <span style={{ fontSize: 12, width: 18, textAlign: 'center' }}>
@@ -184,8 +274,30 @@ export default function PermissionGrid({
                       </span>
 
                       {isAutoEnabled && (
-                        <Link2 size={11} style={{ color: T.ac, opacity: 0.6 }} title={t('userMgmt.deps.linkedDep')} />
+                        <Link2 size={11} style={{ color: T.ac, opacity: 0.6 }} title={t('userMgmt.deps.linkedDep', { defaultValue: 'Auto-enabled (dependency)' })} />
                       )}
+                    </>
+                  );
+
+                  if (editing && !isFullAdmin) {
+                    return (
+                      <label
+                        key={perm.name}
+                        className="flex items-center gap-2 px-3 py-2 cursor-pointer"
+                        style={{ borderTop: `1px solid ${T.bd}` }}
+                      >
+                        {content}
+                      </label>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={perm.name}
+                      className="flex items-center gap-2 px-3 py-2"
+                      style={{ borderTop: `1px solid ${T.bd}` }}
+                    >
+                      {content}
                     </div>
                   );
                 })}

@@ -3,6 +3,7 @@ import { Check, ChevronDown, Truck } from 'lucide-react';
 import { useVehicleTypes } from '../../hooks/useVehicleTypes';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { WizardVehicleType } from '../CreateShipmentWizard/vehicleTypes';
+import { pickVehicleLabel } from '../CreateShipmentWizard/vehicleTypes';
 
 interface SearchVehicleCargoPickerProps {
   vehicleSpecs: Record<string, string[]>;
@@ -40,7 +41,7 @@ export const SearchVehicleCargoPicker: React.FC<SearchVehicleCargoPickerProps> =
   const emit = (nextSpecs: Record<string, string[]>, nextTypeIds: number[]) => {
     const selectedNames = vehicleTypes
       .filter((x) => nextTypeIds.includes(Number(x.formKey)))
-      .map((x) => (lang === 'el' ? x.nameEl : x.name));
+      .map((x) => pickVehicleLabel(x.name, x.nameEl, lang));
     onChange({
       vehicleSpecs: nextSpecs,
       truckTypeIds: nextTypeIds,
@@ -100,7 +101,7 @@ export const SearchVehicleCargoPicker: React.FC<SearchVehicleCargoPickerProps> =
           const id = Number(vt.formKey);
           const checked =
             truckTypeIds.includes(id) || (vehicleSpecs[vt.formKey]?.length ?? 0) > 0;
-          const label = lang === 'el' ? vt.nameEl : vt.name;
+          const label = pickVehicleLabel(vt.name, vt.nameEl, lang);
           const expanded = openType === vt.formKey && checked;
           const specCount = vehicleSpecs[vt.formKey]?.length ?? 0;
 
@@ -143,7 +144,7 @@ export const SearchVehicleCargoPicker: React.FC<SearchVehicleCargoPickerProps> =
                   {vt.categories.map((cat) => (
                     <div key={cat.id} className="sat-veh-cat">
                       <div className="sat-veh-cat-label">
-                        {lang === 'el' ? cat.labelEl : cat.label}
+                        {pickVehicleLabel(cat.label, cat.labelEl, lang)}
                       </div>
                       <div className="sat-veh-chips">
                         {cat.items.map((item) => {
@@ -158,7 +159,7 @@ export const SearchVehicleCargoPicker: React.FC<SearchVehicleCargoPickerProps> =
                               onClick={() => toggleItem(vt, item.id)}
                               aria-pressed={itemChecked}
                             >
-                              {lang === 'el' ? item.labelEl : item.label}
+                              {pickVehicleLabel(item.label, item.labelEl, lang)}
                             </button>
                           );
                         })}

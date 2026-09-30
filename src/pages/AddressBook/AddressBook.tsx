@@ -29,7 +29,7 @@ export const AddressBook: React.FC = () => {
 
       {ab.subscriptionBlocked && (
         <div className="ab-subscription-banner" role="alert">
-          {ab.error ?? 'Address Book access requires an active subscription.'}
+          {ab.error ?? ab.t('abSubscriptionRequired', 'Address Book access requires an active subscription.')}
         </div>
       )}
 
@@ -37,7 +37,7 @@ export const AddressBook: React.FC = () => {
         <div className="ab-error-banner" role="alert">
           {ab.error}
           <button type="button" className="btn btn-secondary btn-sm" onClick={() => ab.refreshLocations()}>
-            Retry
+            {ab.t('retry', 'Retry')}
           </button>
         </div>
       )}

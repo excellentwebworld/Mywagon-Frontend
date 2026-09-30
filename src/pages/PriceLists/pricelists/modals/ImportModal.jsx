@@ -73,6 +73,7 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
     setImportResult(null);
     const result = parseCsvText(text, {
       existingLanes,
+      t,
     });
     if (!result) {
       setPreview(null);
@@ -384,7 +385,12 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
                     </div>
                   ))}
                   {(importResult.errors?.length || 0) > 5 && (
-                    <div style={{ marginTop: 4 }}>… +{importResult.errors.length - 5} more</div>
+                    <div style={{ marginTop: 4 }}>
+                      {t('priceLists.import.moreErrors', '… +{{count}} more').replace(
+                        '{{count}}',
+                        String(importResult.errors.length - 5),
+                      )}
+                    </div>
                   )}
                 </div>
               )}

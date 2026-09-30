@@ -187,6 +187,7 @@ export function usePartners() {
   );
 
   const invalidatePartners = useCallback(() => {
+    void queryClient.invalidateQueries({ queryKey: ['partners'] });
     syncPartnerDropdownCaches(queryClient, clearCreateShipmentPartnersCache);
   }, [queryClient]);
 
@@ -484,8 +485,12 @@ export function usePartners() {
     if (type === 'decline' && !requireRbac(ACTION_RBAC.acceptDeclinePartner)) return;
     if (type === 'suspend' || type === 'reactivate') toggleStatusMutation.mutate(partner.id);
     else if (type === 'remove') deleteMutation.mutate(partner.id);
-    else if (type === 'decline') declineMutation.mutate(partner.id);
-    else if (type === 'deleteLane' && confirmAction.type === 'deleteLane') {
+    else if (type === 'decline') {
+      declineMutation.mutate(partner.id, {
+        onSettled: () => setConfirmAction(null),
+      });
+      return;
+    } else if (type === 'deleteLane' && confirmAction.type === 'deleteLane') {
       deleteLaneMutation.mutate({ partnerId: partner.id, laneId: confirmAction.laneId });
     }
     setConfirmAction(null);
@@ -605,6 +610,16 @@ export function usePartners() {
     canInvitePartner: canAction('invitePartner'),
     canAcceptDeclinePartner: canAction('acceptDeclinePartner'),
     inviteLoading: inviteMutation.isPending,
+    acceptLoading: acceptMutation.isPending,
+    declineLoading: declineMutation.isPending,
+    acceptLoadingId: acceptMutation.isPending ? String(acceptMutation.variables ?? '') : null,
+    declineLoadingId: declineMutation.isPending ? String(declineMutation.variables ?? '') : null,
+    confirmLoading:
+      (confirmAction?.type === 'decline' && declineMutation.isPending)
+      || (confirmAction?.type === 'suspend' && toggleStatusMutation.isPending)
+      || (confirmAction?.type === 'reactivate' && toggleStatusMutation.isPending)
+      || (confirmAction?.type === 'remove' && deleteMutation.isPending)
+      || (confirmAction?.type === 'deleteLane' && deleteLaneMutation.isPending),
     openGenericModal,
     closeGenericModal,
     saveContractLane,

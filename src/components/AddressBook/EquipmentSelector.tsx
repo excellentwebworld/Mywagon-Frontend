@@ -1,5 +1,6 @@
 import React from 'react';
-import { EQUIPMENT_OPTIONS } from '../../pages/AddressBook/constants';
+import { EQUIPMENT_OPTIONS, getEquipmentLabel } from '../../pages/AddressBook/constants';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface EquipmentSelectorProps {
   value: string[];
@@ -7,6 +8,8 @@ interface EquipmentSelectorProps {
 }
 
 export const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({ value, onChange }) => {
+  const { t } = useTranslation();
+
   const toggle = (item: string) => {
     if (value.includes(item)) {
       onChange(value.filter((v) => v !== item));
@@ -20,7 +23,7 @@ export const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({ value, onC
       {EQUIPMENT_OPTIONS.map((item) => (
         <label key={item} className="amenity-check">
           <input type="checkbox" checked={value.includes(item)} onChange={() => toggle(item)} />
-          {item}
+          {getEquipmentLabel(item, t)}
         </label>
       ))}
     </div>

@@ -62,6 +62,13 @@ const COUNTRIES = [
   { en: 'Vatican City', el: 'Βατικανό', code: '+379' },
 ];
 
+type InviteFormValues = {
+  method: InviteMethod;
+  partnerType: InvitePartnerType;
+  contact: string;
+  countryCode: string;
+};
+
 type Props = Pick<
   PartnersState,
   | 't'
@@ -85,70 +92,95 @@ export const InvitePartnerModal: React.FC<Props> = ({
   const { lang } = useTranslation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [formKey, setFormKey] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const validationSchema = React.useMemo(() => {
+    const requiredMsg = t('fillRequired') || 'Fill required fields';
+
     return Yup.object().shape({
-      method: Yup.string().required(),
+      method: Yup.string().oneOf(['email', 'phone', 'unique_id']).required(),
       partnerType: Yup.string().required(),
+      countryCode: Yup.string().when('method', {
+        is: 'phone',
+        then: (schema) => schema.required(requiredMsg),
+        otherwise: (schema) => schema.notRequired(),
+      }),
       contact: Yup.string()
         .trim()
-        .required(t('fillRequired') || 'Fill required fields')
-        .test('method-validation', function (value) {
-          const { method } = this.parent;
-          if (!value) return true;
-          if (method === 'email') {
-            const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!EMAIL_PATTERN.test(value)) {
-              return this.createError({
-                message: t('partnerEmailInvalid') || 'Please enter a valid email address.',
-              });
-            }
-          } else if (method === 'phone') {
-            const clean = value.replace(/[\s-()]/g, '');
-            if (!/^\d+$/.test(clean)) {
-              return this.createError({
-                message: t('partnerPhoneInvalidFormat') || 'Phone number must contain only digits.',
-              });
-            }
-            if (clean.length < 8) {
-              return this.createError({
-                message: t('partnerPhoneInvalidLength') || 'Phone number must be between 9 and 15 digits.',
-              });
-            }
-          } else if (method === 'unique_id') {
-            const { partnerType } = this.parent;
-            if (partnerType === 'supplier') {
-              const MVS_PATTERN = /^[mM][vV][sS]\d{6}$/;
-              if (!MVS_PATTERN.test(value)) {
-                return this.createError({
-                  message: t('partnerUniqueIdMvsInvalid') || 'Unique ID must start with MVS followed by 6 digits (e.g. MVS000001).',
-                });
-              }
-            } else if (partnerType === 'freelancer_driver') {
-              const MVD_PATTERN = /^[mM][vV][dD]\d{6}$/;
-              if (!MVD_PATTERN.test(value)) {
-                return this.createError({
-                  message: t('partnerUniqueIdMvdInvalid') || 'Unique ID must start with MVD followed by 6 digits (e.g. MVD000001).',
-                });
-              }
-            } else if (partnerType === 'carrier_company') {
-              const MVC_PATTERN = /^[mM][vV][cC]\d{6}$/;
-              if (!MVC_PATTERN.test(value)) {
-                return this.createError({
-                  message: t('partnerUniqueIdMvcInvalid') || 'Unique ID must start with MVC followed by 6 digits (e.g. MVC000001).',
-                });
-              }
-            } else {
-              const GENERIC_PATTERN = /^[a-zA-Z]{3}\d{6}$/;
-              if (!GENERIC_PATTERN.test(value)) {
-                return this.createError({
-                  message: t('partnerUniqueIdMvcInvalid') || 'Unique ID must start with MVC, MVD, or MVS followed by 6 digits.',
-                });
-              }
-            }
-          }
-          return true;
+        .when('method', {
+          is: 'email',
+          then: (schema) =>
+            schema
+              .required(requiredMsg)
+              .test('email-format', t('partnerEmailInvalid') || 'Please enter a valid email address.', (value) => {
+                if (!value) return true;
+                return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+              }),
+          otherwise: (schema) =>
+            schema.when('method', {
+              is: 'phone',
+              then: (phoneSchema) =>
+                phoneSchema
+                  .required(requiredMsg)
+                  .test(
+                    'phone-format',
+                    t('partnerPhoneInvalidFormat') || 'Phone number must contain only digits.',
+                    (value) => {
+                      if (!value) return true;
+                      const clean = value.replace(/[\s-()]/g, '');
+                      return /^\d+$/.test(clean);
+                    }
+                  )
+                  .test(
+                    'phone-length',
+                    t('partnerPhoneInvalidLength') || 'Phone number must be between 8 and 15 digits.',
+                    (value) => {
+                      if (!value) return true;
+                      const clean = value.replace(/[\s-()]/g, '');
+                      return clean.length >= 8 && clean.length <= 15;
+                    }
+                  ),
+              otherwise: (uidSchema) =>
+                uidSchema
+                  .required(requiredMsg)
+                  .test('unique-id-format', function (value) {
+                    if (!value) return true;
+                    const { partnerType } = this.parent as InviteFormValues;
+                    if (partnerType === 'supplier') {
+                      if (!/^[mM][vV][sS]\d{6}$/.test(value)) {
+                        return this.createError({
+                          message:
+                            t('partnerUniqueIdMvsInvalid') ||
+                            'Unique ID must start with MVS followed by 6 digits (e.g. MVS000001).',
+                        });
+                      }
+                    } else if (partnerType === 'freelancer_driver') {
+                      if (!/^[mM][vV][dD]\d{6}$/.test(value)) {
+                        return this.createError({
+                          message:
+                            t('partnerUniqueIdMvdInvalid') ||
+                            'Unique ID must start with MVD followed by 6 digits (e.g. MVD000001).',
+                        });
+                      }
+                    } else if (partnerType === 'carrier_company') {
+                      if (!/^[mM][vV][cC]\d{6}$/.test(value)) {
+                        return this.createError({
+                          message:
+                            t('partnerUniqueIdMvcInvalid') ||
+                            'Unique ID must start with MVC followed by 6 digits (e.g. MVC000001).',
+                        });
+                      }
+                    } else if (!/^[a-zA-Z]{3}\d{6}$/.test(value)) {
+                      return this.createError({
+                        message:
+                          t('partnerUniqueIdMvcInvalid') ||
+                          'Unique ID must start with MVC, MVD, or MVS followed by 6 digits.',
+                      });
+                    }
+                    return true;
+                  }),
+            }),
         }),
     });
   }, [t]);
@@ -163,18 +195,22 @@ export const InvitePartnerModal: React.FC<Props> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Fresh Formik instance each time the modal opens so parent re-renders
+  // cannot reset method/contact via enableReinitialize.
   useEffect(() => {
-    if (isInviteOpen && !inviteForm.countryCode) {
-      setInviteForm((prev) => ({ ...prev, countryCode: '+30' }));
+    if (isInviteOpen) {
+      setFormKey((k) => k + 1);
+      setIsDropdownOpen(false);
+      setSearchQuery('');
+      if (!inviteForm.countryCode) {
+        setInviteForm((prev) => ({ ...prev, countryCode: '+30' }));
+      }
     }
-  }, [isInviteOpen, inviteForm.countryCode, setInviteForm]);
+  }, [isInviteOpen]); // eslint-disable-line react-hooks/exhaustive-deps -- only remount on open
 
   if (!isInviteOpen) return null;
 
-  const { method, partnerType, contact, countryCode, sent } = inviteForm;
-
-  const setMethod = (m: InviteMethod) => setInviteForm({ ...inviteForm, method: m, contact: '' });
-  const setPartnerType = (pt: InvitePartnerType) => setInviteForm({ ...inviteForm, partnerType: pt });
+  const { sent } = inviteForm;
 
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) closeInviteModal();
@@ -206,7 +242,15 @@ export const InvitePartnerModal: React.FC<Props> = ({
             <button
               type="button"
               className="btn btn-secondary"
-              onClick={() => setInviteForm({ ...inviteForm, sent: false, contact: '' })}
+              onClick={() => {
+                setInviteForm((prev) => ({
+                  ...prev,
+                  sent: false,
+                  contact: '',
+                  method: 'email',
+                }));
+                setFormKey((k) => k + 1);
+              }}
             >
               {t('invAnother')}
             </button>
@@ -219,20 +263,18 @@ export const InvitePartnerModal: React.FC<Props> = ({
     );
   }
 
-
-
-  const initialValues = {
-    method: method,
-    partnerType: partnerType,
-    contact: contact,
-    countryCode: countryCode,
+  const initialValues: InviteFormValues = {
+    method: 'email',
+    partnerType: inviteForm.partnerType || 'carrier_company',
+    contact: '',
+    countryCode: inviteForm.countryCode || '+30',
   };
 
-  const handleSubmit = (values: typeof initialValues) => {
+  const handleSubmit = (values: InviteFormValues) => {
     sendInvite({
       method: values.method,
       partnerType: values.partnerType,
-      contact: values.contact,
+      contact: values.contact.trim(),
       countryCode: values.countryCode,
       relationship: null,
       sent: false,
@@ -241,10 +283,12 @@ export const InvitePartnerModal: React.FC<Props> = ({
 
   return (
     <Formik
+      key={formKey}
       initialValues={initialValues}
       validationSchema={validationSchema}
       onSubmit={handleSubmit}
-      enableReinitialize
+      validateOnChange
+      validateOnBlur
     >
       {({
         values,
@@ -253,10 +297,19 @@ export const InvitePartnerModal: React.FC<Props> = ({
         handleChange,
         handleBlur,
         setFieldValue,
+        setErrors,
+        setTouched,
         submitCount,
       }) => {
-        const showError = (field: keyof typeof initialValues) =>
+        const showError = (field: keyof InviteFormValues) =>
           Boolean((touched[field] || submitCount > 0) && errors[field]);
+
+        const switchMethod = (m: InviteMethod) => {
+          setFieldValue('method', m);
+          setFieldValue('contact', '');
+          setErrors({});
+          setTouched({});
+        };
 
         return (
           <div className="modal-backdrop open" onClick={handleOverlayClick} id="invite-modal">
@@ -264,7 +317,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
               <ScrollToFormError />
               <div className="modal-header">
                 <h2>{t('inviteTitle')}</h2>
-                <button type="button" className="modal-close" onClick={closeInviteModal} aria-label="Close">
+                <button type="button" className="modal-close" onClick={closeInviteModal} aria-label={t('close', 'Close')}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                     <path d="M18 6L6 18M6 6l12 12" />
                   </svg>
@@ -278,10 +331,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
                       key={m}
                       type="button"
                       className={values.method === m ? 'active' : ''}
-                      onClick={() => {
-                        setFieldValue('method', m);
-                        setFieldValue('contact', '');
-                      }}
+                      onClick={() => switchMethod(m)}
                     >
                       {m === 'email' ? '📧' : m === 'phone' ? '📱' : '🆔'}{' '}
                       {m === 'unique_id' ? t('mvUniqueId') : t(m) || m}
@@ -295,7 +345,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
                       {t('phone')} <span className="rq">*</span>
                     </label>
                     <div className="ptn-phone-row" style={{ display: 'flex', gap: 12 }}>
-                      <div style={{ width: '160px', flexShrink: 0 }}>
+                      <div style={{ width: '100px', flexShrink: 0 }}>
                         <div className="ptn-custom-select" ref={dropdownRef}>
                           <button
                             type="button"
@@ -305,12 +355,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
                               setSearchQuery('');
                             }}
                           >
-                            <span>
-                              {(() => {
-                                const selected = COUNTRIES.find((c) => c.code === values.countryCode) || { en: 'Greece', el: 'Ελλάδα', code: '+30' };
-                                return `${selected.code} (${lang === 'el' ? selected.el : selected.en})`;
-                              })()}
-                            </span>
+                            <span>{values.countryCode || '+30'}</span>
                             <span className="arrow">{isDropdownOpen ? '▲' : '▼'}</span>
                           </button>
                           {isDropdownOpen && (
@@ -355,7 +400,7 @@ export const InvitePartnerModal: React.FC<Props> = ({
                                     name.toLowerCase().includes(search)
                                   );
                                 }).length === 0 && (
-                                    <div className="ptn-custom-select-no-results">No results</div>
+                                    <div className="ptn-custom-select-no-results">{t('Partners.no_results', 'No results')}</div>
                                   )}
                               </div>
                             </div>
@@ -364,7 +409,9 @@ export const InvitePartnerModal: React.FC<Props> = ({
                       </div>
                       <div style={{ flex: 1 }}>
                         <input
-                          type="number"
+                          type="tel"
+                          inputMode="numeric"
+                          autoComplete="off"
                           className="form-input"
                           id="invite-contact-input"
                           name="contact"
@@ -383,7 +430,8 @@ export const InvitePartnerModal: React.FC<Props> = ({
                       {values.method === 'email' ? t('email') : t('mvUniqueId')} <span className="rq">*</span>
                     </label>
                     <input
-                      type="text"
+                      type={values.method === 'email' ? 'email' : 'text'}
+                      autoComplete="off"
                       className="form-input"
                       id="invite-contact-input"
                       name="contact"

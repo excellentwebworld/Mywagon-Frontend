@@ -20,7 +20,7 @@ type Props = {
 
 export const WebViewSubscriptionPage: React.FC<Props> = ({ role }) => {
   const [searchParams] = useSearchParams();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [userId, setUserId] = useState<string>(() => {
     const fromUrl = searchParams.get('user_id');
     if (fromUrl) return fromUrl;
@@ -48,8 +48,13 @@ export const WebViewSubscriptionPage: React.FC<Props> = ({ role }) => {
     return (
       <WebViewLayout>
         <div className="webview-subscription-error">
-          <h2>Subscription unavailable</h2>
-          <p>Missing or invalid user session. Please open subscription from the mobile app.</p>
+          <h2>{t('Subscription.subscription_unavailable', 'Subscription unavailable')}</h2>
+          <p>
+            {t(
+              'Subscription.missing_or_invalid_user_session_please_open_subscription_fro',
+              'Missing or invalid user session. Please open subscription from the mobile app.'
+            )}
+          </p>
         </div>
       </WebViewLayout>
     );

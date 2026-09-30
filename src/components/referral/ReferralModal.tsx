@@ -134,12 +134,12 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
       case 'email':
         shareUrl = `mailto:?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(msg)}`;
         window.location.href = shareUrl;
-        showToast(`${t('referral.toastOpening', '🔗 Opening')} Email...`);
+        showToast(t('referral.toastOpeningEmail', 'Opening Email…'));
         break;
       case 'whatsapp':
         shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
         window.open(shareUrl, '_blank', 'noopener,noreferrer');
-        showToast(`${t('referral.toastOpening', '🔗 Opening')} WhatsApp...`);
+        showToast(t('referral.toastOpeningWhatsApp', 'Opening WhatsApp…'));
         break;
       case 'viber': {
         try {
@@ -175,7 +175,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
         }
         shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://myvagon.com')}`;
         window.open(shareUrl, '_blank', 'noopener,noreferrer');
-        showToast(`${t('referral.toastOpening', '🔗 Opening')} LinkedIn...`);
+        showToast(t('referral.toastOpeningLinkedIn', 'Opening LinkedIn…'));
         break;
     }
   };
@@ -271,7 +271,7 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
               {/* Social Channels (Email, WhatsApp, Viber, LinkedIn) */}
               <div className="share-channels">
                 <button type="button" className="share-ch email" onClick={() => handleShare('email')}>
-                  <Mail size={14} /> Email
+                  <Mail size={14} /> {t('emailLabel', 'Email')}
                 </button>
                 <button type="button" className="share-ch whatsapp" onClick={() => handleShare('whatsapp')}>
                   <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor">

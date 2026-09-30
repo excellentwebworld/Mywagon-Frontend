@@ -6,6 +6,8 @@ import {
   Share2,
   MoreHorizontal,
   Check,
+  UserPlus,
+  Users,
 } from 'lucide-react';
 import type { ShipmentDetailViewModel } from '../../pages/ShipmentDetail/detailViewModel';
 import { MvButton, Tag } from '../ui/mv';
@@ -45,6 +47,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
   onBidsHistory,
   onCancelShipment,
   onDuplicate,
+  onAssignCoOwner,
   onToast,
   t,
   readOnly = false,
@@ -114,8 +117,14 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
       normStatus === 'in_progress' ||
       normStatus === 'awarded');
 
+  const canAssignCoOwner =
+    !isFulfilledOrPartial &&
+    !isCancelled &&
+    !isUnfulfilled &&
+    Boolean(onAssignCoOwner);
+
   const isOnTrip = normStatus === 'on_trip' || normStatus === 'in_progress';
-  const hasMenuActions = !readOnly && Boolean(onDuplicate || (canCancel && onCancelShipment));
+  const hasMenuActions = !readOnly && Boolean(onDuplicate || (canCancel && onCancelShipment) || canAssignCoOwner);
 
   return (
     <div className="mv-surface-card rounded-2xl px-5 py-4 mb-4 bg-[var(--surface)] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200">
@@ -127,7 +136,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
               type="button"
               onClick={handleCopy}
               title={copied ? t('copied', 'Copied!') : t('copyId', 'Copy ID')}
-              aria-label="Copy ID"
+              aria-label={t('copyId', 'Copy ID')}
               className="p-1.5 rounded-md text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-90 transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
             >
               {copied ? <Check size={15} className="text-[var(--mv-success)] animate-in zoom-in-50 duration-150" /> : <Copy size={15} />}
@@ -138,11 +147,12 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
             <span className="font-semibold">{vm.lane}</span>
             {vm.viaLabel && (
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                via {vm.viaLabel}
+                {t('via', 'via')} {vm.viaLabel}
               </span>
             )}
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-              {vm.stopsCount} {vm.stopsCount === 1 ? 'stop' : 'stops'}
+              {vm.stopsCount}{' '}
+              {vm.stopsCount === 1 ? t('stop', 'stop') : t('stops', 'stops')}
             </span>
           </div>
 
@@ -157,7 +167,13 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
             />
 
             <Tag variant="outline">
-              {(vm.loadSummary?.channel || (vm.isPrivateLoad ? 'PRIVATE' : 'PUBLIC')).toUpperCase()}
+              {t(
+                (vm.loadSummary?.channel || (vm.isPrivateLoad ? 'PRIVATE' : 'PUBLIC')).toUpperCase() ===
+                  'PRIVATE'
+                  ? 'channelPrivate'
+                  : 'channelPublic',
+                vm.isPrivateLoad ? 'PRIVATE' : 'PUBLIC',
+              )}
             </Tag>
 
             {vm.primaryCustomer && (
@@ -170,6 +186,18 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
               {t('owner', 'Owner')}:{' '}
               <strong className="text-slate-900 dark:text-white font-semibold">{vm.owner || 'My Vagon'}</strong>
             </span>
+
+            {Array.isArray(vm.coOwners) && vm.coOwners.length > 0 && (
+              <span
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/80 dark:border-purple-800/60"
+                title={vm.coOwners.map((c) => c.name).join(', ')}
+              >
+                <Users size={12} className="shrink-0 text-purple-600 dark:text-purple-400" />
+                <span>
+                  {t('coOwners', 'Co-Owners')}: <strong className="font-semibold">{vm.coOwners.map((c) => c.name).join(', ')}</strong>
+                </span>
+              </span>
+            )}
           </div>
         </div>
 
@@ -246,7 +274,20 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 top-full mt-1.5 w-48 rounded-xl bg-white dark:bg-slate-800 p-1 shadow-xl border border-slate-200 dark:border-slate-700 z-30 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 top-full mt-1.5 w-52 rounded-xl bg-white dark:bg-slate-800 p-1 shadow-xl border border-slate-200 dark:border-slate-700 z-30 animate-in fade-in zoom-in-95 duration-150">
+                  {canAssignCoOwner && onAssignCoOwner && (
+                    <button
+                      type="button"
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-slate-900 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-purple-600 dark:hover:text-purple-400 transition-colors cursor-pointer flex items-center gap-2"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onAssignCoOwner();
+                      }}
+                    >
+                      <UserPlus size={14} className="text-purple-600 dark:text-purple-400 shrink-0" />
+                      {t('assignCoOwner', 'Assign Co-Owner')}
+                    </button>
+                  )}
                   {onDuplicate && (
                     <button
                       type="button"

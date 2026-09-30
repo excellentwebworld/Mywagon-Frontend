@@ -37,9 +37,9 @@ function getRoleClass(role: LocationItem['role']) {
 }
 
 function getRoleLabel(role: LocationItem['role'], t: AddressBookState['t']) {
-  if (role === 'pickup') return t('pickup');
-  if (role === 'delivery') return t('delivery');
-  return 'Both';
+  if (role === 'pickup') return t('pickup', 'Pickup');
+  if (role === 'delivery') return t('delivery', 'Delivery');
+  return t('roleBoth', 'Both');
 }
 
 function getLocationTypeLabel(group: LocationItem['group'], t: AddressBookState['t']) {
@@ -80,7 +80,11 @@ export const LocationList: React.FC<Props> = ({
   const count = filteredLocations.length;
   const total = listMeta.total;
   const lastPage = listMeta.last_page ?? 1;
-  const countLabel = loading ? t('abLoadingLocations') : `${total} location${total !== 1 ? 's' : ''}`;
+  const countLabel = loading
+    ? t('abLoadingLocations')
+    : total === 1
+      ? t('abLocationCount', '{{count}} location', { count: total })
+      : t('abLocationCountPlural', '{{count}} locations', { count: total });
   const pages = buildPageList(currentPage, lastPage);
   const sortActiveName = sortField === 'name';
   const sortActiveCity = sortField === 'city';
@@ -103,7 +107,7 @@ export const LocationList: React.FC<Props> = ({
                   className={`th-sort-btn${sortActiveName ? ' active' : ''}`}
                   onClick={() => toggleSort('name')}
                 >
-                  Location
+                  {t('abLocation', 'Location')}
                   <span className="th-sort-arrow" aria-hidden="true">
                     {sortActiveName ? (sortDir === 'asc' ? '↑' : '↓') : '↑'}
                   </span>
@@ -115,17 +119,17 @@ export const LocationList: React.FC<Props> = ({
                   className={`th-sort-btn${sortActiveCity ? ' active' : ''}`}
                   onClick={() => toggleSort('city')}
                 >
-                  City
+                  {t('abCity', 'City')}
                   <span className="th-sort-arrow" aria-hidden="true">
                     {sortActiveCity ? (sortDir === 'asc' ? '↑' : '↓') : '↑'}
                   </span>
                 </button>
               </th>
               <th>{t('abLocationType')}</th>
-              <th>Role</th>
-              <th>Operational</th>
-              <th>Contact</th>
-              <th>Usage history</th>
+              <th>{t('abRole', 'Role')}</th>
+              <th>{t('abColOperational', 'Operational')}</th>
+              <th>{t('contact', 'Contact')}</th>
+              <th>{t('abUsageHistory', 'Usage history')}</th>
               <th />
             </tr>
           </thead>
@@ -198,18 +202,24 @@ export const LocationList: React.FC<Props> = ({
 
       <div className="ab-pag">
         <div className="pag-info">
-          {total === 0 ? 'Showing 0 of 0' : `Showing ${pageStart}–${pageEnd} of ${total}`}
+          {total === 0
+            ? t('abShowingZero', 'Showing 0 of 0')
+            : t('abShowingRange', 'Showing {{start}}–{{end}} of {{total}}', {
+                start: pageStart,
+                end: pageEnd,
+                total,
+              })}
 
           <select
             className="pag-length-sel ml-2"
             value={perPage}
             onChange={(e) => setPerPage(Number(e.target.value))}
             disabled={loading}
-            aria-label="Rows per page"
+            aria-label={t('abRowsPerPage', 'Rows per page')}
           >
             {[10, 12, 25, 50, 100].map((n) => (
               <option key={n} value={n}>
-                {n} / page
+                {t('abPerPageOption', '{{n}} / page', { n })}
               </option>
             ))}
           </select>
@@ -247,22 +257,6 @@ export const LocationList: React.FC<Props> = ({
               »
             </button>
           </div>
-          {/* <label className="pag-jump">
-            <span>Go to</span>
-            <input
-              type="number"
-              min={1}
-              max={lastPage}
-              defaultValue={currentPage}
-              key={currentPage}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const val = parseInt((e.target as HTMLInputElement).value, 10);
-                  if (val >= 1 && val <= lastPage) setCurrentPage(val);
-                }
-              }}
-            />
-          </label> */}
         </div>
       </div>
     </div>

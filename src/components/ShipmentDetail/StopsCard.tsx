@@ -5,6 +5,7 @@ import { productLineVisual, formatReason, type ProductLineVisual } from '../../p
 import { StopTag } from '../ui/mv';
 import { CollapsibleCard } from './CollapsibleCard';
 import { formatDisplayDate, formatDisplayTime } from '../../utils/dateDisplay';
+import { translateCargoUnit } from '../../utils/shipmentLogI18n';
 
 export interface ReportablePickup {
   location_id: number;
@@ -484,10 +485,16 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
   return Array.from(map.values());
 }
 
-function OrderStatusIcon({ visual }: { visual: ProductLineVisual }) {
+function OrderStatusIcon({
+  visual,
+  t,
+}: {
+  visual: ProductLineVisual;
+  t: StopsCardProps['t'];
+}) {
   if (visual === 'failed') {
     return (
-      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] text-[#EF4444]" title="Unable">
+      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] text-[#EF4444]" title={t('ShipmentDetail.unable', 'Unable')}>
         <X size={18} strokeWidth={2.5} />
       </div>
     );
@@ -495,7 +502,7 @@ function OrderStatusIcon({ visual }: { visual: ProductLineVisual }) {
   // Two ticks = pickup/dropoff completed (POD is shown separately via the green rectangle)
   if (visual === 'done-pod') {
     return (
-      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E9D5FF] bg-[#F3E8FF] text-[#9B51E0]" title="Completed">
+      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E9D5FF] bg-[#F3E8FF] text-[#9B51E0]" title={t('ShipmentDetail.completed', 'Completed')}>
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="16" viewBox="0 0 18 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
           <path d="M1 9.5L5.5 14L16 3" />
           <path d="M1 5.5L5.5 10L16 -1" opacity="0.6" />
@@ -506,7 +513,7 @@ function OrderStatusIcon({ visual }: { visual: ProductLineVisual }) {
   // One tick = arrived at location
   if (visual === 'done') {
     return (
-      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E9D5FF] bg-[#F3E8FF] text-[#9B51E0]" title="Arrived">
+      <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg border border-[#E9D5FF] bg-[#F3E8FF] text-[#9B51E0]" title={t('ShipmentDetail.arrived', 'Arrived')}>
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
@@ -829,7 +836,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                   className="font-semibold tabular-nums transition-colors text-[var(--text-primary)]"
                                   style={{ color: diffColor(ordHl?.orderId) }}
                                 >
-                                  Order: {order.orderId}
+                                  {t('orderLabelPrefix', 'Order:')} {order.orderId}
                                 </span>
                                 {ordHl?.isNew && !stopHl?.isNew && (
                                   <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider bg-[var(--mv-success)] text-white shadow-xs">
@@ -870,7 +877,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                                 fontWeight: prodHl?.qty ? 600 : undefined,
                                               }}
                                             >
-                                              {`${prod.qty} ${prod.qtyUnit || 'EUR Pallets'}`}
+                                              {`${prod.qty} ${translateCargoUnit(prod.qtyUnit || 'EUR Pallets', t)}`}
                                             </span>
                                           ) : ''}
                                           {prod.qty && prod.weight ? ' · ' : ''}
@@ -881,7 +888,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                                 fontWeight: prodHl?.weight ? 600 : undefined,
                                               }}
                                             >
-                                              {`${prod.weight} ${prod.weightUnit || 'Tonnes'}`}
+                                              {`${prod.weight} ${translateCargoUnit(prod.weightUnit || 'Tonnes', t)}`}
                                             </span>
                                           ) : ''}
                                         </span>
@@ -892,7 +899,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                               })}
                             </div>
 
-                            <OrderStatusIcon visual={effectiveVisual} />
+                            <OrderStatusIcon visual={effectiveVisual} t={t} />
                           </div>
 
                           {/* Issue Reason Alert in Red if present */}
@@ -964,7 +971,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                               : 'text-[var(--text-secondary)]'
                           }`}
                         >
-                          POD (Proof of Delivery)
+                          {t('podProofOfDelivery', 'POD (Proof of Delivery)')}
                         </span>
                         {stop.pod === '1' || (stop.podImages && stop.podImages.length > 0) ? (
                           <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-900/60 text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]">

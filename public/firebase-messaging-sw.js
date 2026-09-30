@@ -151,12 +151,19 @@ messaging.onBackgroundMessage((payload) => {
     });
   }
 
-  const title = payload.notification?.title
-    ?? payload.data?.title
+  // When the FCM payload includes a `notification` block, the Firebase SDK already
+  // displays a system tray notification. Calling showNotification again doubles it
+  // (common when the browser tab is backgrounded). Android/iOS are unaffected —
+  // this handler only runs in the web service worker.
+  // Data-only payloads still need an explicit showNotification below.
+  if (payload.notification) {
+    return;
+  }
+
+  const title = payload.data?.title
     ?? 'MYVAGON Notification';
 
-  const body = payload.notification?.body
-    ?? payload.data?.body
+  const body = payload.data?.body
     ?? payload.data?.notification_body
     ?? '';
 
@@ -176,6 +183,7 @@ messaging.onBackgroundMessage((payload) => {
       type:         payload.data?.type      ?? '',
       type_id:      payload.data?.type_id   ?? '',
       external_url: payload.data?.external_url ?? '',
+      ...(payload.data || {}),
     },
   };
 
@@ -187,7 +195,10 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const data      = event.notification.data ?? {};
+  // FCM auto-displayed notifications (notification+data payload) put the data
+  // payload on event.notification.data — resolveTargetUrl handles type/type_id.
+  const raw = event.notification.data ?? {};
+  const data = raw.FCM_MSG?.data || raw.data || raw;
   const targetUrl = data.url || resolveTargetUrl(data);
 
   // If external URL, open in a new browser tab directly

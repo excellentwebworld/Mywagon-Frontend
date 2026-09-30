@@ -32,13 +32,13 @@ export function findSpecLabel(
 ): string {
   for (const cat of vt.categories) {
     const item = cat.items.find((i) => i.id === itemId);
-    if (item) return lang === 'el' ? item.labelEl : item.label;
+    if (item) return pickVehicleLabel(item.label, item.labelEl, lang);
   }
 
   for (const type of vehicleTypes) {
     for (const cat of type.categories) {
       const item = cat.items.find((i) => i.id === itemId);
-      if (item) return lang === 'el' ? item.labelEl : item.label;
+      if (item) return pickVehicleLabel(item.label, item.labelEl, lang);
     }
   }
 
@@ -56,7 +56,7 @@ export function formatVehicleSelectionSummary(
   vehicleTypes.forEach((vt) => {
     const selected = vehicleSpecs[vt.formKey] || [];
     if (selected.length === 0) return;
-    types.push(lang === 'el' ? vt.nameEl : vt.name);
+    types.push(pickVehicleLabel(vt.name, vt.nameEl, lang));
     selected.forEach((id) => specs.push(findSpecLabel(vehicleTypes, vt, id, lang)));
   });
 
@@ -66,6 +66,19 @@ export function formatVehicleSelectionSummary(
 export function hasVehicleSelection(vehicleSpecs: Record<string, string[]> | undefined): boolean {
   if (!vehicleSpecs) return false;
   return Object.values(vehicleSpecs).some((items) => items.length > 0);
+}
+
+/** Pick EN/EL label from API bilingual truck type / feature / category data. */
+export function pickVehicleLabel(
+  labelEn: string,
+  labelEl: string | null | undefined,
+  lang: 'en' | 'el'
+): string {
+  if (lang === 'el') {
+    const el = String(labelEl || '').trim();
+    return el || String(labelEn || '').trim();
+  }
+  return String(labelEn || '').trim();
 }
 
 export function iconKeyFromVehicleName(name: string): string {

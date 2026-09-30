@@ -19,7 +19,7 @@ import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useAuth } from '../../../context/AuthContext';
 import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
 import { validateCreateAll } from '../validation/locationCreateValidation';
-import { checkLocationDuplicate, DUPLICATE_LOCATION_MESSAGE } from '../validation/locationDuplicateValidation';
+import { checkLocationDuplicate, DUPLICATE_LOCATION_KEY, DUPLICATE_LOCATION_MESSAGE } from '../validation/locationDuplicateValidation';
 import { applyTemplate, getDefaultCreateData } from '../utils/locationUtils';
 import type { ApiCompanyEntity, ApiCompanyLookup } from '../../../api/types/addressBook';
 import {
@@ -234,7 +234,10 @@ export function useAddressBook() {
       setIsCreateOpen(false);
       void syncGlobalLocations(created);
       setSelectedLoc(created);
-      showToast(`"${created.name}" created`, 'success');
+      showToast(
+        t('abLocationCreatedToast', '"{{name}}" created').replace('{{name}}', created.name),
+        'success'
+      );
     },
     onError: (err) => {
       handleApiError(err, 'Failed to create location');
@@ -247,7 +250,10 @@ export function useAddressBook() {
       setSelectedLoc(updated);
       setIsEditOpen(false);
       void syncGlobalLocations(updated);
-      showToast(`"${updated.name}" updated`, 'success');
+      showToast(
+        t('abLocationUpdatedToast', '"{{name}}" updated').replace('{{name}}', updated.name),
+        'success'
+      );
     },
     onError: (err) => {
       handleApiError(err, 'Failed to update location');
@@ -260,7 +266,12 @@ export function useAddressBook() {
       setSelectedLoc(null);
       void syncGlobalLocations();
       const loc = locations.find((l) => l.id === id);
-      showToast(`"${loc?.name || 'Location'}" archived`);
+      showToast(
+        t('abLocationArchivedToast', '"{{name}}" archived').replace(
+          '{{name}}',
+          loc?.name || t('location', 'Location')
+        )
+      );
     },
     onError: (err) => {
       handleApiError(err, 'Failed to archive location');
@@ -272,7 +283,10 @@ export function useAddressBook() {
     onSuccess: (restored) => {
       setSelectedLoc(restored);
       void syncGlobalLocations(restored);
-      showToast(`"${restored.name}" restored`, 'success');
+      showToast(
+        t('abLocationRestoredToast', '"{{name}}" restored').replace('{{name}}', restored.name),
+        'success'
+      );
     },
     onError: (err) => {
       handleApiError(err, 'Failed to restore location');
@@ -324,7 +338,13 @@ export function useAddressBook() {
     onSuccess: (created) => {
       void syncGlobalLocations(created);
       setSelectedLoc(created);
-      showToast(`Duplicated as "${created.name}"`, 'success');
+      showToast(
+        t('abLocationDuplicatedToast', 'Duplicated as "{{name}}"').replace(
+          '{{name}}',
+          created.name
+        ),
+        'success'
+      );
     },
     onError: (err) => {
       handleApiError(err, 'Failed to duplicate location');
@@ -458,10 +478,10 @@ export function useAddressBook() {
       tags: '',
     };
 
-    const errors = validateCreateAll(payload);
+    const errors = validateCreateAll(payload, t);
     if (Object.keys(errors).length > 0) {
       const firstKey = Object.keys(errors)[0];
-      showToast(errors[firstKey] ?? 'Please fix validation errors', 'error');
+      showToast(errors[firstKey] ?? t('abValFixErrors', 'Please fix validation errors'), 'error');
       if (firstKey === 'companyEntity' || firstKey === 'type') setCreateStep(1);
       else if (['name', 'address', 'city', 'postal', 'role'].includes(firstKey)) setCreateStep(2);
       else setCreateStep(3);
@@ -472,19 +492,19 @@ export function useAddressBook() {
       setActionLoading(true);
       const isDuplicate = await checkLocationDuplicate(payload.name, payload.company);
       if (isDuplicate) {
-        showToast(DUPLICATE_LOCATION_MESSAGE, 'error');
+        showToast(t(DUPLICATE_LOCATION_KEY, DUPLICATE_LOCATION_MESSAGE), 'error');
         setCreateStep(4);
         return;
       }
     } catch (err) {
-      handleApiError(err, 'Could not verify location name');
+      handleApiError(err, t('abVerifyNameFailed', 'Could not verify location name. Please try again.'));
       return;
     } finally {
       setActionLoading(false);
     }
 
     createLocationMutation.mutate(payload);
-  }, [createData, createLocationMutation, showToast, handleApiError, user?.company_name]);
+  }, [createData, createLocationMutation, showToast, handleApiError, user?.company_name, t]);
 
   const saveEditedLocation = useCallback(
     async (loc: LocationItem) => {
@@ -521,15 +541,18 @@ export function useAddressBook() {
       ]);
       setIsCompanyOpen(false);
       setCompanyData(EMPTY_COMPANY_DATA);
-      syncCustomerDropdownCaches(queryClient);
-      showToast(`Company "${created.name}" created`, 'success');
+      syncCustomerDropdownCaches(queryClient, { customer: created });
+      showToast(
+        t('abCompanyCreatedToast', 'Company "{{name}}" created').replace('{{name}}', created.name),
+        'success'
+      );
     } catch (err) {
       handleApiError(err, 'Failed to create company');
       throw err;
     } finally {
       setCompanySaving(false);
     }
-  }, [handleApiError, queryClient, showToast]);
+  }, [handleApiError, queryClient, showToast, t]);
 
   const openEditModal = useCallback(
     async (loc: LocationItem) => {
@@ -630,7 +653,13 @@ export function useAddressBook() {
       setCreateStep(1);
       setCreateData(EMPTY_CREATE_DATA);
       await handleSelectLocation(loc);
-      showToast(`Selected existing location "${loc.name}"`, 'success');
+      showToast(
+        t('abExistingLocationSelectedToast', 'Selected existing location "{{name}}"').replace(
+          '{{name}}',
+          loc.name
+        ),
+        'success'
+      );
     },
     [handleSelectLocation, showToast]
   );

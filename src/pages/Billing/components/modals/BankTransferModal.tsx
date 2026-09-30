@@ -74,7 +74,7 @@ export const BankTransferModal: React.FC<BankTransferModalProps> = ({
         <div className="billing-modal billing-modal--receipt" onClick={(e) => e.stopPropagation()}>
           <div className="billing-modal-h">
             <h3>{t('billingPage.modalBankTransfer', 'Bank Transfer Receipt')}</h3>
-            <button type="button" className="b-btn-ghost billing-modal-close" onClick={onClose} aria-label="Close">
+            <button type="button" className="b-btn-ghost billing-modal-close" onClick={onClose} aria-label={t('close', 'Close')}>
               <X size={18} />
             </button>
           </div>

@@ -23,6 +23,7 @@ import { LANGUAGES } from '../../constants/panel';
 import { useApp } from '../../context/AppContext';
 import { useShipperPermission } from '../../hooks/useShipperPermission';
 import { RbacAccessDenied } from '../../components/auth/RequireRbac';
+import { RBAC_ACCESS_DENIED_DEFAULT, toastRbacAccessDenied } from '../../utils/rbacToast';
 import type { ShipperRbacNavKey } from '../../utils/shipperRbacMap';
 import UserManagementSection from './UserManagementPage';
 import PersonalSection from './sections/PersonalSection';
@@ -97,7 +98,7 @@ function isValidSection(id: string | undefined): id is string {
 export default function Settings() {
   const { t, i18n } = useTranslation();
   const { T, isDark, toggleDark, navMode, setNavMode } = useTheme();
-  const { setLang } = useApp();
+  const { setLang, showToast } = useApp();
   const navigate = useNavigate();
   const { canNav } = useShipperPermission();
   const { section: sectionParam } = useParams<{ section?: string; tab?: string }>();
@@ -137,9 +138,13 @@ export default function Settings() {
 
   useEffect(() => {
     if (sectionDenied) {
+      toastRbacAccessDenied(
+        showToast,
+        t('rbac.accessDenied', { defaultValue: RBAC_ACCESS_DENIED_DEFAULT }),
+      );
       navigate(`/settings/${DEFAULT_SECTION}`, { replace: true });
     }
-  }, [sectionDenied, navigate]);
+  }, [sectionDenied, navigate, showToast, t]);
 
   const [kycNeedsAttention, setKycNeedsAttention] = useState(false);
   const [pendingPolicyCount, setPendingPolicyCount] = useState(0);

@@ -6,12 +6,17 @@ import {
   needsSignupComplete,
 } from './useSignupCompleteGate';
 
+function isSubUser(user: ShipperUser): boolean {
+  return user.is_sub_user === true || user.type === 'sub_user';
+}
+
 /**
  * Post-login destination.
  *
  * Social incomplete: dashboard (browse) — features soft-gated with modal → settings.
- * Social after company details: KYC first.
+ * Social after profile: KYC first → after accepted → mandatory Info Form → dashboard / tour
  * Normal email signup (unchanged): Info Form → KYC → company info → dashboard / tour
+ * Sub-users: always dashboard (never restore previous session route).
  */
 export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'): string {
   // Incomplete social prospects land on dashboard; profile soft-gated on feature use.
@@ -19,15 +24,17 @@ export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'):
     return '/dashboard';
   }
 
-  // Social after company details: KYC first
+  // Social: KYC before mandatory form
   if (isSocialShipper(user) && needsKycGate(user)) {
     return '/settings/compliance';
   }
 
+  // Social after KYC accepted (or normal): mandatory info form when required
   if (needsInfoFormHardGate(user)) {
     return '/settings/organization?from=info_form';
   }
 
+  // Normal: KYC after info form
   if (needsKycGate(user)) {
     return '/settings/compliance';
   }
@@ -40,11 +47,16 @@ export function postAuthDestination(user: ShipperUser, fallback = '/dashboard'):
     return '/dashboard';
   }
 
+  // Sub-users always land on dashboard after login / re-login.
+  if (isSubUser(user)) {
+    return '/dashboard';
+  }
+
   return fallback.startsWith('/') ? fallback : '/dashboard';
 }
 
 /**
- * Tour auto-start only after required signup + KYC (and info form) gates clear.
+ * Tour auto-start only after required signup + KYC + mandatory info form gates clear.
  */
 export function canStartOnboardingTour(user: ShipperUser | null | undefined): boolean {
   if (!user) return false;

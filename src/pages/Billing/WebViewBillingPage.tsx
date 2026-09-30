@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../hooks/useTranslation';
 import { WebViewLayout } from '../../layouts/WebViewLayout';
 import { BillingPage } from './BillingPage';
 import {
@@ -21,7 +21,7 @@ type Props = {
 
 export const WebViewBillingPage: React.FC<Props> = ({ role }) => {
   const [searchParams] = useSearchParams();
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [userId, setUserId] = useState<string>(() => {
     const fromUrl = searchParams.get('user_id');
     if (fromUrl) return fromUrl;
@@ -49,8 +49,13 @@ export const WebViewBillingPage: React.FC<Props> = ({ role }) => {
     return (
       <WebViewLayout>
         <div className="webview-billing-error">
-          <h2>Billing unavailable</h2>
-          <p>Missing or invalid user session. Please open billing from the mobile app.</p>
+          <h2>{t('billingPage.webviewUnavailable', 'Billing unavailable')}</h2>
+          <p>
+            {t(
+              'billingPage.webviewSessionInvalid',
+              'Missing or invalid user session. Please open billing from the mobile app.'
+            )}
+          </p>
         </div>
       </WebViewLayout>
     );

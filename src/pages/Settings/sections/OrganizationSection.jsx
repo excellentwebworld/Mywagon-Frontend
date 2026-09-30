@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -18,13 +18,13 @@ import { useShipperPermission } from '../../../hooks/useShipperPermission';
 import { ACTION_RBAC } from '../../../utils/shipperRbacMap';
 import { needsInfoFormHardGate } from '../../../hooks/useInfoFormGate';
 import {
+  isSocialShipper,
   needsSignupComplete,
   needsSocialCompany,
   needsSocialPhone,
 } from '../../../hooks/useSignupCompleteGate';
-import { postAuthDestination } from '../../../hooks/postAuthDestination';
 import { organizationSettingsService } from '../../../api/services/organizationSettingsService';
-import { authService, signupService } from '../../../api/auth';
+import { signupService } from '../../../api/auth';
 import { GoogleMapAddressField } from '../../../components/AddressBook/GoogleMapAddressField';
 import { ContextualTutorialTrigger } from '../../../components/Tutorials';
 import { FORCE_TOUR_SESSION_KEY } from '../../../onboarding';
@@ -152,6 +152,15 @@ const MANDATORY_OPS_KEYS = new Set(
   OPS_SECTIONS_CONFIG.find((s) => s.id === 'mandatory')?.keys || []
 );
 
+const OPS_FIELD_MAX_SELECTIONS = {
+  product_types: 5,
+  frequent_pickups: 5,
+  frequent_dropoffs: 10,
+  truck_types_needed: 3,
+  top_challenges: 3,
+  myvagon_goals: 3,
+};
+
 function isMandatoryField(field) {
   if (!field) return false;
   return Boolean(field.required) || MANDATORY_OPS_KEYS.has(field.key);
@@ -176,14 +185,16 @@ export default function OrganizationSection() {
   const fromCompanyInfo =
     searchParams.get('from') === 'company_info' ||
     (user?.kyc_status === 'accepted' && user?.company_address_complete === false);
-  // Social stepwise signup: company/address first — never treat as info-form gate.
+  // Social stepwise signup: company/address first — never treat as info-form gate
+  // while signup_complete is still false.
   const fromSocialSetup =
     searchParams.get('from') === 'social_setup' ||
     needsSocialCompany(user) ||
     needsSignupComplete(user);
   const fromInfoForm =
-    !fromSocialSetup &&
     !needsSignupComplete(user) &&
+    !needsSocialCompany(user) &&
+    searchParams.get('from') !== 'social_setup' &&
     (searchParams.get('from') === 'info_form' || needsInfoFormHardGate(user));
   const [countriesDomicile, setCountriesDomicile] = useState([]);
 
@@ -281,9 +292,7 @@ export default function OrganizationSection() {
         category: 'shipper_company_description',
         type: 'single',
         input_type: 'textarea',
-        label: t('settings.orgSection.operational.fields.company_description', {
-          defaultValue: 'Tell us briefly what your company does.',
-        }),
+        label: t('Settings.tell_us_briefly_what_your_company_does', 'Tell us briefly what your company does.'),
         required: false,
         options: [],
       };
@@ -338,6 +347,7 @@ export default function OrganizationSection() {
   }, [data, t]);
 
   const startLegalEdit = () => {
+    const toCoord = (v) => (v == null || v === '' ? '' : String(v));
     setLegalDraft({
       legal_name: data.legal.legal_name ?? '',
       trade_name: data.legal.trade_name ?? '',
@@ -347,8 +357,8 @@ export default function OrganizationSection() {
       city: data.legal.city ?? '',
       postal_code: data.legal.postal_code ?? '',
       country: data.legal.country ?? '',
-      lat: data.legal.lat ?? '',
-      lng: data.legal.lng ?? '',
+      lat: toCoord(data.legal.lat),
+      lng: toCoord(data.legal.lng),
       invoice_emails: [...(data.legal.invoice_emails || [])],
     });
     setEmailInput('');
@@ -364,6 +374,7 @@ export default function OrganizationSection() {
   }, [fromCompanyInfo, fromSocialSetup, data]);
 
   const startOpsEdit = () => {
+    if (!requireRbac(ACTION_RBAC.editCompanyInfo)) return;
     const draft = {};
     for (const field of opsFields) {
       const val = data.operations?.[field.key] ?? (field.key === 'company_description' ? data.branding?.company_description : undefined);
@@ -391,6 +402,7 @@ export default function OrganizationSection() {
   }, [fromInfoForm, data, opsFields]);
 
   const startBrandEdit = () => {
+    if (!requireRbac(ACTION_RBAC.editCompanyInfo)) return;
     setBrandDraft({
       public_profile: !!data.branding.public_profile,
       company_description: data.branding.company_description ?? '',
@@ -453,7 +465,14 @@ export default function OrganizationSection() {
     }
     setSavingLegal(true);
     try {
-      const payload = await organizationSettingsService.update({ legal: legalDraft });
+      const toCoord = (v) => (v == null || v === '' ? null : String(v));
+      const payload = await organizationSettingsService.update({
+        legal: {
+          ...legalDraft,
+          lat: toCoord(legalDraft.lat),
+          lng: toCoord(legalDraft.lng),
+        },
+      });
       applyPayload(payload);
       setEditingLegal(false);
       toast.success(t('settings.orgSection.saved'));
@@ -477,7 +496,7 @@ export default function OrganizationSection() {
     const missingMandatory = opsFields.find(
       (field) => isMandatoryField(field) && !isOpsValueFilled(field, opsDraft[field.key])
     );
-    if (fromInfoForm && missingMandatory) {
+    if (missingMandatory) {
       toast.error(
         t(
           'settings.orgSection.infoFormRequiredError',
@@ -496,26 +515,91 @@ export default function OrganizationSection() {
       }
       return;
     }
+
+    // Validate max selection limits on multi-select fields (e.g. product_types max 5)
+    for (const field of opsFields) {
+      const maxAllowed = field.max_selection || field.max || OPS_FIELD_MAX_SELECTIONS[field.key];
+      const val = opsDraft[field.key];
+      if (maxAllowed && Array.isArray(val) && val.length > maxAllowed) {
+        toast.error(
+          t('settings.orgSection.operational.maxSelectionsField', {
+            field: field.label,
+            max: maxAllowed,
+            defaultValue: `You can select up to ${maxAllowed} items for "${field.label}".`,
+          })
+        );
+        const parentSection = groupedOpsSections.find((s) =>
+          s.fields.some((f) => f.key === field.key)
+        );
+        if (parentSection) {
+          setOpenOpsSections((prev) => ({ ...prev, [parentSection.id]: true }));
+        }
+        const el = document.getElementById(`ops-field-${field.key}`);
+        if (el) {
+          scrollWithinSettings(el, { behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
+    }
+
+    // If uses_erp_system is 'Yes', erp_software_name is required (mirrors Laravel Parsley validation)
+    if (
+      String(opsDraft['uses_erp_system'] || '').toLowerCase() === 'yes' &&
+      !String(opsDraft['erp_software_name'] || '').trim()
+    ) {
+      toast.error(
+        t(
+          'settings.orgSection.operational.erpSoftwareRequired',
+          'Please specify ERP software name.'
+        )
+      );
+      const processesSec = groupedOpsSections.find((s) => s.id === 'processes');
+      if (processesSec) {
+        setOpenOpsSections((prev) => ({ ...prev, processes: true }));
+      }
+      const el = document.getElementById('ops-field-erp_software_name');
+      if (el) {
+        scrollWithinSettings(el, { behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
+    // Validate company description length (max 250 chars as in Laravel Parsley)
+    if (
+      opsDraft['company_description'] &&
+      String(opsDraft['company_description']).length > 250
+    ) {
+      toast.error(
+        t(
+          'settings.orgSection.operational.companyDescriptionMax',
+          'Maximum 250 characters are allowed for company description.'
+        )
+      );
+      return;
+    }
     setSavingOps(true);
     try {
       const payload = await organizationSettingsService.update({ operations: opsDraft });
       applyPayload(payload);
       setEditingOps(false);
       toast.success(t('settings.orgSection.saved'));
-      await refreshUser().catch(() => {});
+      const profile = await refreshUser().catch(() => null);
+      const nextUser = profile || user;
 
-      // After mandatory info form: next gate (KYC if pending) or dashboard/tour.
-      if (fromInfoForm && payload?.operations_meta?.is_mandatory_completed === true) {
-        try {
-          const profile = await authService.me();
-          const dest = postAuthDestination(profile);
-          if (dest === '/dashboard' && profile.onboarding_completed === false) {
-            safeSessionSet(FORCE_TOUR_SESSION_KEY, '1');
-          }
-          navigate(dest);
-        } catch {
-          navigate('/settings/compliance');
-        }
+      // Completion flag is on payload.completion (not operations_meta).
+      const mandatoryDone = payload?.completion?.is_mandatory_completed === true;
+      const socialAfterKyc =
+        isSocialShipper(nextUser) &&
+        !needsSignupComplete(nextUser) &&
+        nextUser?.kyc_status === 'accepted';
+
+      if (mandatoryDone && socialAfterKyc) {
+        // Social: KYC accepted → mandatory saved → dashboard + tour.
+        safeSessionSet(FORCE_TOUR_SESSION_KEY, '1');
+        navigate('/dashboard', { replace: true });
+      } else if (mandatoryDone && fromInfoForm) {
+        // Normal email signup: Info Form → KYC.
+        navigate('/settings/compliance', { replace: true });
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('settings.orgSection.saveError'));
@@ -744,7 +828,11 @@ export default function OrganizationSection() {
                   hideLabel
                   hideHint={false}
                   onAddressChange={(v) => setLegalDraft((p) => ({ ...p, billing_address: v }))}
-                  onLatLngChange={(lat, lng) => setLegalDraft((p) => ({ ...p, lat, lng }))}
+                  onLatLngChange={(lat, lng) => setLegalDraft((p) => ({
+                    ...p,
+                    lat: lat == null || lat === '' ? '' : String(lat),
+                    lng: lng == null || lng === '' ? '' : String(lng),
+                  }))}
                   onCityPostalChange={(city, postalCode) => {
                     setLegalDraft((p) => ({
                       ...p,
@@ -765,8 +853,8 @@ export default function OrganizationSection() {
                       city: place.city || p.city,
                       postal_code: place.postalCode || p.postal_code,
                       country: matchCountry || p.country,
-                      lat: place.lat || p.lat,
-                      lng: place.lng || p.lng,
+                      lat: place.lat != null && place.lat !== '' ? String(place.lat) : p.lat,
+                      lng: place.lng != null && place.lng !== '' ? String(place.lng) : p.lng,
                     }));
                   }}
                 />
@@ -1149,10 +1237,14 @@ export default function OrganizationSection() {
 
 function OpsField({ field, value, editing, onChange, T }) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const options = field.options || [];
   const isMulti = field.type === 'multi';
+  const maxSelection = isMulti
+    ? (field.max_selection || field.max || OPS_FIELD_MAX_SELECTIONS[field.key] || null)
+    : null;
   const inputType = (field.input_type || '').toLowerCase();
   const useTextarea = inputType.includes('textarea') || inputType.includes('text_area');
 
@@ -1202,25 +1294,50 @@ function OpsField({ field, value, editing, onChange, T }) {
     return false;
   };
 
-  const otherOption = options.find(
-    (o) =>
-      String(o.value).toLowerCase() === 'other' ||
-      slugify(o.label) === 'other' ||
-      String(o.label).toLowerCase() === 'other'
-  );
+  // Match "Other", "other", "Other please specify", slug other_please_specify, etc.
+  const otherOption = options.find((o) => isOtherLike(o.value) || isOtherLike(o.label)) || null;
+
+  const isOtherSelectedValue = (v) => {
+    if (isOtherLike(v)) return true;
+    if (otherOption && String(v) === String(otherOption.value)) return true;
+    return false;
+  };
 
   // Multi-choice state for "Other" custom specify text
   const multiSelected = isMulti ? (Array.isArray(value) ? value.map(String) : []) : [];
   const multiCustomOther = multiSelected.filter((v) => !findOption(v));
   const isMultiOtherActive =
     Boolean(otherOption) &&
-    (multiSelected.some(
-      (v) =>
-        String(v).toLowerCase() === 'other' ||
-        (otherOption && String(v) === String(otherOption.value)) ||
-        slugify(v) === 'other'
-    ) ||
-      multiCustomOther.length > 0);
+    (multiSelected.some((v) => isOtherSelectedValue(v)) || multiCustomOther.length > 0);
+
+  const otherDisplayLabel = (customText) => {
+    const base = otherOption?.label || t('common.other', { defaultValue: 'Other' });
+    const trimmed = String(customText || '').trim();
+    return trimmed ? `${base}: ${trimmed}` : base;
+  };
+
+  /** Chips for view / selected-summary: merge bare "Other" + custom text into one chip. */
+  const multiDisplayChips = (() => {
+    if (!isMulti) return [];
+    const chips = [];
+    for (const v of multiSelected) {
+      if (otherOption && isOtherSelectedValue(v)) continue;
+      if (otherOption && !findOption(v)) continue;
+      chips.push({ key: v, label: labelFor(v), isOtherGroup: false });
+    }
+    if (isMultiOtherActive) {
+      chips.push({
+        key: '__other__',
+        label: otherDisplayLabel(multiCustomOther.join(', ')),
+        isOtherGroup: true,
+      });
+    } else if (!otherOption) {
+      for (const v of multiCustomOther) {
+        chips.push({ key: v, label: labelFor(v), isOtherGroup: false });
+      }
+    }
+    return chips;
+  })();
 
   const [multiOtherText, setMultiOtherText] = useState(multiCustomOther.join(', '));
 
@@ -1229,18 +1346,21 @@ function OpsField({ field, value, editing, onChange, T }) {
       const custom = (Array.isArray(value) ? value.map(String) : []).filter((v) => !findOption(v));
       setMultiOtherText(custom.join(', '));
     }
+    // findOption identity changes each render; value/isMulti are the real deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, isMulti]);
+
+  const clearMultiOther = () => {
+    const without = multiSelected.filter((v) => findOption(v) && !isOtherSelectedValue(v));
+    setMultiOtherText('');
+    onChange(without);
+  };
 
   const handleMultiOtherTextChange = (text) => {
     setMultiOtherText(text);
     const predefined = multiSelected.filter((v) => findOption(v));
     const canonical = otherOption ? String(otherOption.value) : 'other';
-    const withoutOther = predefined.filter(
-      (v) =>
-        String(v).toLowerCase() !== 'other' &&
-        String(v) !== canonical &&
-        slugify(v) !== 'other'
-    );
+    const withoutOther = predefined.filter((v) => !isOtherSelectedValue(v));
     const next = [...withoutOther, canonical];
     if (text.trim()) {
       next.push(text.trim());
@@ -1254,20 +1374,18 @@ function OpsField({ field, value, editing, onChange, T }) {
   const isSingleOtherActive =
     !isMulti &&
     Boolean(otherOption) &&
-    (singleCurrent === String(otherOption.value) ||
-      singleCurrent.toLowerCase() === 'other' ||
-      slugify(singleCurrent) === 'other' ||
+    (isOtherSelectedValue(singleCurrent) ||
       (!singleMatched && singleCurrent !== ''));
 
   const [singleOtherText, setSingleOtherText] = useState(
-    !singleMatched && singleCurrent && singleCurrent !== 'other' ? singleCurrent : ''
+    !singleMatched && singleCurrent && !isOtherLike(singleCurrent) ? singleCurrent : ''
   );
 
   useEffect(() => {
     if (!isMulti) {
-      if (!singleMatched && singleCurrent && singleCurrent !== 'other') {
+      if (!singleMatched && singleCurrent && !isOtherLike(singleCurrent)) {
         setSingleOtherText(singleCurrent);
-      } else if (singleMatched && String(singleMatched.value).toLowerCase() !== 'other') {
+      } else if (singleMatched && !isOtherLike(singleMatched.value) && !isOtherLike(singleMatched.label)) {
         setSingleOtherText('');
       }
     }
@@ -1349,6 +1467,23 @@ function OpsField({ field, value, editing, onChange, T }) {
             }}
           >
             {t('settings.orgSection.operational.optional', { defaultValue: 'Optional' })}
+          </span>
+        )}
+
+        {maxSelection && isMulti && (
+          <span
+            className="inline-flex items-center px-2 py-0.5 rounded-full font-semibold whitespace-nowrap"
+            style={{
+              background: T.al,
+              color: T.ac,
+              border: `1px solid ${T.bd}`,
+              fontSize: 10.5,
+            }}
+          >
+            {t('settings.orgSection.operational.maxBadge', {
+              max: maxSelection,
+              defaultValue: `Max ${maxSelection}`,
+            })}
           </span>
         )}
 
@@ -1460,16 +1595,16 @@ function OpsField({ field, value, editing, onChange, T }) {
         {renderHeader()}
         {!editing ? (
           <div className="flex flex-wrap gap-1.5">
-            {selected.length === 0 ? (
+            {multiDisplayChips.length === 0 ? (
               <span style={{ fontSize: 13, color: T.t3 }}>—</span>
             ) : (
-              selected.map((v) => (
+              multiDisplayChips.map((chip) => (
                 <span
-                  key={v}
+                  key={chip.key}
                   className="px-2.5 py-1 rounded-full font-medium"
                   style={{ background: T.al, fontSize: 11, color: T.ac }}
                 >
-                  {labelFor(v)}
+                  {chip.label}
                 </span>
               ))
             )}
@@ -1479,7 +1614,7 @@ function OpsField({ field, value, editing, onChange, T }) {
             {renderSearchBox()}
 
             {/* Selected chips summary bar */}
-            {selected.length > 0 && (
+            {multiDisplayChips.length > 0 && (
               <div
                 className="flex flex-wrap items-center gap-1.5 mb-2.5 p-2 rounded-lg"
                 style={{
@@ -1488,14 +1623,20 @@ function OpsField({ field, value, editing, onChange, T }) {
                 }}
               >
                 <span style={{ fontSize: 11, fontWeight: 700, color: T.ac, marginRight: 2 }}>
-                  {t('settings.orgSection.operational.selectedCount', {
-                    count: selected.length,
-                    defaultValue: `Selected (${selected.length}):`,
-                  })}
+                  {maxSelection
+                    ? t('settings.orgSection.operational.selectedCountWithMax', {
+                        count: selected.length,
+                        max: maxSelection,
+                        defaultValue: `Selected (${selected.length}/${maxSelection}):`,
+                      })
+                    : t('settings.orgSection.operational.selectedCount', {
+                        count: selected.length,
+                        defaultValue: `Selected (${selected.length}):`,
+                      })}
                 </span>
-                {selected.map((val) => (
+                {multiDisplayChips.map((chip) => (
                   <span
-                    key={val}
+                    key={chip.key}
                     className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-medium"
                     style={{
                       background: T.sf,
@@ -1505,36 +1646,21 @@ function OpsField({ field, value, editing, onChange, T }) {
                       boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
                     }}
                   >
-                    <span>✓ {labelFor(val)}</span>
+                    <span>✓ {chip.label}</span>
                     <button
                       type="button"
                       onClick={() => {
-                        const isThisOther =
-                          otherOption &&
-                          (String(val) === String(otherOption.value) ||
-                            String(val).toLowerCase() === 'other' ||
-                            slugify(val) === 'other');
-                        if (isThisOther) {
-                          const canonical = String(otherOption.value);
-                          const without = selected.filter(
-                            (v) =>
-                              findOption(v) &&
-                              String(v).toLowerCase() !== 'other' &&
-                              String(v) !== canonical &&
-                              slugify(v) !== 'other'
-                          );
-                          onChange(without);
-                          setMultiOtherText('');
-                        } else {
-                          const canonical = String(val);
-                          const aliases = new Set([
-                            canonical,
-                            slugify(val),
-                            slugify(labelFor(val)),
-                          ]);
-                          const without = selected.filter((v) => !aliases.has(String(v)));
-                          onChange(without);
+                        if (chip.isOtherGroup) {
+                          clearMultiOther();
+                          return;
                         }
+                        const canonical = String(chip.key);
+                        const aliases = new Set([
+                          canonical,
+                          slugify(chip.key),
+                          slugify(chip.label),
+                        ]);
+                        onChange(selected.filter((v) => !aliases.has(String(v))));
                       }}
                       className="border-none bg-transparent cursor-pointer p-0 ml-0.5 flex items-center"
                       style={{ color: T.ac }}
@@ -1600,11 +1726,11 @@ function OpsField({ field, value, editing, onChange, T }) {
                 }}
               >
                 {displayOptions.map((opt) => {
-                  const isThisOther =
-                    otherOption &&
-                    (String(opt.value) === String(otherOption.value) ||
-                      String(opt.value).toLowerCase() === 'other' ||
-                      slugify(opt.label) === 'other');
+                  const isThisOther = otherOption && (
+                    String(opt.value) === String(otherOption.value) ||
+                    isOtherLike(opt.value) ||
+                    isOtherLike(opt.label)
+                  );
                   const active = isThisOther ? isMultiOtherActive : isSelected(opt, selected);
 
                   return (
@@ -1614,17 +1740,17 @@ function OpsField({ field, value, editing, onChange, T }) {
                       onClick={() => {
                         if (isThisOther) {
                           if (isMultiOtherActive) {
-                            const canonical = String(opt.value);
-                            const without = selected.filter(
-                              (v) =>
-                                findOption(v) &&
-                                String(v).toLowerCase() !== 'other' &&
-                                String(v) !== canonical &&
-                                slugify(v) !== 'other'
-                            );
-                            onChange(without);
-                            setMultiOtherText('');
+                            clearMultiOther();
                           } else {
+                            if (maxSelection && selected.length >= maxSelection) {
+                              toast.warning(
+                                t('settings.orgSection.operational.maxReached', {
+                                  max: maxSelection,
+                                  defaultValue: `You can select up to ${maxSelection} items only.`,
+                                })
+                              );
+                              return;
+                            }
                             const canonical = String(opt.value);
                             const next = [...selected, canonical];
                             if (multiOtherText.trim()) {
@@ -1640,7 +1766,20 @@ function OpsField({ field, value, editing, onChange, T }) {
                             slugify(opt.value),
                           ]);
                           const without = selected.filter((v) => !aliases.has(v));
-                          onChange(active ? without : [...without, canonical]);
+                          if (active) {
+                            onChange(without);
+                          } else {
+                            if (maxSelection && selected.length >= maxSelection) {
+                              toast.warning(
+                                t('settings.orgSection.operational.maxReached', {
+                                  max: maxSelection,
+                                  defaultValue: `You can select up to ${maxSelection} items only.`,
+                                })
+                              );
+                              return;
+                            }
+                            onChange([...without, canonical]);
+                          }
                         }
                       }}
                       className="px-2.5 py-1 rounded-full border-none cursor-pointer transition-all"
@@ -1740,7 +1879,9 @@ function OpsField({ field, value, editing, onChange, T }) {
     const current = singleCurrent;
     const matched = singleMatched;
     const selectValue = matched ? String(matched.value) : current;
-    const label = matched?.label || labelFor(current) || '';
+    const singleViewLabel = isSingleOtherActive
+      ? otherDisplayLabel(singleOtherText || (!isOtherLike(current) ? current : ''))
+      : (matched?.label || labelFor(current) || '');
 
     const displayOptions = isSearching ? filteredOptions : options;
 
@@ -1748,8 +1889,8 @@ function OpsField({ field, value, editing, onChange, T }) {
       <div id={`ops-field-${field.key}`} style={containerStyle}>
         {renderHeader()}
         {!editing ? (
-          <div style={{ fontSize: 13, color: label ? T.t1 : T.t3 }}>
-            {label || '—'}
+          <div style={{ fontSize: 13, color: singleViewLabel ? T.t1 : T.t3 }}>
+            {singleViewLabel || '—'}
           </div>
         ) : (
           <div>
@@ -1810,11 +1951,11 @@ function OpsField({ field, value, editing, onChange, T }) {
                 }}
               >
                 {displayOptions.map((opt) => {
-                  const isThisOther =
-                    otherOption &&
-                    (String(opt.value) === String(otherOption.value) ||
-                      String(opt.value).toLowerCase() === 'other' ||
-                      slugify(opt.label) === 'other');
+                  const isThisOther = otherOption && (
+                    String(opt.value) === String(otherOption.value) ||
+                    isOtherLike(opt.value) ||
+                    isOtherLike(opt.label)
+                  );
                   const active = isThisOther ? isSingleOtherActive : selectValue === String(opt.value);
 
                   return (
@@ -1905,7 +2046,7 @@ function OpsField({ field, value, editing, onChange, T }) {
             }}
             className="w-full px-3 py-2 rounded-lg outline-none"
             style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
-            placeholder="a, b, c"
+            placeholder={t('Settings.a_b_c', 'a, b, c')}
           />
         ) : (
           <div className="flex flex-wrap gap-1.5">
@@ -1943,13 +2084,21 @@ function OpsField({ field, value, editing, onChange, T }) {
       {renderHeader()}
       {editing ? (
         useTextarea ? (
-          <textarea
-            value={text}
-            onChange={(e) => onChange(e.target.value)}
-            rows={3}
-            className="w-full px-3 py-2 rounded-lg outline-none resize-none"
-            style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
-          />
+          <div>
+            <textarea
+              value={text}
+              maxLength={field.key === 'company_description' ? 250 : undefined}
+              onChange={(e) => onChange(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 rounded-lg outline-none resize-none"
+              style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+            />
+            {field.key === 'company_description' && (
+              <div className="text-right mt-1" style={{ fontSize: 11, color: text.length > 250 ? '#DC2626' : T.t3 }}>
+                {text.length}/250
+              </div>
+            )}
+          </div>
         ) : (
           <input
             value={text}
@@ -1987,14 +2136,16 @@ function SectionCard({ title, icon, editing, saving, onEdit, onSave, onCancel, h
           <h3 className="font-bold" style={{ fontSize: 14, color: theme.t1 }}>{title}</h3>
         </div>
         {!editing ? (
-          <button
-            type="button"
-            onClick={onEdit}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
-            style={{ background: theme.ac, color: '#fff', fontSize: 12 }}
-          >
-            <Pencil size={12} /> {t('common.edit')}
-          </button>
+          onEdit ? (
+            <button
+              type="button"
+              onClick={onEdit}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer border-none font-semibold"
+              style={{ background: theme.ac, color: '#fff', fontSize: 12 }}
+            >
+              <Pencil size={12} /> {t('common.edit')}
+            </button>
+          ) : null
         ) : (
           <div className="flex gap-2">
             <button
@@ -2062,10 +2213,11 @@ function LegalField({ label, value, onChange, locked, editing, required }) {
 }
 
 function OrgSkeleton({ T }) {
+  const { t } = useTranslation();
   const sk = { baseColor: T.sa, highlightColor: T.bd };
 
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="Loading">
+    <div className="space-y-4" aria-busy="true" aria-label={t('Settings.loading', 'Loading')}>
       {/* Completion gauge */}
       <div className="rounded-xl px-5 py-4" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
         <div className="flex items-center justify-between gap-3 mb-3">
@@ -2196,6 +2348,19 @@ function slugify(text) {
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '')
     .replace(/_+/g, '_');
+}
+
+/** Detect "Other" / "Other please specify" / Greek Άλλο option labels & values. */
+function isOtherLike(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return false;
+  const lower = raw.toLowerCase();
+  if (lower === 'other' || lower === 'άλλο' || lower === 'αλλo') return true;
+  const slug = slugify(raw);
+  if (slug === 'other' || slug.startsWith('other_')) return true;
+  if (lower.startsWith('other ') || lower.startsWith('other,')) return true;
+  if (lower.includes('please specify') && lower.includes('other')) return true;
+  return false;
 }
 
 function normalizeSearch(str) {

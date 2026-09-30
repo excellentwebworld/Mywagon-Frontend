@@ -20,6 +20,7 @@ import {
   isChatDocumentMessage,
   isChatImageMessage,
 } from '../../../utils/chatPartnerUtils';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface ChatThreadProps {
   messages: ChatMessage[];
@@ -48,6 +49,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
   t,
   lang,
 }) => {
+  const { t: tMsg } = useTranslation();
   const { user } = useAuth();
   const msgAreaRef = useRef<HTMLDivElement>(null);
   const msgEndRef = useRef<HTMLDivElement>(null);
@@ -288,7 +290,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
               >
                 {isSent ? (
                   user?.profile_picture ? (
-                    <img src={user.profile_picture} alt="You" style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }} />
+                    <img src={user.profile_picture} alt={tMsg('Messages.you', 'You')} style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }} />
                   ) : (
                     userInitials || m.initials || 'SV'
                   )
@@ -301,7 +303,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                 )}
               </div>
               <div className="msg-content">
-                <div className="msg-sender">{isSent ? 'You' : conversation.name}</div>
+                <div className="msg-sender">{isSent ? tMsg('Messages.you', 'You') : conversation.name}</div>
                 <div className={`msg-bubble ${isImage ? 'msg-bubble-image' : ''} ${isDocument ? 'msg-bubble-doc' : ''}`}>
                   {isVoice ? (
                     <VoicePlayer voiceUrl={m.voiceUrl || m.text || ''} duration={m.duration} isSent={isSent} />
@@ -372,7 +374,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                       type="button"
                       className="msg-retry-btn"
                       onClick={() => onRetryMessage && onRetryMessage(m)}
-                      title="Failed to send. Click to retry"
+                      title={tMsg('Messages.failed_to_send_click_to_retry', 'Failed to send. Click to retry')}
                     >
                       <RotateCcw size={12} />
                       <span>{t('chatModule.retrySend') || 'Retry'}</span>

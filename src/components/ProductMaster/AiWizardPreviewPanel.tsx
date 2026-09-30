@@ -5,6 +5,7 @@ import {
   TEMP_OPTIONS,
   UOM_OPTIONS,
 } from '../../pages/ProductMaster/constants';
+import { optionLabel } from '../../pages/ProductMaster/optionLabels';
 import {
   computeColumnMapping,
   fieldValue as getFieldValue,
@@ -155,7 +156,7 @@ function ColumnMappingSummaryBar({
       <div style={{ gridColumn: 'span 2', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px', borderBottom: '1px solid var(--bd)', paddingBottom: '6px' }}>
         <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--t2)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => setIsExpanded(false)}>
           <span className="summary-toggle-icon" style={{ transform: 'rotate(90deg)', display: 'inline-block' }}>▶</span>
-          Column Mapping Details
+          {t('aiWizardColumnMappingDetails', { defaultValue: 'Column Mapping Details' })}
         </span>
         <button
           type="button"
@@ -183,8 +184,8 @@ function ColumnMappingSummaryBar({
             <span className="ai-preview-col-summary-empty">{t('aiWizardNoMappedColumns')}</span>
           ) : (
             summary.mapped.map((col) => (
-              <span key={`${col.header}-${col.field}`} className="ai-detected-col-chip ai-detected-col-mapped" title={col.label}>
-                {col.header} → {col.label}
+              <span key={`${col.header}-${col.field}`} className="ai-detected-col-chip ai-detected-col-mapped" title={col.labelKey ? t(col.labelKey) : col.label}>
+                {col.header} → {col.labelKey ? t(col.labelKey) : col.label}
               </span>
             ))
           )}
@@ -219,6 +220,8 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
   onRowsChange,
 }) => {
   const [filter, setFilter] = useState<PreviewFilter>('all');
+  const labelT = (key: string, fallback?: string) =>
+    t(key, fallback ? { defaultValue: fallback } : undefined);
 
   const columnSummary = useMemo(() => computeColumnMapping(fileHeaders), [fileHeaders]);
 
@@ -358,7 +361,7 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
           {emptyOption}
           {UOM_OPTIONS.map((u) => (
             <option key={u} value={u}>
-              {u}
+              {optionLabel('uom', u, labelT)}
             </option>
           ))}
         </select>
@@ -371,7 +374,7 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
           {emptyOption}
           {TEMP_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>
-              {opt}
+              {optionLabel('temp', opt, labelT)}
             </option>
           ))}
         </select>
@@ -384,7 +387,7 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
           {emptyOption}
           {PALLET_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>
-              {opt}
+              {optionLabel('pallet', opt, labelT)}
             </option>
           ))}
         </select>
@@ -405,8 +408,8 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
       return (
         <select {...common} value={val} onChange={(e) => updateProduct(row.id, { status: e.target.value })}>
           {emptyOption}
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
+          <option value="Active">{t('productMaster.active', { defaultValue: 'Active' })}</option>
+          <option value="Inactive">{t('productMaster.inactive', { defaultValue: 'Inactive' })}</option>
         </select>
       );
     }

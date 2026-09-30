@@ -119,7 +119,9 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
           <span className="sat-card-side__cap">{truck.capacity}</span>
         ) : null}
         <span className={`sat-bg ${truck.trip === 'Direct only' ? 'sat-bg-wr' : 'sat-bg-ok'}`}>
-          {truck.trip}
+          {truck.trip === 'Direct only'
+            ? t('satDirectOnly', { defaultValue: 'Direct only' })
+            : t('satMultiStopOk', { defaultValue: 'Multi-stop OK' })}
         </span>
         <span className="sat-muted sat-card-side__id">#{truck.label || truck.id}</span>
       </div>

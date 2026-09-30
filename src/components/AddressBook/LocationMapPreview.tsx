@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { loadGoogleMaps } from './GoogleMapAddressField';
 import { parseGooglePlace, type ParsedPlaceAddress } from '../../pages/AddressBook/utils/parseGooglePlaceAddress';
+import { useTranslation } from '../../hooks/useTranslation';
 
 type Props = {
   lat: string;
@@ -21,6 +22,7 @@ export const LocationMapPreview: React.FC<Props> = ({
   onLatLngChange,
   onPlaceSelected,
 }) => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const mapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY as string | undefined;
 
@@ -58,7 +60,7 @@ export const LocationMapPreview: React.FC<Props> = ({
           position: { lat: initialLat, lng: initialLng },
           map: map,
           draggable: true,
-          title: address || 'Drag me to set location',
+          title: address || t('abDragToSetLocation', 'Drag me to set location'),
         });
 
         mapRef.current = map;
@@ -136,7 +138,7 @@ export const LocationMapPreview: React.FC<Props> = ({
     return (
       <div className="ab-map-preview">
         <div className="ab-map-preview-frame">
-          <iframe title={address || 'Location map'} src={osmUrl} loading="lazy" />
+          <iframe title={address || t('abLocationMap', 'Location Map')} src={osmUrl} loading="lazy" />
         </div>
       </div>
     );

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { ListShipmentsParams, ShipmentKpiKey, ApiShipmentsSummary } from '../../api/types/shipments';
 import type { Shipment } from '../../context/AppContext';
 import { useShipmentsList } from '../../hooks/useShipments';
+import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatEuro } from '../../pages/ManageShipments/utils/listingUtils';
 import { LoadStatus } from '../ui/mv';
@@ -67,6 +68,7 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { requireSignupComplete } = useRequireSignupComplete();
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [detailCache, setDetailCache] = useState<Record<string, Shipment>>({});
@@ -135,7 +137,13 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
           </svg>
           <span>{t('manageShipments')}</span>
         </h3>
-        <Link to={manageShipmentsHref(safeTab)} className="card-link">
+        <Link
+          to={manageShipmentsHref(safeTab)}
+          className="card-link"
+          onClick={(e) => {
+            if (!requireSignupComplete()) e.preventDefault();
+          }}
+        >
           {t('manageShipments')} →
         </Link>
       </div>
@@ -255,6 +263,7 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
                                   mapEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                 }
                               } else {
+                                if (!requireSignupComplete()) return;
                                 navigate(`/shipments/${row.id}`);
                               }
                             }}

@@ -7,18 +7,8 @@ import { assetUrl } from "../../utils/assetUrl";
 import collapsedLogo from "../../assets/logo/logo.svg";
 import { usePastDueLock } from "../../hooks/usePastDueLock";
 import { useRequireSignupComplete } from "../../hooks/useRequireSignupComplete";
+import { isSignupCompleteAllowedPath } from "../../hooks/useSignupCompleteGate";
 import { useShipperPermission } from "../../hooks/useShipperPermission";
-
-/** Paths incomplete social users may open without the profile modal. */
-function isSignupBrowseAllowed(path: string): boolean {
-  const p = path.replace(/\/$/, "") || "/";
-  if (p === "/dashboard") return true;
-  if (p === "/settings" || p.startsWith("/settings/")) return true;
-  if (p === "/billing" || p.startsWith("/billing/")) return true;
-  if (p === "/subscription" || p.startsWith("/subscription/")) return true;
-  if (p === "/analytics" || p.startsWith("/analytics/")) return true;
-  return false;
-}
 
 interface SidebarProps {
   collapsed: boolean;
@@ -73,7 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       onCloseMobile();
       return;
     }
-    if (signupIncomplete && !isSignupBrowseAllowed(path)) {
+    if (signupIncomplete && !isSignupCompleteAllowedPath(path)) {
       e.preventDefault();
       requireSignupComplete();
       return;
@@ -93,7 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <aside
         className={`sidebar ${mobileOpen ? "mobile-open" : ""} ${collapsed ? "collapsed" : ""} ${pastDueLocked ? "past-due-locked" : ""}`}
         id="sidebar"
-        aria-label="Main navigation"
+        aria-label={t("mainNavigation", "Main navigation")}
         onClickCapture={(e) => {
           if (!pastDueLocked) return;
           const anchor = (e.target as HTMLElement).closest("a");
@@ -177,13 +167,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 to="/shipments/create"
                 onClick={(e) => onFeatureNav(e, "/shipments/create")}
                 className={`ni ${isLinkActive("/shipments/create") ? "active" : ""}`}
-                title={t("createShipment")}
+                title={t("createShipment.label", "Create Shipment")}
                 data-tour="create-shipment"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M12 5v14M5 12h14" />
                 </svg>
-                <span>{t("createShipment")}</span>
+                <span>{t("createShipment.label", "Create Shipment")}</span>
               </Link>
               )}
 

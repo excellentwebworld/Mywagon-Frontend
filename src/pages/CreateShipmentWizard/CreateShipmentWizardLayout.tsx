@@ -284,13 +284,13 @@ const CreateShipmentWizardLayoutInner: React.FC = () => {
         )}
       </div>
 
-      <nav className="stepper" aria-label="Progress steps">
+      <nav className="stepper" aria-label={t('createShipment.progressSteps', 'Progress steps')}>
         <div
           className={`step ${step === 1 ? 'act' : ''} ${step > 1 ? 'done' : ''}`}
           onClick={() => handleStepClick(1)}
         >
           <div className="sn">{step > 1 ? '✓' : '1'}</div>
-          <span>Details</span>
+          <span>{t('createShipment.details', 'Details')}</span>
         </div>
         <div className={`sl ${step > 1 ? 'done' : ''}`} />
 
@@ -299,13 +299,13 @@ const CreateShipmentWizardLayoutInner: React.FC = () => {
           onClick={() => handleStepClick(2)}
         >
           <div className="sn">{step > 2 ? '✓' : '2'}</div>
-          <span>Itinerary</span>
+          <span>{t('createShipment.itinerary', 'Itinerary')}</span>
         </div>
         <div className={`sl ${step > 2 ? 'done' : ''}`} />
 
         <div className={`step ${step === 3 ? 'act' : ''}`} onClick={() => handleStepClick(3)}>
           <div className="sn">3</div>
-          <span>Vehicle & Pricing</span>
+          <span>{t('createShipment.vehiclePricing', 'Vehicle & Pricing')}</span>
         </div>
       </nav>
 

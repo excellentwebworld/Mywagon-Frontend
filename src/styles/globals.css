@@ -745,8 +745,19 @@ a { color: inherit; text-decoration: none; }
 .btn-secondary:hover { border-color: var(--border-focus); color: var(--text-primary); background: var(--surface); }
 .btn-ghost  { background: transparent; color: var(--text-secondary); border: 1px solid transparent; }
 .btn-ghost:hover  { background: var(--surface-alt); color: var(--text-primary); }
-.btn-danger { background: var(--danger); color: #fff; }
-.btn-danger:hover { background: #DC2626; transform: translateY(-1px); }
+.btn-danger,
+.btn.btn-danger {
+  background: var(--danger, #DC2626);
+  border: 1px solid var(--danger, #DC2626);
+  color: #fff;
+}
+.btn-danger:hover,
+.btn.btn-danger:hover {
+  background: #B91C1C;
+  border-color: #B91C1C;
+  color: #fff;
+  transform: translateY(-1px);
+}
 .btn-sm { padding: 6px 12px; font-size: 12px; }
 .btn-lg { padding: 12px 28px; font-size: 16px; }
 .btn-xl { padding: 16px 28px; font-size: 24px; }
@@ -2937,17 +2948,102 @@ html.dark,
 }
 
 .dark .btn.btn-secondary,
-.dark .btn-secondary {
+.dark .btn-secondary,
+[data-theme='dark'] .btn.btn-secondary,
+[data-theme='dark'] .btn-secondary {
   background: var(--surface, #16162A);
   border-color: var(--border, #2A2A48);
   color: var(--text-secondary, #A0A0B8);
 }
 
 .dark .btn.btn-secondary:hover,
-.dark .btn-secondary:hover {
+.dark .btn-secondary:hover,
+[data-theme='dark'] .btn.btn-secondary:hover,
+[data-theme='dark'] .btn-secondary:hover {
   background: var(--surface-alt, #1E1E36);
   border-color: var(--border-focus, #3A3A58);
   color: #FFFFFF;
+}
+
+.dark .btn-danger,
+.dark .btn.btn-danger,
+[data-theme='dark'] .btn-danger,
+[data-theme='dark'] .btn.btn-danger {
+  background: #DC2626 !important;
+  border-color: #DC2626 !important;
+  color: #FFFFFF !important;
+}
+
+.dark .btn-danger:hover,
+.dark .btn.btn-danger:hover,
+[data-theme='dark'] .btn-danger:hover,
+[data-theme='dark'] .btn.btn-danger:hover {
+  background: #B91C1C !important;
+  border-color: #B91C1C !important;
+  color: #FFFFFF !important;
+  transform: translateY(-1px);
+}
+
+.dark .btn-primary,
+.dark .btn.btn-primary,
+[data-theme='dark'] .btn-primary,
+[data-theme='dark'] .btn.btn-primary {
+  background: var(--accent, #9B51E0) !important;
+  border-color: var(--accent, #9B51E0) !important;
+  color: #FFFFFF !important;
+}
+
+.dark .btn-primary:hover,
+.dark .btn.btn-primary:hover,
+[data-theme='dark'] .btn-primary:hover,
+[data-theme='dark'] .btn.btn-primary:hover {
+  background: var(--accent-hover, #843cc9) !important;
+  border-color: var(--accent-hover, #843cc9) !important;
+  color: #FFFFFF !important;
+  transform: translateY(-1px);
+}
+
+/* Confirmation and dialog popups in dark mode */
+.confirmation-modal .modal-footer .btn.btn-danger {
+  background: #DC2626;
+  border: 1px solid #DC2626;
+  color: #FFFFFF;
+}
+
+.confirmation-modal .modal-footer .btn.btn-danger:hover {
+  background: #B91C1C;
+  border-color: #B91C1C;
+  color: #FFFFFF;
+  transform: translateY(-1px);
+}
+
+.dark .confirmation-modal .modal-footer .btn.btn-danger,
+[data-theme='dark'] .confirmation-modal .modal-footer .btn.btn-danger {
+  background: #DC2626 !important;
+  border-color: #DC2626 !important;
+  color: #FFFFFF !important;
+}
+
+.dark .confirmation-modal .modal-footer .btn.btn-danger:hover,
+[data-theme='dark'] .confirmation-modal .modal-footer .btn.btn-danger:hover {
+  background: #B91C1C !important;
+  border-color: #B91C1C !important;
+  color: #FFFFFF !important;
+  transform: translateY(-1px);
+}
+
+.dark .confirmation-modal .modal-footer .btn.btn-secondary,
+[data-theme='dark'] .confirmation-modal .modal-footer .btn.btn-secondary {
+  background: var(--surface-alt, #1A1A38) !important;
+  border: 1px solid var(--border, #2E2E58) !important;
+  color: var(--text-secondary, #C9C8D6) !important;
+}
+
+.dark .confirmation-modal .modal-footer .btn.btn-secondary:hover,
+[data-theme='dark'] .confirmation-modal .modal-footer .btn.btn-secondary:hover {
+  background: var(--surface, #1F1F41) !important;
+  border-color: var(--border-focus, #3D3D6E) !important;
+  color: #FFFFFF !important;
 }
 
 .dark .modal-close {

@@ -3,6 +3,8 @@ import { addressBookService } from '../../../api';
 export const DUPLICATE_LOCATION_MESSAGE =
   'A location with this name already exists for this company.';
 
+export const DUPLICATE_LOCATION_KEY = 'abDuplicateLocation';
+
 export async function checkLocationDuplicate(
   locationName: string,
   companyName: string,

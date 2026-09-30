@@ -3,6 +3,7 @@
 // Every colour below is a CSS variable. If you need a colour that isn't here, it's the wrong colour.
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 /* ------------------------------------------------------------------ */
 /* 1. STATUS → TONE MAP (single source of truth for every status chip) */
@@ -49,6 +50,7 @@ export const LOAD_STATUS = {
 };
 
 export function LoadStatus({ status, bids, sub, label }) {
+  const { t } = useTranslation();
   const raw = String(status || 'draft').toLowerCase().trim();
   const spaced = raw.replace(/_/g, ' ').replace(/fullfilled/g, 'fulfilled');
   const k =
@@ -65,22 +67,24 @@ export function LoadStatus({ status, bids, sub, label }) {
               : spaced === 'canceled' || spaced === 'cancelled'
                 ? 'canceled'
                 : spaced;
-  const t = LOAD_STATUS[k] || LOAD_STATUS.draft;
+  const tone = LOAD_STATUS[k] || LOAD_STATUS.draft;
   const display = label || status;
-  const second = bids ? `${bids} bid requests` : sub;
-  if (t.split) {
+  const second = bids
+    ? t('statusBidRequestsCount', { count: bids, defaultValue: `${bids} bid requests` })
+    : sub;
+  if (tone.split) {
     return (
       <span style={{ display: 'inline-flex', minHeight: 26, borderRadius: 8, overflow: 'hidden', fontSize: 12, fontWeight: 600, border: '1px solid var(--app-black-contour)' }}>
-        <span style={{ display: 'flex', alignItems: 'center', padding: '0 9px', background: '#E6E6E8', color: '#1F1F41' }}>Partially</span>
-        <span style={{ display: 'flex', alignItems: 'center', padding: '0 9px', background: '#000001', color: '#FFFFFF' }}>Fulfilled</span>
+        <span style={{ display: 'flex', alignItems: 'center', padding: '0 9px', background: '#E6E6E8', color: '#1F1F41' }}>{t('ui.partially', 'Partially')}</span>
+        <span style={{ display: 'flex', alignItems: 'center', padding: '0 9px', background: '#000001', color: '#FFFFFF' }}>{t('ui.fulfilled', 'Fulfilled')}</span>
       </span>
     );
   }
   return (
     <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: 108, minHeight: 26, padding: '4px 10px',
-      borderRadius: 8, background: t.bg, color: t.fg, border: t.border || '1px solid transparent', fontSize: 12, fontWeight: 600, lineHeight: 1.25, textAlign: 'center' }}>
+      borderRadius: 8, background: tone.bg, color: tone.fg, border: tone.border || '1px solid transparent', fontSize: 12, fontWeight: 600, lineHeight: 1.25, textAlign: 'center' }}>
       {display}
-      {second && <span style={{ fontSize: 11, fontWeight: 500, color: t.subFg || 'inherit' }}>{second}</span>}
+      {second && <span style={{ fontSize: 11, fontWeight: 500, color: tone.subFg || 'inherit' }}>{second}</span>}
     </span>
   );
 }
@@ -99,12 +103,13 @@ export const OpsDot = ({ filter }) => <span style={{ width: 7, height: 7, border
 
 /* 1d. STOP TYPE — Pickup white, Dropoff black (existing coding). Dark mode: black label gets a white contour via --app-black-contour. */
 export function StopTag({ type }) {
+  const { t } = useTranslation();
   const drop = String(type).toLowerCase() === 'dropoff';
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 8px', borderRadius: 8, fontSize: 11, fontWeight: 600, letterSpacing: '0.04em',
       background: drop ? '#000001' : '#FFFFFF', color: drop ? '#FFFFFF' : '#000001',
       border: drop ? '1px solid var(--app-black-contour)' : '1px solid var(--app-border-strong)' }}>
-      {drop ? 'DROPOFF' : 'PICKUP'}
+      {drop ? t('dropoffUpper', 'DROPOFF') : t('pickupUpper', 'PICKUP')}
     </span>
   );
 }
@@ -296,14 +301,19 @@ export function Toggle({ checked, onChange, label, disabled }) {
 /* 9. USAGE METER — brand gradient; functional colour only near the limit */
 /* ------------------------------------------------------------------ */
 export function UsageMeter({ label, used, limit }) {
+  const { t } = useTranslation();
   const unlimited = limit == null;
   const pct = unlimited ? 0 : Math.min(100, (used / limit) * 100);
   const fill = pct >= 100 ? 'var(--mv-danger)' : pct >= 85 ? 'var(--mv-warning)' : 'var(--mv-grad-purple-blue)';
+  const unlimitedLabel = t('subscriptionPage.unlimitedDays', { defaultValue: 'Unlimited' });
   return (
-    <div style={{ padding: 16, borderRadius: 12, border: '1px solid var(--app-border)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-        <span style={{ color: 'var(--app-text-2)', fontWeight: 500 }}>{label}</span>
-        <span style={{ fontVariantNumeric: 'tabular-nums' }}><b>{used}</b><span style={{ color: 'var(--app-text-3)' }}> / {unlimited ? 'Unlimited' : limit}</span></span>
+    <div style={{ padding: 16, borderRadius: 12, border: '1px solid var(--app-border)', minWidth: 0 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13, alignItems: 'flex-start' }}>
+        <span style={{ color: 'var(--app-text-2)', fontWeight: 500, minWidth: 0, lineHeight: 1.35, overflowWrap: 'anywhere' }}>{label}</span>
+        <span style={{ fontVariantNumeric: 'tabular-nums', flexShrink: 0, textAlign: 'right', whiteSpace: 'nowrap' }}>
+          <b>{used}</b>
+          <span style={{ color: 'var(--app-text-3)' }}> / {unlimited ? unlimitedLabel : limit}</span>
+        </span>
       </div>
       <div style={{ marginTop: 12, height: 6, borderRadius: 3, background: 'var(--mv-grey-100)' }}>
         {!unlimited && <div style={{ width: pct + '%', height: '100%', borderRadius: 3, background: fill }} />}

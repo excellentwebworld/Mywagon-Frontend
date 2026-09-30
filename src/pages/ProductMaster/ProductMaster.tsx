@@ -37,7 +37,7 @@ export const ProductMaster: React.FC = () => {
 
         {pm.subscriptionBlocked && (
           <div className="ab-subscription-banner" role="alert">
-            {pm.error ?? 'Product Master access requires an active subscription.'}
+            {pm.error ?? pm.t('pmSubscriptionRequired', 'Product Master access requires an active subscription.')}
           </div>
         )}
 

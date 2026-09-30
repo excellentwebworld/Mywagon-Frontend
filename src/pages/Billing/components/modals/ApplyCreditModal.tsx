@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Wallet, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Invoice } from '../../types';
-import { formatCurrency } from '../../mockData';
+import { formatCurrency, isInvoicePaid, normalizeInvoiceStatus } from '../../mockData';
 import { BillingModalPortal } from './BillingModalPortal';
 import { ApplyCreditModalSkeleton } from '../BillingSkeleton';
 
@@ -24,7 +24,9 @@ export const ApplyCreditModal: React.FC<ApplyCreditModalProps> = ({
   onApply,
 }) => {
   const { t } = useTranslation();
-  const unpaidInvoices = invoices.filter((i) => i.rem > 0 && i.status !== 'Paid' && i.status !== 'Voided');
+  const unpaidInvoices = invoices.filter(
+    (i) => i.rem > 0 && !isInvoicePaid(i.status) && normalizeInvoiceStatus(i.status) !== 'voided',
+  );
   const payableInvoices = unpaidInvoices.filter((i) => i.rem <= walletBalance);
 
   const [selectedInv, setSelectedInv] = useState('');

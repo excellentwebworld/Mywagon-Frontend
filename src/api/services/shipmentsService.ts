@@ -2,7 +2,9 @@ import { apiGet, apiPost, apiPut, apiDelete, AUTH_TOKEN_KEY, ApiError } from '..
 import { mapApiDetailToShipment, mapApiListItemToShipment } from '../mappers/shipmentsMapper';
 import type {
   ApiCancelReasonsPayload,
+  ApiCoOwnersResponse,
   ApiNegotiationHistoryItem,
+  ApiShipmentCoOwner,
   ApiShipmentDetail,
   ApiShipmentDocument,
   ApiShipmentListItem,
@@ -353,5 +355,21 @@ export const shipmentsService = {
     locationId?: string | number
   ): Promise<void> {
     await apiPost(`/shipments/${id}/request-pod`, { location_id: locationId });
+  },
+
+  async getCoOwners(id: string | number): Promise<ApiCoOwnersResponse> {
+    const res = await apiGet<ApiCoOwnersResponse>(`/shipments/${id}/co-owners`);
+    return res.data;
+  },
+
+  async assignCoOwners(
+    id: string | number,
+    coOwnerIds: number[]
+  ): Promise<{ shipment_id: number; co_owners: ApiShipmentCoOwner[] }> {
+    const res = await apiPost<{ shipment_id: number; co_owners: ApiShipmentCoOwner[] }>(
+      `/shipments/${id}/co-owners`,
+      { co_owner_ids: coOwnerIds }
+    );
+    return res.data;
   },
 };

@@ -166,8 +166,12 @@
   transform: translateY(-1px);
 }
 .subscription-page .ps-card--plan {
-  background: linear-gradient(160deg, #faf5ff 0%, #fff 55%);
-  border-color: rgba(155, 81, 224, 0.2);
+  background: linear-gradient(160deg, rgba(155, 81, 224, 0.08) 0%, var(--surface, #fff) 55%);
+  border-color: rgba(155, 81, 224, 0.25);
+}
+[data-theme='dark'] .subscription-page .ps-card--plan {
+  background: linear-gradient(160deg, rgba(155, 81, 224, 0.16) 0%, var(--surface) 55%);
+  border-color: rgba(155, 81, 224, 0.35);
 }
 .subscription-page .ps-card-top {
   display: flex;
@@ -188,6 +192,12 @@
 .subscription-page .ps-icon--blue { background: #eff6ff; color: #2563eb; }
 .subscription-page .ps-icon--amber { background: #fffbeb; color: #d97706; }
 .subscription-page .ps-icon--green { background: #ecfdf5; color: #059669; }
+
+[data-theme='dark'] .subscription-page .ps-icon--purple { background: rgba(155, 81, 224, 0.2); color: #c084fc; }
+[data-theme='dark'] .subscription-page .ps-icon--blue { background: rgba(37, 99, 235, 0.2); color: #60a5fa; }
+[data-theme='dark'] .subscription-page .ps-icon--amber { background: rgba(217, 119, 6, 0.2); color: #fbbf24; }
+[data-theme='dark'] .subscription-page .ps-icon--green { background: rgba(5, 150, 105, 0.2); color: #34d399; }
+
 .subscription-page .ps-label {
   font-size: 10px;
   font-weight: 600;
@@ -223,10 +233,20 @@
   border: 1px solid #a7f3d0;
   margin-top: 8px;
 }
+[data-theme='dark'] .subscription-page .ps-badge {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.3);
+}
 .subscription-page .ps-badge.cancelled {
   background: var(--warning-bg, #fffbeb);
   color: #92400e;
   border-color: #fde68a;
+}
+[data-theme='dark'] .subscription-page .ps-badge.cancelled {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
 }
 .subscription-page .ps-badge.cancelled .dot { background: var(--warning, #f59e0b); }
 .subscription-page .ps-badge .dot {
@@ -239,6 +259,11 @@
   background: #fffbeb;
   color: #92400e;
   border-color: #fde68a;
+}
+[data-theme='dark'] .subscription-page .ps-badge.soon {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
 }
 .subscription-page .ps-badge.soon .dot { background: #f59e0b; }
 .subscription-page .ps-link {
@@ -308,16 +333,20 @@
 .subscription-page .cycle-btn.active { background: var(--mv-navy, #1F1F41); color: #fff; }
 .subscription-page .cycle-btn .save-tag {
   position: absolute;
-  top: -8px;
-  right: -4px;
+  top: -10px;
+  right: -8px;
   background: var(--sub-gold);
   color: #000;
   font-size: 8px;
   font-weight: 700;
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: 100px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .subscription-page .usage-section { margin-bottom: 0; }
@@ -354,7 +383,10 @@
   background: var(--surface, #fff);
 }
 .subscription-page .usage-card--seat {
-  background: linear-gradient(135deg, #faf5ff, #fff);
+  background: linear-gradient(135deg, rgba(155, 81, 224, 0.06), var(--surface-alt, #fafafe));
+}
+[data-theme='dark'] .subscription-page .usage-card--seat {
+  background: linear-gradient(135deg, rgba(155, 81, 224, 0.14), var(--surface-alt));
 }
 .subscription-page .uc-top {
   display: flex;
@@ -474,19 +506,25 @@
   color: #fff;
   font-size: 10px;
   font-weight: 700;
-  padding: 5px 16px;
+  padding: 5px 14px;
   border-radius: 100px;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.4px;
   white-space: nowrap;
+  max-width: calc(100% - 24px);
+  overflow: hidden;
+  text-overflow: ellipsis;
   z-index: 3;
 }
 .subscription-page .pop-tag { background: var(--sub-purple); }
 .subscription-page .cur-tag { background: var(--mv-grad-purple-blue, linear-gradient(135deg, #9B51E0, #4E5CDC)); }
 .subscription-page .pcard-top { padding: 28px 22px 0; }
 .subscription-page .pcard.feat .pcard-top {
-  background: linear-gradient(180deg, #faf8ff, #fff);
+  background: linear-gradient(180deg, rgba(155, 81, 224, 0.05), var(--surface, #fff));
   border-radius: var(--sub-r) var(--sub-r) 0 0;
+}
+[data-theme='dark'] .subscription-page .pcard.feat .pcard-top {
+  background: linear-gradient(180deg, rgba(155, 81, 224, 0.12), var(--surface));
 }
 .subscription-page .pnm {
   font-family: var(--font-app), Poppins, sans-serif;
@@ -503,21 +541,31 @@
   line-height: 1.4;
   min-height: 32px;
 }
-.subscription-page .pr { display: flex; align-items: baseline; gap: 3px; margin-bottom: 2px; }
+.subscription-page .pr { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 6px; margin-bottom: 2px; min-width: 0; }
 .subscription-page .pr .c {
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 16px;
   font-weight: 700;
+  flex-shrink: 0;
+  line-height: 1;
 }
 .subscription-page .pr .a {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 38px;
+  font-size: clamp(28px, 4.2vw, 36px);
   font-weight: 800;
-  letter-spacing: -2px;
+  letter-spacing: -0.5px;
   line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-.subscription-page .pr .p { font-size: 13px; color: var(--sub-text3); margin-left: 2px; }
-.subscription-page .pr .o { font-size: 13px; color: var(--sub-text3); text-decoration: line-through; margin-left: 8px; }
+.subscription-page .pr .p {
+  font-size: 13px;
+  color: var(--sub-text3);
+  margin-left: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.subscription-page .pr .o { font-size: 13px; color: var(--sub-text3); text-decoration: line-through; margin-left: 4px; }
 .subscription-page .pnt { font-size: 11px; color: var(--sub-text3); margin-bottom: 14px; min-height: 14px; }
 .subscription-page .cta {
   display: block;
@@ -532,6 +580,9 @@
   transition: all 0.2s;
   border: none;
   text-decoration: none;
+  white-space: normal;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 .subscription-page .cta.pri {
   background: var(--sub-purple);
@@ -551,6 +602,11 @@
   border: 1.5px solid #a7f3d0;
   cursor: default;
 }
+[data-theme='dark'] .subscription-page .cta.cur {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.3);
+}
 .subscription-page .pcard-cta { padding: 0 22px 18px; }
 .subscription-page .pcard-features {
   padding: 0 22px 22px;
@@ -568,23 +624,24 @@
 .subscription-page .fl { list-style: none; display: flex; flex-direction: column; gap: 0; margin: 0; padding: 0; }
 .subscription-page .fi {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 7px;
   font-size: 12.5px;
   color: var(--sub-text2);
   min-height: 28px;
   height: auto;
-  white-space: nowrap;
+  padding: 4px 0;
+  white-space: normal;
   overflow: visible;
 }
 .subscription-page .fi > .fi-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: unset;
   min-width: 0;
   flex: 1;
-}
-.subscription-page .fi.off .fi-label {
-  text-decoration: line-through;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .subscription-page .fi .ic {
   flex-shrink: 0;
@@ -593,6 +650,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-top: 2px;
+}
+.subscription-page .fi.off .fi-label {
+  text-decoration: line-through;
 }
 .subscription-page .fi .ic.ok { color: var(--sub-green); }
 .subscription-page .fi .ic.no { color: var(--sub-border); }
@@ -610,6 +671,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  margin-top: 1px;
 }
 .subscription-page .fi .sub-feat-val.is-infinity {
   font-size: 15px;
@@ -646,6 +708,7 @@
   white-space: nowrap;
   border: none;
   box-sizing: border-box;
+  margin-top: 2px;
 }
 .subscription-page .fi.mp-feat {
   background: linear-gradient(90deg, rgba(108, 60, 224, 0.06), transparent);
@@ -674,8 +737,8 @@
 .subscription-page .feat-table-wrap {
   display: none;
   margin-bottom: 24px;
-  background: #fff;
-  border: 1px solid var(--bd, #e4e4e8);
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e4e4e8);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -688,28 +751,29 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--t3, #8e8e9a);
-  background: var(--sa, #f0f0f3);
-  border-bottom: 1px solid var(--bd, #e4e4e8);
+  color: var(--text-tertiary, #8e8e9a);
+  background: var(--surface-alt, #f0f0f3);
+  border-bottom: 1px solid var(--border, #e4e4e8);
 }
 .subscription-page .feat-table th:first-child { width: 40%; }
 .subscription-page .feat-table td {
   padding: 8px 16px;
   font-size: 12px;
-  border-bottom: 1px solid var(--bd, #e4e4e8);
+  color: var(--text-primary, #121217);
+  border-bottom: 1px solid var(--border, #e4e4e8);
   vertical-align: middle;
 }
 .subscription-page .feat-table .cat-row td {
-  background: var(--ap, #f5f3ff);
+  background: var(--accent-pale, #f5f3ff);
   font-weight: 700;
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--ac, #9B51E0);
+  color: var(--accent, #9B51E0);
   padding: 6px 16px;
 }
-.subscription-page .feat-table .check { color: #10b981; font-size: 14px; }
-.subscription-page .feat-table .dash { color: var(--t3, #8e8e9a); opacity: 0.4; }
+.subscription-page .feat-table .check { color: var(--success, #10b981); font-size: 14px; }
+.subscription-page .feat-table .dash { color: var(--text-tertiary, #8e8e9a); opacity: 0.4; }
 .subscription-page .feat-mono {
   font-weight: 600;
   font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
@@ -753,7 +817,7 @@
   font-size: 13px;
   font-weight: 600;
   border: 1.5px solid var(--sub-border);
-  background: #fff;
+  background: var(--surface, #fff);
   color: var(--sub-text2);
   cursor: pointer;
   font-family: inherit;
@@ -779,7 +843,7 @@
   gap: 14px;
 }
 .subscription-page .ao-card {
-  background: #fff;
+  background: var(--surface, #fff);
   border: 1.5px solid var(--sub-border);
   border-radius: var(--sub-r);
   padding: 20px;
@@ -809,6 +873,7 @@
   font-size: 15px;
   font-weight: 700;
   letter-spacing: -0.2px;
+  color: var(--text-primary, #121217);
 }
 .subscription-page .ao-price {
   font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums;
@@ -818,7 +883,7 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-.subscription-page .ao-price span { font-size: 11px; color: var(--t3, #8e8e9a); font-weight: 600; }
+.subscription-page .ao-price span { font-size: 11px; color: var(--text-tertiary, #8e8e9a); font-weight: 600; }
 .subscription-page .ao-desc {
   font-size: 12px;
   color: var(--sub-text2);
@@ -827,21 +892,21 @@
 }
 .subscription-page .ao-included {
   font-size: 11px;
-  color: var(--t3, #8e8e9a);
+  color: var(--text-tertiary, #8e8e9a);
   margin-bottom: 12px;
   display: flex;
   align-items: center;
   gap: 4px;
 }
-.subscription-page .ao-included .plan-inc { font-weight: 700; color: #10b981; }
+.subscription-page .ao-included .plan-inc { font-weight: 700; color: var(--success, #10b981); }
 .subscription-page .ao-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .subscription-page .ao-toggle {
   position: relative;
   width: 44px;
   height: 24px;
   border-radius: 12px;
-  background: var(--sa, #f0f0f3);
-  border: 1px solid var(--bd, #e4e4e8);
+  background: var(--surface-alt, #f0f0f3);
+  border: 1px solid var(--border, #e4e4e8);
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;
@@ -860,7 +925,7 @@
   transition: all 0.2s;
 }
 .subscription-page .ao-toggle.on .knob { left: 22px; }
-.subscription-page .ao-status { font-size: 11px; font-weight: 600; color: var(--t3, #8e8e9a); }
+.subscription-page .ao-status { font-size: 11px; font-weight: 600; color: var(--text-tertiary, #8e8e9a); }
 .subscription-page .ao-status.active { color: var(--mv-purple, #9B51E0); }
 .subscription-page .ao-counter {
   display: flex;
@@ -879,10 +944,10 @@
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  color: var(--t2, #5e5e6e);
+  color: var(--text-secondary, #5e5e6e);
   font-family: inherit;
 }
-.subscription-page .ao-counter button:hover { background: var(--al, #ede9fe); color: var(--ac, #9B51E0); }
+.subscription-page .ao-counter button:hover { background: var(--accent-light, #ede9fe); color: var(--accent, #9B51E0); }
 .subscription-page .ao-counter .qty {
   width: 48px;
   text-align: center;
@@ -890,7 +955,8 @@
   font-size: 14px;
   font-weight: 600;
   border: none;
-  background: #fff;
+  background: var(--surface, #fff);
+  color: var(--text-primary, #121217);
   border-left: 1px solid var(--sub-border);
   border-right: 1px solid var(--sub-border);
 }
@@ -920,11 +986,11 @@
   justify-content: space-between;
   gap: 10px;
   padding: 8px 12px;
-  background: #ecfdf5;
+  background: var(--st-success-bg, #ecfdf5);
   border-radius: var(--sub-rr);
   margin-top: auto;
   font-size: 11px;
-  color: #047857;
+  color: var(--st-success-fg, #047857);
   font-weight: 500;
 }
 .subscription-page .ao-purchased-status {
@@ -955,7 +1021,7 @@
   color: var(--sub-purple);
   font-size: 11px;
   font-weight: 700;
-  background: #fff;
+  background: var(--surface, #fff);
   cursor: pointer;
   padding: 0;
 }
@@ -974,20 +1040,21 @@
   gap: 6px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--t2, #5e5e6e);
+  color: var(--text-secondary, #5e5e6e);
 }
 .subscription-page .sub-contact-form input,
 .subscription-page .sub-contact-form textarea {
-  border: 1px solid var(--bd, #e4e4e8);
+  border: 1px solid var(--border, #e4e4e8);
   border-radius: 8px;
   padding: 8px 10px;
   font: inherit;
   font-weight: 500;
-  color: var(--t1, #121217);
+  color: var(--text-primary, #121217);
+  background: var(--surface, #fff);
 }
 
 .subscription-page .billing-section {
-  background: linear-gradient(135deg, #fafafa 0%, #fff 100%);
+  background: var(--surface, #fff);
   margin-bottom: 0;
 }
 .subscription-page .billing-section .sub-section-head { margin-bottom: 14px; }
@@ -1013,10 +1080,10 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--t3, #8e8e9a);
+  color: var(--text-tertiary, #8e8e9a);
   margin-bottom: 4px;
 }
-.subscription-page .b-field .b-val { font-weight: 500; color: var(--t1, #121217); }
+.subscription-page .b-field .b-val { font-weight: 500; color: var(--text-primary, #121217); }
 .subscription-page .b-field .b-link {
   color: var(--accent, #9b51e0);
   font-weight: 600;
@@ -1113,11 +1180,11 @@
 
 /* Legacy-style price breakdown (addon + plan purchase) */
 .sub-modal .price-breakdown {
-  border: 1px solid var(--bd, #e4e4e8);
+  border: 1px solid var(--border, #e4e4e8);
   border-radius: 10px;
   overflow: hidden;
   margin-bottom: 14px;
-  background: #fff;
+  background: var(--surface, #fff);
 }
 .sub-modal .pb-head {
   display: grid;
@@ -1126,11 +1193,14 @@
   padding: 10px 14px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--t3, #8e8e9a);
-  background: var(--se, #fafafe);
-  border-bottom: 1px solid var(--bd, #e4e4e8);
+  color: var(--text-tertiary, #8e8e9a);
+  background: var(--surface-alt, #fafafe);
+  border-bottom: 1px solid var(--border, #e4e4e8);
 }
-.sub-modal .pb-body { padding: 2px 0; }
+.sub-modal .pb-body {
+  padding: 2px 0;
+  background: var(--surface, #fff);
+}
 .sub-modal .pb-row {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -1138,11 +1208,11 @@
   align-items: start;
   padding: 11px 14px;
   font-size: 13px;
-  color: var(--t1, #1a1a24);
+  color: var(--text-primary, #1a1a24);
   line-height: 1.45;
 }
 .sub-modal .pb-row-divider {
-  border-top: 1px solid var(--bd, #e4e4e8);
+  border-top: 1px solid var(--border, #e4e4e8);
 }
 .sub-modal .pb-row-strong .pb-label,
 .sub-modal .pb-row-strong .pb-value {
@@ -1151,20 +1221,20 @@
 .sub-modal .pb-label {
   min-width: 0;
   word-break: break-word;
-  color: var(--t2, #5e5e6e);
+  color: var(--text-secondary, #5e5e6e);
 }
-.sub-modal .pb-row-strong .pb-label { color: var(--t1, #1a1a24); }
+.sub-modal .pb-row-strong .pb-label { color: var(--text-primary, #1a1a24); }
 .sub-modal .pb-value {
   text-align: right;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  color: var(--t1, #1a1a24);
+  color: var(--text-primary, #1a1a24);
 }
 .sub-modal .pb-footer {
   padding: 12px 14px;
-  border-top: 1px solid var(--bd, #e4e4e8);
-  background: var(--se, #fafafe);
+  border-top: 1px solid var(--border, #e4e4e8);
+  background: var(--surface-alt, #fafafe);
 }
 .sub-modal .pb-autopay {
   display: flex;
@@ -1173,7 +1243,7 @@
   gap: 12px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--t1, #1a1a24);
+  color: var(--text-primary, #1a1a24);
   margin: 0;
   cursor: pointer;
 }
@@ -1186,11 +1256,12 @@
 
 .sub-modal .m-info {
   font-size: 12px;
-  color: var(--t2, #5e5e6e);
+  color: var(--text-secondary, #5e5e6e);
   line-height: 1.6;
   margin-bottom: 0;
   padding: 12px;
-  background: var(--se, #fafafe);
+  background: var(--surface-alt, #fafafe);
+  border: 1px solid var(--border, #e4e4e8);
   border-radius: 8px;
 }
 .sub-modal .m-info + .m-info { margin-top: 10px; }
@@ -1204,19 +1275,221 @@
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  border: 1px solid var(--bd, #e4e4e8);
-  background: #fff;
-  color: var(--t2, #5e5e6e);
+  border: 1px solid var(--border, #e4e4e8);
+  background: var(--surface-alt, #fff);
+  color: var(--text-primary, #5e5e6e);
+  transition: all 0.15s ease;
+}
+.sub-modal .sub-btn:hover {
+  background: var(--surface, #f4f4f6);
+  border-color: var(--border-focus, #c8c8cf);
 }
 .sub-modal .sub-btn-p {
-  background: var(--ac, #9B51E0);
+  background: var(--accent, #9B51E0);
   color: #fff;
   border: none;
+}
+.sub-modal .sub-btn-p:hover {
+  background: var(--accent-hover, #843cc9);
+  color: #fff;
 }
 .sub-modal .sub-btn-danger {
   background: none;
   color: #ef4444;
   border: 1.5px solid #ef4444;
+}
+
+/* ============================================================
+   Dark mode overrides — Add-Ons Marketplace & Billing
+   ============================================================ */
+
+/* Inactive addon tabs: white bg → dark surface */
+[data-theme='dark'] .subscription-page .ao-tab {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+[data-theme='dark'] .subscription-page .ao-tab:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+
+/* Addon cards */
+[data-theme='dark'] .subscription-page .ao-card {
+  background: var(--surface);
+  border-color: var(--border);
+}
+[data-theme='dark'] .subscription-page .ao-card:hover {
+  border-color: var(--accent);
+}
+
+/* Card text */
+[data-theme='dark'] .subscription-page .ao-name {
+  color: var(--text-primary);
+}
+[data-theme='dark'] .subscription-page .ao-desc {
+  color: var(--text-secondary);
+}
+[data-theme='dark'] .subscription-page .ao-included {
+  color: var(--text-tertiary);
+}
+
+/* Quantity counter */
+[data-theme='dark'] .subscription-page .ao-counter {
+  border-color: var(--border);
+}
+[data-theme='dark'] .subscription-page .ao-counter button {
+  background: var(--surface-alt);
+  color: var(--text-secondary);
+}
+[data-theme='dark'] .subscription-page .ao-counter button:hover {
+  background: rgba(155, 81, 224, 0.18);
+  color: var(--accent);
+}
+[data-theme='dark'] .subscription-page .ao-counter .qty {
+  background: var(--surface);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+/* Info tooltip button */
+[data-theme='dark'] .subscription-page .ao-tip {
+  background: var(--surface);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Purchased banner */
+[data-theme='dark'] .subscription-page .ao-purchased-info {
+  background: var(--st-success-bg);
+  color: var(--st-success-fg);
+}
+
+/* Remove button hover in dark */
+[data-theme='dark'] .subscription-page .ao-buy.remove:hover {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+/* Feature comparison table */
+[data-theme='dark'] .subscription-page .feat-table-wrap {
+  background: var(--surface);
+  border-color: var(--border);
+}
+[data-theme='dark'] .subscription-page .feat-table th {
+  background: var(--surface-alt);
+  border-color: var(--border);
+  color: var(--text-tertiary);
+}
+[data-theme='dark'] .subscription-page .feat-table td {
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+[data-theme='dark'] .subscription-page .feat-table .cat-row td {
+  background: rgba(155, 81, 224, 0.12);
+  color: var(--accent);
+}
+
+/* Billing section */
+[data-theme='dark'] .subscription-page .billing-section {
+  background: var(--surface);
+}
+[data-theme='dark'] .subscription-page .b-field {
+  background: var(--surface-alt);
+  border-color: var(--border);
+}
+[data-theme='dark'] .subscription-page .b-field .b-label {
+  color: var(--text-tertiary);
+}
+[data-theme='dark'] .subscription-page .b-field .b-val {
+  color: var(--text-primary);
+}
+
+/* Contact form in dark */
+[data-theme='dark'] .subscription-page .sub-contact-form label {
+  color: var(--text-secondary);
+}
+[data-theme='dark'] .subscription-page .sub-contact-form input,
+[data-theme='dark'] .subscription-page .sub-contact-form textarea {
+  background: var(--surface-alt);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+/* ============================================================
+   Dark mode overrides — sub-modal
+   ============================================================ */
+[data-theme='dark'] .sub-modal {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+}
+[data-theme='dark'] .sub-modal-head,
+[data-theme='dark'] .sub-modal-foot {
+  border-color: var(--border);
+}
+[data-theme='dark'] .sub-modal-head h3 {
+  color: var(--text-primary);
+}
+[data-theme='dark'] .sub-modal-close {
+  border-color: var(--border);
+  color: var(--text-tertiary);
+}
+[data-theme='dark'] .sub-modal-close:hover {
+  background: var(--surface-alt);
+  color: var(--text-primary);
+}
+[data-theme='dark'] .sub-modal .m-highlight {
+  background: rgba(155, 81, 224, 0.12);
+  border-color: rgba(155, 81, 224, 0.25);
+}
+[data-theme='dark'] .sub-modal .mh-val {
+  color: #c084fc;
+}
+[data-theme='dark'] .sub-modal .price-breakdown {
+  border-color: var(--border);
+  background: var(--surface);
+}
+[data-theme='dark'] .sub-modal .pb-head {
+  background: var(--surface-alt);
+  border-color: var(--border);
+  color: var(--text-tertiary);
+}
+[data-theme='dark'] .sub-modal .pb-body {
+  background: var(--surface);
+}
+[data-theme='dark'] .sub-modal .pb-row {
+  color: var(--text-primary);
+}
+[data-theme='dark'] .sub-modal .pb-row-divider {
+  border-color: var(--border);
+}
+[data-theme='dark'] .sub-modal .pb-label {
+  color: var(--text-secondary);
+}
+[data-theme='dark'] .sub-modal .pb-row-strong .pb-label,
+[data-theme='dark'] .sub-modal .pb-row-strong .pb-value,
+[data-theme='dark'] .sub-modal .pb-value {
+  color: var(--text-primary);
+}
+[data-theme='dark'] .sub-modal .pb-footer {
+  background: var(--surface-alt);
+  border-color: var(--border);
+}
+[data-theme='dark'] .sub-modal .pb-autopay {
+  color: var(--text-primary);
+}
+[data-theme='dark'] .sub-modal .m-info {
+  background: var(--surface-alt);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+[data-theme='dark'] .sub-modal .sub-btn {
+  background: var(--surface-alt);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+[data-theme='dark'] .sub-modal .sub-btn:hover {
+  background: var(--surface);
 }
 .sub-modal-skeleton-field + .sub-modal-skeleton-field { margin-top: 14px; }
 .sub-modal-foot-skel {
@@ -1235,6 +1508,10 @@
   animation: sub-skel-shimmer 1.2s ease-in-out infinite;
 }
 .sub-modal-skel-btn--pri { width: 118px; }
+[data-theme='dark'] .sub-modal-skel-btn {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
+  background-size: 200% 100%;
+}
 @keyframes sub-skel-shimmer {
   0% { background-position: 100% 0; }
   100% { background-position: -100% 0; }
@@ -1356,7 +1633,32 @@
   .subscription-page .pcard-top { padding: 22px 16px 0; }
   .subscription-page .pcard-cta,
   .subscription-page .pcard-features { padding-left: 16px; padding-right: 16px; }
-  .subscription-page .pr .a { font-size: 32px; letter-spacing: -1.5px; }
+  .subscription-page .pr .a { font-size: 28px; letter-spacing: -0.4px; }
+}
+
+.subscription-page.lang-el .pr .a {
+  font-size: clamp(26px, 3.8vw, 34px);
+  letter-spacing: -0.35px;
+}
+.subscription-page.lang-el .cta {
+  font-size: 13px;
+  padding: 11px 12px;
+  line-height: 1.3;
+}
+.subscription-page.lang-el .fi {
+  font-size: 12px;
+}
+.subscription-page.lang-el .cur-tag,
+.subscription-page.lang-el .pop-tag {
+  font-size: 9px;
+  letter-spacing: 0.2px;
+  padding: 5px 12px;
+}
+.subscription-page.lang-el .cycle-btn {
+  padding: 7px 14px;
+}
+.subscription-page.lang-el .cycle-btn .save-tag {
+  max-width: 118px;
 }
 
 .webview-subscription.subscription-page {

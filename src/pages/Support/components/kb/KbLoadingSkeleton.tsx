@@ -1,11 +1,13 @@
 import React from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 const CATEGORY_COUNT = 8;
 const POPULAR_COUNT = 6;
 
 export function KbLoadingSkeleton() {
+  const { t } = useTranslation();
   return (
-    <div className="support-skeleton" aria-busy="true" aria-label="Loading knowledge base">
+    <div className="support-skeleton" aria-busy="true" aria-label={t('loadingKnowledgeBase', 'Loading knowledge base')}>
       <div className="kb-cats support-skeleton-cats">
         {Array.from({ length: CATEGORY_COUNT }, (_, i) => (
           <div key={i} className="support-skeleton-cat" aria-hidden>

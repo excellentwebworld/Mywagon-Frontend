@@ -6,10 +6,10 @@ import {
 } from '../constants';
 
 const REQUIRED_COLUMNS = [
-  { label: 'SKU Name', icon: '📦', desc: 'Product / item name', keywords: ['sku name', 'sku_name', 'product name', 'item name', 'productname', 'itemname', 'sku nm', 'product nm'] },
-  { label: 'SKU Number', icon: '#️⃣', desc: 'Unique SKU code or product code', keywords: ['sku number', 'sku_number', 'sku no', 'sku#', 'skuno', 'sku id', 'skuid', 'item code', 'product code', 'product_code', 'item_code', 'sku code', 'sku_code'] },
-  { label: 'Category', icon: '🗂️', desc: 'Product category / group', keywords: ['category', 'product category', 'item category', 'product group', 'sku category'] },
-  { label: 'Product Type', icon: '🏷️', desc: 'Type of product (e.g. physical, digital)', keywords: ['product type', 'producttype', 'product_type', 'item type', 'sku type', 'sku_type'] },
+  { label: 'SKU Name', labelKey: 'productMaster.skuName', descKey: 'productMaster.skuNameDesc', icon: '📦', desc: 'Product / item name', keywords: ['sku name', 'sku_name', 'product name', 'item name', 'productname', 'itemname', 'sku nm', 'product nm'] },
+  { label: 'SKU Number', labelKey: 'productMaster.skuNumberField', descKey: 'productMaster.skuNumberDesc', icon: '#️⃣', desc: 'Unique SKU code or product code', keywords: ['sku number', 'sku_number', 'sku no', 'sku#', 'skuno', 'sku id', 'skuid', 'item code', 'product code', 'product_code', 'item_code', 'sku code', 'sku_code'] },
+  { label: 'Category', labelKey: 'productMaster.category', descKey: 'productMaster.categoryDesc', icon: '🗂️', desc: 'Product category / group', keywords: ['category', 'product category', 'item category', 'product group', 'sku category'] },
+  { label: 'Product Type', labelKey: 'productMaster.productType', descKey: 'productMaster.productTypeDesc', icon: '🏷️', desc: 'Type of product (e.g. physical, digital)', keywords: ['product type', 'producttype', 'product_type', 'item type', 'sku type', 'sku_type'] },
 ];
 
 /** Product fields shown in AI preview and validated against catalog options. */
@@ -18,26 +18,27 @@ export type ValidatableProductField = Exclude<keyof AiMappedProduct, 'source_emp
 /** MV table fields and source-file header keywords used for column mapping. */
 export const MV_FIELD_KEYWORDS: Record<
   ValidatableProductField,
-  { label: string; keywords: string[] }
+  { label: string; labelKey: string; keywords: string[] }
 > = {
-  sku_name: { label: 'SKU Name', keywords: ['sku name', 'sku_name', 'product name', 'item name', 'productname', 'itemname', 'sku nm', 'product nm'] },
-  sku_number: { label: 'SKU Number', keywords: ['sku number', 'sku_number', 'sku no', 'sku#', 'skuno', 'sku id', 'skuid', 'item code', 'product code', 'product_code', 'item_code', 'sku code', 'sku_code'] },
-  barcode: { label: 'Barcode', keywords: ['barcode', 'bar_code', 'bar code', 'upc', 'ean', 'sku barcode'] },
-  category: { label: 'Category', keywords: ['category', 'product category', 'item category', 'product group', 'sku category'] },
-  product_type: { label: 'Product Type', keywords: ['product type', 'producttype', 'product_type', 'item type', 'sku type', 'sku_type'] },
-  unit: { label: 'Unit of Measure', keywords: ['unit', 'unit of measure', 'uom', 'measure', 'sku unit', 'pack'] },
-  weight: { label: 'Weight', keywords: ['weight', 'net weight', 'gross weight', 'weight kg', 'weight_kg', 'kg'] },
-  hazardous: { label: 'Hazardous', keywords: ['hazardous', 'hazard', 'hazmat', 'is hazardous', 'dangerous goods'] },
-  pallet_type: { label: 'Pallet Type', keywords: ['pallet type', 'pallet_type', 'pallet', 'skids'] },
-  stackable: { label: 'Stackable', keywords: ['stackable', 'is stackable', 'stack'] },
-  temperature: { label: 'Temperature', keywords: ['temperature', 'temp', 'temp requirement', 'storage temp'] },
-  status: { label: 'Status', keywords: ['status', 'state', 'active'] },
+  sku_name: { label: 'SKU Name', labelKey: 'productMaster.skuName', keywords: ['sku name', 'sku_name', 'product name', 'item name', 'productname', 'itemname', 'sku nm', 'product nm'] },
+  sku_number: { label: 'SKU Number', labelKey: 'productMaster.skuNumberField', keywords: ['sku number', 'sku_number', 'sku no', 'sku#', 'skuno', 'sku id', 'skuid', 'item code', 'product code', 'product_code', 'item_code', 'sku code', 'sku_code'] },
+  barcode: { label: 'Barcode', labelKey: 'productMaster.barcodePlain', keywords: ['barcode', 'bar_code', 'bar code', 'upc', 'ean', 'sku barcode'] },
+  category: { label: 'Category', labelKey: 'productMaster.category', keywords: ['category', 'product category', 'item category', 'product group', 'sku category'] },
+  product_type: { label: 'Product Type', labelKey: 'productMaster.productType', keywords: ['product type', 'producttype', 'product_type', 'item type', 'sku type', 'sku_type'] },
+  unit: { label: 'Unit of Measure', labelKey: 'productMaster.unitOfMeasure', keywords: ['unit', 'unit of measure', 'uom', 'measure', 'sku unit', 'pack'] },
+  weight: { label: 'Weight', labelKey: 'productMaster.weightPlain', keywords: ['weight', 'net weight', 'gross weight', 'weight kg', 'weight_kg', 'kg'] },
+  hazardous: { label: 'Hazardous', labelKey: 'productMaster.hazardous', keywords: ['hazardous', 'hazard', 'hazmat', 'is hazardous', 'dangerous goods'] },
+  pallet_type: { label: 'Pallet Type', labelKey: 'productMaster.palletType', keywords: ['pallet type', 'pallet_type', 'pallet', 'skids'] },
+  stackable: { label: 'Stackable', labelKey: 'productMaster.stackable', keywords: ['stackable', 'is stackable', 'stack'] },
+  temperature: { label: 'Temperature', labelKey: 'productMaster.temperature', keywords: ['temperature', 'temp', 'temp requirement', 'storage temp'] },
+  status: { label: 'Status', labelKey: 'productMaster.status', keywords: ['status', 'state', 'active'] },
 };
 
 export interface MappedSourceColumn {
   header: string;
   field: ValidatableProductField;
   label: string;
+  labelKey: string;
 }
 
 export interface ColumnMappingSummary {
@@ -52,12 +53,12 @@ export function parseCsvHeaderLine(line: string): string[] {
 
 export function validateRequiredCsvColumns(columns: string[]): {
   valid: boolean;
-  results: { label: string; icon: string; desc: string; found: boolean }[];
+  results: { label: string; labelKey: string; descKey: string; icon: string; desc: string; found: boolean }[];
   missing: string[];
 } {
-  const results = REQUIRED_COLUMNS.map(({ label, icon, desc, keywords }) => {
+  const results = REQUIRED_COLUMNS.map(({ label, labelKey, descKey, icon, desc, keywords }) => {
     const found = keywords.some((kw) => columns.some((col) => col === kw || col.includes(kw)));
-    return { label, icon, desc, found };
+    return { label, labelKey, descKey, icon, desc, found };
   });
   const missing = results.filter((r) => !r.found).map((r) => r.label);
   return { valid: missing.length === 0, results, missing };
@@ -84,13 +85,13 @@ export function computeColumnMapping(fileHeaders: string[]): ColumnMappingSummar
   for (const header of fileHeaders) {
     if (!header?.trim()) continue;
     let matchedField: ValidatableProductField | null = null;
-    for (const [field, { label, keywords }] of Object.entries(MV_FIELD_KEYWORDS) as [
+    for (const [field, { label, labelKey, keywords }] of Object.entries(MV_FIELD_KEYWORDS) as [
       ValidatableProductField,
-      { label: string; keywords: string[] },
+      { label: string; labelKey: string; keywords: string[] },
     ][]) {
       if (headerMatchesField(header, keywords)) {
         matchedField = field;
-        mapped.push({ header, field: matchedField, label });
+        mapped.push({ header, field: matchedField, label, labelKey });
         break;
       }
     }

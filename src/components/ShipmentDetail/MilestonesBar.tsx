@@ -37,7 +37,10 @@ function stepStyle(step: LaravelProgressStep) {
 export const MilestonesBar: React.FC<MilestonesBarProps> = ({
   shipment,
   t,
+  lang = 'en',
 }) => {
+  // `lang` must be a dep: react-i18next's `t` identity often stays stable across
+  // changeLanguage, so memo would otherwise keep English labels forever.
   const steps = useMemo(
     () =>
       buildLaravelProgressSteps(shipment, (key, opts) => {
@@ -46,7 +49,7 @@ export const MilestonesBar: React.FC<MilestonesBarProps> = ({
         }
         return t(key);
       }).filter((step) => step.state !== 'skip'),
-    [shipment, t]
+    [shipment, t, lang]
   );
 
   if (steps.length === 0) {

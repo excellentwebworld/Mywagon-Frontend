@@ -16,7 +16,11 @@ import { CarrierAvatar } from './CarrierAvatar';
 import { TransporterNameLink } from '../TransporterProfile/TransporterProfileContext';
 import { NegotiationHistoryPanel } from './NegotiationHistoryPanel';
 
-type ExpTranslate = (key: string, opts?: Record<string, unknown>) => string;
+type ExpTranslate = (
+  key: string,
+  fallbackOrOptions?: string | Record<string, unknown>,
+  options?: Record<string, unknown>,
+) => string;
 type Offer = NonNullable<Shipment['offers']>[number];
 
 interface RowExpansionPendingProps {

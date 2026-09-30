@@ -16,6 +16,8 @@ export type SettingsUser = {
   lastName: string;
   email: string;
   phone: string | null;
+  country_code?: string | null;
+  countryCode?: string | null;
   job_title?: string | null;
   jobTitle?: string | null;
   role: 'admin' | 'dispatcher' | string;
@@ -53,6 +55,7 @@ export type UpdateUserBody = {
   first_name?: string;
   last_name?: string;
   phone?: string | null;
+  country_code?: string | null;
   job_title?: string | null;
   role?: string;
   permissions?: string[] | null;

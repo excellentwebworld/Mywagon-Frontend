@@ -1,10 +1,12 @@
 import React from 'react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 
 const ROW_COUNT = 5;
 
 export function MyRequestsTableSkeleton() {
+  const { t } = useTranslation();
   return (
-    <div className="requests-table-wrap support-skeleton" aria-busy="true" aria-label="Loading requests">
+    <div className="requests-table-wrap support-skeleton" aria-busy="true" aria-label={t('loadingRequests', 'Loading requests')}>
       <div className="requests-table-scroll">
         <table className="req-table support-skeleton-table">
           <thead>

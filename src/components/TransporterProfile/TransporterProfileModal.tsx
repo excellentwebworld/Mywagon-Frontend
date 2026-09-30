@@ -40,13 +40,7 @@ export const TransporterProfileModal: React.FC<TransporterProfileModalProps> = (
     async (pageNum: number) => {
       if (!target?.id || !target?.type) return;
       if (!can('rating_and_review_for_transporter')) {
-        openUpgradeGate({
-          title: t('satUpgradeTitle') || 'Upgrade',
-          body:
-            t('transporterProfileUpgradeBody') ||
-            'Transporter ratings and profiles require a plan upgrade.',
-          upgradeUrl: '/subscription',
-        });
+        openUpgradeGate();
         onClose();
         return;
       }
@@ -90,11 +84,11 @@ export const TransporterProfileModal: React.FC<TransporterProfileModalProps> = (
     <>
       {open && (
         <div className="tp-modal" role="dialog" aria-modal="true" aria-labelledby="tp-modal-title">
-          <button type="button" className="tp-modal__backdrop" aria-label="Close" onClick={onClose} />
+          <button type="button" className="tp-modal__backdrop" aria-label={t('close', { defaultValue: 'Close' })} onClick={onClose} />
           <div className="tp-modal__panel">
             <div className="tp-modal__header">
               <h2 id="tp-modal-title">{t('transporterProfile') || 'Transporter profile'}</h2>
-              <button type="button" className="tp-modal__close" onClick={onClose} aria-label="Close">
+              <button type="button" className="tp-modal__close" onClick={onClose} aria-label={t('close', { defaultValue: 'Close' })}>
                 ×
               </button>
             </div>

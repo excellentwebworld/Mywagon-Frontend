@@ -6,6 +6,11 @@ import {
   getMondayOfWeek,
   getSundayOfWeek,
 } from './WeeklyReportsPage';
+import {
+  formatWeeklyDateLabel,
+  formatWeeklyDeliveryDate,
+  formatWeeklyPeriodLabel,
+} from './weeklyReportsDates';
 
 export const mockWeeklyReport: WeeklyReportItem = {
   id: '2026-09-15',
@@ -60,9 +65,14 @@ describe('Weekly Reports Analytics Feature', () => {
     );
   });
 
-  it('formats email subject and period label', () => {
-    expect(mockWeeklyReport.period_label).toBe('15 Sep – 21 Sep 2026');
-    expect(mockWeeklyReport.email_subject).toContain('15 Sep – 21 Sep 2026');
+  it('formats period and delivery dates in panel dd/MM/yyyy format', () => {
+    expect(formatWeeklyPeriodLabel(mockWeeklyReport.week_start, mockWeeklyReport.week_end)).toBe(
+      '15/09/2026 – 21/09/2026'
+    );
+    expect(formatWeeklyDateLabel(mockWeeklyReport.delivery_date)).toBe('22/09/2026');
+    expect(formatWeeklyDeliveryDate(mockWeeklyReport.sent_at, mockWeeklyReport.delivery_date)).toMatch(
+      /^\d{2}\/\d{2}\/\d{4} \d{2}:\d{2}$/
+    );
   });
 
   describe('getPresetDateRange calculations', () => {

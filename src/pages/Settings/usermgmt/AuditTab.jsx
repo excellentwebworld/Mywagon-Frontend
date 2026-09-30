@@ -15,7 +15,7 @@
  */
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import {
   Search, Download, X, ChevronDown, Loader2,
   UserPlus, ShieldCheck, Ban, UserX, RefreshCw,
@@ -225,7 +225,7 @@ export default function AuditTab() {
             onChange={setDateFrom}
             max={dateTo || undefined}
             direction="auto"
-            placeholder="dd/MM/yyyy"
+            placeholder={t('Settings.dd_mm_yyyy', 'dd/MM/yyyy')}
           />
         </div>
         <span style={{ fontSize: 12, color: T.t3 }}>→</span>
@@ -235,7 +235,7 @@ export default function AuditTab() {
             onChange={setDateTo}
             min={dateFrom || undefined}
             direction="auto"
-            placeholder="dd/MM/yyyy"
+            placeholder={t('Settings.dd_mm_yyyy', 'dd/MM/yyyy')}
           />
         </div>
 

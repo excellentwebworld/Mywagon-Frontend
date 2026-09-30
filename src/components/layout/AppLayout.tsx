@@ -181,7 +181,7 @@ export const AppLayout: React.FC = () => {
             <button
               type="button"
               className="toast-close"
-              aria-label="Close"
+              aria-label={t('close', 'Close')}
               onClick={hideToast}
             >
               <X size={14} strokeWidth={2.5} />

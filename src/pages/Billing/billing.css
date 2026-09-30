@@ -1014,6 +1014,18 @@ table.billing-t {
   background: #fef2f2;
 }
 
+.dark .b-btn-danger,
+[data-theme='dark'] .b-btn-danger {
+  color: #F87171;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.dark .b-btn-danger:hover,
+[data-theme='dark'] .b-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  color: #FCA5A5;
+}
+
 .b-btn-success {
   color: #10b981;
   border-color: #a7f3d0;
@@ -1021,6 +1033,18 @@ table.billing-t {
 
 .b-btn-success:hover {
   background: #ecfdf5;
+}
+
+.dark .b-btn-success,
+[data-theme='dark'] .b-btn-success {
+  color: #34D399;
+  border-color: rgba(52, 211, 153, 0.4);
+}
+
+.dark .b-btn-success:hover,
+[data-theme='dark'] .b-btn-success:hover {
+  background: rgba(52, 211, 153, 0.2);
+  color: #6EE7B7;
 }
 
 .b-btn-ghost {

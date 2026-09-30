@@ -84,7 +84,9 @@ export const ViewPodModal: React.FC<ViewPodModalProps> = ({
                   <div key={i} className="flex items-start justify-between text-[12px] flex-wrap gap-1">
                     <div>
                       <span className="font-semibold text-slate-900 dark:text-white">
-                        {ord.orderId !== '—' ? `Order: ${ord.orderId}` : 'Delivered Cargo'}
+                        {ord.orderId !== '—'
+                          ? `${t('orderLabelPrefix', 'Order:')} ${ord.orderId}`
+                          : t('deliveredCargo', 'Delivered Cargo')}
                       </span>
                       {ord.customerName && (
                         <span className="text-slate-500 dark:text-slate-400 ml-2">({ord.customerName})</span>
@@ -128,7 +130,7 @@ export const ViewPodModal: React.FC<ViewPodModalProps> = ({
                     <div className="relative aspect-video w-full overflow-hidden bg-black/5 flex items-center justify-center">
                       <img
                         src={img.url}
-                        alt={`POD Document ${idx + 1}`}
+                        alt={t('podImageLabel', 'POD Document {{n}}').replace('{{n}}', String(idx + 1))}
                         className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
                       />
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -154,7 +156,7 @@ export const ViewPodModal: React.FC<ViewPodModalProps> = ({
 
                     <div className="p-2.5 bg-white dark:bg-slate-900 flex items-center justify-between border-t border-slate-200 dark:border-slate-700">
                       <span className="text-[11px] font-medium text-slate-700 dark:text-slate-300">
-                        {t('podImageLabel', `POD Document ${idx + 1}`)}
+                        {t('podImageLabel', 'POD Document {{n}}').replace('{{n}}', String(idx + 1))}
                       </span>
                       <a
                         href={img.url}
@@ -191,7 +193,7 @@ export const ViewPodModal: React.FC<ViewPodModalProps> = ({
             </button>
             <img
               src={selectedImage}
-              alt="POD Full Preview"
+              alt={t('podFullPreview', 'POD Full Preview')}
               className="max-w-full max-h-[85vh] rounded-lg shadow-2xl object-contain"
               onClick={(e) => e.stopPropagation()}
             />

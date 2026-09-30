@@ -10,6 +10,7 @@ import {
 } from '../../api/mappers/createShipmentMapper';
 import {
   formatVehicleSelectionSummary,
+  pickVehicleLabel,
   type WizardVehicleType,
 } from './vehicleTypes';
 import { assessVehicleTypeFit } from './vehicleCapacity';
@@ -212,7 +213,6 @@ export const VehicleSelector: React.FC<VehicleSelectorProps> = ({
                   const selected = vehicleSpecs[vt.formKey] || [];
                   const selectedFlag = isTypeSelected(vt.formKey);
                   const nestOpen = openNests[vt.formKey] ?? false;
-                  const displayName = locale === 'el' ? vt.nameEl : vt.name;
                   const fit = assessVehicleTypeFit(vt, totalWeightKg);
                   const fitColor = fit.status === 'fits' ? '#059669' : '#DC2626';
                   const maxTons = Math.round(fit.maxWeightKg / 1000);
@@ -234,7 +234,7 @@ export const VehicleSelector: React.FC<VehicleSelectorProps> = ({
                         {selectedFlag && (
                           <div
                             className="ck"
-                            title="Deselect"
+                            title={t('createShipment.deselect', 'Deselect')}
                             onClick={(e) => deselectVehicle(vt, e)}
                           >
                             ✓
@@ -243,8 +243,13 @@ export const VehicleSelector: React.FC<VehicleSelectorProps> = ({
                         <div className="vi">
                           <VehicleIcon />
                         </div>
-                        <div className="vn">{displayName}</div>
-                        <div className="vs">{vt.subtitle}</div>
+                        <div className="vn">{pickVehicleLabel(vt.name, vt.nameEl, locale)}</div>
+                        <div className="vs">
+                          {vt.categories
+                            .map((c) => pickVehicleLabel(c.label, c.labelEl, locale))
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </div>
                         {fit.show && (
                           <div className="vc-fit">
                             <div className="vc-fit-cap">
@@ -273,7 +278,7 @@ export const VehicleSelector: React.FC<VehicleSelectorProps> = ({
                           const catKey = `${vt.formKey}-${cat.id}`;
                           const catOpen = openCategories[catKey] ?? false;
                           const catState = categoryCheckState(vt, cat.id, selected);
-                          const catLabel = locale === 'el' ? cat.labelEl : cat.label;
+                          const catLabel = pickVehicleLabel(cat.label, cat.labelEl, locale);
 
                           return (
                             <React.Fragment key={cat.id}>
@@ -303,7 +308,7 @@ export const VehicleSelector: React.FC<VehicleSelectorProps> = ({
                               <div className={`vnest-sub ${catOpen ? 'open' : ''}`}>
                                 {cat.items.map((item) => {
                                   const itemOn = selected.includes(item.id);
-                                  const itemLabel = locale === 'el' ? item.labelEl : item.label;
+                                  const itemLabel = pickVehicleLabel(item.label, item.labelEl, locale);
                                   return (
                                     <div
                                       key={item.id}

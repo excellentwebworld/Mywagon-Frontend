@@ -18,6 +18,7 @@ import TrustFooter from './trust/TrustFooter';
 
 function TrustSkeleton({ embedded = false }) {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const sk = { baseColor: T.sa, highlightColor: T.bd };
 
   return (
@@ -25,7 +26,7 @@ function TrustSkeleton({ embedded = false }) {
       className="w-full flex justify-center"
       style={{ minHeight: embedded ? undefined : '100%' }}
       aria-busy="true"
-      aria-label="Loading"
+      aria-label={t('loading', 'Loading')}
     >
       <div
         className={embedded ? 'w-full' : 'w-full px-4 py-6 sm:py-10'}

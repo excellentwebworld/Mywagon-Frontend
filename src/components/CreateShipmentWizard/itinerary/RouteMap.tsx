@@ -431,7 +431,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         position: end,
         icon: buildIcon(liveIcon?.rotation),
         zIndex: 999,
-        title: 'Live driver position',
+        title: t('createShipment.liveDriverPosition', { defaultValue: 'Live driver position' }),
         optimized: false,
       });
       ensureVisible(end);
@@ -493,7 +493,7 @@ export const RouteMap: React.FC<RouteMapProps> = ({
         liveAnimFrameRef.current = null;
       }
     };
-  }, [livePosition, liveIcon, mapsFailed, mapReadyToken]);
+  }, [livePosition, liveIcon, mapsFailed, mapReadyToken, t]);
 
   const height = heightProp ?? (expanded ? 340 : 300);
 

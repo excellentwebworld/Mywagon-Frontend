@@ -77,7 +77,7 @@ export const CreateLocationModal: React.FC<CreateLocationModalProps> = ({
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-h">
           <span>📍 {t('createNewLocation')}</span>
-          <button className="modal-close" onClick={onClose} aria-label="Close modal">✕</button>
+          <button className="modal-close" onClick={onClose} aria-label={t('createShipment.closeModal', 'Close modal')}>✕</button>
         </div>
         <div className="modal-body">
           <div className="field">
@@ -87,7 +87,7 @@ export const CreateLocationModal: React.FC<CreateLocationModalProps> = ({
             <input
               id="newLocName"
               className="inp"
-              placeholder="e.g. Patras Warehouse"
+              placeholder={t('createShipment.egPatrasWarehouse', 'e.g. Patras Warehouse')}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -100,7 +100,7 @@ export const CreateLocationModal: React.FC<CreateLocationModalProps> = ({
             <input
               id="newLocAddr"
               className="inp"
-              placeholder="e.g. 10 Industrial St"
+              placeholder={t('createShipment.egIndustrialSt', 'e.g. 10 Industrial St')}
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               required
@@ -113,7 +113,7 @@ export const CreateLocationModal: React.FC<CreateLocationModalProps> = ({
             <input
               id="newLocCity"
               className="inp"
-              placeholder="e.g. Patras"
+              placeholder={t('createShipment.egPatras', 'e.g. Patras')}
               value={city}
               onChange={(e) => setCity(e.target.value)}
               required

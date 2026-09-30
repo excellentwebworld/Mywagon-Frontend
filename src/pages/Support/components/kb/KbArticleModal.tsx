@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import type { KbArticleDetail } from '../../types';
 
 interface KbArticleModalProps {
@@ -22,6 +23,7 @@ export function KbArticleModal({
   loadingLabel,
   errorLabel,
 }: KbArticleModalProps) {
+  const { t } = useTranslation();
   useEffect(() => {
     if (!open) return undefined;
 
@@ -58,7 +60,7 @@ export function KbArticleModal({
       >
         <div className="kb-modal-head">
           <h3 id="kb-modal-title">{loading ? loadingLabel : article?.title ?? errorLabel}</h3>
-          <button type="button" className="kb-modal-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="kb-modal-close" onClick={onClose} aria-label={t('close', 'Close')}>
             <X size={18} strokeWidth={2} aria-hidden />
           </button>
         </div>

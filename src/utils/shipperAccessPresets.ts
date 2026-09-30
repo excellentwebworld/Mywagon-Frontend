@@ -20,14 +20,90 @@ export const SHIPPER_PRESET_META: Record<
   },
 };
 
-/** Company-account dependency (Blade parity). */
+/**
+ * Explicit Edit/Delete → View dependencies (Spatie / shipper_permissions.value).
+ * Additional pairs are inferred via {@link buildPermissionDependencyMaps}.
+ */
 export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   edit_company_account_information: ['view_company_account_information'],
+  edit_all_existing_shipments: ['view_all_existing_shipments'],
+  delete_all_existing_shipments: ['view_all_existing_shipments'],
 };
 
-export const PERMISSION_DEPENDENTS: Record<string, string[]> = {
-  view_company_account_information: ['edit_company_account_information'],
-};
+/** @deprecated Prefer buildPermissionDependencyMaps(catalog).dependents */
+export const PERMISSION_DEPENDENTS: Record<string, string[]> = (() => {
+  const map: Record<string, string[]> = {};
+  for (const [perm, deps] of Object.entries(PERMISSION_DEPENDENCIES)) {
+    for (const dep of deps) {
+      if (!map[dep]) map[dep] = [];
+      map[dep].push(perm);
+    }
+  }
+  return map;
+})();
+
+/**
+ * Build full dependency maps from the live permission catalog.
+ * Rule: enabling edit_X or delete_X also requires view_X when present.
+ */
+export function buildPermissionDependencyMaps(catalogNames: string[]): {
+  dependencies: Record<string, string[]>;
+  dependents: Record<string, string[]>;
+} {
+  const catalog = new Set(catalogNames.filter(Boolean));
+  const dependencies: Record<string, string[]> = {};
+
+  const addDep = (perm: string, dep: string, requireInCatalog = true) => {
+    if (perm === dep) return;
+    if (requireInCatalog && !catalog.has(dep)) return;
+    if (!dependencies[perm]) dependencies[perm] = [];
+    if (!dependencies[perm].includes(dep)) dependencies[perm].push(dep);
+  };
+
+  for (const [perm, deps] of Object.entries(PERMISSION_DEPENDENCIES)) {
+    for (const dep of deps) addDep(perm, dep, false);
+  }
+
+  for (const name of catalog) {
+    if (name.startsWith('edit_')) {
+      addDep(name, `view_${name.slice('edit_'.length)}`);
+    } else if (name.startsWith('delete_')) {
+      addDep(name, `view_${name.slice('delete_'.length)}`);
+    }
+  }
+
+  const dependents: Record<string, string[]> = {};
+  for (const [perm, deps] of Object.entries(dependencies)) {
+    for (const dep of deps) {
+      if (!dependents[dep]) dependents[dep] = [];
+      if (!dependents[dep].includes(perm)) dependents[dep].push(perm);
+    }
+  }
+
+  return { dependencies, dependents };
+}
+
+/** Expand a permission list with required View (and other) dependencies. */
+export function expandPermissionDependencies(
+  names: string[] | null | undefined,
+  catalogNames: string[] = [],
+): string[] {
+  if (!names?.length) return [];
+  const { dependencies } = buildPermissionDependencyMaps(
+    catalogNames.length ? catalogNames : Object.keys(PERMISSION_DEPENDENCIES),
+  );
+  const set = new Set<string>();
+  const queue = [...names];
+  while (queue.length) {
+    const name = queue.shift()!;
+    if (!name || set.has(name)) continue;
+    set.add(name);
+    for (const dep of dependencies[name] || []) {
+      if (!set.has(dep)) queue.push(dep);
+    }
+  }
+  return Array.from(set);
+}
 
 export function expandPresetPermissions(
   role: string,

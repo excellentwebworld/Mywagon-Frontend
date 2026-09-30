@@ -12,13 +12,18 @@ import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { useUserMgmt } from '../../../context/UserMgmtContext';
 import PermissionGrid from './PermissionGrid';
+import UserAvatar from './UserAvatar';
 import {
   USER_STATUS_CONFIG,
-  getUserInitials, getUserFullName, getUserAvatarColor,
+  getUserFullName,
 } from '../../../mocks/userMgmtData';
-import { hasCustomDirectPermissions, SHIPPER_ROLES } from '../../../utils/shipperAccessPresets';
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
+import { signupService } from '../../../api/auth';
 import { ApiError } from '../../../api/client';
+import { expandPermissionDependencies } from '../../../utils/shipperAccessPresets';
+import { CountryCodeSelect } from '../../Register/components/CountryCodeSelect';
+import { validateCountryCode, validatePhone } from '../../Register/registerValidation';
+import '../../Register/RegisterPage.css';
 
 function effectivePermissions(user) {
   if (!user) return [];
@@ -32,11 +37,32 @@ export default function UserEditPage() {
   const { userId: userIdParam, tab } = useParams();
   const userId = userIdParam || tab;
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
-  const { getUser, updateUser, roles, refresh, loading: listLoading } = useUserMgmt();
+  const { getUser, updateUser, roles, refresh, loading: listLoading, permissionGroups } = useUserMgmt();
 
+  const [countryCodes, setCountryCodes] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const ref = await signupService.getReference(i18n.language);
+        if (!cancelled) setCountryCodes(ref.country_codes || []);
+      } catch {
+        if (!cancelled) setCountryCodes([{ code: '+30', label: t('Settings.greece_30', 'Greece (+30)') }]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [i18n.language, t]);
+
+  const catalogKeys = useMemo(
+    () => permissionGroups.flatMap((g) => g.permissions.map((p) => p.name)),
+    [permissionGroups],
+  );
   const [remoteUser, setRemoteUser] = useState(null);
   const [fetching, setFetching] = useState(true);
   const [draft, setDraft] = useState(null);
@@ -44,6 +70,7 @@ export default function UserEditPage() {
   const [editedPerms, setEditedPerms] = useState(null);
   const [autoEnabled, setAutoEnabled] = useState(new Set());
   const [saving, setSaving] = useState(false);
+  const [profileErrors, setProfileErrors] = useState({});
 
   const cached = getUser(userId || '');
   const user = remoteUser || cached;
@@ -69,6 +96,7 @@ export default function UserEditPage() {
       setDraft({
         firstName: user.firstName || user.first_name || '',
         lastName: user.lastName || user.last_name || '',
+        countryCode: user.countryCode || user.country_code || '+30',
         phone: user.phone || '',
         jobTitle: user.jobTitle || user.job_title || '',
         role: user.role || 'dispatcher',
@@ -77,7 +105,7 @@ export default function UserEditPage() {
       setEditedPerms(null);
       setAutoEnabled(new Set());
     }
-  }, [user?.id, user?.role, user?.firstName, user?.first_name]);
+  }, [user?.id, user?.role, user?.firstName, user?.first_name, user?.country_code, user?.countryCode, user?.phone]);
 
   const goBack = () => navigate('/settings/users');
 
@@ -122,19 +150,57 @@ export default function UserEditPage() {
     updateUser(updated);
   };
 
+  const validateProfile = () => {
+    const errs = {};
+    if (!draft.firstName.trim()) errs.firstName = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    if (!draft.lastName.trim()) errs.lastName = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    
+    if (!draft.countryCode || !draft.countryCode.trim()) {
+      errs.countryCode = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    }
+
+    const trimmedPhone = (draft.phone || '').trim();
+    if (!trimmedPhone) {
+      errs.phone = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    } else {
+      const digits = trimmedPhone.replace(/\D/g, '');
+      if (!/^\d+$/.test(digits)) {
+        errs.phone = t('registerPhoneInvalid', { defaultValue: 'Please enter valid phone number' });
+      } else if (digits.length < 8) {
+        errs.phone = t('registerPhoneMinLength', { defaultValue: 'Please enter minimum 8 digits' });
+      } else if (digits.length > 10) {
+        errs.phone = t('registerPhoneMaxLength', { defaultValue: 'Phone must not exceed 10 digits' });
+      }
+    }
+
+    setProfileErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const saveProfile = async () => {
+    if (!validateProfile()) return;
     setSaving(true);
     try {
       const updated = await usersSettingsService.update(user.id, {
         first_name: draft.firstName.trim(),
         last_name: draft.lastName.trim(),
+        country_code: draft.countryCode ? draft.countryCode.trim() : '+30',
         phone: draft.phone.trim() || null,
         job_title: draft.jobTitle.trim() || null,
         role: isOwner ? undefined : draft.role,
       });
       applyServerUser(updated);
+      setProfileErrors({});
       toast.success(t('userMgmt.toast.userUpdated'));
     } catch (e) {
+      if (e instanceof ApiError && e.fieldErrors) {
+        const mapped = {};
+        if (e.fieldErrors.first_name?.[0]) mapped.firstName = e.fieldErrors.first_name[0];
+        if (e.fieldErrors.last_name?.[0]) mapped.lastName = e.fieldErrors.last_name[0];
+        if (e.fieldErrors.country_code?.[0]) mapped.countryCode = e.fieldErrors.country_code[0];
+        if (e.fieldErrors.phone?.[0]) mapped.phone = e.fieldErrors.phone[0];
+        setProfileErrors(mapped);
+      }
       toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' }));
     } finally {
       setSaving(false);
@@ -162,7 +228,9 @@ export default function UserEditPage() {
 
   const startEditPerms = () => {
     const current = effectivePermissions({ ...user, role: draft.role });
-    setEditedPerms(current === null ? null : [...current]);
+    setEditedPerms(
+      current === null ? null : expandPermissionDependencies(current, catalogKeys),
+    );
     setAutoEnabled(new Set());
     setEditingPerms(true);
   };
@@ -194,6 +262,7 @@ export default function UserEditPage() {
     try {
       const updated = await usersSettingsService.deactivate(user.id);
       applyServerUser(updated);
+      await refresh();
       toast.success(t('userMgmt.toast.deactivated', { name: getUserFullName(user) }));
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Action failed' }));
@@ -236,10 +305,7 @@ export default function UserEditPage() {
       </button>
 
       <div className="rounded-xl p-5 flex items-center gap-4" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
-        <div className="w-14 h-14 rounded-full flex items-center justify-center text-white font-bold shrink-0"
-          style={{ background: getUserAvatarColor(String(user.id)), fontSize: 18 }}>
-          {getUserInitials(user)}
-        </div>
+        <UserAvatar user={user} size={56} fontSize={18} />
         <div className="flex-1 min-w-0">
           <div className="font-bold" style={{ fontSize: 18, color: T.t1 }}>{getUserFullName(user)}</div>
           <div style={{ fontSize: 13, color: T.t3 }}>{user.email}</div>
@@ -261,21 +327,79 @@ export default function UserEditPage() {
 
       <Section title={t('userMgmt.editPage.userInfo')} T={T}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Field label={t('userMgmt.invite.firstName')} T={T}>
-            <input value={draft.firstName} onChange={(e) => setDraft((d) => ({ ...d, firstName: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg outline-none" style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+          <Field label={t('userMgmt.invite.firstName')} required error={profileErrors.firstName} T={T}>
+            <input
+              value={draft.firstName}
+              onChange={(e) => {
+                setDraft((d) => ({ ...d, firstName: e.target.value }));
+                if (profileErrors.firstName) setProfileErrors((p) => ({ ...p, firstName: undefined }));
+              }}
+              className="w-full px-3 py-2 rounded-lg outline-none"
+              style={{ border: `1px solid ${profileErrors.firstName ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+            />
           </Field>
-          <Field label={t('userMgmt.invite.lastName')} T={T}>
-            <input value={draft.lastName} onChange={(e) => setDraft((d) => ({ ...d, lastName: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg outline-none" style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+          <Field label={t('userMgmt.invite.lastName')} required error={profileErrors.lastName} T={T}>
+            <input
+              value={draft.lastName}
+              onChange={(e) => {
+                setDraft((d) => ({ ...d, lastName: e.target.value }));
+                if (profileErrors.lastName) setProfileErrors((p) => ({ ...p, lastName: undefined }));
+              }}
+              className="w-full px-3 py-2 rounded-lg outline-none"
+              style={{ border: `1px solid ${profileErrors.lastName ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+            />
           </Field>
           <Field label={t('userMgmt.invite.email')} T={T}>
             <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 13, color: T.t3 }}>{user.email}</div>
           </Field>
-          <Field label={t('userMgmt.invite.phone')} T={T}>
-            <input value={draft.phone} onChange={(e) => setDraft((d) => ({ ...d, phone: e.target.value }))}
-              className="w-full px-3 py-2 rounded-lg outline-none" style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
-          </Field>
+          <div>
+            <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600 }}>
+              {t('registerPhone', { defaultValue: 'Mobile phone' })} <span style={{ color: '#EF4444' }}>*</span>
+            </label>
+            <div className="flex gap-2 items-start">
+              <div style={{ minWidth: 95, flexShrink: 0 }}>
+                <CountryCodeSelect
+                  id="user-edit-country-code"
+                  value={draft.countryCode}
+                  options={countryCodes.length ? countryCodes : [{ code: '+30', label: t('Settings.greece_30', 'Greece (+30)') }]}
+                  onChange={(code) => {
+                    setDraft((d) => ({ ...d, countryCode: code }));
+                    if (profileErrors.countryCode) setProfileErrors((p) => ({ ...p, countryCode: undefined }));
+                  }}
+                  disabled={saving}
+                  error={profileErrors.countryCode}
+                />
+                {profileErrors.countryCode && (
+                  <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{profileErrors.countryCode}</p>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <input
+                  id="user-edit-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={draft.phone}
+                  onChange={(e) => {
+                    setDraft((d) => ({ ...d, phone: e.target.value.replace(/[^0-9]/g, '').slice(0, 10) }));
+                    if (profileErrors.phone) setProfileErrors((p) => ({ ...p, phone: undefined }));
+                  }}
+                  placeholder={t('registerPhonePlaceholder', { defaultValue: '6941234567' })}
+                  disabled={saving}
+                  className="w-full px-3 py-2 rounded-lg outline-none"
+                  style={{
+                    border: `1px solid ${profileErrors.phone ? '#EF4444' : T.bd}`,
+                    background: T.sf,
+                    color: T.t1,
+                    fontSize: 13,
+                  }}
+                />
+                {profileErrors.phone && (
+                  <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{profileErrors.phone}</p>
+                )}
+              </div>
+            </div>
+          </div>
           <Field label={t('userMgmt.editPage.jobTitle')} T={T}>
             <input value={draft.jobTitle} onChange={(e) => setDraft((d) => ({ ...d, jobTitle: e.target.value }))}
               className="w-full px-3 py-2 rounded-lg outline-none" style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
@@ -389,11 +513,14 @@ function Section({ title, children, T, action }) {
   );
 }
 
-function Field({ label, children, T }) {
+function Field({ label, required, error, children, T }) {
   return (
     <div>
-      <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>{label}</label>
+      <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
+        {label} {required && <span style={{ color: '#EF4444' }}>*</span>}
+      </label>
       {children}
+      {error && <p style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{error}</p>}
     </div>
   );
 }

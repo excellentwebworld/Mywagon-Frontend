@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { useNavigate } from 'react-router-dom';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -60,13 +60,13 @@ export default function PersonalSection() {
         const ref = await signupService.getReference(i18n.language);
         if (!cancelled) setCountryCodes(ref.country_codes || []);
       } catch {
-        if (!cancelled) setCountryCodes([{ code: '+30', label: 'Greece (+30)' }]);
+        if (!cancelled) setCountryCodes([{ code: '+30', label: t('Settings.greece_30', 'Greece (+30)') }]);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [i18n.language]);
+  }, [i18n.language, t]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -123,9 +123,20 @@ export default function PersonalSection() {
       return;
     }
     const phoneDigits = String(draft.phone || '').replace(/[^0-9]/g, '');
-    if ((needsSocialPhone(user) || data.profile.phone_required) && !phoneDigits) {
-      toast.error(t('settings.profileSection.phoneRequired', { defaultValue: 'Phone number is required.' }));
+    const isPhoneRequired = Boolean(needsSocialPhone(user) || data?.profile?.phone_required);
+    if (isPhoneRequired && !phoneDigits) {
+      toast.error(t('registerPhoneRequired', { defaultValue: 'Please enter mobile phone' }));
       return;
+    }
+    if (phoneDigits) {
+      if (phoneDigits.length < 8) {
+        toast.error(t('registerPhoneMinLength', { defaultValue: 'Please enter minimum 8 digits' }));
+        return;
+      }
+      if (phoneDigits.length > 10) {
+        toast.error(t('registerPhoneMaxLength', { defaultValue: 'Phone must not exceed 10 digits' }));
+        return;
+      }
     }
     setSaving(true);
     try {
@@ -381,7 +392,7 @@ export default function PersonalSection() {
                       ? (draft.country_code || '+30')
                       : (profile.country_code || user?.country_code || '+30')
                   }
-                  options={countryCodes.length ? countryCodes : [{ code: '+30', label: 'Greece (+30)' }]}
+                  options={countryCodes.length ? countryCodes : [{ code: '+30', label: t('Settings.greece_30', 'Greece (+30)') }]}
                   onChange={(code) => setField('country_code', code)}
                   disabled={saving || !editing || profile.phone_locked}
                   verified={Boolean(profile.phone_locked)}
@@ -389,28 +400,32 @@ export default function PersonalSection() {
               </div>
               {editing && !profile.phone_locked ? (
                 <input
+                  id="settings-personal-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   value={draft.phone || ''}
-                  onChange={(e) => setField('phone', e.target.value.replace(/[^0-9]/g, ''))}
+                  onChange={(e) => setField('phone', e.target.value.replace(/[^0-9]/g, '').slice(0, 10))}
                   className="w-full px-3 py-2 rounded-lg outline-none"
                   style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
-                  placeholder={t('settings.profileSection.phonePlaceholder', { defaultValue: 'Phone number' })}
-                  inputMode="numeric"
+                  placeholder={t('registerPhone', { defaultValue: 'Mobile phone' })}
                 />
               ) : (
                 <div
                   className="flex flex-1 items-center gap-2 px-3 py-2 rounded-lg min-w-0"
                   style={{ background: T.sa, fontSize: 13, color: profile.phone_locked ? T.t3 : T.t1 }}
+                  title={profile.phone_locked ? t('settings.profileSection.phoneLocked') : undefined}
                 >
                   {profile.phone_locked ? <Lock size={12} className="shrink-0" /> : null}
-                  <span className="flex-1 truncate">{profile.phone || '—'}</span>
-                  {profile.phone_locked && (
-                    <span className="shrink-0" style={{ fontSize: 10, color: T.t3 }}>
-                      {t('settings.profileSection.phoneLocked')}
-                    </span>
-                  )}
+                  <span className="flex-1 select-all">{profile.phone || '—'}</span>
                 </div>
               )}
             </div>
+            {profile.phone_locked && (
+              <div className="mt-1" style={{ fontSize: 10, color: T.t3 }}>
+                {t('settings.profileSection.phoneLocked')}
+              </div>
+            )}
           </div>
           <div className="md:col-span-2">
             <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
@@ -641,9 +656,10 @@ function InfoRow({ label, value }) {
 }
 
 function PersonalSkeleton({ T }) {
+  const { t } = useTranslation();
   const sk = { baseColor: T.sa, highlightColor: T.bd };
   return (
-    <div className="space-y-4" aria-busy="true" aria-label="Loading">
+    <div className="space-y-4" aria-busy="true" aria-label={t('Settings.loading', 'Loading')}>
       <div className="rounded-xl overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
         <div className="flex items-center justify-between px-5 py-3" style={{ borderBottom: `1px solid ${T.bd}` }}>
           <div className="flex items-center gap-2">

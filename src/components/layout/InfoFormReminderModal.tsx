@@ -9,6 +9,11 @@ import {
   needsInfoFormSoftReminder,
 } from '../../hooks/useInfoFormGate';
 import {
+  FORCE_TOUR_SESSION_KEY,
+  isOnboardingTourRunning,
+  ONBOARDING_TOUR_FINISHED_EVENT,
+} from '../../onboarding';
+import {
   safeLocalRemove,
   safeSessionGet,
   safeSessionRemove,
@@ -55,6 +60,14 @@ function isInfoFormTargetPath(pathname: string, search: string): boolean {
   return false;
 }
 
+function isTourBlockingReminder(): boolean {
+  return (
+    safeSessionGet(FORCE_TOUR_SESSION_KEY) === '1' ||
+    isOnboardingTourRunning() ||
+    (typeof document !== 'undefined' && document.body.classList.contains('mv-onboarding-active'))
+  );
+}
+
 export const InfoFormReminderModal: React.FC = () => {
   const { user } = useAuth();
   const { t } = useTranslation();
@@ -62,7 +75,15 @@ export const InfoFormReminderModal: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [tourEpoch, setTourEpoch] = useState(0);
   const dismissedRef = useRef(false);
+
+  // Re-evaluate after guided tour finishes (Laravel: reminder only after onboarding).
+  useEffect(() => {
+    const onTourFinished = () => setTourEpoch((n) => n + 1);
+    window.addEventListener(ONBOARDING_TOUR_FINISHED_EVENT, onTourFinished);
+    return () => window.removeEventListener(ONBOARDING_TOUR_FINISHED_EVENT, onTourFinished);
+  }, []);
 
   useEffect(() => {
     if (!user) {
@@ -76,6 +97,11 @@ export const InfoFormReminderModal: React.FC = () => {
     }
     // Laravel: guided tour first — do not open reminder until onboarding is completed.
     if (user.onboarding_completed === false) {
+      setOpen(false);
+      return;
+    }
+    // Tour pending / running — never stack reminder over the tour.
+    if (isTourBlockingReminder()) {
       setOpen(false);
       return;
     }
@@ -96,7 +122,7 @@ export const InfoFormReminderModal: React.FC = () => {
     // Blade puts `info_form_reminder_shown` when flashing the soft modal.
     markReminderShownThisLogin();
     setOpen(true);
-  }, [user, location.pathname, location.search]);
+  }, [user, location.pathname, location.search, tourEpoch]);
 
   const dismiss = useCallback(() => {
     dismissedRef.current = true;

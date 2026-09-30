@@ -6,9 +6,6 @@ import { useTranslation } from '../../hooks/useTranslation';
 type Props = {
   /** Permission slug required to use this module. */
   slug: string;
-  /** Optional custom copy. */
-  title?: string;
-  body?: string;
   children: React.ReactNode;
   /** When true, still render children but open gate once on deny. */
   soft?: boolean;
@@ -16,12 +13,10 @@ type Props = {
 
 /**
  * Proactive page-level subscription gate (Laravel Blade parity).
- * Opens the global Upgrade modal when the plan lacks `slug`.
+ * Uses the shared Upgrade modal with the same general Laravel copy.
  */
 export const SubscriptionPageGate: React.FC<Props> = ({
   slug,
-  title,
-  body,
   children,
   soft = false,
 }) => {
@@ -34,30 +29,23 @@ export const SubscriptionPageGate: React.FC<Props> = ({
   useEffect(() => {
     if (allowed || prompted.current) return;
     prompted.current = true;
-    openUpgradeGate({
-      title: title || t('satUpgradeTitle'),
-      body: body || t('satUpgradeBody'),
-      upgradeUrl: '/subscription',
-    });
-  }, [allowed, openUpgradeGate, title, body, t]);
+    openUpgradeGate();
+  }, [allowed, openUpgradeGate]);
 
   if (!allowed && !soft) {
     return (
       <div className="ab-subscription-banner" role="alert" style={{ margin: 16 }}>
-        {body || t('satUpgradeBody')}
+        {t(
+          'satUpgradeBody',
+          'Your current subscription plan does not support this feature. To unlock it, please upgrade to a higher tier plan.',
+        )}
         <button
           type="button"
           className="btn btn-primary btn-sm"
           style={{ marginLeft: 12 }}
-          onClick={() =>
-            openUpgradeGate({
-              title: title || t('satUpgradeTitle'),
-              body: body || t('satUpgradeBody'),
-              upgradeUrl: '/subscription',
-            })
-          }
+          onClick={() => openUpgradeGate()}
         >
-          {t('satUpgradeNow')}
+          {t('satUpgradeNow', 'Upgrade Now')}
         </button>
       </div>
     );

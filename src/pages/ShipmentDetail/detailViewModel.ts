@@ -260,6 +260,14 @@ export interface ShipmentDetailViewModel {
   isPickedUp: boolean;
   primaryCustomer: string;
   owner: string;
+  coOwners: Array<{
+    id: number;
+    name: string;
+    email?: string;
+    phone?: string;
+    avatar?: string | null;
+    role?: string;
+  }>;
   etaChip: string;
   etaStatusChip: string;
   cancellationReason?: string | null;
@@ -1186,6 +1194,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     isPickedUp,
     primaryCustomer,
     owner: shipment.ownerName || (shipment as any).owner || 'My Vagon',
+    coOwners: Array.isArray(shipment.coOwners) ? shipment.coOwners : [],
     etaChip: lastDropoff?.date ? `🔵 ETA: ${lastDropoff.date}${lastDropoff.timeStart ? ` · ${lastDropoff.timeStart}` : ''}` : '🔵 ETA: On Schedule',
     etaStatusChip,
     isPaid: Boolean(shipment.isPaid ?? (shipment.markAsPaid === '1')),

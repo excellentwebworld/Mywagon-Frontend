@@ -1,4 +1,5 @@
 import React from 'react';
+import { Clock } from 'lucide-react';
 import type { TutorialModuleConfig } from '../../config/tutorialModules';
 import type { TutorialVideo } from '../../api/types/tutorials';
 import { getTutorialVideoTitle } from '../../api/types/tutorials';
@@ -13,6 +14,8 @@ interface ModuleCardProps {
   moduleDescription: string;
   videoCountLabel: string;
   onVideoClick: (video: TutorialVideo) => void;
+  comingSoon?: boolean;
+  comingSoonLabel?: string;
 }
 
 export const ModuleCard: React.FC<ModuleCardProps> = ({
@@ -23,29 +26,45 @@ export const ModuleCard: React.FC<ModuleCardProps> = ({
   moduleDescription,
   videoCountLabel,
   onVideoClick,
+  comingSoon = false,
+  comingSoonLabel,
 }) => {
   return (
-    <article className="tut-mod-card" style={{ '--tut-mod-accent': config.color } as React.CSSProperties}>
+    <article
+      className={`tut-mod-card${comingSoon ? ' tut-mod-card--soon' : ''}`}
+      style={{ '--tut-mod-accent': config.color } as React.CSSProperties}
+    >
       <div className="tut-mod-card-accent" aria-hidden />
       <div className="tut-mod-card-head">
         <TutorialModuleIcon icon={config.icon} color={config.color} bg={config.bg} />
         <div className="tut-mod-info">
           <div className="tut-mod-info-top">
             <h4>{moduleTitle}</h4>
-            <span className="tut-mod-count">{videoCountLabel}</span>
+            {comingSoon ? (
+              <span className="tut-soon-badge">{comingSoonLabel}</span>
+            ) : (
+              <span className="tut-mod-count">{videoCountLabel}</span>
+            )}
           </div>
           <p>{moduleDescription}</p>
         </div>
       </div>
-      <div className="tut-mod-tutorials">
-        {videos.map((video) => (
-          <ModuleVideoRow
-            key={video.id}
-            title={getTutorialVideoTitle(video, lang)}
-            onClick={() => onVideoClick(video)}
-          />
-        ))}
-      </div>
+      {comingSoon ? (
+        <div className="tut-mod-soon-footer">
+          <Clock size={14} aria-hidden />
+          <span>{comingSoonLabel}</span>
+        </div>
+      ) : (
+        <div className="tut-mod-tutorials">
+          {videos.map((video) => (
+            <ModuleVideoRow
+              key={video.id}
+              title={getTutorialVideoTitle(video, lang)}
+              onClick={() => onVideoClick(video)}
+            />
+          ))}
+        </div>
+      )}
     </article>
   );
 };

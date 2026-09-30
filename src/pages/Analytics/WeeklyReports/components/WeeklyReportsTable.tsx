@@ -1,19 +1,21 @@
 import React from 'react';
 import {
   Calendar,
-  Mail,
-  Download,
   CheckCircle2,
   ArrowUpRight,
   ArrowDownRight,
-  Minus,
   Inbox,
   Eye,
   FileSpreadsheet,
+  Loader2,
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../../hooks/useTranslation';
 import type { WeeklyReportItem } from '../../../../api/types/weeklyReports';
 import { BillingPagination } from '../../../Billing/components/BillingPagination';
+import {
+  formatWeeklyDeliveryDate,
+  formatWeeklyPeriodLabel,
+} from '../weeklyReportsDates';
 
 interface WeeklyReportsTableProps {
   reports: WeeklyReportItem[];
@@ -63,25 +65,9 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
     }
     return (
       <span className="wr-tbl-delta wr-delta-zero">
-        <Minus size={12} />
         <span>0</span>
       </span>
     );
-  };
-
-  const formatDeliveryDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      if (isNaN(d.getTime())) return dateStr;
-      return d.toLocaleDateString(undefined, {
-        weekday: 'short',
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      });
-    } catch {
-      return dateStr;
-    }
   };
 
   return (
@@ -92,12 +78,14 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
             <tr>
               <th className="wr-th-period">{t('weeklyReports.period', 'Week Period')}</th>
               <th className="wr-th-delivery">{t('weeklyReports.deliveryDate', 'Delivered On')}</th>
-              <th className="wr-th-fulfilled text-right">{t('weeklyReports.loadsFulfilled', 'Fulfilled')}</th>
-              <th className="wr-th-created text-right">{t('weeklyReports.loadsCreated', 'Created')}</th>
+              <th className="wr-th-fulfilled">{t('weeklyReports.loadsFulfilled', 'Fulfilled')}</th>
+              <th className="wr-th-created">{t('weeklyReports.loadsCreated', 'Created')}</th>
               <th className="wr-th-active">{t('weeklyReports.onTrip', 'In Progress')}</th>
-              <th className="wr-th-pending">{t('weeklyReports.pending', 'Pending / Canceled')}</th>
-              <th className="wr-th-partners text-right">{t('weeklyReports.newPartners', 'Partners')}</th>
-              <th className="wr-th-actions text-right">Actions</th>
+              <th className="wr-th-pending">{t('weeklyReports.pending', 'Loads Currently Pending')}</th>
+              <th className="wr-th-partners">{t('weeklyReports.newPartners', 'Partners')}</th>
+              <th className="wr-th-actions">
+                {t('analytics.weeklyReports.actions', 'Actions')}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -108,7 +96,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                   <td className="wr-td-period">
                     <div className="wr-period-cell">
                       <div className="wr-sk-box wr-sk-shimmer" style={{ width: 32, height: 32, borderRadius: 8 }} />
-                      <div className="wr-period-info" style={{ flex: 1 }}>
+                      <div className="wr-period-info">
                         <div className="wr-sk-line wr-sk-shimmer" style={{ width: '130px', height: '14px' }} />
                       </div>
                     </div>
@@ -121,14 +109,14 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     </div>
                   </td>
                   {/* Fulfilled */}
-                  <td className="wr-td-metric text-right">
+                  <td className="wr-td-metric">
                     <div className="wr-metric-cell">
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '36px', height: '16px', marginBottom: '4px' }} />
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '32px', height: '14px', borderRadius: '4px' }} />
                     </div>
                   </td>
                   {/* Created */}
-                  <td className="wr-td-metric text-right">
+                  <td className="wr-td-metric">
                     <div className="wr-metric-cell">
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '36px', height: '16px', marginBottom: '4px' }} />
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '32px', height: '14px', borderRadius: '4px' }} />
@@ -142,18 +130,18 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '52px', height: '20px', borderRadius: '6px' }} />
                     </div>
                   </td>
-                  {/* Pending / Canceled */}
+                  {/* Pending */}
                   <td className="wr-td-pending">
                     <div className="wr-pending-cell">
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '76px', height: '20px', borderRadius: '6px' }} />
                     </div>
                   </td>
                   {/* Partners */}
-                  <td className="wr-td-partners text-right">
-                    <div className="wr-sk-line wr-sk-shimmer" style={{ width: '28px', height: '16px', marginLeft: 'auto' }} />
+                  <td className="wr-td-partners">
+                    <div className="wr-sk-line wr-sk-shimmer" style={{ width: '28px', height: '16px', margin: '0 auto' }} />
                   </td>
                   {/* Actions */}
-                  <td className="wr-td-actions text-right">
+                  <td className="wr-td-actions">
                     <div className="wr-row-actions">
                       <div className="wr-sk-box wr-sk-shimmer" style={{ width: 32, height: 32, borderRadius: 8 }} />
                       <div className="wr-sk-box wr-sk-shimmer" style={{ width: 32, height: 32, borderRadius: 8 }} />
@@ -186,7 +174,6 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                 const scheduled = r.metrics.scheduled?.value ?? 0;
                 const ready = r.metrics.ready?.value ?? 0;
                 const pending = r.metrics.pending?.value ?? 0;
-                const canceled = r.metrics.canceled?.value ?? 0;
                 const newPartners = r.metrics.new_partners?.value ?? 0;
 
                 const isExportingThis = exportingReportId === r.id;
@@ -196,7 +183,10 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     key={r.id}
                     className="wr-table-row"
                     onClick={() => onSelectReport(r)}
-                    title="Click to view weekly email report with stats"
+                    title={t(
+                      'analytics.weeklyReports.clickToView',
+                      'Click to view weekly email report with stats'
+                    )}
                   >
                     {/* Period Column */}
                     <td className="wr-td-period">
@@ -205,7 +195,9 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                           <Calendar size={16} />
                         </div>
                         <div className="wr-period-info">
-                          <strong className="wr-period-title">{r.period_label}</strong>
+                          <strong className="wr-period-title">
+                            {formatWeeklyPeriodLabel(r.week_start, r.week_end)}
+                          </strong>
                         </div>
                       </div>
                     </td>
@@ -214,17 +206,21 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     <td className="wr-td-delivery">
                       <div className="wr-delivery-cell">
                         <span className="wr-delivery-date">
-                          {formatDeliveryDate(r.delivery_date)}
+                          {formatWeeklyDeliveryDate(r.sent_at, r.delivery_date)}
                         </span>
                         <span className="wr-sent-pill">
                           <CheckCircle2 size={11} />
-                          <span>{r.is_sent ? 'Sent' : 'Available'}</span>
+                          <span>
+                            {r.is_sent
+                              ? t('analytics.weeklyReports.sent', 'Sent')
+                              : t('analytics.weeklyReports.available', 'Available')}
+                          </span>
                         </span>
                       </div>
                     </td>
 
                     {/* Fulfilled Metric */}
-                    <td className="wr-td-metric text-right">
+                    <td className="wr-td-metric">
                       <div className="wr-metric-cell">
                         <span className="wr-metric-main-val font-semibold">
                           {fulfilled?.value ?? 0}
@@ -234,7 +230,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     </td>
 
                     {/* Created Metric */}
-                    <td className="wr-td-metric text-right">
+                    <td className="wr-td-metric">
                       <div className="wr-metric-cell">
                         <span className="wr-metric-main-val font-semibold">
                           {created?.value ?? 0}
@@ -246,42 +242,49 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     {/* In-Progress (On Trip, Scheduled, Ready) */}
                     <td className="wr-td-progress">
                       <div className="wr-progress-chips">
-                        <span className="wr-sub-chip wr-chip-ontrip" title="Loads on trip">
-                          <strong>{onTrip}</strong> trip
+                        <span
+                          className="wr-sub-chip wr-chip-ontrip"
+                          title={t('analytics.weeklyReports.loadsOnTrip', 'Loads on trip')}
+                        >
+                          <strong>{onTrip}</strong>{' '}
+                          {t('analytics.weeklyReports.chipTrip', 'trip')}
                         </span>
-                        <span className="wr-sub-chip wr-chip-scheduled" title="Loads scheduled">
-                          <strong>{scheduled}</strong> sched
+                        <span
+                          className="wr-sub-chip wr-chip-scheduled"
+                          title={t('analytics.weeklyReports.loadsScheduled', 'Loads scheduled')}
+                        >
+                          <strong>{scheduled}</strong>{' '}
+                          {t('analytics.weeklyReports.chipSched', 'sched')}
                         </span>
-                        <span className="wr-sub-chip wr-chip-ready" title="Loads ready">
-                          <strong>{ready}</strong> ready
+                        <span
+                          className="wr-sub-chip wr-chip-ready"
+                          title={t('analytics.weeklyReports.loadsReady', 'Loads ready')}
+                        >
+                          <strong>{ready}</strong>{' '}
+                          {t('analytics.weeklyReports.chipReady', 'ready')}
                         </span>
                       </div>
                     </td>
 
-                    {/* Pending & Canceled */}
+                    {/* Pending */}
                     <td className="wr-td-pending">
                       <div className="wr-pending-cell">
                         <span className="wr-sub-chip wr-chip-pending">
-                          {pending} pending
+                          {pending} {t('analytics.weeklyReports.chipPending', 'pending')}
                         </span>
-                        {canceled > 0 && (
-                          <span className="wr-sub-chip wr-chip-canceled">
-                            {canceled} cxl
-                          </span>
-                        )}
                       </div>
                     </td>
 
                     {/* New Partners */}
-                    <td className="wr-td-partners text-right">
+                    <td className="wr-td-partners">
                       <span className="wr-partner-badge">
-                        {newPartners > 0 ? `+${newPartners}` : '—'}
+                        {newPartners > 0 ? `+${newPartners}` : '0'}
                       </span>
                     </td>
 
                     {/* Row Actions */}
                     <td
-                      className="wr-td-actions text-right"
+                      className="wr-td-actions"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <div className="wr-row-actions">
@@ -303,7 +306,11 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                           title={t('weeklyReports.exportCsv', 'Export CSV')}
                           aria-label={t('weeklyReports.exportCsv', 'Export CSV')}
                         >
-                          <FileSpreadsheet size={15} />
+                          {isExportingThis ? (
+                            <Loader2 size={15} className="animate-spin" />
+                          ) : (
+                            <FileSpreadsheet size={15} />
+                          )}
                         </button>
                       </div>
                     </td>
@@ -322,7 +329,11 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
         total={total}
         perPage={perPage}
         loading={loading}
-        label={total === 1 ? 'weekly report' : 'weekly reports'}
+        label={
+          total === 1
+            ? t('analytics.weeklyReports.weeklyReportSingular', 'weekly report')
+            : t('analytics.weeklyReports.weeklyReportPlural', 'weekly reports')
+        }
         onPageChange={onPageChange}
         onPerPageChange={onPerPageChange}
         perPageOptions={[10, 25, 50]}

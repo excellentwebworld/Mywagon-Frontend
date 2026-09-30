@@ -19,6 +19,16 @@ const STATUS_LABELS: Record<ErpOrderStatus, string> = {
   canceled: 'Canceled',
 };
 
+/** i18n keys for row/drawer status badges (singular forms). */
+export const STATUS_LABEL_KEYS: Record<ErpOrderStatus, string> = {
+  unplanned: 'ErpOrders.unplanned',
+  partially_planned: 'ErpOrders.partially_planned',
+  planned: 'ErpOrders.planned',
+  on_trip: 'ErpOrders.on_trip',
+  completed: 'ErpOrders.completed',
+  canceled: 'ErpOrders.canceled',
+};
+
 export function mapApiStatus(status: string): ErpOrderStatus {
   const normalized = status as ErpOrderStatus;
   return STATUS_LABELS[normalized] ? normalized : 'unplanned';
@@ -26,6 +36,10 @@ export function mapApiStatus(status: string): ErpOrderStatus {
 
 export function statusLabel(status: ErpOrderStatus): string {
   return STATUS_LABELS[status] ?? status;
+}
+
+export function statusLabelKey(status: ErpOrderStatus): string {
+  return STATUS_LABEL_KEYS[status] ?? STATUS_LABEL_KEYS.unplanned;
 }
 
 export function mapApiLineToLine(line: ApiErpOrderDetail['lines'][number]): ErpOrderLine {

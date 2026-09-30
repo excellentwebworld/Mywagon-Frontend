@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { LocationItem } from '../../context/AppContext';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
+import { useTranslation } from '../../hooks/useTranslation';
 
 interface Props {
   location: LocationItem;
@@ -21,6 +22,7 @@ export const LocationRowActions: React.FC<Props> = ({
   disabled,
   setSelectedLoc
 }) => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useOutsideClick<HTMLDivElement>(() => setOpen(false), open);
 
@@ -31,7 +33,7 @@ export const LocationRowActions: React.FC<Props> = ({
       <button
         type="button"
         className="act-btn"
-        title="Actions"
+        title={t('abActions', 'Actions')}
         disabled={disabled}
         onClick={(e) => {
           e.stopPropagation();
@@ -43,11 +45,11 @@ export const LocationRowActions: React.FC<Props> = ({
       </button>
       {/* {open && (
         <div className="row-actions-dd open">
-          <button type="button" onClick={() => { onEdit(location); setOpen(false); }}>Edit</button>
+          <button type="button" onClick={() => { onEdit(location); setOpen(false); }}>{t('edit', 'Edit')}</button>
           {archived ? (
-            <button type="button" onClick={() => { onRestore(location); setOpen(false); }}>Restore</button>
+            <button type="button" onClick={() => { onRestore(location); setOpen(false); }}>{t('abRestore', 'Restore')}</button>
           ) : (
-            <button type="button" className="danger" onClick={() => { onArchive(location); setOpen(false); }}>Archive</button>
+            <button type="button" className="danger" onClick={() => { onArchive(location); setOpen(false); }}>{t('archive', 'Archive')}</button>
           )}
         </div>
       )} */}

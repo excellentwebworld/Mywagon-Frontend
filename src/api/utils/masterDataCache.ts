@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { LocationItem, SKU } from '../../context/AppContext';
+import type { ApiErpOrderCustomer } from '../types/erpOrders';
 import { wizardQueryKeys } from '../../pages/CreateShipmentWizard/hooks/wizardQueryKeys';
 
 /**
@@ -83,7 +84,15 @@ export function syncLocationDropdownCaches(
 }
 
 /** After company / customer entity create — Orders customer dropdown. */
-export function syncCustomerDropdownCaches(queryClient: QueryClient) {
+export function syncCustomerDropdownCaches(
+  queryClient: QueryClient,
+  opts?: { customer?: ApiErpOrderCustomer }
+) {
+  if (opts?.customer) {
+    queryClient.setQueryData<ApiErpOrderCustomer[]>(masterDataKeys.erpCustomers, (old) =>
+      prependById(old, opts.customer!)
+    );
+  }
   void queryClient.invalidateQueries({ queryKey: masterDataKeys.erpCustomers });
 }
 

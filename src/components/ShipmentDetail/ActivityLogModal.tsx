@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import type { ShipmentLogItem, AuditEntry } from '../../pages/ShipmentDetail/detailViewModel';
 import { formatReason } from '../../pages/ManageShipments/utils/listingUtils';
+import { translateShipmentLogAction } from '../../utils/shipmentLogI18n';
 
 interface ActivityLogModalProps {
   open: boolean;
@@ -63,10 +64,14 @@ export const ActivityLogModal: React.FC<ActivityLogModalProps> = ({
                   {log.isRejection && (
                     <span className="text-red-500 font-bold mr-1.5 text-[15px]">!</span>
                   )}
-                  <strong className="font-bold text-slate-900 dark:text-white">{cleanPerformanceText(log.action)}</strong>
-                  {' by '}
+                  <strong className="font-bold text-slate-900 dark:text-white">
+                    {translateShipmentLogAction(cleanPerformanceText(log.action), t)}
+                  </strong>
+                  {' '}
+                  {t('by', 'by')}{' '}
                   <strong className="font-bold text-slate-900 dark:text-white">{log.actor}</strong>
-                  {' on '}
+                  {' '}
+                  {t('on', 'on')}{' '}
                   <strong className="font-bold text-slate-900 dark:text-white">{log.date}</strong>
                   {log.isRejection && log.rejectionReason && (
                     <div className="text-[12px] text-red-600 dark:text-red-400 font-semibold mt-0.5">
@@ -81,9 +86,10 @@ export const ActivityLogModal: React.FC<ActivityLogModalProps> = ({
               {entries.map((entry, index) => (
                 <li key={entry.id || index} className="leading-relaxed pl-1">
                   <strong className="font-bold text-slate-900 dark:text-white">
-                    {cleanPerformanceText(entry.text.replace(/\*\*/g, ''))}
+                    {translateShipmentLogAction(cleanPerformanceText(entry.text.replace(/\*\*/g, '')), t)}
                   </strong>
-                  {' on '}
+                  {' '}
+                  {t('on', 'on')}{' '}
                   <strong className="font-bold text-slate-900 dark:text-white">{entry.time}</strong>
                 </li>
               ))}

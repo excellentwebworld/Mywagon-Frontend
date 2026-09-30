@@ -11,6 +11,21 @@ export const FACILITY_TYPE_LABELS: Record<string, string> = {
   other: 'Other',
 };
 
+const FACILITY_TYPE_LABEL_KEYS: Record<string, string> = {
+  dc: 'abFacilityDc',
+  warehouse: 'abFacilityWarehouse',
+  plant: 'abFacilityPlant',
+  store: 'abFacilityStore',
+  port: 'abFacilityPort',
+  other: 'abFacilityOther',
+};
+
+export function getFacilityTypeLabel(type: string, t: (key: string, fallback?: string) => string): string {
+  const key = FACILITY_TYPE_LABEL_KEYS[type];
+  if (key) return t(key, FACILITY_TYPE_LABELS[type] ?? type);
+  return FACILITY_TYPE_LABELS[type] ?? type;
+}
+
 /** Map UI/legacy labels to API enum values (dc | warehouse | plant | store | port | other). */
 export function normalizeFacilityType(type: string | null | undefined): (typeof FACILITY_TYPES)[number] {
   if (!type?.trim()) return 'warehouse';
@@ -69,9 +84,50 @@ export function getSystemDirectories(t: (k: string) => string): { id: string; na
 
 export const DOCK_TYPES = ['Dock-level', 'Ramp', 'Ground'] as const;
 
+const DOCK_TYPE_LABEL_KEYS: Record<(typeof DOCK_TYPES)[number], string> = {
+  'Dock-level': 'abDockLevel',
+  Ramp: 'abDockRamp',
+  Ground: 'abDockGround',
+};
+
+export function getDockTypeLabel(dock: string, t: (key: string, fallback?: string) => string): string {
+  const key = DOCK_TYPE_LABEL_KEYS[dock as (typeof DOCK_TYPES)[number]];
+  return key ? t(key, dock) : dock;
+}
+
+export function getDockTypeOptions(t: (key: string, fallback?: string) => string) {
+  return DOCK_TYPES.map((dock) => ({ value: dock, label: getDockTypeLabel(dock, t) }));
+}
+
 export const EQUIPMENT_OPTIONS = ['Forklift', 'Pallet jack', 'Crane', 'Dock plate', 'Loading ramp'] as const;
 
+const EQUIPMENT_LABEL_KEYS: Record<(typeof EQUIPMENT_OPTIONS)[number], string> = {
+  Forklift: 'abEquipForklift',
+  'Pallet jack': 'abEquipPalletJack',
+  Crane: 'abEquipCrane',
+  'Dock plate': 'abEquipDockPlate',
+  'Loading ramp': 'abEquipLoadingRamp',
+};
+
+export function getEquipmentLabel(item: string, t: (key: string, fallback?: string) => string): string {
+  const key = EQUIPMENT_LABEL_KEYS[item as (typeof EQUIPMENT_OPTIONS)[number]];
+  return key ? t(key, item) : item;
+}
+
 export const CONTACT_ROLES = ['Receiving', 'Gate/Security', 'After-hours', 'Billing', 'Reception'] as const;
+
+const CONTACT_ROLE_LABEL_KEYS: Record<(typeof CONTACT_ROLES)[number], string> = {
+  Receiving: 'abContactReceiving',
+  'Gate/Security': 'abContactGate',
+  'After-hours': 'abContactAfterHours',
+  Billing: 'abContactBilling',
+  Reception: 'abContactReception',
+};
+
+export function getContactRoleLabel(role: string, t: (key: string, fallback?: string) => string): string {
+  const key = CONTACT_ROLE_LABEL_KEYS[role as (typeof CONTACT_ROLES)[number]];
+  return key ? t(key, role) : role;
+}
 
 export const FILTER_PILLS: { key: 'role' | 'type' | 'city' | 'appt' | 'hours' | 'active'; label: string }[] = [
   { key: 'role', label: '📍 Role' },
@@ -90,6 +146,20 @@ export const TEMPLATE_OPTIONS = [
   { id: 'warehouse', icon: '📦', label: 'Warehouse' },
   { id: 'store', icon: '🏬', label: 'Store' },
 ] as const;
+
+const TEMPLATE_LABEL_KEYS: Record<(typeof TEMPLATE_OPTIONS)[number]['id'], string> = {
+  retail: 'abRetailDc',
+  factory: 'abFactory',
+  warehouse: 'abWarehouse',
+  store: 'abStore',
+};
+
+export function getTemplateOptions(t: (key: string, fallback?: string) => string) {
+  return TEMPLATE_OPTIONS.map((tpl) => ({
+    ...tpl,
+    label: t(TEMPLATE_LABEL_KEYS[tpl.id], tpl.label),
+  }));
+}
 
 /** Facility types aligned with quick-template cards (Create Location step 1). */
 export const QUICK_TEMPLATE_FACILITY_TYPES = ['dc', 'plant', 'warehouse', 'store'] as const;
@@ -111,17 +181,18 @@ const QUICK_TEMPLATE_FACILITY_LABEL_KEYS: Record<(typeof QUICK_TEMPLATE_FACILITY
   store: 'abStore',
 };
 
-export function getQuickTemplateFacilityLabel(type: string, t: (key: string) => string): string {
+export function getQuickTemplateFacilityLabel(type: string, t: (key: string, fallback?: string) => string): string {
   if ((QUICK_TEMPLATE_FACILITY_TYPES as readonly string[]).includes(type)) {
-    return t(QUICK_TEMPLATE_FACILITY_LABEL_KEYS[type as (typeof QUICK_TEMPLATE_FACILITY_TYPES)[number]]);
+    const key = QUICK_TEMPLATE_FACILITY_LABEL_KEYS[type as (typeof QUICK_TEMPLATE_FACILITY_TYPES)[number]];
+    return t(key, FACILITY_TYPE_LABELS[type] ?? type);
   }
-  return FACILITY_TYPE_LABELS[type] ?? type;
+  return getFacilityTypeLabel(type, t);
 }
 
-export function getQuickTemplateFacilityOptions(t: (key: string) => string): { value: string; label: string }[] {
+export function getQuickTemplateFacilityOptions(t: (key: string, fallback?: string) => string): { value: string; label: string }[] {
   return QUICK_TEMPLATE_FACILITY_TYPES.map((type) => ({
     value: type,
-    label: t(QUICK_TEMPLATE_FACILITY_LABEL_KEYS[type]),
+    label: t(QUICK_TEMPLATE_FACILITY_LABEL_KEYS[type], FACILITY_TYPE_LABELS[type] ?? type),
   }));
 }
 

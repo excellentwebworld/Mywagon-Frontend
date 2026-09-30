@@ -83,8 +83,7 @@ export const LoginPage: React.FC = () => {
   const socialHandoffStarted = useRef(false);
 
   const from =
-    (location.state as { from?: string } | null)?.from ||
-    (import.meta.env.BASE_URL.replace(/\/$/, '') ? '/address-book' : '/address-book');
+    (location.state as { from?: string } | null)?.from || '/dashboard';
 
   const laravelBase = (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '') ?? '';
   const oauthParams = new URLSearchParams(location.search);
@@ -95,6 +94,17 @@ export const LoginPage: React.FC = () => {
   useEffect(() => {
     clearSignupDraft();
   }, []);
+
+  // Re-translate login field errors when language toggles after submit.
+  const prevLoginLangRef = useRef(lang);
+  useEffect(() => {
+    if (prevLoginLangRef.current === lang) return;
+    prevLoginLangRef.current = lang;
+    setFieldErrors((prev) => {
+      if (!prev.email && !prev.password) return prev;
+      return validateLoginForm(email, password, t);
+    });
+  }, [lang, t, email, password]);
 
   // OAuth returns to /login?token=…&signup_complete=0 — finish session HERE (do not rely on
   // /auth/social/callback; Amplify/deep-link timing was leaving users stuck on this URL).
@@ -364,7 +374,7 @@ export const LoginPage: React.FC = () => {
                     type="checkbox"
                     checked={lang !== 'el'}
                     onChange={(e) => handleLanguageChange(e.target.checked)}
-                    aria-label="Language"
+                    aria-label={t('Login.language', 'Language')}
                   />
                   <span className="shipper-login-lang-slider" />
                 </label>

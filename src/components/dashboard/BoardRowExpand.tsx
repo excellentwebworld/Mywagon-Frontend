@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { shipmentsService } from '../../api'; 
+import { shipmentsService } from '../../api';
 import type { Shipment } from '../../context/AppContext';
+import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   formatEuro,
@@ -179,6 +180,7 @@ export const BoardRowExpand: React.FC<BoardRowExpandProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { requireSignupComplete } = useRequireSignupComplete();
   const [detail, setDetail] = useState<Shipment | null>(cached ?? null);
   const [loading, setLoading] = useState(!cached);
   const [error, setError] = useState<string | null>(null);
@@ -238,9 +240,13 @@ export const BoardRowExpand: React.FC<BoardRowExpandProps> = ({
   const transporter = shipment.carrier?.trim() || shipment.assignedDriverName?.trim() || '—';
   const canEdit = isShipmentEditable(shipment.status);
 
-  const goDetails = () => navigate(`/shipments/${shipment.id}`);
+  const goDetails = () => {
+    if (!requireSignupComplete()) return;
+    navigate(`/shipments/${shipment.id}`);
+  };
   const goEdit = () => {
     if (!canEdit) return;
+    if (!requireSignupComplete()) return;
     if (shipment.status === 'draft') {
       navigate(`/shipments/create/step/1?id=${shipment.id}`);
       return;

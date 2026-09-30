@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ProductMasterSortField } from '../../pages/ProductMaster/types';
 import type { ProductMasterState } from '../../pages/ProductMaster/hooks/useProductMaster';
+import { optionLabel } from '../../pages/ProductMaster/optionLabels';
 import { syncDotClass } from '../../pages/ProductMaster/utils/productUtils';
 import { ListSkeleton } from '../skeletons/ListSkeleton';
 
@@ -122,7 +123,7 @@ export const ProductList: React.FC<Props> = ({
         <span className="list-info">
           {viewMode === 'types'
             ? `${filteredTypes.length} ${t('types')}`
-            : `${listMeta?.total ?? filteredSkus.length} SKUs`}
+            : `${listMeta?.total ?? filteredSkus.length} ${t('productMaster.skus', 'SKUs')}`}
         </span>
       </div>
 
@@ -182,19 +183,19 @@ export const ProductList: React.FC<Props> = ({
                   <div className="tc-stats">
                     <div className="tc-stat">
                       <strong>{typeSkus}</strong>
-                      SKUs
+                      {t('productMaster.skus', 'SKUs')}
                     </div>
                     <div className="tc-stat">
                       <strong>{x.shipmentTotal ?? 0}</strong>
-                      Shipments
+                      {t('productMaster.shipments', 'Shipments')}
                     </div>
                     <div className="tc-stat">
                       <strong>{x.s30}</strong>
-                      Last 30d
+                      {t('productMaster.last30d', 'Last 30d')}
                     </div>
                     <div className="tc-stat">
                       <strong>{x.s90}</strong>
-                      Last 90d
+                      {t('productMaster.last90d', 'Last 90d')}
                     </div>
                   </div>
                 </div>
@@ -337,7 +338,7 @@ export const ProductList: React.FC<Props> = ({
                         </td>
                         <td>
                           <span className={`src-badge ${s.source === 'erp' ? 'src-erp' : 'src-manual'}`}>
-                            {s.source === 'erp' ? 'ERP' : 'Manual'}
+                            {s.source === 'erp' ? t('erpOrdersSourceErp', 'ERP') : t('manual', 'Manual')}
                           </span>
                         </td>
                         <td className="ts-cell">{s.updatedAt || '—'}</td>
@@ -355,7 +356,7 @@ export const ProductList: React.FC<Props> = ({
                         </td>
                         <td>
                           {s.palletType ? (
-                            <span className="type-pill">{s.palletType}</span>
+                            <span className="type-pill">{optionLabel('pallet', s.palletType, t)}</span>
                           ) : (
                             '—'
                           )}
@@ -365,7 +366,7 @@ export const ProductList: React.FC<Props> = ({
                         </td>
                         <td>
                           {s.temperature ? (
-                            <span className="type-pill">{s.temperature}</span>
+                            <span className="type-pill">{optionLabel('temp', s.temperature, t)}</span>
                           ) : (
                             '—'
                           )}
@@ -384,20 +385,24 @@ export const ProductList: React.FC<Props> = ({
           <div className="pag-info">
             {listMeta
               ? t('showingSkusRange', {
-                count: filteredSkus.length,
-                total: listMeta.total,
-              })
-              : `${filteredSkus.length} SKUs`}
+                  start:
+                    listMeta.total === 0
+                      ? 0
+                      : (currentPage - 1) * perPage + 1,
+                  end: Math.min(currentPage * perPage, listMeta.total),
+                  total: listMeta.total,
+                })
+              : `${filteredSkus.length} ${t('productMaster.skus', 'SKUs')}`}
             <select
               className="pag-length-sel ml-2"
               value={perPage}
               onChange={(e) => setPerPage(Number(e.target.value))}
               disabled={listLoading}
-              aria-label="Rows per page"
+              aria-label={t('productMaster.rowsPerPage', 'Rows per page')}
             >
               {[10, 12, 25, 50, 100].map((n) => (
                 <option key={n} value={n}>
-                  {n} / page
+                  {t('abPerPageOption', '{{n}} / page', { n })}
                 </option>
               ))}
             </select>

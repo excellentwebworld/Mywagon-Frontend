@@ -4,6 +4,10 @@ import { isPositiveMeasurement } from './locationFormSchema';
 
 export type CreateFieldErrors = Partial<Record<string, string>>;
 
+type TFn = (key: string, fallback?: string) => string;
+
+const defaultT: TFn = (_k, fb) => fb ?? _k;
+
 function isValidCoordinate(value: string | number | undefined, min: number, max: number): boolean {
   const str = String(value ?? '').trim();
   if (!str) return false;
@@ -11,60 +15,93 @@ function isValidCoordinate(value: string | number | undefined, min: number, max:
   return Number.isFinite(n) && n >= min && n <= max;
 }
 
-export function validateCreateStep1(data: CreateLocationData): CreateFieldErrors {
+export function validateCreateStep1(
+  data: CreateLocationData,
+  t: TFn = defaultT
+): CreateFieldErrors {
   const errors: CreateFieldErrors = {};
-  if (!String(data.type ?? '').trim()) errors.type = 'Location type is required';
+  if (!String(data.type ?? '').trim()) {
+    errors.type = t('abValLocationTypeRequired', 'Location type is required');
+  }
   if (data.context === 'customer') {
     if (!data.companyEntityId && !String(data.company ?? '').trim()) {
-      errors.companyEntity = 'Company / entity is required';
+      errors.companyEntity = t('abValCompanyEntityRequired', 'Company / entity is required');
     }
   }
   return errors;
 }
 
-export function validateCreateStep2(data: CreateLocationData): CreateFieldErrors {
+export function validateCreateStep2(
+  data: CreateLocationData,
+  t: TFn = defaultT
+): CreateFieldErrors {
   const errors: CreateFieldErrors = {};
-  if (!String(data.name ?? '').trim()) errors.name = 'Location name is required';
-  if (!String(data.address ?? '').trim()) errors.address = 'Address is required';
-  if (!String(data.city ?? '').trim()) errors.city = 'City is required';
-  if (!isValidCoordinate(data.lat, -90, 90)) errors.address = errors.address ?? 'Select a valid address from suggestions';
-  if (!isValidCoordinate(data.lng, -180, 180)) errors.address = errors.address ?? 'Select a valid address from suggestions';
-  if (!data.role) errors.role = 'Location role is required';
+  if (!String(data.name ?? '').trim()) {
+    errors.name = t('abValLocationNameRequired', 'Location name is required');
+  }
+  if (!String(data.address ?? '').trim()) {
+    errors.address = t('abValAddressRequired', 'Address is required');
+  }
+  if (!String(data.city ?? '').trim()) {
+    errors.city = t('abValCityRequired', 'City is required');
+  }
+  if (!isValidCoordinate(data.lat, -90, 90)) {
+    errors.address =
+      errors.address ?? t('abValSelectValidAddress', 'Select a valid address from suggestions');
+  }
+  if (!isValidCoordinate(data.lng, -180, 180)) {
+    errors.address =
+      errors.address ?? t('abValSelectValidAddress', 'Select a valid address from suggestions');
+  }
+  if (!data.role) {
+    errors.role = t('abValLocationRoleRequired', 'Location role is required');
+  }
   return errors;
 }
 
-export function validateCreateStep3(data: CreateLocationData): CreateFieldErrors {
+export function validateCreateStep3(
+  data: CreateLocationData,
+  t: TFn = defaultT
+): CreateFieldErrors {
   const errors: CreateFieldErrors = {};
-  if (!String(data.dock ?? '').trim()) errors.dock = 'Dock type is required';
+  if (!String(data.dock ?? '').trim()) {
+    errors.dock = t('abValDockRequired', 'Dock type is required');
+  }
 
   if (!String(data.loadTime ?? '').trim()) {
-    errors.loadTime = 'Estimated loading/unloading time is required';
+    errors.loadTime = t(
+      'abValLoadTimeRequired',
+      'Estimated loading/unloading time is required'
+    );
   } else {
     const loadTimeNum = parseInt(String(data.loadTime).trim(), 10);
     if (!Number.isFinite(loadTimeNum) || loadTimeNum < 1) {
-      errors.loadTime = 'Must be at least 1 minute';
+      errors.loadTime = t('abValLoadTimeMin', 'Must be at least 1 minute');
     }
   }
 
   if (!isPositiveMeasurement(data.maxTruck, /m$/i)) {
-    errors.maxTruck = 'Must be greater than 0';
+    errors.maxTruck = t('abValMustBePositive', 'Must be greater than 0');
   }
 
   if (!isPositiveMeasurement(data.maxWeight, /(t|tons?|kg)$/i)) {
-    errors.maxWeight = 'Must be greater than 0';
+    errors.maxWeight = t('abValMustBePositive', 'Must be greater than 0');
   }
 
   if (data.appt) {
-    const timeRangeError = validateTimeRangesList(data.timeRanges);
+    const timeRangeError = validateTimeRangesList(data.timeRanges, t);
     if (timeRangeError) errors.timeRanges = timeRangeError;
   }
   return errors;
 }
 
-export function validateCreateAll(data: CreateLocationData): CreateFieldErrors {
+export function validateCreateAll(
+  data: CreateLocationData,
+  t: TFn = defaultT
+): CreateFieldErrors {
   return {
-    ...validateCreateStep1(data),
-    ...validateCreateStep2(data),
-    ...validateCreateStep3(data),
+    ...validateCreateStep1(data, t),
+    ...validateCreateStep2(data, t),
+    ...validateCreateStep3(data, t),
   };
 }

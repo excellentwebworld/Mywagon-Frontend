@@ -10,6 +10,7 @@ import {
 import type { Conversation, ChatContext } from '../types';
 import { useTransporterProfileOptional } from '../../../components/TransporterProfile/TransporterProfileContext';
 import { extractInitials } from '../../../api/services/chatService';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface ChatHeaderProps {
   conversation: Conversation;
@@ -32,6 +33,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onShowToast,
   t,
 }) => {
+  const { t: tMsg } = useTranslation();
   const [phonePopoverOpen, setPhonePopoverOpen] = useState(false);
   const [emailPopoverOpen, setEmailPopoverOpen] = useState(false);
   const [phoneCopied, setPhoneCopied] = useState(false);
@@ -65,7 +67,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     if (type === 'company') return t('chatModule.badgeCompany');
     if (type === 'freelancer') return t('chatModule.badgeFreelancer');
     if (type === 'driver') return t('chatModule.badgeDriver');
-    if (type === 'admin') return 'Support';
+    if (type === 'admin') return tMsg('Messages.support', 'Support');
     return type;
   };
 
@@ -105,7 +107,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         type="button"
         className="ch-btn mobile-back-btn"
         onClick={onBackMobile}
-        aria-label="Go back"
+        aria-label={tMsg('Messages.go_back', 'Go back')}
       >
         <ChevronLeft size={18} />
       </button>
@@ -137,7 +139,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           {shipmentFilter && shipmentFilter !== 'all' && chatContext?.shipmentLabel && (
             <span
               className="ci-badge shipment-badge"
-              title={`Shipment context: ${chatContext.shipmentLabel}`}
+              title={`${tMsg('Messages.shipment_context', 'Shipment context')}: ${chatContext.shipmentLabel}`}
             >
               📦 {chatContext.shipmentLabel}
             </span>
@@ -169,7 +171,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                   type="button"
                   className="ch-popover-copy-btn"
                   onClick={handleCopyPhone}
-                  title="Copy to clipboard"
+                  title={tMsg('Messages.copy_to_clipboard', 'Copy to clipboard')}
                 >
                   {phoneCopied ? <Check size={14} color="#10B981" /> : <Copy size={14} />}
                 </button>
@@ -201,7 +203,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                   type="button"
                   className="ch-popover-copy-btn"
                   onClick={handleCopyEmail}
-                  title="Copy to clipboard"
+                  title={tMsg('Messages.copy_to_clipboard', 'Copy to clipboard')}
                 >
                   {emailCopied ? <Check size={14} color="#10B981" /> : <Copy size={14} />}
                 </button>
@@ -225,7 +227,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             type="button"
             className={`ch-btn ${ctxPaneOpen ? 'active' : ''}`}
             id="ctxToggle"
-            title="Shipment context"
+            title={tMsg('Messages.shipment_context', 'Shipment context')}
             onClick={onToggleCtxPane}
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">

@@ -5,7 +5,8 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { useApp } from '../../../context/AppContext';
 import { tutorialsService } from '../../../api/services/tutorialsService';
 import type { TutorialVideo } from '../../../api/types/tutorials';
-import { getModuleConfigBySlug } from '../../../config/tutorialModules';
+import { getModuleConfigBySlug, TUTORIAL_MODULES } from '../../../config/tutorialModules';
+import { TUTORIALS_COMING_SOON } from '../../../config/tutorialsFeature';
 import {
   filterTutorials,
   mergeTutorialModules,
@@ -18,6 +19,7 @@ export function useTutorialsPage() {
   const navigate = useNavigate();
   const { showToast } = useApp();
   const [searchParams, setSearchParams] = useSearchParams();
+  const comingSoon = TUTORIALS_COMING_SOON;
 
   const searchQuery = searchParams.get('q') || searchParams.get('search') || '';
 
@@ -46,12 +48,22 @@ export function useTutorialsPage() {
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['tutorials', 'catalog'],
     queryFn: () => tutorialsService.fetchCatalog(),
+    enabled: !comingSoon,
   });
 
   const mergedModules = useMemo<MergedTutorialModule[]>(() => {
+    if (comingSoon) {
+      return TUTORIAL_MODULES.map((config, index) => ({
+        slug: config.slug,
+        section: config.section,
+        ordering: index + 1,
+        config,
+        videos: [],
+      }));
+    }
     if (!data?.modules) return [];
     return mergeTutorialModules(data.modules, getModuleConfigBySlug);
-  }, [data?.modules]);
+  }, [comingSoon, data?.modules]);
 
   const getModuleTitle = useCallback(
     (config: { titleKey: string }) => t(config.titleKey),
@@ -75,6 +87,10 @@ export function useTutorialsPage() {
 
   const openVideo = useCallback(
     (video: TutorialVideo, moduleSlug: string) => {
+      if (comingSoon) {
+        showToast(t('tutorials.comingSoonToast'), 'info');
+        return;
+      }
       if (!video.embed_id) {
         showToast(t('tutorials.loadError'), 'error');
         return;
@@ -84,7 +100,7 @@ export function useTutorialsPage() {
       setModalPlaylist(playlist);
       setModalVideo(video);
     },
-    [mergedModules, showToast, t]
+    [comingSoon, mergedModules, showToast, t]
   );
 
   const closeModal = useCallback(() => {
@@ -136,6 +152,7 @@ export function useTutorialsPage() {
   return {
     t,
     lang,
+    comingSoon,
     meta,
     searchQuery,
     setSearchQuery,
@@ -143,8 +160,8 @@ export function useTutorialsPage() {
     setActiveModuleFilter,
     mergedModules,
     visibleModules,
-    loading: isLoading,
-    error: isError ? t('tutorials.loadError') : null,
+    loading: comingSoon ? false : isLoading,
+    error: comingSoon ? null : isError ? t('tutorials.loadError') : null,
     refetch,
     modalVideo,
     modalPlaylist,

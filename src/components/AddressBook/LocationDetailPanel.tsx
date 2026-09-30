@@ -1,7 +1,7 @@
 import React from 'react';
 import { LocationDetailSkeleton } from '../skeletons/LocationDetailSkeleton';
 import type { LocationItem } from '../../context/AppContext';
-import { FACILITY_TYPE_COLORS, FACILITY_TYPE_LABELS } from '../../pages/AddressBook/constants';
+import { FACILITY_TYPE_COLORS, getFacilityTypeLabel } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { DetailSection } from './DetailSection';
 
@@ -27,9 +27,9 @@ function getRoleClass(role: LocationItem['role']) {
 }
 
 function getRoleLabel(role: LocationItem['role'], t: AddressBookState['t']) {
-  if (role === 'pickup') return t('pickup');
-  if (role === 'delivery') return t('delivery');
-  return 'Both';
+  if (role === 'pickup') return t('pickup', 'Pickup');
+  if (role === 'delivery') return t('delivery', 'Delivery');
+  return t('roleBoth', 'Both');
 }
 
 export const LocationDetailPanel: React.FC<Props> = ({
@@ -78,9 +78,11 @@ export const LocationDetailPanel: React.FC<Props> = ({
               className="dp-type-badge"
               style={{ background: FACILITY_TYPE_COLORS[l.type] || 'var(--text-tertiary)' }}
             >
-              {FACILITY_TYPE_LABELS[l.type] ?? l.type}
+              {getFacilityTypeLabel(l.type, t)}
             </span>
-            {l.status === 'archived' && <span className="dp-archived-badge">Archived</span>}
+            {l.status === 'archived' && (
+              <span className="dp-archived-badge">{t('abArchived', 'Archived')}</span>
+            )}
             {l.tags.map((tag: string) => (
               <span key={tag} className="dp-tag">
                 {tag}
@@ -103,77 +105,81 @@ export const LocationDetailPanel: React.FC<Props> = ({
               <circle cx="12" cy="10" r="3" />
             </svg>
             <span>{l.address}</span>
-            <button type="button" className="dp-copy-btn" onClick={() => handleCopy(l.address, 'Address copied')}>
-              Copy
+            <button
+              type="button"
+              className="dp-copy-btn"
+              onClick={() => handleCopy(l.address, t('abAddressCopied', 'Address copied'))}
+            >
+              {t('copy', 'Copy')}
             </button>
           </div>
           <div className="dp-geo">
             <span className="geo-dot" style={{ background: l.geoVerified ? 'var(--success)' : 'var(--warning)' }} />
             {l.lat.toFixed(3)}, {l.lng.toFixed(3)}
             <span className="geo-status" style={{ color: l.geoVerified ? 'var(--success)' : 'var(--warning)' }}>
-              · {l.geoVerified ? 'Verified' : 'Unverified'}
+              · {l.geoVerified ? t('abVerified', 'Verified') : t('abUnverified', 'Unverified')}
             </span>
           </div>
           {!hideActions && (
             <div className="dp-actions">
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => openEditModal(l)} disabled={saving}>
-                Edit
+                {t('edit', 'Edit')}
               </button>
               {l.status === 'active' && (
                 <button type="button" className="btn btn-secondary btn-sm dp-archive-btn" onClick={() => handleArchive(l)} disabled={saving}>
-                  Archive
+                  {t('archive', 'Archive')}
                 </button>
               )}
               {l.status === 'archived' && (
                 <button type="button" className="btn btn-secondary btn-sm dp-restore-btn" onClick={() => handleRestore(l)} disabled={saving}>
-                  Restore
+                  {t('abRestore', 'Restore')}
                 </button>
               )}
             </div>
           )}
         </div>
 
-        <DetailSection title="🗺️ Location Map" bodyClassName="dp-map-sec-body">
+        <DetailSection title={t('abLocationMapTitle', '🗺️ Location Map')} bodyClassName="dp-map-sec-body">
           <div className="dp-map-box">
-            <iframe title="Location Map" src={mapUrl} loading="lazy" />
+            <iframe title={t('abLocationMap', 'Location Map')} src={mapUrl} loading="lazy" />
             <a className="dp-map-link" href={mapLink} target="_blank" rel="noopener noreferrer">
-              Open full map →
+              {t('abOpenFullMap', 'Open full map →')}
             </a>
           </div>
         </DetailSection>
 
-        <DetailSection title="Hours & Scheduling">
+        <DetailSection title={t('abHoursSchedulingTitle', 'Hours & Scheduling')}>
           <div className="dp-row">
-            <span className="label">Appointment</span>
-            <span className="val">{l.appt ? '✅ Yes' : 'No'}</span>
+            <span className="label">{t('appointment', 'Appointment')}</span>
+            <span className="val">{l.appt ? `✅ ${t('abYes', 'Yes')}` : t('abNo', 'No')}</span>
           </div>
           <div className="dp-row">
-            <span className="label">Hours</span>
-            <span className="val dp-hours-val">{l.hours || 'Not set'}</span>
+            <span className="label">{t('hours', 'Hours')}</span>
+            <span className="val dp-hours-val">{l.hours || t('abNotSet', 'Not set')}</span>
           </div>
           {(l.timeRanges ?? []).length > 0 && (
             <div className="dp-row">
-              <span className="label">Time ranges</span>
+              <span className="label">{t('abTimeRanges', 'Time ranges')}</span>
               <span className="val dp-hours-val">
                 {(l.timeRanges ?? []).map((tr) => `${tr.start_time}–${tr.end_time}`).join(', ')}
               </span>
             </div>
           )}
           <div className="dp-row">
-            <span className="label">Dock</span>
+            <span className="label">{t('abDock', 'Dock')}</span>
             <span className="val">{l.dock || '—'}</span>
           </div>
         </DetailSection>
 
-        <DetailSection title="Company & Contact">
+        <DetailSection title={t('abCompanyContactTitle', 'Company & Contact')}>
           <div className="dp-row">
-            <span className="label">Company</span>
+            <span className="label">{t('company', 'Company')}</span>
             <span className="val">{l.company || '—'}</span>
           </div>
           {l.contacts.length > 0 ? (
             l.contacts.map((c: LocationItem['contacts'][number], idx: number) => (
               <div key={idx} className="dp-contact-card">
-                <div className="dp-contact-role">{c.role || 'Contact'}</div>
+                <div className="dp-contact-role">{c.role || t('contact', 'Contact')}</div>
                 <div className="dp-contact-name">{c.name}</div>
                 <div className="dp-contact-info">
                   {c.phone && (
@@ -194,19 +200,19 @@ export const LocationDetailPanel: React.FC<Props> = ({
                   {l.email && <div>{l.email}</div>}
                 </>
               ) : (
-                'No contact information on file.'
+                t('abNoContactInfo', 'No contact information on file.')
               )}
             </div>
           )}
         </DetailSection>
 
-        <DetailSection title="⚠️ Access & Restrictions">
+        <DetailSection title={t('abAccessRestrictions', '⚠️ Access & Restrictions')}>
           <div className="dp-row">
-            <span className="label">Max truck</span>
+            <span className="label">{t('abMaxTruckShort', 'Max truck')}</span>
             <span className="val">{l.maxTruck || '—'}</span>
           </div>
           <div className="dp-row">
-            <span className="label">Max weight</span>
+            <span className="label">{t('abMaxWeightShort', 'Max weight')}</span>
             <span className="val">{l.maxWeight || '—'}</span>
           </div>
           <div className="dp-row">
@@ -214,46 +220,48 @@ export const LocationDetailPanel: React.FC<Props> = ({
             <span className="val">{l.adr ? '✅' : '❌'}</span>
           </div>
           <div className="dp-row">
-            <span className="label">Pallet exchange</span>
+            <span className="label">{t('abPalletExchange', 'Pallet Exchange')}</span>
             <span className="val">{l.palletExchange ? '✅' : '❌'}</span>
           </div>
           <div className="dp-row">
-            <span className="label">Equipment</span>
+            <span className="label">{t('abEquipment', 'Equipment')}</span>
             <span className="val">{l.equipment.length ? l.equipment.join(', ') : '—'}</span>
           </div>
         </DetailSection>
 
-        <DetailSection title="📝 Notes">
+        <DetailSection title={t('abNotesTitle', '📝 Notes')}>
           {l.noteInternal && (
             <div className="dp-note internal">
-              <div className="dp-note-label">🔒 Internal</div>
+              <div className="dp-note-label">{t('abInternalLabel', '🔒 Internal')}</div>
               {l.noteInternal}
             </div>
           )}
           {l.noteCarrier && (
             <div className="dp-note carrier">
-              <div className="dp-note-label">🚛 Carrier-visible</div>
+              <div className="dp-note-label">{t('abCarrierVisibleLabel', '🚛 Carrier-visible')}</div>
               {l.noteCarrier}
             </div>
           )}
-          {!l.noteInternal && !l.noteCarrier && <div className="dp-no-notes">No notes.</div>}
+          {!l.noteInternal && !l.noteCarrier && (
+            <div className="dp-no-notes">{t('abNoNotes', 'No notes.')}</div>
+          )}
         </DetailSection>
 
-        <DetailSection title="🔖 References">
+        <DetailSection title={t('abReferences', '🔖 References')}>
           <div className="dp-row">
-            <span className="label">ID</span>
+            <span className="label">{t('abId', 'ID')}</span>
             <span className="val mono dp-id-val">{l.id}</span>
           </div>
           <div className="dp-row">
-            <span className="label">Internal code</span>
+            <span className="label">{t('abInternalCodeShort', 'Internal code')}</span>
             <span className="val">{l.code || '—'}</span>
           </div>
           <div className="dp-row">
-            <span className="label">Customer code</span>
+            <span className="label">{t('abCustomerCode', 'Customer code')}</span>
             <span className="val">{l.custCode || '—'}</span>
           </div>
           <div className="dp-row">
-            <span className="label">Created</span>
+            <span className="label">{t('abCreated', 'Created')}</span>
             <span className="val">{l.created}</span>
           </div>
         </DetailSection>

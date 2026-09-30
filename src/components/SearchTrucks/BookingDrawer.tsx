@@ -570,7 +570,11 @@ function LoadSnapshotPanel({
   t,
 }: {
   snapshot: PendingMatchSnapshot;
-  t: (key: string, opts?: Record<string, unknown>) => string;
+  t: (
+    key: string,
+    fallbackOrOptions?: string | Record<string, unknown>,
+    options?: Record<string, unknown>,
+  ) => string;
 }) {
   const stops = useMemo(() => snapshotStopsToShipmentStops(snapshot.stops), [snapshot.stops]);
   const lane = splitLane(snapshot.lane);
@@ -767,7 +771,11 @@ interface BookingDrawerProps {
   onDraftChange: (patch: Partial<BookingDraft>) => void;
   onClose: () => void;
   onConfirm: () => void;
-  t: (key: string, opts?: Record<string, unknown>) => string;
+  t: (
+    key: string,
+    fallbackOrOptions?: string | Record<string, unknown>,
+    options?: Record<string, unknown>,
+  ) => string;
 }
 
 export const BookingDrawer: React.FC<BookingDrawerProps> = ({

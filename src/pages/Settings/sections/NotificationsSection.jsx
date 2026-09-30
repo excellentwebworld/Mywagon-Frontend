@@ -14,7 +14,10 @@ import {
   notificationSettingsService,
 } from '../../../api/services/notificationSettingsService';
 
-export default function NotificationsSection() {
+/**
+ * @param {{ onSaved?: () => void }} [props]
+ */
+export default function NotificationsSection({ onSaved } = {}) {
   const { t } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
@@ -25,6 +28,18 @@ export default function NotificationsSection() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
+
+  const translatePrefLabel = useCallback(
+    (slug, fallback) => {
+      const base = String(slug || '')
+        .replace(/^(push_|email_)/, '')
+        .replace('cancelletion', 'cancellation');
+      return t(`settings.notificationsSection.types.${base}`, {
+        defaultValue: fallback || slug,
+      });
+    },
+    [t],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -79,6 +94,7 @@ export default function NotificationsSection() {
       setEmail(data.email || []);
       setDirty(false);
       toast.success(t('settings.notificationsSection.saved'));
+      onSaved?.();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : t('settings.notificationsSection.saveError'));
     } finally {
@@ -157,7 +173,7 @@ export default function NotificationsSection() {
           {push.map((item) => (
             <ToggleRow
               key={item.slug}
-              label={item.label}
+              label={translatePrefLabel(item.slug, item.label)}
               checked={item.value}
               onChange={() => toggleItem('push', item.slug)}
               T={T}
@@ -176,7 +192,7 @@ export default function NotificationsSection() {
           {email.map((item) => (
             <ToggleRow
               key={item.slug}
-              label={item.label}
+              label={translatePrefLabel(item.slug, item.label)}
               checked={item.value}
               onChange={() => toggleItem('email', item.slug)}
               T={T}

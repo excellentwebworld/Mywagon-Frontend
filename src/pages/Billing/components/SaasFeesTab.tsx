@@ -16,7 +16,15 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Invoice, SubFilterKey, KpiFilterKey, BillingSummary } from '../types';
-import { formatCurrency, formatDate } from '../mockData';
+import {
+  formatCurrency,
+  formatDate,
+  invoiceStatusLabel,
+  invoiceTypeLabel,
+  isInvoiceOverdue,
+  normalizeInvoiceStatus,
+  normalizeInvoiceType,
+} from '../mockData';
 import { DatePicker } from '../../../components/ui/DatePicker';
 import { Money, MvButton, RecordStatusBadge, Tag } from '../../../components/ui/mv';
 import { BillingKpiSkeleton, BillingTableSkeleton } from './BillingSkeleton';
@@ -27,12 +35,12 @@ import 'react-loading-skeleton/dist/skeleton.css';
 const sk = { baseColor: '#f0f0f3', highlightColor: '#fafafe' };
 
 function invoiceStatusTone(status: string): 'success' | 'warning' | 'danger' | 'neutral' {
-  switch (status) {
-    case 'Paid':
+  switch (normalizeInvoiceStatus(status)) {
+    case 'paid':
       return 'success';
-    case 'Overdue':
+    case 'overdue':
       return 'danger';
-    case 'Unpaid':
+    case 'unpaid':
       return 'warning';
     default:
       return 'neutral';
@@ -40,8 +48,9 @@ function invoiceStatusTone(status: string): 'success' | 'warning' | 'danger' | '
 }
 
 function invoiceTypeVariant(type: string): 'outline' | 'brand' | 'navy' {
-  if (type === 'Subscription' || type === 'Add-on') return 'brand';
-  if (type === 'Penalty' || type === 'Commission with penalty') return 'navy';
+  const slug = normalizeInvoiceType(type);
+  if (slug === 'subscription' || slug === 'add-on') return 'brand';
+  if (slug === 'commission-with-penalty') return 'navy';
   return 'outline';
 }
 
@@ -154,12 +163,12 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
 
   const subTabs: { key: SubFilterKey; labelKey: string; defaultLabel: string }[] = [
     { key: 'All', labelKey: 'billingPage.subAll', defaultLabel: 'All' },
-    { key: 'Unpaid', labelKey: 'billingPage.subUnpaid', defaultLabel: 'Unpaid' },
-    { key: 'Overdue', labelKey: 'billingPage.subOverdue', defaultLabel: 'Overdue' },
-    { key: 'Paid', labelKey: 'billingPage.subPaid', defaultLabel: 'Paid' },
-    { key: 'Subscription', labelKey: 'billingPage.subSubscription', defaultLabel: 'Subscription' },
-    { key: 'Commission with penalty', labelKey: 'billingPage.subCommissionWithPenalty', defaultLabel: 'Commission with penalty' },
-    { key: 'Add-on', labelKey: 'billingPage.subAddon', defaultLabel: 'Add-on' },
+    { key: 'unpaid', labelKey: 'billingPage.unpaid', defaultLabel: 'Unpaid' },
+    { key: 'overdue', labelKey: 'billingPage.overdue', defaultLabel: 'Overdue' },
+    { key: 'paid', labelKey: 'billingPage.paid', defaultLabel: 'Paid' },
+    { key: 'subscription', labelKey: 'billingPage.subscription', defaultLabel: 'Subscription' },
+    { key: 'commission-with-penalty', labelKey: 'billingPage.commission-with-penalty', defaultLabel: 'Commission with penalty' },
+    { key: 'add-on', labelKey: 'billingPage.add-on', defaultLabel: 'Add-on' },
   ];
 
   const renderInvoiceActions = (inv: Invoice) => (
@@ -406,10 +415,10 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
                         </div>
                       ) : null}
                     </div>
-                    <RecordStatusBadge status={inv.status} tone={invoiceStatusTone(inv.status)} />
+                    <RecordStatusBadge status={invoiceStatusLabel(inv, t)} tone={invoiceStatusTone(inv.status)} />
                   </div>
                   <div className="wv-invoice-card__meta">
-                    <Tag variant={invoiceTypeVariant(inv.type)}>{inv.type}</Tag>
+                    <Tag variant={invoiceTypeVariant(inv.type)}>{invoiceTypeLabel(inv, t)}</Tag>
                     <span className="wv-invoice-card__date">
                       {t('billingPage.thDueDate', 'Due')} {formatDate(inv.dDate, i18n.language)}
                     </span>
@@ -424,7 +433,7 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
                     <div>
                       <span className="wv-invoice-card__label">{t('billingPage.thRemaining', 'Remaining')}</span>
                       <strong className="billing-mono">
-                        <Money value={inv.rem} currency={inv.cur} overdue={inv.rem > 0 && inv.status === 'Overdue'} />
+                        <Money value={inv.rem} currency={inv.cur} overdue={inv.rem > 0 && isInvoiceOverdue(inv.status)} />
                       </strong>
                     </div>
                   </div>
@@ -470,13 +479,13 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
                         )}
                       </td>
                       <td>
-                        <Tag variant={invoiceTypeVariant(inv.type)}>{inv.type}</Tag>
+                        <Tag variant={invoiceTypeVariant(inv.type)}>{invoiceTypeLabel(inv, t)}</Tag>
                       </td>
                       <td>
-                        <RecordStatusBadge status={inv.status} tone={invoiceStatusTone(inv.status)} />
+                        <RecordStatusBadge status={invoiceStatusLabel(inv, t)} tone={invoiceStatusTone(inv.status)} />
                       </td>
                       <td className="text-gray-600 text-xs">{formatDate(inv.iDate, i18n.language)}</td>
-                      <td className={`text-xs ${inv.status === 'Overdue' ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
+                      <td className={`text-xs ${isInvoiceOverdue(inv.status) ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
                         {formatDate(inv.dDate, i18n.language)}
                       </td>
                       <td className="text-gray-400 text-xs">{formatDate(inv.pDate, i18n.language)}</td>
@@ -484,7 +493,7 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
                         <Money value={inv.tot} currency={inv.cur} />
                       </td>
                       <td className="billing-mono font-semibold text-xs">
-                        <Money value={inv.rem} currency={inv.cur} overdue={inv.rem > 0 && inv.status === 'Overdue'} />
+                        <Money value={inv.rem} currency={inv.cur} overdue={inv.rem > 0 && isInvoiceOverdue(inv.status)} />
                       </td>
                       <td>
                         {inv.loads > 0 ? (

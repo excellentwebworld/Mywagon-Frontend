@@ -1,4 +1,5 @@
 import React from 'react';
+import { Loader2 } from 'lucide-react';
 import type { Partner } from '../../pages/Partners/types';
 import type { PartnersSortField } from '../../pages/Partners/types';
 import type { PartnersState } from '../../pages/Partners/hooks/usePartners';
@@ -56,6 +57,10 @@ type Props = Pick<
   | 'acceptPartner'
   | 'declinePartner'
   | 'canAcceptDeclinePartner'
+  | 'acceptLoading'
+  | 'declineLoading'
+  | 'acceptLoadingId'
+  | 'declineLoadingId'
 >;
 
 function getTypeClass(type: Partner['type']) {
@@ -82,6 +87,24 @@ const FACET_LABEL_MAP: Record<string, string> = {
   st_suspended: 'suspendedPartners',
 };
 
+const TYPE_LABEL_KEYS: Record<Partner['type'], string> = {
+  carrier_company: 'carriersType',
+  freelancer_driver: 'freelancersType',
+  supplier: 'suppliersType',
+};
+
+function partnerStatusText(p: Partner, t: (key: string, fallback?: string) => string): string {
+  if (p.status === 'active') return t('activePartners');
+  if (p.status === 'invited') return t('invitationSent');
+  if (p.status === 'pending') return t('invitationReceived');
+  return t('suspendedPartners');
+}
+
+function partnerTypeText(p: Partner, t: (key: string, fallback?: string) => string): string {
+  const key = TYPE_LABEL_KEYS[p.type];
+  return key ? t(key) : p.typeLabel || p.type;
+}
+
 export const PartnersList: React.FC<Props> = ({
   t,
   filteredPartners,
@@ -101,6 +124,10 @@ export const PartnersList: React.FC<Props> = ({
   acceptPartner,
   declinePartner,
   canAcceptDeclinePartner,
+  acceptLoading,
+  declineLoading,
+  acceptLoadingId,
+  declineLoadingId,
 }) => {
   const total = listMeta.total ?? 0;
   const lastPage = listMeta.last_page ?? 1;
@@ -178,28 +205,40 @@ export const PartnersList: React.FC<Props> = ({
                     )}
                   </td>
                   <td>
-                    <span className={`ptn-tp ${getTypeClass(p.type)}`}>{p.typeLabel}</span>
+                    <span className={`ptn-tp ${getTypeClass(p.type)}`}>{partnerTypeText(p, t)}</span>
                   </td>
                   <td>
-                    <span className={`ptn-st ${getStatusClass(p.status)}`}>{p.statusLabel}</span>
+                    <span className={`ptn-st ${getStatusClass(p.status)}`}>{partnerStatusText(p, t)}</span>
                     {p.canAcceptDecline && canAcceptDeclinePartner && (
                       <div style={{ marginTop: 6, display: 'flex', gap: 4 }} onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          className="btn btn-ok btn-sm"
-                          style={{ padding: '2px 6px', fontSize: 10 }}
-                          onClick={() => acceptPartner(p)}
-                        >
-                          ✓ {t('accept')}
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          style={{ padding: '2px 6px', fontSize: 10 }}
-                          onClick={() => declinePartner(p)}
-                        >
-                          ✕ {t('decline')}
-                        </button>
+                        {(() => {
+                          const pid = String(p.id);
+                          const isAccepting = acceptLoading && acceptLoadingId === pid;
+                          const isDeclining = declineLoading && declineLoadingId === pid;
+                          const busy = isAccepting || isDeclining;
+                          return (
+                            <>
+                              <button
+                                type="button"
+                                className="btn btn-ok btn-sm"
+                                style={{ padding: '2px 6px', fontSize: 10, minWidth: 64, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+                                disabled={busy}
+                                onClick={() => acceptPartner(p)}
+                              >
+                                {isAccepting ? <Loader2 size={12} className="animate-spin" /> : '✓'} {t('accept')}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-danger btn-sm"
+                                style={{ padding: '2px 6px', fontSize: 10, minWidth: 64, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}
+                                disabled={busy}
+                                onClick={() => declinePartner(p)}
+                              >
+                                {isDeclining ? <Loader2 size={12} className="animate-spin" /> : '✕'} {t('decline')}
+                              </button>
+                            </>
+                          );
+                        })()}
                       </div>
                     )}
                   </td>
@@ -211,18 +250,14 @@ export const PartnersList: React.FC<Props> = ({
                     </div>
                   </td>
                   <td>
-                    {p.rating != null || p.trips > 0 ? (
-                      <div style={{ fontSize: 13, fontWeight: 500 }}>
-                        <span style={{ color: '#F59E0B', fontWeight: 700, marginRight: 6 }}>
-                          ★ {p.rating ?? '—'}
-                        </span>
-                        <span style={{ color: 'var(--text-secondary)' }}>
-                          {p.trips} {p.trips === 1 ? t('trip') : t('trips')}
-                        </span>
-                      </div>
-                    ) : (
-                      <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>—</span>
-                    )}
+                    <div style={{ fontSize: 13, fontWeight: 500 }}>
+                      <span style={{ color: '#F59E0B', fontWeight: 700, marginRight: 6 }}>
+                        ★ {p.rating != null ? p.rating : '0.00'}
+                      </span>
+                      <span style={{ color: 'var(--text-secondary)' }}>
+                        {p.trips} {p.trips === 1 ? t('trip') : t('trips')}
+                      </span>
+                    </div>
                   </td>
                   <td>
                     {p.capabilities.length > 0 ? (
@@ -261,11 +296,11 @@ export const PartnersList: React.FC<Props> = ({
             value={perPage}
             onChange={(e) => setPageSize(Number(e.target.value))}
             disabled={listLoading}
-            aria-label="Rows per page"
+            aria-label={t('Partners.rows_per_page', 'Rows per page')}
           >
             {pageSizeOptions.map((n) => (
               <option key={n} value={n}>
-                {n} / page
+                {t('abPerPageOption', '{{n}} / page', { n })}
               </option>
             ))}
           </select>

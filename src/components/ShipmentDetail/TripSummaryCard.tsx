@@ -2,6 +2,7 @@ import React from 'react';
 import { Zap } from 'lucide-react';
 import type { TripSummary } from '../../pages/ShipmentDetail/detailViewModel';
 import { CollapsibleCard } from './CollapsibleCard';
+import { translateCargoUnit } from '../../utils/shipmentLogI18n';
 
 interface TripSummaryCardProps {
   trip: TripSummary;
@@ -57,7 +58,24 @@ export const TripSummaryCard: React.FC<TripSummaryCardProps> = ({
 
         <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
           <div className="text-[18px] font-bold tabular-nums text-slate-900 dark:text-white">
-            {trip.weight}
+            {(() => {
+              const raw = String(trip.weight || '').trim();
+              if (!raw || raw === '—') return '—';
+              const m = raw.match(/^([\d.,]+)\s*(.*)$/);
+              if (!m) return raw;
+              const unit = translateCargoUnit(m[2] || 'Tonnes', t);
+              return (
+                <>
+                  {m[1]}
+                  {unit ? (
+                    <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                      {' '}
+                      {unit}
+                    </span>
+                  ) : null}
+                </>
+              );
+            })()}
           </div>
           <div className="text-[10px] font-semibold uppercase mt-0.5 text-slate-500 dark:text-slate-400">
             {t('totalWeight', 'Total weight')}

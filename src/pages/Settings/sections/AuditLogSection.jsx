@@ -13,9 +13,9 @@
  */
 
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import {
-  Search, Download, ChevronDown, ChevronRight, X, Clock, Loader2,
+  Search, Download, ChevronDown, ChevronRight, ChevronLeft, X, Clock, Loader2,
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
@@ -142,6 +142,42 @@ export default function AuditLogSection() {
 
   const catIcon = (key) => AUDIT_CATEGORIES.find(c => c.key === key)?.icon || '📌';
 
+  // Pagination items calculation (with windowing & ellipsis)
+  const paginationItems = useMemo(() => {
+    const siblings = 1;
+    if (totalPages <= 1) return [1];
+
+    const totalNumbers = siblings * 2 + 5; // e.g. 7
+    if (totalPages <= totalNumbers) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    const leftSibling = Math.max(page - siblings, 1);
+    const rightSibling = Math.min(page + siblings, totalPages);
+
+    const showLeftDots = leftSibling > 2;
+    const showRightDots = rightSibling < totalPages - 1;
+
+    if (!showLeftDots && showRightDots) {
+      const leftCount = 3 + 2 * siblings;
+      const leftRange = Array.from({ length: leftCount }, (_, i) => i + 1);
+      return [...leftRange, '...', totalPages];
+    }
+
+    if (showLeftDots && !showRightDots) {
+      const rightCount = 3 + 2 * siblings;
+      const rightRange = Array.from({ length: rightCount }, (_, i) => totalPages - rightCount + 1 + i);
+      return [1, '...', ...rightRange];
+    }
+
+    if (showLeftDots && showRightDots) {
+      const middleRange = Array.from({ length: rightSibling - leftSibling + 1 }, (_, i) => leftSibling + i);
+      return [1, '...', ...middleRange, '...', totalPages];
+    }
+
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }, [page, totalPages]);
+
   return (
     <div>
       <h2 className="font-bold mb-1" style={{ fontSize: 18, color: T.t1 }}>{t('compliance.audit.title')}</h2>
@@ -185,7 +221,10 @@ export default function AuditLogSection() {
         <button onClick={() => { setSeverity(prev => SEVERITY_CYCLE[(SEVERITY_CYCLE.indexOf(prev) + 1) % SEVERITY_CYCLE.length]); setPage(1); }}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer border-none"
           style={{ background: severity !== 'all' ? (SEVERITY_CONFIG[severity]?.bg || T.sa) : T.sa, border: `1px solid ${severity !== 'all' ? (SEVERITY_CONFIG[severity]?.color || T.bd) + '40' : T.bd}`, color: severity !== 'all' ? SEVERITY_CONFIG[severity]?.color : T.t2, fontSize: 12, fontWeight: 500 }}>
-          {t('compliance.audit.severity')}: {severity === 'all' ? t('compliance.audit.all') : SEVERITY_CONFIG[severity]?.label}
+          {t('compliance.audit.severity')}:{' '}
+          {severity === 'all'
+            ? t('compliance.audit.all')
+            : t(`severityValue.${severity}`, { defaultValue: SEVERITY_CONFIG[severity]?.label || severity })}
         </button>
 
         {/* Date range — shared DatePicker (same as Create Shipment / Add Lane) */}
@@ -195,7 +234,7 @@ export default function AuditLogSection() {
             onChange={(v) => { setDateFrom(v); setPage(1); }}
             max={dateTo || undefined}
             direction="auto"
-            placeholder="dd/MM/yyyy"
+            placeholder={t('Settings.dd_mm_yyyy', 'dd/MM/yyyy')}
           />
         </div>
         <span style={{ fontSize: 12, color: T.t3 }}>→</span>
@@ -205,7 +244,7 @@ export default function AuditLogSection() {
             onChange={(v) => { setDateTo(v); setPage(1); }}
             min={dateFrom || undefined}
             direction="auto"
-            placeholder="dd/MM/yyyy"
+            placeholder={t('Settings.dd_mm_yyyy', 'dd/MM/yyyy')}
           />
         </div>
 
@@ -238,7 +277,7 @@ export default function AuditLogSection() {
           {grouped.map((group, gi) => (
             <div key={gi}>
               {/* Date header */}
-              <div className="sticky top-0 px-2 py-1.5 mb-1 mt-3" style={{ fontSize: 11, fontWeight: 700, color: T.t3, textTransform: 'uppercase', letterSpacing: 0.5, background: T.sa, borderRadius: 6 }}>
+              <div className="px-2 py-1.5 mb-1 mt-3" style={{ fontSize: 11, fontWeight: 700, color: T.t3, textTransform: 'uppercase', letterSpacing: 0.5, background: T.sa, borderRadius: 6 }}>
                 {group.label}
               </div>
 
@@ -246,6 +285,25 @@ export default function AuditLogSection() {
                 const sev = SEVERITY_CONFIG[entry.severity] || SEVERITY_CONFIG.info;
                 const isExpanded = expandedId === entry.id;
                 const time = new Date(entry.ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+                const actorName = entry.actor?.name || '—';
+                const actorRoleKey = entry.actor?.role_key || entry.actor?.roleKey || null;
+                const actorRoleRaw = entry.actor?.role || null;
+                const roleLookupKey = String(actorRoleKey || actorRoleRaw || '')
+                  .trim()
+                  .toLowerCase()
+                  .replace(/\s+/g, '_');
+                const actorRole = actorRoleRaw || actorRoleKey
+                  ? t(`roles.${roleLookupKey}`, {
+                      defaultValue: t(actorRoleRaw || roleLookupKey, {
+                        defaultValue: actorRoleRaw || roleLookupKey,
+                      }),
+                    })
+                  : null;
+                const actorEmail = entry.actor?.email || null;
+                const target = entry.target && entry.target !== actorName ? entry.target : (actorEmail || '');
+                const subtitleParts = [actorName, actorRole, target].filter(Boolean);
+                // Avoid "Name · Name" / "Name · Role · Name" duplicates
+                const subtitle = [...new Set(subtitleParts)].join(' · ');
 
                 return (
                   <div key={entry.id} className="rounded-lg mb-1.5 overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
@@ -256,12 +314,19 @@ export default function AuditLogSection() {
                       {isExpanded ? <ChevronDown size={12} style={{ color: T.t3 }} /> : <ChevronRight size={12} style={{ color: T.t3 }} />}
                       <span style={{ fontSize: 16 }}>{catIcon(entry.category)}</span>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold truncate" style={{ fontSize: 12, color: T.t1 }}>{entry.action}</span>
-                          <span className="px-1.5 py-0.5 rounded-full shrink-0" style={{ fontSize: 9, fontWeight: 700, background: sev.bg, color: sev.color }}>{sev.label}</span>
+                          {actorRole && (
+                            <span className="px-1.5 py-0.5 rounded-full shrink-0" style={{ fontSize: 9, fontWeight: 700, background: T.al, color: T.ac }}>
+                              {actorRole}
+                            </span>
+                          )}
+                          <span className="px-1.5 py-0.5 rounded-full shrink-0" style={{ fontSize: 9, fontWeight: 700, background: sev.bg, color: sev.color }}>
+                            {t(`severityValue.${entry.severity}`, { defaultValue: sev.label })}
+                          </span>
                         </div>
                         <div style={{ fontSize: 11, color: T.t3, marginTop: 1 }}>
-                          {entry.actor?.name || '—'} · {entry.target}
+                          {subtitle}
                         </div>
                       </div>
                       <span className="shrink-0" style={{ fontSize: 11, color: T.t3 }}>{time}</span>
@@ -272,7 +337,7 @@ export default function AuditLogSection() {
                       <div className="px-4 pb-4 pt-2" style={{ borderTop: `1px solid ${T.bd}` }}>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
                           <DetailItem label={t('compliance.audit.detail.actor')} value={`${entry.actor?.name || '—'} (${entry.actor?.email || '—'})`} T={T} />
-                          <DetailItem label={t('compliance.audit.detail.role')} value={entry.actor?.role || '—'} T={T} />
+                          <DetailItem label={t('compliance.audit.detail.role')} value={actorRole || '—'} T={T} />
                           <DetailItem label={t('compliance.audit.detail.ip')} value={entry.actor?.ip || '—'} T={T} />
                           <DetailItem label={t('compliance.audit.detail.device')} value={entry.actor?.device || '—'} T={T} />
                           <DetailItem label={t('compliance.audit.detail.location')} value={[entry.actor?.city, entry.actor?.country].filter(Boolean).join(', ') || '—'} T={T} />
@@ -313,18 +378,77 @@ export default function AuditLogSection() {
           ))}
 
           {/* Pagination */}
-          <div className="flex items-center justify-between mt-4 px-2">
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-5 px-2 pt-3" style={{ borderTop: `1px solid ${T.bd}` }}>
             <span style={{ fontSize: 12, color: T.t3 }}>
-              {t('compliance.audit.showing', { from: total > 0 ? (page - 1) * PAGE_SIZE + 1 : 0, to: Math.min(page * PAGE_SIZE, total), total })}
+              {t('compliance.audit.showing', {
+                from: total > 0 ? (page - 1) * PAGE_SIZE + 1 : 0,
+                to: Math.min(page * PAGE_SIZE, total),
+                total,
+                defaultValue: `Showing ${total > 0 ? (page - 1) * PAGE_SIZE + 1 : 0}–${Math.min(page * PAGE_SIZE, total)} of ${total} entries`,
+              })}
             </span>
-            <div className="flex gap-1">
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button key={i} onClick={() => setPage(i + 1)}
-                  className="w-7 h-7 rounded-lg cursor-pointer border-none font-semibold"
-                  style={{ background: page === i + 1 ? T.ac : T.sa, color: page === i + 1 ? '#fff' : T.t2, fontSize: 11 }}>
-                  {i + 1}
-                </button>
-              ))}
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page <= 1}
+                aria-label="Previous page"
+                className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer border-none font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: T.sa,
+                  border: `1px solid ${T.bd}`,
+                  color: T.t2,
+                }}
+              >
+                <ChevronLeft size={14} />
+              </button>
+
+              {paginationItems.map((item, idx) => {
+                if (item === '...') {
+                  return (
+                    <span
+                      key={`dots-${idx}`}
+                      className="w-6 h-8 flex items-center justify-center font-semibold select-none"
+                      style={{ color: T.t3, fontSize: 12 }}
+                    >
+                      …
+                    </span>
+                  );
+                }
+
+                const isCurrent = page === item;
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setPage(item)}
+                    className="min-w-[32px] h-8 px-2 rounded-lg cursor-pointer border-none font-semibold transition-all flex items-center justify-center"
+                    style={{
+                      background: isCurrent ? T.ac : T.sa,
+                      color: isCurrent ? '#fff' : T.t2,
+                      border: `1px solid ${isCurrent ? T.ac : T.bd}`,
+                      fontSize: 12,
+                    }}
+                  >
+                    {item}
+                  </button>
+                );
+              })}
+
+              <button
+                type="button"
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                aria-label="Next page"
+                className="w-8 h-8 rounded-lg flex items-center justify-center cursor-pointer border-none font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: T.sa,
+                  border: `1px solid ${T.bd}`,
+                  color: T.t2,
+                }}
+              >
+                <ChevronRight size={14} />
+              </button>
             </div>
           </div>
         </div>

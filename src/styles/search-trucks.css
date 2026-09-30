@@ -3604,27 +3604,47 @@ button.sat-step:disabled { opacity: 1; cursor: default; }
 .sat-gate-modal__panel {
   position: relative;
   z-index: 1;
-  width: min(440px, 100%);
+  width: min(480px, 100%);
   background: var(--surface, #fff);
   border-radius: 12px;
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
   border: 1px solid var(--border);
+  overflow: hidden;
+}
+.sat-gate-modal__close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary, #64748b);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 8px;
+}
+.sat-gate-modal__close:hover {
+  background: var(--surface-hover, #f1f5f9);
+  color: var(--text-primary);
 }
 .sat-gate-modal__body {
-  padding: 28px 28px 8px;
+  padding: 36px 32px 12px;
   text-align: center;
 }
 .sat-gate-modal__title {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--accent, #5b21b6);
 }
 .sat-gate-modal__copy {
-  margin: 12px auto 0;
-  max-width: 32ch;
-  font-size: 13px;
-  line-height: 1.45;
+  margin: 14px auto 0;
+  max-width: 36ch;
+  font-size: 14px;
+  line-height: 1.55;
   color: var(--text-secondary);
 }
 .sat-gate-modal__actions {
@@ -3632,7 +3652,7 @@ button.sat-step:disabled { opacity: 1; cursor: default; }
   flex-wrap: wrap;
   justify-content: center;
   gap: 10px;
-  padding: 16px 28px 28px;
+  padding: 8px 24px 28px;
 }
 .sat-btn:disabled {
   opacity: 0.55;

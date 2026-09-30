@@ -5,7 +5,8 @@ import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { erpOrdersService, ApiError, getApiErrorMessage, addressBookService, productMasterService } from '../../../api';
-import { statusLabel, buildExportParams } from '../../../api/mappers/erpOrdersMapper';
+import { statusLabel as statusLabelEn, statusLabelKey, buildExportParams } from '../../../api/mappers/erpOrdersMapper';
+import type { ErpOrderStatus } from '../../../api/types/erpOrders';
 import {
   ERP_ORDERS_PREFILL_KEY,
   isOrderEligibleForCreateLoad,
@@ -645,7 +646,7 @@ export function useErpOrdersList() {
     refreshLocations,
     refreshSkus,
     prependSku,
-    statusLabel,
+    statusLabel: (status: ErpOrderStatus) => t(statusLabelKey(status), statusLabelEn(status)),
     summarySubtitle: summaryQuery.data?.total ?? 0,
   };
 }

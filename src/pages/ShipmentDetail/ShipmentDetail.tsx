@@ -26,6 +26,7 @@ import {
   UploadDocumentModal,
   ViewPodModal,
   CounterOfferModal,
+  AssignCoOwnerModal,
 } from '../../components/ShipmentDetail';
 import type { PhysicalStop } from '../../components/ShipmentDetail/StopsCard';
 import { useApp } from '../../context/AppContext';
@@ -78,25 +79,30 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const { showToast } = useApp();
-  const { t } = useTranslation();
+  const { t, lang: appLang } = useTranslation();
   const { requireSignupComplete } = useRequireSignupComplete();
   const { can, requirePermission } = useSubscriptionPermission();
   const { canAction, requirePermission: requireRbac } = useShipperPermission();
   const { openUpgradeGate } = useUpgradeGate();
-  const canViewMap = can('view_map');
-  const canLiveGps = can('live_gps_shipment_tracking');
-  const canViewPods = can('view_electronic_pods');
-  const canTravelledRoute = can('actual_travelled_route');
+  // Admin deep-link (readOnly) is not a shipper session — skip plan gates and always show maps/PODs.
+  const canViewMap = readOnly || can('view_map');
+  const canLiveGps = readOnly || can('live_gps_shipment_tracking');
+  const canViewPods = readOnly || can('view_electronic_pods');
+  const canTravelledRoute = readOnly || can('actual_travelled_route');
   const fetched = useShipment(readOnly ? undefined : id);
   const shipment = readOnly ? (shipmentOverride ?? null) : fetched.shipment;
   const loading = readOnly ? false : fetched.loading;
   const error = readOnly ? overrideError : fetched.error;
   const refetch = readOnly ? () => undefined : fetched.refetch;
-  const [lang, setLang] = useState<'en' | 'el'>('en');
+  const [lang, setLang] = useState<'en' | 'el'>(appLang);
+  useEffect(() => {
+    setLang(appLang);
+  }, [appLang]);
   const [activeNav, setActiveNav] = useState('stops');
   const [sections, setSections] = useState(DEFAULT_SECTIONS);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [isAssignCoOwnerOpen, setIsAssignCoOwnerOpen] = useState(false);
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [isBidsHistoryOpen, setIsBidsHistoryOpen] = useState(false);
   const [selectedPartnerForHistory, setSelectedPartnerForHistory] = useState<PartnerBidItem | null>(null);
@@ -764,6 +770,11 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
               ? undefined
               : () => setIsCancelOpen(true)
           }
+          onAssignCoOwner={
+            readOnly || !canAction('assignCoOwner')
+              ? undefined
+              : () => setIsAssignCoOwnerOpen(true)
+          }
           onToast={(msg) => showToast(msg, 'info')}
           t={t}
         />
@@ -963,13 +974,7 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
               onCopy={handleCopy}
               onToast={(msg) => showToast(msg, 'info')}
               onViewPod={(stop) => {
-                if (
-                  !requirePermission('view_electronic_pods', {
-                    body:
-                      t('podUpgradeBody') ||
-                      'Electronic PODs require a plan upgrade or the POD add-on.',
-                  })
-                ) {
+                if (!readOnly && !requirePermission('view_electronic_pods')) {
                   return;
                 }
                 setViewPodStop(stop);
@@ -1094,18 +1099,17 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
             ) : (
               <div className="card mb-3 p-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
                 <p className="m-0 mb-2">
-                  {t('mapUpgradeBody') || 'Interactive maps and live GPS require a plan upgrade or add-on.'}
+                  {t(
+                    'satUpgradeBody',
+                    'Your current subscription plan does not support this feature. To unlock it, please upgrade to a higher tier plan.',
+                  )}
                 </p>
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
-                  onClick={() =>
-                    openUpgradeGate({
-                      body: t('mapUpgradeBody') || 'Interactive maps and live GPS require a plan upgrade or add-on.',
-                    })
-                  }
+                  onClick={() => openUpgradeGate()}
                 >
-                  {t('satUpgradeNow')}
+                  {t('satUpgradeNow', 'Upgrade Now')}
                 </button>
               </div>
             )}
@@ -1267,6 +1271,19 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
         submitting={counterSubmitting}
         onClose={() => setPendingCounterBid(null)}
         onSubmit={handleSendCounterBid}
+        t={t}
+      />
+
+      {/* Assign Co-Owner Modal */}
+      <AssignCoOwnerModal
+        open={isAssignCoOwnerOpen}
+        shipmentId={vm.id}
+        shipmentDisplayId={vm.displayId}
+        onClose={() => setIsAssignCoOwnerOpen(false)}
+        onSuccess={() => {
+          refetch?.();
+        }}
+        onToast={(msg, type) => showToast(msg, type || 'info')}
         t={t}
       />
         </>
