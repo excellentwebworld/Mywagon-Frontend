@@ -18,7 +18,7 @@ import { useUserMgmt } from '../../../context/UserMgmtContext';
 import { rolesSettingsService } from '../../../api/services/rolesSettingsService';
 import { ApiError } from '../../../api/client';
 import { useAuth } from '../../../context/AuthContext';
-import { canManageShipperUsers, expandPermissionDependencies } from '../../../utils/shipperAccessPresets';
+import { canManageShipperUsers, expandPermissionDependencies, localizeShipperRoleName } from '../../../utils/shipperAccessPresets';
 import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 
 const COLORS = ['#9B51E0', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#EC4899', '#9B51E0'];
@@ -394,7 +394,7 @@ export default function RolesTab() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="font-semibold truncate" style={{ fontSize: 13, color: sel ? T.ac : T.t1 }}>
-                      {role.name}
+                      {localizeShipperRoleName(role.name || role.key, t)}
                     </span>
                     <span
                       className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold"
@@ -595,7 +595,7 @@ export default function RolesTab() {
               <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <span className="w-4 h-4 rounded-full shrink-0" style={{ background: selectedRole.color }} />
-                  <h3 className="font-bold" style={{ fontSize: 16, color: T.t1 }}>{selectedRole.name}</h3>
+                  <h3 className="font-bold" style={{ fontSize: 16, color: T.t1 }}>{localizeShipperRoleName(selectedRole.name || selectedRole.key, t)}</h3>
                   <span
                     className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold"
                     style={{

@@ -20,7 +20,7 @@ import {
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
 import { signupService } from '../../../api/auth';
 import { ApiError } from '../../../api/client';
-import { expandPermissionDependencies } from '../../../utils/shipperAccessPresets';
+import { expandPermissionDependencies, localizeShipperRoleName } from '../../../utils/shipperAccessPresets';
 import { CountryCodeSelect } from '../../Register/components/CountryCodeSelect';
 import { validateCountryCode, validatePhone } from '../../Register/registerValidation';
 import '../../Register/RegisterPage.css';
@@ -311,7 +311,7 @@ export default function UserEditPage() {
           <div style={{ fontSize: 13, color: T.t3 }}>{user.email}</div>
           <div className="flex flex-wrap gap-2 mt-2">
             <span className="inline-flex px-2 py-0.5 rounded-full" style={{ fontSize: 11, fontWeight: 600, background: `${roleMeta.color}18`, color: roleMeta.color }}>
-              {roleMeta.name}
+              {localizeShipperRoleName(roleMeta.name || roleMeta.key || draft.role, t)}
             </span>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ fontSize: 11, fontWeight: 600, background: sc.bg, color: sc.fg }}>
               {t(`userMgmt.status.${user.status}`)}
@@ -427,7 +427,7 @@ export default function UserEditPage() {
                     border: sel ? `2px solid ${T.ac}` : `1px solid ${T.bd}`,
                   }}
                 >
-                  <div className="font-semibold" style={{ fontSize: 13, color: T.t1 }}>{r.name}</div>
+                  <div className="font-semibold" style={{ fontSize: 13, color: T.t1 }}>{localizeShipperRoleName(r.name || r.key, t)}</div>
                   <div style={{ fontSize: 11, color: T.t3 }}>{r.description}</div>
                 </button>
               );

@@ -10,7 +10,7 @@ import { useUserMgmt } from '../../../context/UserMgmtContext';
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
 import { signupService } from '../../../api/auth';
 import { ApiError } from '../../../api/client';
-import { SHIPPER_ROLES } from '../../../utils/shipperAccessPresets';
+import { SHIPPER_ROLES, localizeShipperRoleName } from '../../../utils/shipperAccessPresets';
 import { CountryCodeSelect } from '../../Register/components/CountryCodeSelect';
 import { validateCountryCode, validatePhone } from '../../Register/registerValidation';
 import '../../Register/RegisterPage.css';
@@ -341,7 +341,7 @@ export default function UserDetailPanel({
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ background: role.color }} />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{role.name}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{localizeShipperRoleName(role.name || role.key, t)}</span>
                     {sel && <span style={{ fontSize: 11, color: T.ac }}>✓</span>}
                   </div>
                   {role.description && (

@@ -27,7 +27,7 @@ import {
   getInviteStatus,
 } from '../../../mocks/userMgmtData';
 import UserAvatar from './UserAvatar';
-import { canManageShipperUsers, hasCustomDirectPermissions, SHIPPER_ROLES } from '../../../utils/shipperAccessPresets';
+import { canManageShipperUsers, hasCustomDirectPermissions, localizeShipperRoleName, SHIPPER_ROLES } from '../../../utils/shipperAccessPresets';
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
 import { ApiError } from '../../../api/client';
 import { parseUtcInstant } from '../../../utils/timezone';
@@ -351,7 +351,7 @@ export default function UsersTab() {
                     setRoleFilter((prev) => (prev.includes(r.key) ? prev.filter((x) => x !== r.key) : [...prev, r.key]));
                   }} />
                   <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ background: r.color }} />
-                  {r.name}
+                  {localizeShipperRoleName(r.name || r.key, t)}
                 </label>
               ))}
             </div>
@@ -625,7 +625,7 @@ function UserRow({
       <td className="px-3 py-3">
         <div className="flex items-center gap-1.5">
           <span className="inline-flex px-2 py-0.5 rounded-full" style={{ fontSize: 11, fontWeight: 600, background: `${role?.color || '#3B82F6'}18`, color: role?.color || '#3B82F6', border: `1px solid ${role?.color || '#3B82F6'}30` }}>
-            {role?.name || u.role}
+            {localizeShipperRoleName(role?.name || u.role, t)}
           </span>
           {custom && (
             <span className="inline-flex px-1.5 py-0.5 rounded" style={{ fontSize: 9, fontWeight: 700, background: '#F59E0B18', color: '#D97706', border: '1px solid #F59E0B30' }}>
@@ -754,7 +754,7 @@ function MobileUserCard({ user: u, T, t, onClick, formatDateTime, relTime }) {
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
           <span className="inline-flex px-2 py-0.5 rounded-full" style={{ fontSize: 10, fontWeight: 600, background: `${role?.color || '#3B82F6'}18`, color: role?.color || '#3B82F6' }}>
-            {role?.name || u.role}
+            {localizeShipperRoleName(role?.name || u.role, t)}
           </span>
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full" style={{ fontSize: 10, fontWeight: 600, background: sc.bg, color: sc.fg }}>
             {t(`userMgmt.status.${u.status}`)}

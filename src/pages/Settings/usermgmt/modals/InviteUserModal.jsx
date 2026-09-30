@@ -14,7 +14,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import { usersSettingsService } from '../../../../api/services/usersSettingsService';
 import { signupService } from '../../../../api/auth';
 import { ApiError } from '../../../../api/client';
-import { SHIPPER_ROLES } from '../../../../utils/shipperAccessPresets';
+import { SHIPPER_ROLES, localizeShipperRoleName } from '../../../../utils/shipperAccessPresets';
 import { CountryCodeSelect } from '../../../Register/components/CountryCodeSelect';
 import { validateCountryCode, validatePhone } from '../../../Register/registerValidation';
 import '../../../Register/RegisterPage.css';
@@ -379,7 +379,7 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: role.color }} />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{role.name}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{localizeShipperRoleName(role.name || role.key, t)}</span>
                       {sel && <span style={{ fontSize: 11, color: T.ac }}>✓</span>}
                     </div>
                     <p style={{ fontSize: 10, color: T.t3, lineHeight: 1.4, minHeight: 28 }}>

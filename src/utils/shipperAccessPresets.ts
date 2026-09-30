@@ -2,6 +2,21 @@
  * shipperAccessPresets.ts — Admin/Dispatcher helpers (Blade-parity Spatie values).
  */
 
+/**
+ * Display label for system roles (Admin / Dispatcher). Custom roles pass through unchanged.
+ */
+export function localizeShipperRoleName(
+  nameOrKey: string | null | undefined,
+  t: (key: string, fallback?: string) => string,
+): string {
+  const raw = String(nameOrKey || '').trim();
+  if (!raw) return '';
+  const key = raw.toLowerCase().replace(/\s+/g, '_');
+  if (key === 'admin') return t('roles.admin', 'Admin');
+  if (key === 'dispatcher') return t('roles.dispatcher', 'Dispatcher');
+  return raw;
+}
+
 export type ShipperPresetKey = 'admin' | 'dispatcher';
 
 export const SHIPPER_PRESET_META: Record<
