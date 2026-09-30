@@ -437,30 +437,33 @@ html.dark .driver-popover-arrow-side-bottom {
   align-items: center;
   gap: 8px;
   padding: 12px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: none !important;
   border-radius: 9999px;
-  background-color: #9b51e0;
-  background-image: linear-gradient(135deg, #4e5cdb 0%, #9b51e0 100%);
-  color: #fff;
+  background: linear-gradient(135deg, #4e5cdb 0%, #9b51e0 100%) !important;
+  background-color: #9b51e0 !important;
+  color: #ffffff !important;
   font-size: 14px;
   font-weight: 700;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(155, 81, 224, 0.4);
+  box-shadow: 0 8px 24px rgba(155, 81, 224, 0.4);
   cursor: pointer;
   isolation: isolate;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  opacity: 1;
-  mix-blend-mode: normal;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .mv-help-tour-btn > * {
   position: relative;
   z-index: 1;
+  color: #ffffff !important;
 }
 
 .mv-help-tour-btn:hover {
   filter: brightness(1.06);
   transform: translateY(-2px);
+  background: linear-gradient(135deg, #9b51e0 0%, #4e5cdb 100%) !important;
+  color: #ffffff !important;
 }
 
 .mv-help-tour-btn:focus-visible {
@@ -469,12 +472,23 @@ html.dark .driver-popover-arrow-side-bottom {
 }
 
 html.dark .mv-help-tour-btn,
+[data-theme='dark'] .mv-help-tour-btn,
+html.light .mv-help-tour-btn,
+[data-theme='light'] .mv-help-tour-btn {
+  background: linear-gradient(135deg, #4e5cdb 0%, #9b51e0 100%) !important;
+  background-color: #9b51e0 !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+html.dark .mv-help-tour-btn,
 [data-theme='dark'] .mv-help-tour-btn {
-  background-color: #9b51e0;
-  background-image: linear-gradient(135deg, #4e5cdb 0%, #9b51e0 100%);
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.22);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), 0 8px 24px rgba(155, 81, 224, 0.45);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(155, 81, 224, 0.45);
+}
+
+html.light .mv-help-tour-btn,
+[data-theme='light'] .mv-help-tour-btn {
+  box-shadow: 0 8px 24px rgba(155, 81, 224, 0.4);
 }
 
 @media (max-width: 900px) {
