@@ -19,42 +19,55 @@ import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
 import type { WizardOutletContext } from './wizardOutletContext';
 import './CreateShipmentWizard.css';
 
-export const wizardValidationSchema = Yup.object().shape({
-  custRef: Yup.string().optional(),
-  negotiable: Yup.boolean().optional(),
-  stops: Yup.array().of(
-    Yup.object().shape({
-      locationId: Yup.string().required('Location is required'),
-      dateFrom: Yup.string().required('Date is required'),
-      lines: Yup.array().of(
-        Yup.object().shape({
-          productId: Yup.string().required('Product is required'),
-          qty: Yup.number().positive('Qty must be positive').required('Required'),
-          weight: Yup.number().positive('Weight must be positive').required('Required'),
-        })
-      ).min(1, 'At least one cargo line is required'),
-    })
-  ).min(2, 'At least two stops are required'),
-  targetPrice: Yup.number()
-    .transform((value, originalValue) =>
-      originalValue === '' || originalValue === null || originalValue === undefined ? undefined : value
-    )
-    .when('negotiable', {
-      is: (val: boolean | undefined) => Boolean(val),
-      then: (schema) =>
-        schema
-          .nullable()
-          .optional()
-          .moreThan(0, 'Target price must be greater than 0'),
-      otherwise: (schema) =>
-        schema
-          .typeError('Target price is required')
-          .required('Target price is required')
-          .moreThan(0, 'Target price must be greater than 0'),
-    }),
-});
+type WizardTranslate = (key: string, fallback?: string) => string;
 
-const validationSchema = wizardValidationSchema;
+/** Locale-aware Yup schema for create-shipment wizard (Formik). */
+export function createWizardValidationSchema(t: WizardTranslate = (_key, fallback) => fallback || _key) {
+  const targetPricePositive = t('targetPricePositive', 'Target price must be greater than 0');
+  const targetPriceRequired = t('targetPriceRequired', 'Target price is required');
+
+  return Yup.object().shape({
+    custRef: Yup.string().optional(),
+    negotiable: Yup.boolean().optional(),
+    stops: Yup.array().of(
+      Yup.object().shape({
+        locationId: Yup.string().required(t('locationRequired', 'Location is required')),
+        dateFrom: Yup.string().required(t('dateRequired', 'Date is required')),
+        lines: Yup.array().of(
+          Yup.object().shape({
+            productId: Yup.string().required(t('productRequired', 'Product is required')),
+            qty: Yup.number()
+              .positive(t('qtyMustBePositive', 'Qty must be positive'))
+              .required(t('required', 'Required')),
+            weight: Yup.number()
+              .positive(t('weightMustBePositive', 'Weight must be positive'))
+              .required(t('required', 'Required')),
+          })
+        ).min(1, t('atLeastOneCargoLine', 'At least one cargo line is required')),
+      })
+    ).min(2, t('atLeastTwoStops', 'At least two stops are required')),
+    targetPrice: Yup.number()
+      .transform((value, originalValue) =>
+        originalValue === '' || originalValue === null || originalValue === undefined ? undefined : value
+      )
+      .when('negotiable', {
+        is: (val: boolean | undefined) => Boolean(val),
+        then: (schema) =>
+          schema
+            .nullable()
+            .optional()
+            .moreThan(0, targetPricePositive),
+        otherwise: (schema) =>
+          schema
+            .typeError(targetPriceRequired)
+            .required(targetPriceRequired)
+            .moreThan(0, targetPricePositive),
+      }),
+  });
+}
+
+/** English default for unit tests / non-i18n callers. */
+export const wizardValidationSchema = createWizardValidationSchema();
 
 function stepTitle(step: number, t: (key: string) => string, isEditMode: boolean) {
   if (step === 2) return t('step2Title') || 'Review Itinerary & Stats';
@@ -103,12 +116,20 @@ export const CreateShipmentWizardLayout: React.FC = () => {
 };
 
 const CreateShipmentWizardLayoutInner: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, lang } = useTranslation();
   const { showToast } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const stepNavBannerRef = useRef<HTMLDivElement>(null);
   const resetItineraryConfirmationRef = useRef<(() => void) | null>(null);
+
+  const validationSchema = useMemo(
+    () =>
+      createWizardValidationSchema((key, fallback) =>
+        t(key, fallback ?? key),
+      ),
+    [t, lang],
+  );
 
   const {
     step,
