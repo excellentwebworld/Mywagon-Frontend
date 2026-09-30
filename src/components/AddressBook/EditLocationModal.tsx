@@ -540,9 +540,12 @@ export const EditLocationModal: React.FC<Props> = ({
                 <input
                   id="edit-max-truck"
                   name="maxTruck"
-                  type="text"
-                  placeholder={t('abEgMaxTruck', 'e.g. 18.75m')}
+                  type="number"
+                  min="0.1"
+                  step="any"
+                  placeholder={t('abEgMaxTruck', 'e.g. 18.75')}
                   value={values.maxTruck}
+                  onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
                   onChange={(e) => {
                     handleChange(e);
                     clearStepErrors();
@@ -556,9 +559,12 @@ export const EditLocationModal: React.FC<Props> = ({
                 <input
                   id="edit-max-weight"
                   name="maxWeight"
-                  type="text"
-                  placeholder={t('abEgMaxWeight', 'e.g. 40T')}
+                  type="number"
+                  min="0.1"
+                  step="any"
+                  placeholder={t('abEgMaxWeight', 'e.g. 40')}
                   value={values.maxWeight}
+                  onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
                   onChange={(e) => {
                     handleChange(e);
                     clearStepErrors();

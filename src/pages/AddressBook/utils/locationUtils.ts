@@ -136,8 +136,8 @@ export function applyTemplate(tpl: string, prev: CreateLocationData): CreateLoca
       ...base,
       dock: 'Ramp',
       hours: 'Mon-Sat 06:00–14:00',
-      maxTruck: '12m',
-      maxWeight: '19T',
+      maxTruck: '12',
+      maxWeight: '19',
     };
   }
   return base;

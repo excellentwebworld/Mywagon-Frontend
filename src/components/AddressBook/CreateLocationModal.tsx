@@ -415,13 +415,31 @@ export const CreateLocationModal: React.FC<Props> = ({
 
       <div className="mf-grid">
         <div className={`mf${fieldErrors.maxTruck ? ' has-error' : ''}`}>
-          <label>{t('abMaxTruckLength')}</label>
-          <input type="text" placeholder={t('abEgMaxTruck', 'e.g. 18.75m')} value={createData.maxTruck} onChange={(e) => update({ maxTruck: e.target.value })} />
+          <label htmlFor="create-max-truck">{t('abMaxTruckLength')}</label>
+          <input
+            id="create-max-truck"
+            type="number"
+            min="0.1"
+            step="any"
+            placeholder={t('abEgMaxTruck', 'e.g. 18.75')}
+            value={createData.maxTruck}
+            onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
+            onChange={(e) => update({ maxTruck: e.target.value })}
+          />
           <FormFieldError message={fieldErrors.maxTruck} />
         </div>
         <div className={`mf${fieldErrors.maxWeight ? ' has-error' : ''}`}>
-          <label>{t('abMaxWeight')}</label>
-          <input type="text" placeholder={t('abEgMaxWeight', 'e.g. 40T')} value={createData.maxWeight} onChange={(e) => update({ maxWeight: e.target.value })} />
+          <label htmlFor="create-max-weight">{t('abMaxWeight')}</label>
+          <input
+            id="create-max-weight"
+            type="number"
+            min="0.1"
+            step="any"
+            placeholder={t('abEgMaxWeight', 'e.g. 40')}
+            value={createData.maxWeight}
+            onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
+            onChange={(e) => update({ maxWeight: e.target.value })}
+          />
           <FormFieldError message={fieldErrors.maxWeight} />
         </div>
       </div>

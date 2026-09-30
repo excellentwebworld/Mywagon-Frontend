@@ -98,6 +98,17 @@ describe('Address Book Location Measurement and Step 3 Validation', () => {
       expect(errors.dock).toBe('Dock type is required');
       expect(errors.loadTime).toBe('Must be at least 1 minute');
     });
+
+    it('flags alphabetic and invalid non-numeric inputs for maxTruck and maxWeight', () => {
+      const invalidData: CreateLocationData = {
+        ...baseValidData,
+        maxTruck: 'abc',
+        maxWeight: 'jjjjjj',
+      };
+      const errors = validateCreateStep3(invalidData);
+      expect(errors.maxTruck).toBe('Must be greater than 0');
+      expect(errors.maxWeight).toBe('Must be greater than 0');
+    });
   });
 
   describe('locationEditValidationSchema (Yup)', () => {

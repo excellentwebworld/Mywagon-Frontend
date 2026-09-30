@@ -24,6 +24,13 @@ export function normalizeLocationFormValues(values: LocationFormValues): Locatio
   };
 }
 
+export function cleanNumericMeasurement(val: string | number | undefined | null): string {
+  if (val === undefined || val === null) return '';
+  const str = String(val).trim();
+  if (!str) return '';
+  return str.replace(/(?:m|t|tons?|kg|g|lbs?|oz)$/i, '').trim();
+}
+
 export function locationToFormValues(loc: LocationItem): LocationFormValues {
   return normalizeLocationFormValues({
     name: loc.name,
@@ -45,8 +52,8 @@ export function locationToFormValues(loc: LocationItem): LocationFormValues {
     appt: loc.appt,
     dock: loc.dock ?? '',
     hours: loc.hours ?? '',
-    maxTruck: loc.maxTruck ?? '',
-    maxWeight: loc.maxWeight ?? '',
+    maxTruck: cleanNumericMeasurement(loc.maxTruck),
+    maxWeight: cleanNumericMeasurement(loc.maxWeight),
     adr: loc.adr,
     palletExchange: loc.palletExchange,
     loadTime: loc.loadTime && loc.loadTime >= 1 ? String(loc.loadTime) : '',
