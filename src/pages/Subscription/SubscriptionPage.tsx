@@ -153,11 +153,21 @@ function CycleToggle({
   saveLabel: string;
 }) {
   return (
-    <div className="cycle-toggle">
-      <button type="button" className={`cycle-btn${cycle === 'monthly' ? ' active' : ''}`} onClick={() => onChange('monthly')}>
+    <div className="cycle-toggle" role="group" aria-label="Billing cycle">
+      <button
+        type="button"
+        className={`cycle-btn${cycle === 'monthly' ? ' active' : ''}`}
+        onClick={() => onChange('monthly')}
+        aria-pressed={cycle === 'monthly'}
+      >
         {monthlyLabel}
       </button>
-      <button type="button" className={`cycle-btn${cycle === 'yearly' ? ' active' : ''}`} onClick={() => onChange('yearly')}>
+      <button
+        type="button"
+        className={`cycle-btn${cycle === 'yearly' ? ' active' : ''}`}
+        onClick={() => onChange('yearly')}
+        aria-pressed={cycle === 'yearly'}
+      >
         {yearlyLabel}
         {saveLabel ? <span className="save-tag">{saveLabel}</span> : null}
       </button>
