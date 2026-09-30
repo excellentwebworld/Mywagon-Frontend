@@ -218,7 +218,11 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
                 className="rounded-full animate-pulse"
                 style={{ width: 6, height: 6, background: 'currentColor' }}
               />
-              {isDelayed ? t('delayed', `Delayed (${delayText})`) : t('onTime', 'On Time')}
+              {isDelayed
+                ? `⚠️ ${t('delayed', 'Delayed')}${
+                    delayText ? ` (${String(delayText).replace(/\s*delay$/i, '').trim()} ${t('delayWord', 'delay')})` : ''
+                  }`
+                : t('onTime', 'On Time')}
             </span>
           </div>
 
@@ -275,7 +279,11 @@ export const TrackingMapCard: React.FC<TrackingMapCardProps> = ({
               className="rounded-full"
               style={{ width: 6, height: 6, background: 'currentColor' }}
             />
-            {isDelayed ? t('delayed', `Delayed (${delayText})`) : t('onTime', 'On Time')}
+            {isDelayed
+              ? `⚠️ ${t('delayed', 'Delayed')}${
+                  delayText ? ` (${String(delayText).replace(/\s*delay$/i, '').trim()} ${t('delayWord', 'delay')})` : ''
+                }`
+              : t('onTime', 'On Time')}
           </span>
 
           {/* Route toggle */}

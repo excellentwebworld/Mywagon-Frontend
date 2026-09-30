@@ -117,7 +117,12 @@ export function formatContinueTooltip(
     .slice(0, 3)
     .map((b) => translateConflict(b, t))
     .join('; ');
-  const more = blockers.length > 3 ? ` (+${blockers.length - 3} more)` : '';
+  const more = blockers.length > 3
+    ? ` ${t('step1MoreIssues', {
+        count: blockers.length - 3,
+        defaultValue: `(+${blockers.length - 3} more)`,
+      })}`
+    : '';
   const prefix = t('step1FixIssues', {
     count: blockers.length,
     defaultValue: `Please fix ${blockers.length} issues before continuing`,

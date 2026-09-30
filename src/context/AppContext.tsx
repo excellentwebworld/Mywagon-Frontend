@@ -636,7 +636,7 @@ interface AppContextType {
   hideToast: () => void;
 }
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 type MasterDataFetchState = {
   loaded: boolean;

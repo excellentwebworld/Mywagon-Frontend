@@ -3374,7 +3374,19 @@
       "dataLoss": "Data loss",
       "none": "None",
       "minor": "Minor",
-      "major": "Major"
+      "major": "Major",
+      "metricOk": "OK",
+      "metricS3Ok": "S3 OK",
+      "metricUnavailable": "Unavailable",
+      "metricDown": "Down",
+      "metricCheck": "Check",
+      "metricNa": "N/A",
+      "metricFixed": "Fixed",
+      "metricMissing": "Missing",
+      "metricQueued": "queued",
+      "metricInService": "in service",
+      "metricAvg": "avg",
+      "metricStatus": "Status"
     },
     "pillars": {
       "title": "Security at Every Layer"
@@ -4601,7 +4613,8 @@
     "status": {
       "active": "Active",
       "inactive": "Inactive",
-      "archived": "Archived"
+      "archived": "Archived",
+      "draft": "Draft"
     },
     "badge": {
       "roundTrip": "Round trip",
@@ -4985,7 +4998,12 @@
       "exportStarted": "Export started",
       "exportTruncated": "Export limited to 10,000 most recent entries.",
       "exportError": "Failed to export audit log",
-      "loadError": "Could not load audit log."
+      "loadError": "Could not load audit log.",
+      "fieldStatus": "Status",
+      "fieldPrice": "Price",
+      "fieldCurrency": "Currency",
+      "fieldOrigin": "Origin",
+      "fieldDestination": "Destination"
     },
     "time": {
       "today": "Today",
@@ -6498,6 +6516,16 @@
   "showMore": "Show more",
   "stars": "Stars",
   "step1FixOneIssue": "Please fix 1 issue before continuing",
+  "step1FixIssues": "Please fix {{count}} issues before continuing",
+  "step1MoreIssues": "(+{{count}} more)",
+  "etaLabel": "ETA",
+  "etaOnSchedule": "On Schedule",
+  "delayWord": "delay",
+  "docPresetCmr": "CMR",
+  "docPresetPod": "POD",
+  "docPresetInvoice": "Invoice",
+  "docPresetDeliveryNote": "Delivery Note",
+  "docPresetCustomsDoc": "Customs Doc",
   "submit": "Submit",
   "submitReport": "Submit Report",
   "submitting": "Submitting…",

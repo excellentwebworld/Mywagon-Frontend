@@ -47,6 +47,7 @@ function createPriceOverlay(
     isActive: boolean;
     isHovered: boolean;
     onClick: () => void;
+    offerLabel?: string;
   }
 ) {
   const overlay = new maps.OverlayView();
@@ -67,7 +68,9 @@ function createPriceOverlay(
     div.style.zIndex = opts.isHovered ? '30' : opts.isActive ? '25' : '10';
 
     const showPrice = truck.price != null && !truck.priceBlurred;
-    const label = showPrice ? formatMoney(truck.price, truck.currency) : 'Offer';
+    const label = showPrice
+      ? formatMoney(truck.price, truck.currency)
+      : (opts.offerLabel || 'Offer');
     const priceClass = showPrice ? '' : 'no-price';
     div.innerHTML = `<div class="sat-mm-pin"><div class="sat-mm-price ${priceClass}">${label}</div><div class="sat-mm-tail"></div></div>`;
     div.addEventListener('click', (e) => {
@@ -347,10 +350,11 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
         isActive: truck.id === selectedId,
         isHovered: truck.id === hoveredId,
         onClick: () => onSelect(truck.id),
+        offerLabel: t('offer') || 'Offer',
       });
       overlaysRef.current.push(overlay);
     });
-  }, [trucks, hoveredId, selectedId, onSelect, apiKey]);
+  }, [trucks, hoveredId, selectedId, onSelect, apiKey, t]);
 
   // Fit camera to results / selection — not on hover, and not when only closing the detail panel.
   useEffect(() => {
@@ -677,7 +681,7 @@ export const AvailabilityMap: React.FC<AvailabilityMapProps> = ({
                       >
                         <div className="sat-mm-pin">
                           <div className={`sat-mm-price ${showPrice ? '' : 'no-price'}`}>
-                            {showPrice ? formatMoney(truck.price, truck.currency) : 'Offer'}
+                            {showPrice ? formatMoney(truck.price, truck.currency) : (t('offer') || 'Offer')}
                           </div>
                         </div>
                       </button>

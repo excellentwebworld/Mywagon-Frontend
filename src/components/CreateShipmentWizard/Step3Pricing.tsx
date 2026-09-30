@@ -1654,21 +1654,32 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                     <span className="text-[10px] font-medium text-[#8E8E9A]">
                       {t('quickFill', 'Quick fill:')}
                     </span>
-                    {['CMR', 'POD', 'Invoice', 'Delivery Note', 'Customs Doc'].map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => {
-                          setDocName(preset);
-                          if (attachedDoc) {
-                            setFieldValue('documentsList', [{ ...attachedDoc, name: preset }]);
-                          }
-                        }}
-                        className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#F0F0F3] hover:bg-[#E4E4E8] text-[#5E5E6E] transition-colors cursor-pointer border-0"
-                      >
-                        {preset}
-                      </button>
-                    ))}
+                    {(
+                      [
+                        { key: 'docPresetCmr', fallback: 'CMR' },
+                        { key: 'docPresetPod', fallback: 'POD' },
+                        { key: 'docPresetInvoice', fallback: 'Invoice' },
+                        { key: 'docPresetDeliveryNote', fallback: 'Delivery Note' },
+                        { key: 'docPresetCustomsDoc', fallback: 'Customs Doc' },
+                      ] as const
+                    ).map((preset) => {
+                      const label = t(preset.key, preset.fallback);
+                      return (
+                        <button
+                          key={preset.key}
+                          type="button"
+                          onClick={() => {
+                            setDocName(label);
+                            if (attachedDoc) {
+                              setFieldValue('documentsList', [{ ...attachedDoc, name: label }]);
+                            }
+                          }}
+                          className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#F0F0F3] hover:bg-[#E4E4E8] text-[#5E5E6E] transition-colors cursor-pointer border-0"
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
                   </div>
 
                   <div>

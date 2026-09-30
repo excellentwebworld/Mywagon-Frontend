@@ -6,6 +6,7 @@ describe('formatContinueTooltip (BUG-09)', () => {
   const dummyT = (key: string, options?: any) => {
     if (key === 'step1FixOneIssue') return 'Please fix 1 issue before continuing';
     if (key === 'step1FixIssues') return `Please fix ${options?.count} issues before continuing`;
+    if (key === 'step1MoreIssues') return `(+${options?.count} more)`;
     return options?.defaultValue || key;
   };
 

@@ -10,6 +10,10 @@ export function mapApiVehicleTypes(types: ApiVehicleType[]): WizardVehicleType[]
       // Prefer DB greek translation; fall back to english only if greek missing.
       nameEl: type.name_el || type.name_en || '',
       subtitle: type.features.map((feature) => feature.name_en).join(' · '),
+      subtitleEl: type.features
+        .map((feature) => feature.name_el || feature.name_en || '')
+        .filter(Boolean)
+        .join(' · '),
       image: type.image ?? null,
       categories: type.features.map((feature) => ({
         id: String(feature.id),

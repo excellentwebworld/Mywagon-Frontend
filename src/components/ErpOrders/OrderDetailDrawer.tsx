@@ -11,6 +11,7 @@ import {
   getOrderListTotals,
   getShipUrgency,
 } from '../../pages/ErpOrders/erpOrderUiUtils';
+import { shipmentStatusLabel } from '../ShipmentDetail/StatusBadge';
 
 const ST_CLS: Record<string, string> = {
   unplanned: 'st-new',
@@ -199,7 +200,11 @@ export const OrderDetailDrawer: React.FC<Props> = ({
                         <Link to={`/shipments/${order.linkedLoadId || order.linkedLoadSid}`} className="load-sid">
                           {order.linkedLoadSid}
                         </Link>
-                        {order.linkedLoadStatus && <span className="load-meta">{order.linkedLoadStatus}</span>}
+                        {order.linkedLoadStatus && (
+                          <span className="load-meta">
+                            {shipmentStatusLabel(order.linkedLoadStatus, t)}
+                          </span>
+                        )}
                       </div>
                     ) : (
                       <div className="erp-order-drawer-muted">{t('erpOrdersNotYetPlanned')}</div>

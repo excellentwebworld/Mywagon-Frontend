@@ -181,16 +181,27 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
           {/* Quick preset suggestions */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">{t('quickFill', 'Quick fill:')}</span>
-            {['CMR', 'POD', 'Invoice', 'Delivery Note', 'Customs Doc'].map((preset) => (
-              <button
-                key={preset}
-                type="button"
-                onClick={() => setName(preset)}
-                className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer border-0"
-              >
-                {preset}
-              </button>
-            ))}
+            {(
+              [
+                { key: 'docPresetCmr', fallback: 'CMR' },
+                { key: 'docPresetPod', fallback: 'POD' },
+                { key: 'docPresetInvoice', fallback: 'Invoice' },
+                { key: 'docPresetDeliveryNote', fallback: 'Delivery Note' },
+                { key: 'docPresetCustomsDoc', fallback: 'Customs Doc' },
+              ] as const
+            ).map((preset) => {
+              const label = t(preset.key, preset.fallback);
+              return (
+                <button
+                  key={preset.key}
+                  type="button"
+                  onClick={() => setName(label)}
+                  className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer border-0"
+                >
+                  {label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Description */}

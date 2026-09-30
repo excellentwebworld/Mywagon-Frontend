@@ -270,6 +270,9 @@ export interface ShipmentDetailViewModel {
   }>;
   etaChip: string;
   etaStatusChip: string;
+  etaDate?: string | null;
+  etaTime?: string | null;
+  delayDuration?: string;
   cancellationReason?: string | null;
   cancellationDate?: string | null;
   cancellationDetails?: string | null;
@@ -1129,14 +1132,20 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
   }
 
   const isDelayed = Boolean(shipment.at_risk || isPastDelivery || (shipment as any).isDelayed);
+  const delayDuration =
+    delayMinutes > 0 ? `+${formatDelayMinutes(delayMinutes)}` : '';
   const delayText = isDelayed
-    ? delayMinutes > 0
-      ? `+${formatDelayMinutes(delayMinutes)} delay`
+    ? delayDuration
+      ? `${delayDuration} delay`
       : shipment.riskReason || (shipment as any).delayReason || `+${formatDelayMinutes(15)} delay`
     : '';
 
-  const etaStatusChip = isDelayed ? `⚠️ Delayed (${delayText})` : '✅ On Time';
+  const etaStatusChip = isDelayed
+    ? `⚠️ Delayed (${delayText})`
+    : '✅ On Time';
   const onTrack = !isDelayed;
+  const etaDate = lastDropoff?.date || null;
+  const etaTime = lastDropoff?.timeStart || null;
 
   const hasCarrierSection = Boolean(carrier && !isPending && status !== 'draft');
   const hasTripPerformanceSection = Boolean(
@@ -1197,6 +1206,9 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     coOwners: Array.isArray(shipment.coOwners) ? shipment.coOwners : [],
     etaChip: lastDropoff?.date ? `🔵 ETA: ${lastDropoff.date}${lastDropoff.timeStart ? ` · ${lastDropoff.timeStart}` : ''}` : '🔵 ETA: On Schedule',
     etaStatusChip,
+    etaDate,
+    etaTime,
+    delayDuration: delayDuration || (isDelayed ? `+${formatDelayMinutes(delayMinutes || 15)}` : ''),
     isPaid: Boolean(shipment.isPaid ?? (shipment.markAsPaid === '1')),
     cancellationReason: shipment.cancellationReason || null,
     cancellationDate: shipment.cancellationDate || shipment.updatedAt || null,

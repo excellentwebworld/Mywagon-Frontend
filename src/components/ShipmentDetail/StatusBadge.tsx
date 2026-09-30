@@ -116,6 +116,21 @@ const LABEL_FALLBACK: Record<string, string> = {
   partially_fullfilled: 'Partially Fulfilled',
 };
 
+/** Localized label for a load/shipment lifecycle status key. */
+export function shipmentStatusLabel(
+  status: string | null | undefined,
+  t: (key: string, fallback?: string) => string,
+): string {
+  const normKey = normalizeStatusKey(status);
+  const labelKey = LABEL_KEYS[normKey];
+  if (labelKey) {
+    return t(labelKey, LABEL_FALLBACK[normKey] || normKey);
+  }
+  return String(status || '')
+    .replace(/_/g, ' ')
+    .trim();
+}
+
 /** Load-lifecycle status — delegates to MYVAGON `LoadStatus` primitive. */
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
   status,
@@ -128,10 +143,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 }) => {
   const { t } = useTranslation();
   const normKey = normalizeStatusKey(status);
-  const labelKey = LABEL_KEYS[normKey];
-  const label = labelKey
-    ? t(labelKey, LABEL_FALLBACK[normKey] || normKey)
-    : String(status || '').replace(/_/g, ' ');
+  const label = shipmentStatusLabel(status, t);
 
   const pendingVariant =
     normKey === 'pending'

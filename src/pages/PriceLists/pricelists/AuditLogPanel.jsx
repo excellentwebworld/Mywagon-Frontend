@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, History, Search, ChevronDown, ChevronLeft, ChevronRight, Download, Loader2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../../hooks/useTranslation';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
 import { DatePicker } from '../../../components/ui/DatePicker';
@@ -127,6 +127,50 @@ export default function AuditLogPanel({ open, onClose }) {
     duplicated: t('priceLists.audit.duplicated', 'Duplicated'),
     imported: t('priceLists.audit.imported', 'Imported'),
   }), [t]);
+
+  const fieldLabels = useMemo(() => ({
+    status: t('priceLists.audit.fieldStatus', 'Status'),
+    effective_from: t('priceLists.effectiveFrom', 'Effective from'),
+    effective_to: t('priceLists.effectiveTo', 'Effective to'),
+    price: t('priceLists.audit.fieldPrice', 'Price'),
+    currency: t('priceLists.audit.fieldCurrency', 'Currency'),
+    origin: t('priceLists.audit.fieldOrigin', 'Origin'),
+    destination: t('priceLists.audit.fieldDestination', 'Destination'),
+  }), [t]);
+
+  const valueLabels = useMemo(() => ({
+    active: t('priceLists.status.active', 'Active'),
+    inactive: t('priceLists.status.inactive', 'Inactive'),
+    archived: t('priceLists.status.archived', 'Archived'),
+    draft: t('priceLists.status.draft', 'Draft'),
+  }), [t]);
+
+  const formatChangeValue = (value) => {
+    if (value === null || value === undefined || value === '') return '—';
+    const key = String(value).toLowerCase();
+    if (valueLabels[key]) return valueLabels[key];
+    const elStatus = {
+      ενεργή: valueLabels.active,
+      ανενεργή: valueLabels.inactive,
+      αρχειοθετημένη: valueLabels.archived,
+      πρόχειρη: valueLabels.draft,
+    };
+    return elStatus[key] || String(value);
+  };
+
+  const formatChanges = (changes) => {
+    if (!Array.isArray(changes) || changes.length === 0) return '';
+    return changes
+      .map((c) => {
+        const rawField = String(c.field || '');
+        const field =
+          fieldLabels[rawField] ||
+          fieldLabels[rawField.toLowerCase()] ||
+          rawField.replace(/_/g, ' ');
+        return `${field}: ${formatChangeValue(c.from)} → ${formatChangeValue(c.to)}`;
+      })
+      .join(' · ');
+  };
 
   const stats = meta.action_counts || { created: 0, updated: 0, status: 0, deleted: 0 };
   const total = meta.total || 0;
@@ -343,7 +387,7 @@ export default function AuditLogPanel({ open, onClose }) {
                   <div style={{ fontSize: 11, color: T.t1, marginTop: 2 }}>{entry.details}</div>
                   {Array.isArray(entry.changes) && entry.changes.length > 0 && (
                     <div style={{ fontSize: 10, color: T.t3, marginTop: 2 }}>
-                      {entry.changes.map((c) => `${c.field}: ${c.from || '—'} → ${c.to || '—'}`).join(' · ')}
+                      {formatChanges(entry.changes)}
                     </div>
                   )}
                   <div style={{ fontSize: 10, color: T.t3, marginTop: 2 }}>

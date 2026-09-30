@@ -203,12 +203,14 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
 
         {isOnTrip && (
           <div className="flex flex-col gap-1.5">
-            {vm.etaChip && (
+            {(vm.etaDate || vm.etaChip) && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                {vm.etaChip}
+                {vm.etaDate
+                  ? `🔵 ${t('etaLabel', 'ETA')}: ${vm.etaDate}${vm.etaTime ? ` · ${vm.etaTime}` : ''}`
+                  : `🔵 ${t('etaLabel', 'ETA')}: ${t('etaOnSchedule', 'On Schedule')}`}
               </span>
             )}
-            {vm.etaStatusChip && (
+            {(vm.isDelayed || vm.etaStatusChip) && (
               <span
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
                   vm.onTrack
@@ -216,7 +218,13 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
                     : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
                 }`}
               >
-                {vm.etaStatusChip}
+                {vm.isDelayed
+                  ? `⚠️ ${t('delayed', 'Delayed')}${
+                      vm.delayDuration
+                        ? ` (${vm.delayDuration} ${t('delayWord', 'delay')})`
+                        : ''
+                    }`
+                  : `✅ ${t('onTime', 'On Time')}`}
               </span>
             )}
           </div>

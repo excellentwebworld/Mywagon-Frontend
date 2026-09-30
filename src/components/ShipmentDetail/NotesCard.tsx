@@ -14,6 +14,19 @@ import type { DetailNote } from '../../pages/ShipmentDetail/detailViewModel';
 import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 import { CollapsibleCard } from './CollapsibleCard';
 
+function localizeNoteAuthor(
+  author: string | null | undefined,
+  t: (key: string, fallback?: string) => string,
+): string {
+  const raw = String(author || '').trim();
+  if (!raw) return '';
+  if (raw.toLowerCase() === 'shipper') return t('roles.shipper', 'Shipper');
+  if (raw.toLowerCase() === 'admin') return t('roles.admin', 'Admin');
+  if (raw.toLowerCase() === 'dispatcher') return t('roles.dispatcher', 'Dispatcher');
+  if (raw.toLowerCase() === 'carrier') return t('roles.carrier', 'Carrier');
+  return raw;
+}
+
 interface NotesCardProps {
   notes: DetailNote[];
   expanded: boolean;
@@ -170,7 +183,9 @@ function NoteItem({
             )}
           </div>
           <div className="text-[11px] mt-1.5 flex items-center gap-2 flex-wrap text-slate-500 dark:text-slate-400">
-            <span className="font-semibold text-slate-700 dark:text-slate-300">{note.author}</span>
+            <span className="font-semibold text-slate-700 dark:text-slate-300">
+              {localizeNoteAuthor(note.author, t)}
+            </span>
             <span>·</span>
             <span className="tabular-nums text-[10px] text-slate-500 dark:text-slate-400">
               {formatUtcToDisplayDateTime(note.timestamp)}
