@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import fullLogo from '../../assets/logo/fullLogo.svg';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { AuthThemeToggle } from '../../components/auth/AuthThemeToggle';
 import { signupVideoUrl } from './registerConstants';
 import './RegisterPage.css';
 
@@ -46,14 +47,17 @@ export const RegisterLayout: React.FC<Props> = ({
         <div className="reg-form-col">
           <div className="reg-form-inner">
             <div className="reg-card-body">
-              <label className="reg-lang-switch" title={t('Register.language', 'Language')}>
-                <input
-                  type="checkbox"
-                  checked={lang !== 'el'}
-                  onChange={(e) => onLangChange(e.target.checked ? 'en' : 'el')}
-                />
-                <span className="reg-lang-slider" />
-              </label>
+              <div className="reg-topbar">
+                <AuthThemeToggle />
+                <label className="reg-lang-switch" title={t('Register.language', 'Language')}>
+                  <input
+                    type="checkbox"
+                    checked={lang !== 'el'}
+                    onChange={(e) => onLangChange(e.target.checked ? 'en' : 'el')}
+                  />
+                  <span className="reg-lang-slider" />
+                </label>
+              </div>
               <div className="reg-brand">
                 <Link
                   to="/login"

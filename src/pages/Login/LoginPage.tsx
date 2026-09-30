@@ -15,6 +15,7 @@ import {
 } from './loginValidation';
 import { clearSignupDraft } from '../Register/signupDraft';
 import { SocialAuthButtons } from '../../components/auth/SocialAuthButtons';
+import { AuthThemeToggle } from '../../components/auth/AuthThemeToggle';
 import { postAuthDestination } from '../../hooks/postAuthDestination';
 import { clearInfoFormReminderSkip } from '../../components/layout/InfoFormReminderModal';
 import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
@@ -369,15 +370,18 @@ export const LoginPage: React.FC = () => {
           <div className="shipper-login-card">
             <div className="shipper-login-box new-login-page">
               <div className="shipper-login-container">
-                <label className="shipper-login-lang-switch">
-                  <input
-                    type="checkbox"
-                    checked={lang !== 'el'}
-                    onChange={(e) => handleLanguageChange(e.target.checked)}
-                    aria-label={t('Login.language', 'Language')}
-                  />
-                  <span className="shipper-login-lang-slider" />
-                </label>
+                <div className="shipper-login-topbar">
+                  <AuthThemeToggle />
+                  <label className="shipper-login-lang-switch">
+                    <input
+                      type="checkbox"
+                      checked={lang !== 'el'}
+                      onChange={(e) => handleLanguageChange(e.target.checked)}
+                      aria-label={t('Login.language', 'Language')}
+                    />
+                    <span className="shipper-login-lang-slider" />
+                  </label>
+                </div>
 
                 <div className="shipper-login-header ">
                   <a href="/login" className="shipper-login-logo-link mt-2">
