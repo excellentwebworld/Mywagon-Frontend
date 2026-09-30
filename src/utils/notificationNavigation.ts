@@ -1,22 +1,59 @@
 import type { ApiNotification } from '../api/services/notificationService';
 
-/**
- * Resolve in-app navigation target for a notification (Header + dashboard).
- * Returns null when the caller should open `external_url` instead.
- */
-export function resolveNotificationPath(n: Pick<
+export type NotificationNavInput = Pick<
   ApiNotification,
   'action_type' | 'action_id' | 'chips' | 'redirect_slug' | 'external_url'
->): string | null {
+>;
+
+/**
+ * Resolve shipment / entity id for routing.
+ *
+ * Same as Laravel Blade: route('shipper.manage-shipment.show', type_id).
+ * SID-* chips are display-only (auto_id). Never override action_id with a SID chip.
+ */
+export function resolveNotificationActionId(
+  n: Pick<ApiNotification, 'action_id' | 'chips' | 'action_type'>
+): string {
+  const fromApi = String(n.action_id ?? '').trim();
+  if (fromApi) {
+    return fromApi.replace(/^SID-/i, '').replace(/^SHP-/i, '');
+  }
+
+  // Fallback only when API omitted action_id.
+  const chips = n.chips ?? [];
+  const shipmentActions = n.action_type === 'viewLoad'
+    || n.action_type === 'viewBids'
+    || n.action_type === 'viewDocs';
+
+  if (shipmentActions || !n.action_type) {
+    const sid = chips.find((c) => /^SID-/i.test(c));
+    if (sid) {
+      return sid.replace(/^SID-/i, '');
+    }
+  }
+
+  const ord = chips.find((c) => /^ORD-/i.test(c));
+  if (ord && n.action_type === 'viewOrder') {
+    return ord.replace(/^ORD-/i, '');
+  }
+
+  const inv = chips.find((c) => /^INV-/i.test(c));
+  if (inv && n.action_type === 'viewInvoice') {
+    return inv.replace(/^INV-/i, '');
+  }
+
+  return '';
+}
+
+/**
+ * Resolve in-app navigation for inbox/dropdown/page (API-enriched action_type).
+ */
+export function resolveNotificationPath(n: NotificationNavInput): string | null {
   if (n.external_url) {
     return null;
   }
 
-  let actionId = n.action_id;
-  if (!actionId && n.action_type !== 'viewBids' && n.chips && n.chips.length > 0) {
-    const sid = n.chips.find((c) => c.startsWith('SID-'));
-    if (sid) actionId = sid.replace('SID-', '');
-  }
+  const actionId = resolveNotificationActionId(n);
 
   let target = n.redirect_slug
     ? n.redirect_slug.startsWith('/')
@@ -35,6 +72,7 @@ export function resolveNotificationPath(n: Pick<
   } else if (n.action_type === 'viewPartners') {
     target = '/partners';
   } else if (n.action_type === 'viewLoad' || n.action_type === 'viewBids' || n.action_type === 'viewDocs') {
+    // Laravel: manage-shipment.show(type_id). React keeps optional focus for bids/docs UX.
     const base = actionId ? `/shipments/${actionId}` : '/shipments';
     if (n.action_type === 'viewBids') {
       target = `${base}?focus=bids`;
@@ -79,7 +117,7 @@ export function resolveNotificationPath(n: Pick<
 }
 
 export function openNotificationTarget(
-  n: Pick<ApiNotification, 'action_type' | 'action_id' | 'chips' | 'redirect_slug' | 'external_url'>,
+  n: NotificationNavInput,
   navigate: (path: string) => void
 ): void {
   if (n.external_url) {
@@ -88,4 +126,111 @@ export function openNotificationTarget(
   }
   const path = resolveNotificationPath(n);
   navigate(path ?? '/settings/notifications');
+}
+
+/**
+ * Realtime / FCM click routing — mirrors Laravel
+ * public/assets/shipper/assets/js/pages/firebase-push-handler.js → resolveClickAction().
+ *
+ * Uses payload `type` + `type_id` (shipments.id). Does not invent new backend fields.
+ */
+export function resolveLaravelStylePushRoute(data: {
+  type?: string;
+  type_id?: string;
+  action_id?: string;
+  external_url?: string;
+  redirect_slug?: string;
+}): string {
+  if (data.external_url) {
+    return data.external_url;
+  }
+
+  const type = String(data.type ?? '').toLowerCase();
+  const id = String(data.action_id || data.type_id || '')
+    .trim()
+    .replace(/^SID-/i, '')
+    .replace(/^SHP-/i, '');
+
+  // Admin bulk / meta redirect_slug (same idea as Blade getShipperRouteByType)
+  const slug = String(data.redirect_slug ?? '').toLowerCase();
+  if (type === 'bulk_from_admin' || (slug && !slug.startsWith('/'))) {
+    switch (slug) {
+      case 'dashboard':
+        return '/dashboard';
+      case 'create_shipment':
+        return '/shipments/create';
+      case 'manage_shipments':
+        return '/shipments';
+      case 'search_available_trucks':
+        return '/search-trucks';
+      case 'address_book':
+        return '/address-book';
+      case 'product_master':
+        return '/products';
+      case 'partner':
+        return '/partners';
+      case 'subscription':
+        return '/subscription';
+      case 'support':
+        return '/support';
+      case 'chat':
+        return '/messages';
+      case 'notification':
+        return '/settings/notifications';
+      case 'profile':
+        return '/settings/compliance';
+      case 'user_management':
+        return '/settings/users';
+      case 'account_statement':
+        return '/billing';
+      case 'privacy_policy':
+        return '/settings/privacy';
+      case 'terms_and_conditions':
+        return '/settings/terms';
+      default:
+        break;
+    }
+  }
+
+  if (slug.startsWith('/')) {
+    return slug;
+  }
+
+  switch (type) {
+    case 'cancel_shipment':
+    case 'shipment':
+      // Laravel: shipper.manage-shipment.show(type_id)
+      return id ? `/shipments/${id}` : '/shipments';
+    case 'availibility':
+    case 'availability':
+    case 'truck_availability':
+    case 'new_availability':
+      return '/search-trucks';
+    case 'invoice':
+    case 'billing':
+    case 'payment':
+      return '/billing';
+    case 'kyc_accepted':
+    case 'kyc_rejected':
+      return '/settings/compliance';
+    case 'message':
+      return '/messages';
+    case 'partner':
+    case 'partner_accept':
+    case 'partner_request':
+    case 'new_shipper_partner_added_successfully':
+    case 'new_carrier_partner_added_successfully':
+      return '/partners';
+    case 'privacy_policy':
+      return '/settings/privacy';
+    case 'subscription':
+      return '/subscription';
+    case 'terms_and_conditions':
+      return '/settings/terms';
+    case 'company_operations_information':
+      return '/settings/organization';
+    default:
+      // Laravel default: shipper home — React uses dashboard; if type_id present open load
+      return id ? `/shipments/${id}` : '/dashboard';
+  }
 }

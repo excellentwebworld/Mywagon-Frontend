@@ -104,8 +104,11 @@ export interface FcmNotificationPayload {
   type?: string;
   type_id?: string;
   action_id?: string;
+  action_type?: string;
   external_url?: string;
   redirect_slug?: string;
+  load_ref?: string;
+  shipment_auto_id?: string;
   created_at?: string;
   chat_partner_id?: string;
   chat_partner_type?: string;
@@ -210,10 +213,13 @@ export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = 
         const title = payload.notification?.title ?? payload.data?.title ?? 'New Notification';
         const body  = payload.notification?.body  ?? payload.data?.body ?? payload.data?.notification_body ?? '';
         const type = payload.data?.type ?? '';
+        // Backend contract: type_id/action_id = shipments.id (PK). Never SID/auto_id.
         const type_id = payload.data?.type_id ?? payload.data?.shipment_id ?? payload.data?.id ?? payload.data?.action_id ?? '';
         const action_id = payload.data?.action_id ?? type_id ?? '';
+        const action_type = payload.data?.action_type ?? '';
         const external_url = payload.data?.external_url ?? '';
         const redirect_slug = payload.data?.redirect_slug ?? '';
+        const load_ref = payload.data?.load_ref ?? payload.data?.shipment_auto_id ?? '';
 
         // Deduplication check
         const msgKey = payload.messageId || `${title}_${body}_${type}_${type_id}`;
@@ -233,8 +239,11 @@ export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = 
           type,
           type_id,
           action_id,
+          action_type,
           external_url,
           redirect_slug,
+          load_ref,
+          shipment_auto_id: load_ref,
           chat_partner_id: chatMeta ? String(chatMeta.senderId) : undefined,
           chat_partner_type: chatMeta?.senderType,
         };

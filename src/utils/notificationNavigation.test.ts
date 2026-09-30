@@ -1,5 +1,58 @@
 import { describe, expect, it } from 'vitest';
-import { resolveNotificationPath } from './notificationNavigation';
+import {
+  resolveLaravelStylePushRoute,
+  resolveNotificationActionId,
+  resolveNotificationPath,
+} from './notificationNavigation';
+
+describe('resolveNotificationActionId', () => {
+  it('prefers action_id over SID chip (same as Laravel type_id)', () => {
+    expect(
+      resolveNotificationActionId({
+        action_type: 'viewBids',
+        action_id: '10511',
+        chips: ['SID-248826'],
+      }),
+    ).toBe('10511');
+  });
+
+  it('falls back to SID chip digits only when action_id is missing', () => {
+    expect(
+      resolveNotificationActionId({
+        action_type: 'viewBids',
+        action_id: '',
+        chips: ['SID-248826'],
+      }),
+    ).toBe('248826');
+  });
+});
+
+describe('resolveLaravelStylePushRoute (parity with Blade firebase-push-handler)', () => {
+  it('routes shipment type with type_id to shipment detail', () => {
+    expect(
+      resolveLaravelStylePushRoute({ type: 'shipment', type_id: '10511' }),
+    ).toBe('/shipments/10511');
+  });
+
+  it('routes cancel_shipment like manage-shipment.show', () => {
+    expect(
+      resolveLaravelStylePushRoute({ type: 'cancel_shipment', type_id: '9' }),
+    ).toBe('/shipments/9');
+  });
+
+  it('routes availability to search trucks', () => {
+    expect(resolveLaravelStylePushRoute({ type: 'availibility' })).toBe('/search-trucks');
+    expect(resolveLaravelStylePushRoute({ type: 'truck_availability' })).toBe('/search-trucks');
+  });
+
+  it('routes partner / message / invoice / kyc like Laravel', () => {
+    expect(resolveLaravelStylePushRoute({ type: 'partner_request' })).toBe('/partners');
+    expect(resolveLaravelStylePushRoute({ type: 'message' })).toBe('/messages');
+    expect(resolveLaravelStylePushRoute({ type: 'invoice' })).toBe('/billing');
+    expect(resolveLaravelStylePushRoute({ type: 'kyc_accepted' })).toBe('/settings/compliance');
+    expect(resolveLaravelStylePushRoute({ type: 'terms_and_conditions' })).toBe('/settings/terms');
+  });
+});
 
 describe('resolveNotificationPath', () => {
   it('routes searchTrucks to /search-trucks', () => {
@@ -14,27 +67,29 @@ describe('resolveNotificationPath', () => {
     ).toBe('/shipments/42?focus=bids');
   });
 
-  it('routes viewProducts to /products (not /product-master)', () => {
-    expect(resolveNotificationPath({ action_type: 'viewProducts', action_id: '', chips: [] })).toBe(
-      '/products',
-    );
+  it('routes viewBids using action_id even when SID chip differs', () => {
+    expect(
+      resolveNotificationPath({
+        action_type: 'viewBids',
+        action_id: '10511',
+        chips: ['SID-248826'],
+      }),
+    ).toBe('/shipments/10511?focus=bids');
   });
 
-  it('routes openChat to /messages', () => {
-    expect(resolveNotificationPath({ action_type: 'openChat', action_id: '', chips: [] })).toBe(
-      '/messages',
-    );
+  it('routes viewLoad with action_id (not SID chip)', () => {
+    expect(
+      resolveNotificationPath({
+        action_type: 'viewLoad',
+        action_id: '99',
+        chips: ['SID-111'],
+      }),
+    ).toBe('/shipments/99');
   });
 
   it('routes openChat with partner id', () => {
     expect(resolveNotificationPath({ action_type: 'openChat', action_id: '99', chips: [] })).toBe(
       '/messages?userId=99',
-    );
-  });
-
-  it('routes viewTerms to settings terms', () => {
-    expect(resolveNotificationPath({ action_type: 'viewTerms', action_id: '', chips: [] })).toBe(
-      '/settings/terms',
     );
   });
 

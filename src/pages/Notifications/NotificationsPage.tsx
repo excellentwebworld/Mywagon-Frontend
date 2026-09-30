@@ -35,6 +35,7 @@ import type {
   NotificationAction,
   NotificationCategory,
 } from '../../api/services/notificationService';
+import { openNotificationTarget } from '../../utils/notificationNavigation';
 import NotificationsSection from '../Settings/sections/NotificationsSection';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -516,104 +517,35 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
     }
   };
 
-  const handleActionNavigate = (itemOrAction: NotificationAction | NotificationItem, chip?: string) => {
-    let action: NotificationAction = null;
-    let actionId: string | undefined;
-    let externalUrl: string | undefined | null;
-    let redirectSlug: string | undefined | null;
-
-    if (typeof itemOrAction === 'object' && itemOrAction !== null) {
-      if (!itemOrAction.read) {
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === itemOrAction.id ? { ...n, read: true } : n))
-        );
-        setMeta((prev) => ({ ...prev, unread_count: Math.max(0, prev.unread_count - 1) }));
-        void notificationService.markRead(itemOrAction.id).catch(() => {});
-      }
-      action = itemOrAction.action;
-      actionId = itemOrAction.action_id;
-      externalUrl = itemOrAction.external_url;
-      redirectSlug = itemOrAction.redirect_slug;
-
-      if (!actionId && itemOrAction.chips && itemOrAction.chips.length > 0 && (itemOrAction as any).action_type !== 'viewBids') {
-        const sidChip = itemOrAction.chips.find(c => c.startsWith('SID-'));
-        if (sidChip) {
-          actionId = sidChip.replace('SID-', '');
-        }
-      }
-    } else {
-      action = itemOrAction;
-    }
-
-    if (externalUrl) {
-      window.open(externalUrl, '_blank', 'noopener,noreferrer');
+  const handleActionNavigate = (itemOrAction: NotificationAction | NotificationItem) => {
+    if (typeof itemOrAction !== 'object' || itemOrAction === null) {
       return;
     }
 
-    // Extract ID from chip if passed (e.g. "SID-10263" -> "10263")
-    if (chip) {
-      const cleaned = chip.replace(/^SID-|^ORD-|^INV-|^AVL-/, '');
-      if (cleaned) {
-        actionId = cleaned;
-      }
+    if (!itemOrAction.read) {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === itemOrAction.id ? { ...n, read: true } : n))
+      );
+      setMeta((prev) => ({ ...prev, unread_count: Math.max(0, prev.unread_count - 1) }));
+      void notificationService.markRead(itemOrAction.id).catch(() => {});
     }
 
-    let target = redirectSlug ? (redirectSlug.startsWith('/') ? redirectSlug : `/${redirectSlug}`) : '/settings/notifications';
-
-    if (action === 'manageShipments') {
-      target = '/shipments';
-    } else if (action === 'viewDashboard') {
-      target = '/dashboard';
-    } else if (action === 'createShipment') {
-      if (!requireSignupComplete()) return;
-      target = '/shipments/create';
-    } else if (action === 'searchTrucks') {
-      target = '/search-trucks';
-    } else if (action === 'viewPartners') {
-      target = '/partners';
-    } else if (action === 'viewLoad' || action === 'viewBids' || action === 'viewDocs') {
-      const base = actionId ? `/shipments/${actionId}` : '/shipments';
-      if (action === 'viewBids') {
-        target = `${base}?focus=bids`;
-      } else if (action === 'viewDocs') {
-        target = `${base}?focus=docs`;
-      } else {
-        target = base;
-      }
-    } else if (action === 'viewInvoice') {
-      target = actionId ? `/billing?invoice=${actionId}` : '/billing';
-    } else if (action === 'viewOrder') {
-      target = actionId ? `/erp-orders?id=${actionId}` : '/erp-orders';
-    } else if (action === 'viewSubscription') {
-      target = '/subscription';
-    } else if (action === 'openSupport') {
-      target = '/support';
-    } else if (action === 'viewProfile' || action === 'viewCompliance') {
-      target = '/settings/compliance';
-    } else if (action === 'viewOrganization') {
-      target = '/settings/organization';
-    } else if (action === 'viewUsers') {
-      target = '/settings/users';
-    } else if (action === 'viewPrivacy') {
-      target = '/settings/privacy';
-    } else if (action === 'viewTerms') {
-      target = '/settings/terms';
-    } else if (action === 'viewAddressBook') {
-      target = '/address-book';
-    } else if (action === 'viewProducts') {
-      target = '/products';
-    } else if (action === 'viewTutorials') {
-      target = '/tutorials';
-    } else if (action === 'openChat') {
-      target = actionId
-        ? `/messages?userId=${encodeURIComponent(actionId)}`
-        : '/messages';
-    } else if (action === 'viewNotifications') {
-      target = '/settings/notifications';
+    // Gate create-shipment CTA the same as other create entry points.
+    if (itemOrAction.action === 'createShipment' && !requireSignupComplete()) {
+      return;
     }
 
     setSelectedNotif(null);
-    navigate(target);
+    openNotificationTarget(
+      {
+        action_type: itemOrAction.action,
+        action_id: itemOrAction.action_id,
+        chips: itemOrAction.chips,
+        redirect_slug: itemOrAction.redirect_slug,
+        external_url: itemOrAction.external_url,
+      },
+      navigate
+    );
   };
 
   const total = meta.total ?? 0;
@@ -948,7 +880,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                   {n.action && (
                     <button
                       type="button"
-                      onClick={() => handleActionNavigate(n, n.chips[0])}
+                      onClick={() => handleActionNavigate(n)}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white shadow-xs hover:shadow-md active:scale-[0.98] transition-all cursor-pointer whitespace-nowrap border-none"
                       style={{
                         background: 'var(--mv-purple)',
@@ -1227,7 +1159,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                             key={chip}
                             onClick={() => {
                               setSelectedNotif(null);
-                              handleActionNavigate(selectedNotif, chip);
+                              handleActionNavigate(selectedNotif);
                             }}
                             className="flex items-center justify-between p-3 rounded-xl transition-all cursor-pointer group"
                             style={{
@@ -1273,9 +1205,8 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                     <button
                       type="button"
                       onClick={() => {
-                        const chip = selectedNotif.chips[0];
                         setSelectedNotif(null);
-                        handleActionNavigate(selectedNotif, chip);
+                        handleActionNavigate(selectedNotif);
                       }}
                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white shadow-xs cursor-pointer border-none"
                       style={{

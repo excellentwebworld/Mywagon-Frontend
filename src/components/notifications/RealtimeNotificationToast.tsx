@@ -14,6 +14,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
+import { resolveLaravelStylePushRoute } from '../../utils/notificationNavigation';
 
 export interface PushNotificationData {
   id?: string;
@@ -22,8 +23,11 @@ export interface PushNotificationData {
   type?: string;
   type_id?: string;
   action_id?: string;
+  action_type?: string;
   external_url?: string;
   redirect_slug?: string;
+  load_ref?: string;
+  shipment_auto_id?: string;
   created_at?: string;
   chat_partner_id?: string;
   chat_partner_type?: string;
@@ -41,10 +45,31 @@ interface ToastConfig {
 }
 
 /**
- * Resolves destination route and UI styling based on notification payload,
- * mirroring the official Laravel Shipper panel routing logic.
+ * Toast UI + route. Route mirrors Laravel firebase-push-handler resolveClickAction().
  */
 export function resolveNotificationConfig(data: PushNotificationData): ToastConfig {
+  const type = String(data.type ?? '').toLowerCase();
+  const id = String(data.action_id || data.type_id || '')
+    .trim()
+    .replace(/^SID-/i, '');
+
+  // Chat can deep-link to a specific partner thread (Laravel opens chat index).
+  if (type === 'message' && data.chat_partner_id) {
+    const partnerType = data.chat_partner_type || 'carrier';
+    return {
+      icon: MessageSquare,
+      iconBg: 'bg-blue-50 dark:bg-blue-950/60',
+      iconColor: 'text-blue-600 dark:text-blue-400',
+      badgeBg: 'bg-blue-50 dark:bg-blue-950/50',
+      badgeColor: 'text-blue-700 dark:text-blue-300',
+      categoryName: 'Messages',
+      actionLabel: 'Open Chat',
+      route: `/messages?userId=${encodeURIComponent(data.chat_partner_id)}&userType=${encodeURIComponent(partnerType)}`,
+    };
+  }
+
+  const route = resolveLaravelStylePushRoute(data);
+
   if (data.external_url) {
     return {
       icon: Bell,
@@ -54,273 +79,155 @@ export function resolveNotificationConfig(data: PushNotificationData): ToastConf
       badgeColor: 'text-indigo-700 dark:text-indigo-300',
       categoryName: 'Link',
       actionLabel: 'Open Link',
-      route: data.external_url,
+      route,
     };
   }
 
-  const id = data.type_id || data.action_id;
-  const rawTarget = (data.redirect_slug || data.type || '').toLowerCase();
-
-  switch (true) {
-    case rawTarget.includes('dashboard') || rawTarget.includes('home'):
-      return {
-        icon: Bell,
-        iconBg: 'bg-indigo-50 dark:bg-indigo-950/60',
-        iconColor: 'text-indigo-600 dark:text-indigo-400',
-        badgeBg: 'bg-indigo-50 dark:bg-indigo-950/50',
-        badgeColor: 'text-indigo-700 dark:text-indigo-300',
-        categoryName: 'Dashboard',
-        actionLabel: 'View Dashboard',
-        route: '/dashboard',
-      };
-
-    case rawTarget.includes('create_shipment') || rawTarget.includes('shipment.create'):
-      return {
-        icon: Truck,
-        iconBg: 'bg-indigo-50 dark:bg-indigo-950/60',
-        iconColor: 'text-indigo-600 dark:text-indigo-400',
-        badgeBg: 'bg-indigo-50 dark:bg-indigo-950/50',
-        badgeColor: 'text-indigo-700 dark:text-indigo-300',
-        categoryName: 'Shipment',
-        actionLabel: 'Create Shipment',
-        route: '/shipments/create',
-      };
-
-    case rawTarget.includes('cancel_shipment'):
-      return {
-        icon: AlertTriangle,
-        iconBg: 'bg-rose-50 dark:bg-rose-950/60',
-        iconColor: 'text-rose-600 dark:text-rose-400',
-        badgeBg: 'bg-rose-50 dark:bg-rose-950/50',
-        badgeColor: 'text-rose-700 dark:text-rose-300',
-        categoryName: 'Cancellation',
-        actionLabel: id ? 'View Shipment' : 'Manage Shipments',
-        route: id ? `/shipments/${id}` : '/shipments',
-      };
-
-    case rawTarget.includes('manage_shipments') || rawTarget.includes('shipment') || rawTarget.includes('load') || rawTarget.includes('bid'):
-      return {
-        icon: Truck,
-        iconBg: 'bg-indigo-50 dark:bg-indigo-950/60',
-        iconColor: 'text-indigo-600 dark:text-indigo-400',
-        badgeBg: 'bg-indigo-50 dark:bg-indigo-950/50',
-        badgeColor: 'text-indigo-700 dark:text-indigo-300',
-        categoryName: 'Shipment',
-        actionLabel: id ? 'View Load' : 'Manage Shipments',
-        route: id ? `/shipments/${id}` : '/shipments',
-      };
-
-    case rawTarget.includes('search_available_trucks') || rawTarget.includes('availab') || rawTarget.includes('truck'):
-      return {
-        icon: Truck,
-        iconBg: 'bg-sky-50 dark:bg-sky-950/60',
-        iconColor: 'text-sky-600 dark:text-sky-400',
-        badgeBg: 'bg-sky-50 dark:bg-sky-950/50',
-        badgeColor: 'text-sky-700 dark:text-sky-300',
-        categoryName: 'Availability',
-        actionLabel: 'Search Trucks',
-        route: '/search-trucks',
-      };
-
-    case rawTarget.includes('address'):
-      return {
-        icon: FileText,
-        iconBg: 'bg-[var(--mv-success-bg)] dark:bg-[var(--st-success-bg)]',
-        iconColor: 'text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]',
-        badgeBg: 'bg-[var(--mv-success-bg)] dark:bg-emerald-950/50',
-        badgeColor: 'text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]',
-        categoryName: 'Address Book',
-        actionLabel: 'Address Book',
-        route: '/address-book',
-      };
-
-    case rawTarget.includes('product'):
-      return {
-        icon: FileText,
-        iconBg: 'bg-amber-50 dark:bg-amber-950/60',
-        iconColor: 'text-amber-600 dark:text-amber-400',
-        badgeBg: 'bg-amber-50 dark:bg-amber-950/50',
-        badgeColor: 'text-amber-700 dark:text-amber-300',
-        categoryName: 'Products',
-        actionLabel: 'Product Master',
-        route: '/products',
-      };
-
-    case rawTarget.includes('partner'):
-      return {
-        icon: Users,
-        iconBg: 'bg-[var(--mv-success-bg)] dark:bg-[var(--st-success-bg)]',
-        iconColor: 'text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]',
-        badgeBg: 'bg-[var(--mv-success-bg)] dark:bg-emerald-950/50',
-        badgeColor: 'text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]',
-        categoryName: 'Partners',
-        actionLabel: 'View Partners',
-        route: '/partners',
-      };
-
-    case rawTarget.includes('account_statement') || rawTarget.includes('invoice') || rawTarget.includes('billing') || rawTarget.includes('payment'):
-      return {
-        icon: CreditCard,
-        iconBg: 'bg-amber-50 dark:bg-amber-950/60',
-        iconColor: 'text-amber-600 dark:text-amber-400',
-        badgeBg: 'bg-amber-50 dark:bg-amber-950/50',
-        badgeColor: 'text-amber-700 dark:text-amber-300',
-        categoryName: 'Billing',
-        actionLabel: id ? 'View Invoice' : 'View Billing',
-        route: id ? `/billing?invoice=${id}` : '/billing',
-      };
-
-    case rawTarget.includes('subscription'):
-      return {
-        icon: FileText,
-        iconBg: 'bg-violet-50 dark:bg-violet-950/60',
-        iconColor: 'text-violet-600 dark:text-violet-400',
-        badgeBg: 'bg-violet-50 dark:bg-violet-950/50',
-        badgeColor: 'text-violet-700 dark:text-violet-300',
-        categoryName: 'Subscription',
-        actionLabel: 'View Subscription',
-        route: '/subscription',
-      };
-
-    case rawTarget.includes('tutorial'):
-      return {
-        icon: FileText,
-        iconBg: 'bg-purple-50 dark:bg-purple-950/60',
-        iconColor: 'text-purple-600 dark:text-purple-400',
-        badgeBg: 'bg-purple-50 dark:bg-purple-950/50',
-        badgeColor: 'text-purple-700 dark:text-purple-300',
-        categoryName: 'Tutorials',
-        actionLabel: 'View Tutorials',
-        route: '/tutorials',
-      };
-
-    case rawTarget === 'message': {
-      const partnerId = data.chat_partner_id;
-      const partnerType = data.chat_partner_type || 'carrier';
-      const route = partnerId
-        ? `/messages?userId=${encodeURIComponent(partnerId)}&userType=${encodeURIComponent(partnerType)}`
-        : '/messages';
-      return {
-        icon: MessageSquare,
-        iconBg: 'bg-blue-50 dark:bg-blue-950/60',
-        iconColor: 'text-blue-600 dark:text-blue-400',
-        badgeBg: 'bg-blue-50 dark:bg-blue-950/50',
-        badgeColor: 'text-blue-700 dark:text-blue-300',
-        categoryName: 'Messages',
-        actionLabel: 'Open Chat',
-        route,
-      };
-    }
-
-    case rawTarget.includes('support') || rawTarget.includes('chat') || rawTarget.includes('feedback'):
-      return {
-        icon: MessageSquare,
-        iconBg: 'bg-blue-50 dark:bg-blue-950/60',
-        iconColor: 'text-blue-600 dark:text-blue-400',
-        badgeBg: 'bg-blue-50 dark:bg-blue-950/50',
-        badgeColor: 'text-blue-700 dark:text-blue-300',
-        categoryName: 'Support',
-        actionLabel: 'Open Support',
-        route: '/support',
-      };
-
-    case rawTarget.includes('user_management') || rawTarget.includes('sub-users') || rawTarget.includes('user'):
-      return {
-        icon: Users,
-        iconBg: 'bg-teal-50 dark:bg-teal-950/60',
-        iconColor: 'text-teal-600 dark:text-teal-400',
-        badgeBg: 'bg-teal-50 dark:bg-teal-950/50',
-        badgeColor: 'text-teal-700 dark:text-teal-300',
-        categoryName: 'Team',
-        actionLabel: 'User Management',
-        route: '/settings/users',
-      };
-
-    case rawTarget.includes('company_operations_information') || rawTarget.includes('company'):
-      return {
-        icon: FileText,
-        iconBg: 'bg-slate-50 dark:bg-slate-800',
-        iconColor: 'text-slate-600 dark:text-slate-400',
-        badgeBg: 'bg-slate-100 dark:bg-slate-800',
-        badgeColor: 'text-slate-700 dark:text-slate-300',
-        categoryName: 'Organization',
-        actionLabel: 'Company Info',
-        route: '/settings/organization',
-      };
-
-    case rawTarget.includes('kyc') || rawTarget.includes('compliance'):
-      return {
-        icon: CheckCircle2,
-        iconBg: 'bg-purple-50 dark:bg-purple-950/60',
-        iconColor: 'text-purple-600 dark:text-purple-400',
-        badgeBg: 'bg-purple-50 dark:bg-purple-950/50',
-        badgeColor: 'text-purple-700 dark:text-purple-300',
-        categoryName: 'Compliance',
-        actionLabel: 'View Compliance',
-        route: '/settings/compliance',
-      };
-
-    case rawTarget.includes('profile'):
-      return {
-        icon: CheckCircle2,
-        iconBg: 'bg-purple-50 dark:bg-purple-950/60',
-        iconColor: 'text-purple-600 dark:text-purple-400',
-        badgeBg: 'bg-purple-50 dark:bg-purple-950/50',
-        badgeColor: 'text-purple-700 dark:text-purple-300',
-        categoryName: 'Profile',
-        actionLabel: 'View Profile',
-        // KYC decisions also use viewProfile — Compliance is the gated destination.
-        route: '/settings/compliance',
-      };
-
-    case rawTarget.includes('privacy'):
-      return {
-        icon: FileText,
-        iconBg: 'bg-slate-50 dark:bg-slate-800',
-        iconColor: 'text-slate-600 dark:text-slate-400',
-        badgeBg: 'bg-slate-100 dark:bg-slate-800',
-        badgeColor: 'text-slate-700 dark:text-slate-300',
-        categoryName: 'Legal',
-        actionLabel: 'Privacy Policy',
-        route: '/settings/privacy',
-      };
-
-    case rawTarget.includes('terms'):
-      return {
-        icon: FileText,
-        iconBg: 'bg-slate-50 dark:bg-slate-800',
-        iconColor: 'text-slate-600 dark:text-slate-400',
-        badgeBg: 'bg-slate-100 dark:bg-slate-800',
-        badgeColor: 'text-slate-700 dark:text-slate-300',
-        categoryName: 'Terms & Policies',
-        actionLabel: 'Terms & Conditions',
-        route: '/settings/terms',
-      };
-
-    case rawTarget.includes('notification'):
-      return {
-        icon: Bell,
-        iconBg: 'bg-indigo-50 dark:bg-indigo-950/60',
-        iconColor: 'text-indigo-600 dark:text-indigo-400',
-        badgeBg: 'bg-indigo-50 dark:bg-indigo-950/50',
-        badgeColor: 'text-indigo-700 dark:text-indigo-300',
-        categoryName: 'Notifications',
-        actionLabel: 'View Notifications',
-        route: '/settings/notifications',
-      };
-
-    default:
-      return {
-        icon: Bell,
-        iconBg: 'bg-indigo-50 dark:bg-indigo-950/60',
-        iconColor: 'text-indigo-600 dark:text-indigo-400',
-        badgeBg: 'bg-indigo-50 dark:bg-indigo-950/50',
-        badgeColor: 'text-indigo-700 dark:text-indigo-300',
-        categoryName: 'System',
-        actionLabel: 'View Details',
-        route: id ? `/shipments/${id}` : '/settings/notifications',
-      };
+  if (type === 'cancel_shipment') {
+    return {
+      icon: AlertTriangle,
+      iconBg: 'bg-rose-50 dark:bg-rose-950/60',
+      iconColor: 'text-rose-600 dark:text-rose-400',
+      badgeBg: 'bg-rose-50 dark:bg-rose-950/50',
+      badgeColor: 'text-rose-700 dark:text-rose-300',
+      categoryName: 'Cancellation',
+      actionLabel: id ? 'View Shipment' : 'Manage Shipments',
+      route,
+    };
   }
+
+  if (type === 'shipment') {
+    return {
+      icon: Truck,
+      iconBg: 'bg-indigo-50 dark:bg-indigo-950/60',
+      iconColor: 'text-indigo-600 dark:text-indigo-400',
+      badgeBg: 'bg-indigo-50 dark:bg-indigo-950/50',
+      badgeColor: 'text-indigo-700 dark:text-indigo-300',
+      categoryName: 'Shipment',
+      actionLabel: id ? 'View Load' : 'Manage Shipments',
+      route,
+    };
+  }
+
+  if (type === 'availibility' || type === 'availability' || type === 'truck_availability' || type === 'new_availability') {
+    return {
+      icon: Truck,
+      iconBg: 'bg-sky-50 dark:bg-sky-950/60',
+      iconColor: 'text-sky-600 dark:text-sky-400',
+      badgeBg: 'bg-sky-50 dark:bg-sky-950/50',
+      badgeColor: 'text-sky-700 dark:text-sky-300',
+      categoryName: 'Availability',
+      actionLabel: 'Search Trucks',
+      route,
+    };
+  }
+
+  if (type === 'invoice' || type === 'billing' || type === 'payment') {
+    return {
+      icon: CreditCard,
+      iconBg: 'bg-amber-50 dark:bg-amber-950/60',
+      iconColor: 'text-amber-600 dark:text-amber-400',
+      badgeBg: 'bg-amber-50 dark:bg-amber-950/50',
+      badgeColor: 'text-amber-700 dark:text-amber-300',
+      categoryName: 'Billing',
+      actionLabel: 'View Billing',
+      route,
+    };
+  }
+
+  if (type === 'message') {
+    return {
+      icon: MessageSquare,
+      iconBg: 'bg-blue-50 dark:bg-blue-950/60',
+      iconColor: 'text-blue-600 dark:text-blue-400',
+      badgeBg: 'bg-blue-50 dark:bg-blue-950/50',
+      badgeColor: 'text-blue-700 dark:text-blue-300',
+      categoryName: 'Messages',
+      actionLabel: 'Open Chat',
+      route,
+    };
+  }
+
+  if (
+    type === 'partner'
+    || type === 'partner_accept'
+    || type === 'partner_request'
+    || type.includes('partner')
+  ) {
+    return {
+      icon: Users,
+      iconBg: 'bg-[var(--mv-success-bg)] dark:bg-[var(--st-success-bg)]',
+      iconColor: 'text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]',
+      badgeBg: 'bg-[var(--mv-success-bg)] dark:bg-emerald-950/50',
+      badgeColor: 'text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]',
+      categoryName: 'Partners',
+      actionLabel: 'View Partners',
+      route,
+    };
+  }
+
+  if (type === 'kyc_accepted' || type === 'kyc_rejected' || type.includes('kyc')) {
+    return {
+      icon: CheckCircle2,
+      iconBg: 'bg-purple-50 dark:bg-purple-950/60',
+      iconColor: 'text-purple-600 dark:text-purple-400',
+      badgeBg: 'bg-purple-50 dark:bg-purple-950/50',
+      badgeColor: 'text-purple-700 dark:text-purple-300',
+      categoryName: 'Compliance',
+      actionLabel: 'View Compliance',
+      route,
+    };
+  }
+
+  if (type === 'subscription') {
+    return {
+      icon: FileText,
+      iconBg: 'bg-violet-50 dark:bg-violet-950/60',
+      iconColor: 'text-violet-600 dark:text-violet-400',
+      badgeBg: 'bg-violet-50 dark:bg-violet-950/50',
+      badgeColor: 'text-violet-700 dark:text-violet-300',
+      categoryName: 'Subscription',
+      actionLabel: 'View Subscription',
+      route,
+    };
+  }
+
+  if (type === 'privacy_policy') {
+    return {
+      icon: FileText,
+      iconBg: 'bg-slate-50 dark:bg-slate-800',
+      iconColor: 'text-slate-600 dark:text-slate-400',
+      badgeBg: 'bg-slate-100 dark:bg-slate-800',
+      badgeColor: 'text-slate-700 dark:text-slate-300',
+      categoryName: 'Legal',
+      actionLabel: 'Privacy Policy',
+      route,
+    };
+  }
+
+  if (type === 'terms_and_conditions') {
+    return {
+      icon: FileText,
+      iconBg: 'bg-slate-50 dark:bg-slate-800',
+      iconColor: 'text-slate-600 dark:text-slate-400',
+      badgeBg: 'bg-slate-100 dark:bg-slate-800',
+      badgeColor: 'text-slate-700 dark:text-slate-300',
+      categoryName: 'Terms & Policies',
+      actionLabel: 'Terms & Conditions',
+      route,
+    };
+  }
+
+  return {
+    icon: Bell,
+    iconBg: 'bg-indigo-50 dark:bg-indigo-950/60',
+    iconColor: 'text-indigo-600 dark:text-indigo-400',
+    badgeBg: 'bg-indigo-50 dark:bg-indigo-950/50',
+    badgeColor: 'text-indigo-700 dark:text-indigo-300',
+    categoryName: 'System',
+    actionLabel: id ? 'View Load' : 'View Details',
+    route,
+  };
 }
 
 
