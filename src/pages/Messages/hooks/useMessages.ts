@@ -38,6 +38,8 @@ import {
   parsePartnerId,
   resolveActivePartnerType,
   resolveBlobFromBlobUrl,
+  resolveChatAvatarClass,
+  resolveChatBadgeType,
   resolveFileFromBlobUrl,
   resolveNavigatedShipmentIds,
   resolveSocketReceiverType,
@@ -278,6 +280,8 @@ export function useMessages() {
   const locationState = location.state as {
     userId?: number | string;
     userType?: 'carrier' | 'driver';
+    /** UI badge: company | freelancer | driver (company driver). */
+    displayType?: 'company' | 'freelancer' | 'driver' | 'admin';
     userName?: string;
     userAvatar?: string;
     sid?: string;
@@ -348,6 +352,10 @@ export function useMessages() {
         searchParams.get('userType') ||
         locationState?.userType ||
         'carrier';
+      const targetDisplayType = resolveChatBadgeType(
+        targetUserType,
+        searchParams.get('displayType') || locationState?.displayType
+      );
       const targetUserName =
         searchParams.get('name') ||
         locationState?.userName ||
@@ -447,12 +455,12 @@ export function useMessages() {
           name: targetUserName || (targetUserType === 'driver' ? 'Driver' : 'Carrier Company'),
           initials: extractInitials(targetUserName) || (targetUserName || 'U').substring(0, 2).toUpperCase(),
           avatarUrl: targetUserAvatar || '',
-          avatarClass: targetUserType === 'driver' ? 'driver' : 'carrier',
+          avatarClass: resolveChatAvatarClass(targetDisplayType),
           chips: navAutoId ? [navAutoId] : [],
           role: targetUserType === 'driver' ? 'Driver' : 'Carrier',
           rating: '5.0',
           tripsCount: 0,
-          type: targetUserType === 'driver' ? 'freelancer' : 'company',
+          type: targetDisplayType,
           lastMsg: '',
           lastTime: 'Just now',
           lastTimestamp: Math.floor(Date.now() / 1000),

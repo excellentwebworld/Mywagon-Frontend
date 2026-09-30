@@ -154,7 +154,11 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
       userType?: string | null;
     } | null,
     userType?: 'carrier' | 'driver',
-    options?: { shipmentScoped?: boolean }
+    options?: {
+      shipmentScoped?: boolean;
+      /** UI badge: company driver uses `driver`, freelancers use `freelancer`. */
+      displayType?: 'company' | 'freelancer' | 'driver';
+    }
   ) => {
     const shipmentScoped = options?.shipmentScoped === true;
     const primaryId = shipmentScoped && shipment?.id != null ? String(shipment.id) : '';
@@ -166,9 +170,15 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
     if (autoId) params.set('autoId', autoId);
 
     const resolvedType = userType || (partner?.userType === 'driver' ? 'driver' : 'carrier');
+    const displayType =
+      options?.displayType ||
+      (resolvedType === 'driver' ? 'freelancer' : 'company');
     if (partner?.userId) params.set('userId', String(partner.userId));
     if (partner?.name) params.set('name', partner.name);
-    if (partner?.userId || partner?.name) params.set('userType', resolvedType);
+    if (partner?.userId || partner?.name) {
+      params.set('userType', resolvedType);
+      params.set('displayType', displayType);
+    }
     if (partner?.avatar) params.set('avatar', partner.avatar);
 
     navigate(`/messages?${params.toString()}`, {
@@ -177,6 +187,7 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
           ? {
               userId: partner.userId,
               userType: resolvedType,
+              displayType,
               userName: partner.name,
               userAvatar: partner.avatar,
             }
@@ -752,7 +763,13 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
                     : carrier?.userType === 'driver'
                       ? 'driver'
                       : 'carrier';
-                  navigateToChat(partner, partner ? resolvedType : undefined);
+                  navigateToChat(partner, partner ? resolvedType : undefined, {
+                    displayType: driver
+                      ? 'driver'
+                      : carrier?.userType === 'driver'
+                        ? 'freelancer'
+                        : 'company',
+                  });
                 }
           }
           onShare={readOnly ? undefined : () => setIsShareOpen(true)}
@@ -941,13 +958,15 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
                   readOnly
                     ? undefined
                     : (partner) => {
-                        const resolvedType =
+                        const isDriverLike =
                           partner.userType === 'driver' ||
                           partner.transporterType === 'freelancer' ||
-                          partner.transporterType === 'driver'
-                            ? 'driver'
-                            : 'carrier';
-                        navigateToChat(partner, resolvedType, { shipmentScoped: true });
+                          partner.transporterType === 'driver';
+                        const resolvedType = isDriverLike ? 'driver' : 'carrier';
+                        navigateToChat(partner, resolvedType, {
+                          shipmentScoped: true,
+                          displayType: isDriverLike ? 'freelancer' : 'company',
+                        });
                       }
                 }
                 onInviteMore={
@@ -1046,14 +1065,20 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
                     ? undefined
                     : (c) => {
                         const resolvedType = c.userType === 'driver' ? 'driver' : 'carrier';
-                        navigateToChat(c, resolvedType, { shipmentScoped: true });
+                        navigateToChat(c, resolvedType, {
+                          shipmentScoped: true,
+                          displayType: c.userType === 'driver' ? 'freelancer' : 'company',
+                        });
                       }
                 }
                 onChatDriver={
                   readOnly
                     ? undefined
                     : (d) => {
-                        navigateToChat(d, 'driver', { shipmentScoped: true });
+                        navigateToChat(d, 'driver', {
+                          shipmentScoped: true,
+                          displayType: 'driver',
+                        });
                       }
                 }
                 t={t}
