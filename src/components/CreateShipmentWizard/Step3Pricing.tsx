@@ -716,11 +716,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
 
               {values.broadcastType === 'public' && publicQuota?.status === false && (
                 <div className="mt-4">
-                  <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs flex items-start justify-between gap-3">
+                  <div className="wizard-quota-banner p-3 rounded-lg text-xs flex items-start justify-between gap-3">
                     <span>{publicQuota.message || t('publicQuotaExceeded') || 'You have reached your Public Load limit for this billing cycle.'}</span>
                     <button
                       type="button"
-                      className="font-bold underline whitespace-nowrap"
+                      className="wizard-quota-upgrade font-bold underline whitespace-nowrap bg-transparent border-none cursor-pointer"
                       onClick={() =>
                         openUpgradeGate({
                           variant: 'limit',
@@ -736,7 +736,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
 
               {values.broadcastType === 'private' && privateQuota?.status === false && (
                 <div className="mt-4">
-                  <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs flex items-start justify-between gap-3">
+                  <div className="wizard-quota-banner p-3 rounded-lg text-xs flex items-start justify-between gap-3">
                     <span>
                       {privateQuota.message ||
                         t('privateQuotaExceeded') ||
@@ -744,7 +744,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                     </span>
                     <button
                       type="button"
-                      className="font-bold underline whitespace-nowrap"
+                      className="wizard-quota-upgrade font-bold underline whitespace-nowrap bg-transparent border-none cursor-pointer"
                       onClick={() =>
                         openUpgradeGate({
                           variant: 'limit',
@@ -1221,11 +1221,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               </div>
 
               {isOverride && (
-                <div className="flex items-center justify-between bg-amber-50 text-amber-800 px-2.5 py-1.5 rounded-md text-[11px]">
+                <div className="wizard-override-banner flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px]">
                   <span>{t('manualOverride') || 'Manual override'}</span>
                   <button
                     type="button"
-                    className="bg-transparent border-none cursor-pointer font-bold text-amber-900 underline"
+                    className="wizard-override-reset bg-transparent border-none cursor-pointer font-bold underline"
                     onClick={() => setFieldValue('targetPrice', String(calculatedPrice))}
                   >
                     {t('resetToPriceList') || 'Reset'}
@@ -1234,13 +1234,16 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               )}
 
               {aiExpanded && (
-                <div className="rounded-lg border border-violet-100 bg-violet-50/60 p-3">
+                <div
+                  className="rounded-lg border p-3"
+                  style={{ borderColor: T.bd, background: T.sa }}
+                >
                   {aiPriceLoading ? (
-                    <div className="text-[11px] text-indigo-900">
+                    <div className="text-[11px]" style={{ color: T.t2 }}>
                       {t('aiSuggestedPriceLoading') || 'Generating AI suggested prices...'}
                     </div>
                   ) : aiPriceDenied ? (
-                    <div className="text-[11px] text-indigo-900">
+                    <div className="text-[11px]" style={{ color: T.t2 }}>
                       {aiPriceDenied.message}
                       {aiPriceDenied.upgradeUrl && (
                         <>
@@ -1260,7 +1263,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                       )}
                     </div>
                   ) : aiPriceError ? (
-                    <div className="text-[11px] text-indigo-900">
+                    <div className="text-[11px]" style={{ color: T.t2 }}>
                       {t('aiSuggestedPriceFailed') || 'Unable to generate AI suggested prices.'}
                     </div>
                   ) : aiPriceData ? (
@@ -1274,7 +1277,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                         >
                           <Sparkles size={11} color="#fff" aria-hidden />
                         </span>
-                        <span className="text-xs font-semibold" style={{ color: '#2D1B69' }}>
+                        <span className="text-xs font-semibold" style={{ color: T.t1 }}>
                           {t('aiSuggestedPrices') || 'AI Suggested Prices'}
                         </span>
                       </div>
@@ -1346,13 +1349,13 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                                   color={opt.iconColor}
                                   aria-hidden
                                 />
-                                <span className="text-[10px] font-medium text-slate-500">
+                                <span className="text-[10px] font-medium" style={{ color: T.t2 }}>
                                   {opt.label}
                                 </span>
                               </div>
                               <div
                                 className="text-xs font-bold tabular-nums"
-                                style={{ color: '#2D1B69' }}
+                                style={{ color: T.t1 }}
                               >
                                 {opt.formatted}
                               </div>
@@ -1362,7 +1365,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                       </div>
                     </>
                   ) : (
-                    <div className="text-[11px] text-indigo-900">
+                    <div className="text-[11px]" style={{ color: T.t2 }}>
                       {t('aiSuggestedPriceFailed') || 'Unable to generate AI suggested prices.'}
                     </div>
                   )}
@@ -1672,7 +1675,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   </div>
 
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] font-medium text-[#8E8E9A]">
+                    <span className="text-[10px] font-medium" style={{ color: T.t3 }}>
                       {t('quickFill', 'Quick fill:')}
                     </span>
                     {(
@@ -1695,7 +1698,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                               setFieldValue('documentsList', [{ ...attachedDoc, name: label }]);
                             }
                           }}
-                          className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#F0F0F3] hover:bg-[#E4E4E8] text-[#5E5E6E] transition-colors cursor-pointer border-0"
+                          className="px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors cursor-pointer"
+                          style={{
+                            background: T.sa,
+                            color: T.t1,
+                            border: `1px solid ${T.bd}`,
+                          }}
                         >
                           {label}
                         </button>
@@ -1704,9 +1712,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-[#18181B] mb-1.5">
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: T.t1 }}>
                       {t('description', 'Description / Notes')}{' '}
-                      <span className="text-[#8E8E9A] font-normal">({t('optional', 'Optional')})</span>
+                      <span className="font-normal" style={{ color: T.t3 }}>
+                        ({t('optional', 'Optional')})
+                      </span>
                     </label>
                     <textarea
                       value={docDescription}
