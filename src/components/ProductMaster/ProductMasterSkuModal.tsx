@@ -260,9 +260,14 @@ export const ProductMasterSkuModal: React.FC<ProductMasterSkuModalProps> = ({
                     <label>{t('weightKg')}</label>
                     <input
                       name="weight"
+                      type="text"
+                      inputMode="decimal"
                       placeholder={t('productMaster.weightPlaceholder', 'e.g. 25')}
                       value={values.weight}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^0-9.,]/g, '');
+                        void setFieldValue('weight', raw, true);
+                      }}
                       onBlur={handleBlur}
                     />
                     <FormFieldError message={showError('weight') ? errors.weight : undefined} />
