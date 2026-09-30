@@ -634,23 +634,33 @@ export function useProductMaster() {
   const downloadCategoryIndex = useCallback(async () => {
     try {
       const data = await productMasterService.getAllReferenceCategories({ forceEnglish: true });
-      const lines = ['Category Name,Type Name'];
+      const lines = ['Category Name,Type Name,Status'];
       data.forEach((c) => {
+        const categoryName = (c.name ?? '').trim();
+        if (!categoryName) return;
         (c.types ?? []).forEach((tp) => {
-          lines.push(`"${c.name.replace(/"/g, '""')}","${tp.name.replace(/"/g, '""')}"`);
+          const typeName = (tp.name ?? '').trim();
+          if (!typeName) return;
+          lines.push(
+            `"${categoryName.replace(/"/g, '""')}","${typeName.replace(/"/g, '""')}","Active"`
+          );
         });
       });
+      if (lines.length === 1) {
+        showToast(t('downloadCategoryIndexEmpty', 'No active categories/product types found.'), 'warning');
+        return;
+      }
       const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'category_product_type_index.csv';
+      a.download = 'category_product_type_index_active.csv';
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
       handleApiError(err, 'Failed to download category index');
     }
-  }, [handleApiError]);
+  }, [handleApiError, showToast, t]);
 
   const openAiWizard = useCallback(() => {
     if (!requireSignupComplete()) return;
