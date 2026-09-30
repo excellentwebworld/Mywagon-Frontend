@@ -175,13 +175,86 @@ export const erpOrdersService = {
   async aiTransform(file: File): Promise<AiOrdersTransformResult> {
     const formData = new FormData();
     formData.append('import_file', file);
-    const res = await apiPost<AiOrdersTransformResult>('/erp-orders/ai/transform', formData);
-    return res.data;
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const currentLang =
+      localStorage.getItem('shipment-lang') ||
+      localStorage.getItem('app_locale') ||
+      localStorage.getItem('i18nextLng') ||
+      'en';
+    const normLang = currentLang.toLowerCase().startsWith('el') ? 'el' : 'en';
+
+    // Use fetch (no client timeout) — large template files can exceed axios/proxy defaults.
+    const response = await fetch(`${API_BASE}/erp-orders/ai/transform`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Accept-Language': normLang,
+        'X-Client-Timezone': getBrowserTimezone(),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: formData,
+    });
+
+    let json: { success?: boolean; message?: string; data?: AiOrdersTransformResult & AiOrdersTransformErrorData };
+    try {
+      json = await response.json();
+    } catch {
+      throw new ApiError(
+        response.ok
+          ? 'AI transform failed'
+          : 'Network Error — the server closed the connection. Try again or use a smaller file.',
+        response.status || 0
+      );
+    }
+
+    if (!response.ok || json.success === false) {
+      throw new ApiError(
+        json.message ?? 'AI transform failed',
+        response.status || 500,
+        undefined,
+        json.data as AiOrdersTransformErrorData
+      );
+    }
+
+    return json.data as AiOrdersTransformResult;
   },
 
   async aiConfirmImport(orders: AiMappedOrder[]): Promise<ApiErpOrdersImportResult> {
-    const res = await apiPost<ApiErpOrdersImportResult>('/erp-orders/ai/confirm-import', { orders });
-    return res.data;
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    const currentLang =
+      localStorage.getItem('shipment-lang') ||
+      localStorage.getItem('app_locale') ||
+      localStorage.getItem('i18nextLng') ||
+      'en';
+    const normLang = currentLang.toLowerCase().startsWith('el') ? 'el' : 'en';
+
+    const response = await fetch(`${API_BASE}/erp-orders/ai/confirm-import`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'Accept-Language': normLang,
+        'X-Client-Timezone': getBrowserTimezone(),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ orders }),
+    });
+
+    let json: { success?: boolean; message?: string; data?: ApiErpOrdersImportResult };
+    try {
+      json = await response.json();
+    } catch {
+      throw new ApiError(
+        'Network Error — import timed out before the server responded. Please retry.',
+        response.status || 0
+      );
+    }
+
+    if (!response.ok || json.success === false) {
+      throw new ApiError(json.message ?? 'AI import failed', response.status || 500, undefined, json.data);
+    }
+
+    return json.data as ApiErpOrdersImportResult;
   },
 };
 
