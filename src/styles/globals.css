@@ -2050,6 +2050,14 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .perf-hd h4{font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;white-space:nowrap;color:var(--mv-white)}
 .perf-period{font-size:11px;color:var(--mv-purple-tint,#C89BEE);font-weight:500}
 .perf-period{font-size:10px;font-weight:600;color:var(--text-tertiary);padding:2px 8px;background:var(--surface-alt);border-radius:4px;white-space:nowrap;flex-shrink:0}
+html.dark .perf-period,
+[data-theme='dark'] .perf-period{
+  color:#E9D5FF;
+  background:rgba(255,255,255,0.12);
+}
+.dashboard-page{
+  padding-bottom:88px;
+}
 .perf-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));flex:1}
  .perf-cell{padding:10px 12px;border-right:1px solid rgba(255,255,255,.12);border-bottom:1px solid rgba(255,255,255,.12);min-width:0;overflow:hidden}
 .perf-cell:nth-child(2n){border-right:none}

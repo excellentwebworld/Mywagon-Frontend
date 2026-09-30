@@ -432,19 +432,30 @@ html.dark .driver-popover-arrow-side-bottom {
   position: fixed;
   right: 24px;
   bottom: 24px;
-  z-index: 60;
+  z-index: 10050;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 12px 18px;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 9999px;
-  background: linear-gradient(135deg, var(--ah, #9B51E0) 0%, var(--ac, #9b51e0) 100%);
+  background-color: #9b51e0;
+  background-image: linear-gradient(135deg, #4e5cdb 0%, #9b51e0 100%);
   color: #fff;
   font-size: 14px;
   font-weight: 700;
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--ac, #9b51e0) 40%, transparent);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(155, 81, 224, 0.4);
   cursor: pointer;
+  isolation: isolate;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  opacity: 1;
+  mix-blend-mode: normal;
+}
+
+.mv-help-tour-btn > * {
+  position: relative;
+  z-index: 1;
 }
 
 .mv-help-tour-btn:hover {
@@ -453,8 +464,17 @@ html.dark .driver-popover-arrow-side-bottom {
 }
 
 .mv-help-tour-btn:focus-visible {
-  outline: 2px solid var(--ac, #c4b5fd);
+  outline: 2px solid #c4b5fd;
   outline-offset: 2px;
+}
+
+html.dark .mv-help-tour-btn,
+[data-theme='dark'] .mv-help-tour-btn {
+  background-color: #9b51e0;
+  background-image: linear-gradient(135deg, #4e5cdb 0%, #9b51e0 100%);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55), 0 8px 24px rgba(155, 81, 224, 0.45);
 }
 
 @media (max-width: 900px) {

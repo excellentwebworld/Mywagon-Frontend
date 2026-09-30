@@ -764,6 +764,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   <input
                     type="text"
                     className="w-full px-3 py-2 border rounded-lg text-xs mb-3 outline-none"
+                    style={{ background: T.sf, borderColor: T.bd, color: T.t1 }}
                     placeholder={t('searchCarrier') || 'Search carrier...'}
                     value={carrierQuery}
                     onChange={(e) => setCarrierQuery(e.target.value)}
@@ -774,9 +775,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   )}
 
                   {/* CARRIER COMPANIES ACCORDION */}
-                  <div className="border rounded-lg overflow-hidden mb-2">
+                  <div className="border rounded-lg overflow-hidden mb-2" style={{ borderColor: T.bd }}>
                     <div
-                      className="flex items-center justify-between px-3 py-2 cursor-pointer bg-slate-50 text-xs font-bold"
+                      className="flex items-center justify-between px-3 py-2 cursor-pointer text-xs font-bold"
+                      style={{ background: T.sa, color: T.t1 }}
                       onClick={() => setCoOpen(!coOpen)}
                     >
                       <span className="flex items-center gap-1">
@@ -840,9 +842,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   </div>
 
                   {/* FREELANCER DRIVERS ACCORDION */}
-                  <div className="border rounded-lg overflow-hidden">
+                  <div className="border rounded-lg overflow-hidden" style={{ borderColor: T.bd }}>
                     <div
-                      className="flex items-center justify-between px-3 py-2 cursor-pointer bg-slate-50 text-xs font-bold"
+                      className="flex items-center justify-between px-3 py-2 cursor-pointer text-xs font-bold"
+                      style={{ background: T.sa, color: T.t1 }}
                       onClick={() => setFrOpen(!frOpen)}
                     >
                       <span className="flex items-center gap-1">
@@ -1317,12 +1320,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                             <button
                               key={opt.key}
                               type="button"
-                              className="relative flex flex-col items-start text-left rounded-[10px] px-2 pt-2.5 pb-2 cursor-pointer border-2 bg-white"
+                              className="relative flex flex-col items-start text-left rounded-[10px] px-2 pt-2.5 pb-2 cursor-pointer border-2"
                               style={{
-                                borderColor: selected ? '#9B51E0' : '#e5e7eb',
-                                background: selected
-                                  ? 'rgba(155,81,224,0.08)'
-                                  : '#fff',
+                                borderColor: selected ? T.ac : T.bd,
+                                background: selected ? T.al : T.sf,
+                                color: T.t1,
                                 fontFamily: 'inherit',
                               }}
                               onClick={() => applyAiSuggestedPrice(opt.price)}
@@ -1503,18 +1505,29 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   </p>
                 </div>
               ) : (
-                <div className="p-3 rounded-xl bg-[#F5F5F7] space-y-2.5 border border-[#E4E4E8]/60">
+                <div
+                  className="p-3 rounded-xl space-y-2.5 border"
+                  style={{ background: T.sa, borderColor: T.bd }}
+                >
                   <textarea
                     value={values.driverNotes || ''}
                     onChange={(e) => setFieldValue('driverNotes', e.target.value)}
                     placeholder={t('enterNotePlaceholder', 'Type note instructions…')}
                     rows={2}
-                    className="w-full text-xs p-2.5 rounded-lg bg-white border border-[#E4E4E8] outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/20 transition-all resize-y"
+                    className="w-full text-xs p-2.5 rounded-lg outline-none transition-all resize-y"
+                    style={{
+                      background: T.sf,
+                      border: `1px solid ${T.bd}`,
+                      color: T.t1,
+                    }}
                     maxLength={500}
                   />
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-3">
-                      <label className="text-[11px] text-[#5E5E6E] flex items-center gap-1.5 cursor-pointer">
+                      <label
+                        className="text-[11px] flex items-center gap-1.5 cursor-pointer"
+                        style={{ color: T.t2 }}
+                      >
                         <input
                           type="radio"
                           name="wizard-note-vis"
@@ -1524,7 +1537,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                         />
                         <span>{t('internal', 'Internal')}</span>
                       </label>
-                      <label className="text-[11px] text-[#5E5E6E] flex items-center gap-1.5 cursor-pointer">
+                      <label
+                        className="text-[11px] flex items-center gap-1.5 cursor-pointer"
+                        style={{ color: T.t2 }}
+                      >
                         <input
                           type="radio"
                           name="wizard-note-vis"
@@ -1646,7 +1662,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                         'docNamePlaceholder',
                         'e.g., CMR, Delivery Note, Invoice, Customs Declaration'
                       )}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#E4E4E8] text-xs text-[#18181B] bg-white outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/20 transition-all"
+                      className="w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none transition-all"
+                      style={{
+                        borderColor: T.bd,
+                        color: T.t1,
+                        background: T.sf,
+                      }}
                     />
                   </div>
 
@@ -1702,7 +1723,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                         'Add extra details, reference numbers or notes about this document…'
                       )}
                       rows={2}
-                      className="w-full px-3.5 py-2 rounded-xl border border-[#E4E4E8] text-xs text-[#18181B] bg-white outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/20 transition-all resize-y"
+                      className="w-full px-3.5 py-2 rounded-xl border text-xs outline-none transition-all resize-y"
+                      style={{
+                        borderColor: T.bd,
+                        color: T.t1,
+                        background: T.sf,
+                      }}
                     />
                   </div>
 
@@ -1779,18 +1805,22 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                         onClick={() => fileInputRef.current?.click()}
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={handleFileDrop}
-                        className="flex flex-col items-center justify-center p-6 rounded-xl border border-dashed border-[#E4E4E8] bg-[#FAF9FD] hover:bg-[#F8F7FC] transition-all cursor-pointer text-center group"
+                        className="flex flex-col items-center justify-center p-6 rounded-xl border border-dashed transition-all cursor-pointer text-center group"
+                        style={{
+                          borderColor: T.bd,
+                          background: T.sa,
+                        }}
                       >
                         <div
                           className="w-10 h-10 rounded-full flex items-center justify-center mb-2 shadow-2xs group-hover:scale-110 transition-transform"
-                          style={{ background: '#FAF5FF', color: T.ac }}
+                          style={{ background: T.al, color: T.ac }}
                         >
                           <Upload size={18} />
                         </div>
-                        <p className="text-xs font-semibold text-[#18181B] m-0 mb-1">
+                        <p className="text-xs font-semibold m-0 mb-1" style={{ color: T.t1 }}>
                           {t('clickOrDragToUpload', 'Click or drag file here to upload')}
                         </p>
-                        <p className="text-[11px] text-[#8E8E9A] m-0">
+                        <p className="text-[11px] m-0" style={{ color: T.t3 }}>
                           PDF, JPG, PNG, WEBP, DOCX ({t('upTo', 'up to')} 20MB)
                         </p>
                       </div>
@@ -1808,7 +1838,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
           {/* MINI MAP & SUMMARY */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12, overflow: 'hidden' }}>
             <div className="relative">
-              <div className="absolute top-2 left-2 z-10 flex rounded-md overflow-hidden border bg-white shadow-sm" style={{ borderColor: T.bd }}>
+              <div
+                className="absolute top-2 left-2 z-10 flex rounded-md overflow-hidden border shadow-sm"
+                style={{ borderColor: T.bd, background: T.sf }}
+              >
                 <button
                   type="button"
                   className={`px-2.5 py-1 text-[10px] font-semibold ${mapType === 'roadmap' ? 'text-white' : ''}`}
@@ -1881,7 +1914,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               <span className="font-semibold text-sm">{t('summary') || 'Summary'}</span>
               <button
                 type="button"
-                className="ml-auto px-2.5 py-1 text-[11px] font-semibold border rounded bg-white hover:bg-slate-50 cursor-pointer"
+                className="ml-auto px-2.5 py-1 text-[11px] font-semibold border rounded cursor-pointer"
+                style={{ background: T.sf, color: T.t1, borderColor: T.bd }}
                 onClick={onBackStep}
               >
                 ✏ {t('edit') || 'Edit'}
@@ -2106,20 +2140,20 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   sub: '',
                 },
               ].map((st, sidx) => (
-                <div key={sidx} className="bg-white p-3">
-                  <div className="text-[9px] font-bold text-slate-400 uppercase">
+                <div key={sidx} className="p-3" style={{ background: T.sf }}>
+                  <div className="text-[9px] font-bold uppercase" style={{ color: T.t3 }}>
                     {st.label}
                   </div>
-                  <div className="text-base font-bold text-slate-800 mt-0.5">
+                  <div className="text-base font-bold mt-0.5" style={{ color: T.t1 }}>
                     {st.value}{' '}
                     {st.unit && (
-                      <span className="text-xs font-normal text-slate-400">
+                      <span className="text-xs font-normal" style={{ color: T.t3 }}>
                         {st.unit}
                       </span>
                     )}
                   </div>
                   {st.sub ? (
-                    <div className="text-[11px] font-semibold text-slate-500 mt-0.5 tabular-nums">
+                    <div className="text-[11px] font-semibold mt-0.5 tabular-nums" style={{ color: T.t2 }}>
                       {st.sub}
                     </div>
                   ) : null}
@@ -2149,7 +2183,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-xs font-semibold cursor-pointer"
+            style={{ background: T.sf, color: T.t1, borderColor: T.bd }}
             onClick={onBackStep}
             disabled={isSubmitting}
           >
@@ -2158,7 +2193,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
           
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-xs font-semibold cursor-pointer"
+            style={{ background: T.sf, color: T.t1, borderColor: T.bd }}
             onClick={async () => {
               if (!requirePermission('draft_shipment')) {
                 return;
