@@ -14,6 +14,7 @@ import { formatDisplayDate } from '../../utils/dateDisplay';
 import { resolveMediaUrl } from '../../utils/resolveMediaUrl';
 import { ExpandCollapseButtons } from './ExpansionShared';
 import { ExpHeading } from './ExpHeading';
+import { translateCargoUnit } from '../../constants/cargoUnits';
 
 interface ItineraryPreviewProps {
   stops?: ShipmentStop[];
@@ -69,16 +70,18 @@ function toYmd(displayOrYmd: string): string {
   return trimmed;
 }
 
-function formatQty(qty: number, unit: string): string {
+function formatQty(qty: number, unit: string, t?: ItineraryPreviewProps['t']): string {
   if (!qty && !unit) return '';
   const amount = qty > 0 ? qty.toLocaleString() : '';
-  return [amount, unit].filter(Boolean).join(' ');
+  const unitLabel = translateCargoUnit(unit, t) || unit;
+  return [amount, unitLabel].filter(Boolean).join(' ');
 }
 
-function formatWeight(weight: number, unit: string): string {
+function formatWeight(weight: number, unit: string, t?: ItineraryPreviewProps['t']): string {
   if (!weight && !unit) return '';
   const amount = weight > 0 ? weight.toLocaleString() : '';
-  return [amount, unit || 'kg'].filter(Boolean).join(' ');
+  const unitLabel = translateCargoUnit(unit || 'kg', t) || unit || 'kg';
+  return [amount, unitLabel].filter(Boolean).join(' ');
 }
 
 function truncate(text: string, max = 42): string {
@@ -111,8 +114,8 @@ function cargoSummary(
         : `${productNames.slice(0, 2).join(', ')} +${productNames.length - 2}`;
   const parts = [
     namePart,
-    totalQty > 0 ? formatQty(totalQty, qtyUnit) : '',
-    totalWeight > 0 ? formatWeight(totalWeight, weightUnit) : '',
+    totalQty > 0 ? formatQty(totalQty, qtyUnit, t) : '',
+    totalWeight > 0 ? formatWeight(totalWeight, weightUnit, t) : '',
   ].filter(Boolean);
   if (parts.length === 0) {
     return `${lines.length} ${t('aiWizardProducts') || 'products'}`;
@@ -457,8 +460,8 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
                 {hasCargo && cargoOpen && (
                   <div className={`itin-cargo itin-cargo--${stopVisual}`}>
                     {stop.lines.map((line, li) => {
-                      const qtyLabel = formatQty(line.qty, line.qtyUnit);
-                      const weightLabel = formatWeight(line.weight, line.weightUnit);
+                      const qtyLabel = formatQty(line.qty, line.qtyUnit, t);
+                      const weightLabel = formatWeight(line.weight, line.weightUnit, t);
                       const visual = productLineVisual(
                         stop.type,
                         line.locationStatus,

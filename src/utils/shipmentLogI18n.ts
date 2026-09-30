@@ -1,5 +1,7 @@
 /** Normalize and translate shipment / audit log action labels from API English. */
 
+import { translateCargoUnit as translateCargoUnitCanonical } from '../constants/cargoUnits';
+
 type TFn = (key: string, fallback?: string) => string;
 
 function cleanActionText(text: string | null | undefined): string {
@@ -68,31 +70,7 @@ export function translateShipmentLogAction(action: string | null | undefined, t:
   return raw;
 }
 
-/** Map cargo qty/weight unit codes to localized labels. */
+/** Map cargo qty/weight unit codes to localized labels (stored English → display locale). */
 export function translateCargoUnit(unit: string | null | undefined, t: TFn): string {
-  const raw = String(unit || '').trim();
-  if (!raw) return '';
-  const key = raw.toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
-
-  const map: Record<string, [string, string]> = {
-    'eur pallets': ['constants.eur_pallets', 'EUR Pallets'],
-    'eur pallet': ['constants.eur_pallets', 'EUR Pallets'],
-    'us pallets': ['constants.us_pallets', 'US Pallets'],
-    'us pallet': ['constants.us_pallets', 'US Pallets'],
-    'big bags': ['constants.big_bags', 'Big Bags'],
-    'big bag': ['constants.big_bags', 'Big Bags'],
-    tonnes: ['constants.tonnes', 'Tonnes'],
-    tonne: ['constants.tonnes', 'Tonnes'],
-    tons: ['constants.tonnes', 'Tonnes'],
-    ton: ['constants.tonnes', 'Tonnes'],
-    t: ['constants.tonnes', 'Tonnes'],
-    kgs: ['constants.kgs', 'Kgs'],
-    kg: ['constants.kgs', 'Kgs'],
-    kilos: ['constants.kgs', 'Kgs'],
-    κιλά: ['constants.kgs', 'Kgs'],
-  };
-
-  const hit = map[key];
-  if (hit) return t(hit[0], hit[1]);
-  return raw;
+  return translateCargoUnitCanonical(unit, t);
 }

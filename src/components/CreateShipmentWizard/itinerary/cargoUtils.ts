@@ -1,12 +1,16 @@
 import type { ApiStop } from '../../../api/types/createShipment';
 import {
   convertWeightValue,
+  formatDurationMin,
+  formatQuantityWithTranslatedUnit,
   formatWeightDisplay,
   formatWeightKgTotal,
   kgToWeightUnit,
   normalizeQtyUnit,
   normalizeWeightUnit,
+  translateCargoUnit,
   weightToKg,
+  type CargoUnitTranslate,
 } from '../../../constants/cargoUnits';
 import type { CargoFlow, LoadBalance, TripTotals } from './types';
 
@@ -14,21 +18,24 @@ export const TRUCK_WEIGHT_CAP_KG = 28000;
 
 export {
   convertWeightValue,
+  formatDurationMin,
+  formatQuantityWithTranslatedUnit,
   formatWeightDisplay,
   kgToWeightUnit,
   normalizeQtyUnit,
   normalizeWeightUnit,
+  translateCargoUnit,
   weightToKg,
 } from '../../../constants/cargoUnits';
 
-export function formatWeightKg(kg: number): string {
-  return formatWeightKgTotal(kg);
+export function formatWeightKg(kg: number, t?: CargoUnitTranslate): string {
+  return formatWeightKgTotal(kg, t);
 }
 
-export function formatQtyWithUnit(qty: number, unit?: string): string {
+export function formatQtyWithUnit(qty: number, unit?: string, t?: CargoUnitTranslate): string {
   if (qty <= 0) return '—';
   const u = normalizeQtyUnit(unit);
-  return u ? `${qty} ${u}` : String(qty);
+  return u ? formatQuantityWithTranslatedUnit(qty, u, t) : String(qty);
 }
 
 export function summarizeStopLines(stop: ApiStop): { qty: number; weightKg: number; unit: string } {
@@ -43,14 +50,6 @@ export function summarizeStopLines(stop: ApiStop): { qty: number; weightKg: numb
   });
 
   return { qty, weightKg, unit };
-}
-
-export function formatDurationMin(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = Math.round(minutes % 60);
-  if (h <= 0) return `${m}min`;
-  if (m <= 0) return `${h}h`;
-  return `${h}h ${m}min`;
 }
 
 export function computeLoadBalance(stops: ApiStop[]): LoadBalance {
@@ -475,7 +474,7 @@ export function computeTripTotals(stops: ApiStop[]): TripTotals {
  * Summarize pickup qty by canonical unit for trip summary tiles
  * (e.g. "60 EUR Pallets" or "50 EUR Pallets · 10 Boxes").
  */
-export function formatTripQtySummary(stops: ApiStop[]): string {
+export function formatTripQtySummary(stops: ApiStop[], t?: CargoUnitTranslate): string {
   const byUnit: Record<string, number> = {};
   stops.forEach((s) =>
     (s.lines || []).forEach((ln) => {
@@ -488,7 +487,7 @@ export function formatTripQtySummary(stops: ApiStop[]): string {
   );
   const parts = Object.entries(byUnit)
     .filter(([, qty]) => qty > 0)
-    .map(([unit, qty]) => formatQtyWithUnit(qty, unit === '—' ? '' : unit));
+    .map(([unit, qty]) => formatQtyWithUnit(qty, unit === '—' ? '' : unit, t));
   return parts.length > 0 ? parts.join(' · ') : '—';
 }
 

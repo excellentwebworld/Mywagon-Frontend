@@ -89,6 +89,7 @@ import {
   formatWeightDisplay,
   formatWeightKgTotal,
   convertWeightValue,
+  translateCargoUnit,
 } from "../../constants/cargoUnits";
 import {
   computeLoadBalance,
@@ -1554,7 +1555,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   // ═══ LOAD BALANCE + VALIDATION ═══
   const bal = useMemo(() => computeLoadBalance(stops), [stops]);
 
-  const fmtW = (kg: number) => formatWeightKgTotal(kg);
+  const fmtW = (kg: number) => formatWeightKgTotal(kg, t);
 
   // ═══ CONFLICT CHECKING ═══
   const {
@@ -3049,7 +3050,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                             {orderQty > 0 ? (
                               <div
                                 className="text-[9px] mt-0.5"
-                                title={`${formatQtyWithUnit(allocated, displayUnit)} / ${formatQtyWithUnit(orderQty, displayUnit)}`}
+                                title={`${formatQtyWithUnit(allocated, displayUnit, t)} / ${formatQtyWithUnit(orderQty, displayUnit, t)}`}
                                 style={{
                                   whiteSpace: "nowrap",
                                   color:
@@ -3060,8 +3061,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
                                         : T.t3,
                                 }}
                               >
-                                {formatQtyWithUnit(allocated)} /{" "}
-                                {formatQtyWithUnit(orderQty)}
+                                {formatQtyWithUnit(allocated, displayUnit, t)} /{" "}
+                                {formatQtyWithUnit(orderQty, displayUnit, t)}
                               </div>
                             ) : null}
                           </>
@@ -3104,7 +3105,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                           {availableQty > 0 ? (
                             <div
                               className="text-[9px] mt-0.5"
-                              title={`${formatQtyWithUnit(allocated, displayUnit)} / ${formatQtyWithUnit(availableQty, displayUnit)}`}
+                              title={`${formatQtyWithUnit(allocated, displayUnit, t)} / ${formatQtyWithUnit(availableQty, displayUnit, t)}`}
                               style={{
                                 whiteSpace: "nowrap",
                                 color:
@@ -3115,8 +3116,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
                                       : T.t3,
                               }}
                             >
-                              {formatQtyWithUnit(allocated)} /{" "}
-                              {formatQtyWithUnit(availableQty)}
+                              {formatQtyWithUnit(allocated, displayUnit, t)} /{" "}
+                              {formatQtyWithUnit(availableQty, displayUnit, t)}
                             </div>
                           ) : null}
                         </>
@@ -3148,7 +3149,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                     >
                       {QTY_UNIT_OPTIONS.map((u) => (
                         <option key={u} value={u}>
-                          {u}
+                          {translateCargoUnit(u, t)}
                         </option>
                       ))}
                     </select>
@@ -3219,10 +3220,11 @@ const CargoTable: React.FC<CargoTableProps> = ({
                                     : T.t3,
                             }}
                           >
-                            {formatWeightDisplay(allocated, displayWtUnit)} /{" "}
+                            {formatWeightDisplay(allocated, displayWtUnit, t)} /{" "}
                             {formatWeightDisplay(
                               orderWeightDisplay,
                               displayWtUnit,
+                              t,
                             )}
                           </div>
                         );
@@ -3254,8 +3256,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
                                   : T.t3,
                           }}
                         >
-                          {formatWeightDisplay(allocated, displayWtUnit)} /{" "}
-                          {formatWeightDisplay(availableWeight, displayWtUnit)}
+                          {formatWeightDisplay(allocated, displayWtUnit, t)} /{" "}
+                          {formatWeightDisplay(availableWeight, displayWtUnit, t)}
                         </div>
                       );
                     })()}
@@ -3279,7 +3281,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                     >
                       {WEIGHT_UNIT_OPTIONS.map((u) => (
                         <option key={u} value={u}>
-                          {u}
+                          {translateCargoUnit(u, t)}
                         </option>
                       ))}
                     </select>

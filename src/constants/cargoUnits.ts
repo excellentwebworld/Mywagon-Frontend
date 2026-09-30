@@ -4,6 +4,9 @@ export const WEIGHT_UNIT_OPTIONS = ['Tonnes', 'Kgs'] as const;
 export type QtyUnit = (typeof QTY_UNIT_OPTIONS)[number];
 export type WeightUnit = (typeof WEIGHT_UNIT_OPTIONS)[number];
 
+/** Optional i18n helper — keep English stored values; translate only for display. */
+export type CargoUnitTranslate = (key: string, fallback?: string) => string;
+
 const QTY_UNIT_ALIASES: Record<string, QtyUnit> = {
   pallet: 'EUR Pallets',
   pallets: 'EUR Pallets',
@@ -66,6 +69,71 @@ export function mapErpWeightUnit(unit?: string | null): WeightUnit {
   return normalizeWeightUnit(unit);
 }
 
+/**
+ * Display label for stored English cargo / measure units.
+ * Values stay English in API/DB; only UI text is localized.
+ */
+export function translateCargoUnit(
+  unit: string | null | undefined,
+  t?: CargoUnitTranslate,
+): string {
+  const raw = String(unit || '').trim();
+  if (!raw) return '';
+  const key = qtyUnitLookupKey(raw);
+  const tr = t ?? ((_k: string, fallback?: string) => fallback || raw);
+
+  const map: Record<string, [string, string]> = {
+    'eur pallets': ['constants.eur_pallets', 'EUR Pallets'],
+    'eur pallet': ['constants.eur_pallets', 'EUR Pallets'],
+    'us pallets': ['constants.us_pallets', 'US Pallets'],
+    'us pallet': ['constants.us_pallets', 'US Pallets'],
+    boxes: ['constants.boxes', 'Boxes'],
+    box: ['constants.boxes', 'Boxes'],
+    units: ['constants.units', 'Units'],
+    unit: ['constants.units', 'Units'],
+    'big bags': ['constants.big_bags', 'Big Bags'],
+    'big bag': ['constants.big_bags', 'Big Bags'],
+    tonnes: ['constants.tonnes', 'Tonnes'],
+    tonne: ['constants.tonnes', 'Tonnes'],
+    tons: ['constants.tonnes', 'Tonnes'],
+    ton: ['constants.tonnes', 'Tonnes'],
+    t: ['constants.tonnes', 'Tonnes'],
+    kgs: ['constants.kgs', 'Kgs'],
+    kg: ['constants.kgs', 'Kgs'],
+    kilos: ['constants.kgs', 'Kgs'],
+    κιλά: ['constants.kgs', 'Kgs'],
+    km: ['unitKm', 'km'],
+    χλμ: ['unitKm', 'km'],
+    min: ['constants.min', 'min'],
+    mins: ['constants.min', 'min'],
+    minute: ['constants.min', 'min'],
+    minutes: ['constants.min', 'min'],
+    h: ['constants.hourShort', 'h'],
+    hr: ['constants.hourShort', 'h'],
+    hrs: ['constants.hourShort', 'h'],
+    hour: ['constants.hourShort', 'h'],
+    hours: ['constants.hourShort', 'h'],
+  };
+
+  const hit = map[key];
+  if (hit) return tr(hit[0], hit[1]);
+  return raw;
+}
+
+/** "50 EUR Pallets" / "2 Tonnes" — translate trailing unit token(s). */
+export function formatQuantityWithTranslatedUnit(
+  amount: string | number,
+  unit: string | null | undefined,
+  t?: CargoUnitTranslate,
+): string {
+  const label = translateCargoUnit(unit, t);
+  const text = typeof amount === 'number' ? String(amount) : String(amount ?? '').trim();
+  if (!text && !label) return '';
+  if (!label) return text;
+  if (!text) return label;
+  return `${text} ${label}`;
+}
+
 export function weightToKg(weight: string | number | undefined, wtUnit?: string | null): number {
   const w = parseFloat(String(weight ?? '')) || 0;
   if (normalizeWeightUnit(wtUnit) === 'Tonnes') {
@@ -95,22 +163,39 @@ export function kgToWeightUnit(kg: number, wtUnit?: string | null): number {
   return Math.round(kg * 1000) / 1000;
 }
 
-export function formatWeightDisplay(weight: string | number | undefined, wtUnit?: string | null): string {
+export function formatWeightDisplay(
+  weight: string | number | undefined,
+  wtUnit?: string | null,
+  t?: CargoUnitTranslate,
+): string {
   const w = parseFloat(String(weight ?? '')) || 0;
   const unit = normalizeWeightUnit(wtUnit);
-  if (w <= 0) return `0 ${unit}`;
+  const unitLabel = translateCargoUnit(unit, t);
+  if (w <= 0) return `0 ${unitLabel}`;
   const rounded = Math.round(w * 100) / 100;
   const value = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2).replace(/\.?0+$/, '');
-  return `${value} ${unit}`;
+  return `${value} ${unitLabel}`;
 }
 
 /** Format a kg total for summary labels (shows Tonnes when >= 1000 kg). */
-export function formatWeightKgTotal(kg: number): string {
-  if (kg <= 0) return '0 Kgs';
+export function formatWeightKgTotal(kg: number, t?: CargoUnitTranslate): string {
+  if (kg <= 0) return `0 ${translateCargoUnit('Kgs', t)}`;
   if (kg >= 1000) {
     const tonnes = Math.round((kg / 1000) * 10) / 10;
-    return `${Number.isInteger(tonnes) ? tonnes : tonnes.toFixed(1)} Tonnes`;
+    const value = Number.isInteger(tonnes) ? tonnes : tonnes.toFixed(1);
+    return `${value} ${translateCargoUnit('Tonnes', t)}`;
   }
   const rounded = Math.round(kg * 10) / 10;
-  return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(1)} Kgs`;
+  const value = Number.isInteger(rounded) ? rounded : rounded.toFixed(1);
+  return `${value} ${translateCargoUnit('Kgs', t)}`;
+}
+
+export function formatDurationMin(minutes: number, t?: CargoUnitTranslate): string {
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  const hourLabel = translateCargoUnit('h', t);
+  const minLabel = translateCargoUnit('min', t);
+  if (h <= 0) return `${m}${minLabel}`;
+  if (m <= 0) return `${h}${hourLabel}`;
+  return `${h}${hourLabel} ${m}${minLabel}`;
 }

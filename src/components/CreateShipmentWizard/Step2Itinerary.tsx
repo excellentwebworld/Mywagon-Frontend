@@ -501,7 +501,7 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                             className="text-[9px] font-semibold"
                             style={{ color: rw > TRUCK_WEIGHT_CAP_KG ? '#DC2626' : T.t3 }}
                           >
-                            {t('step2OnTruck')}: {formatWeightKg(rw)}
+                            {t('step2OnTruck')}: {formatWeightKg(rw, t)}
                           </span>
                           <div
                             className="flex-1 rounded-full overflow-hidden"
@@ -614,11 +614,12 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                                         <span style={{ color: diffColor(lineHl?.qty, T.t2) }}>
                                           {formatQtyWithUnit(
                                             parseFloat(String(l.qty ?? '')) || 0,
-                                            normalizeQtyUnit(l.unit) || l.unit
+                                            normalizeQtyUnit(l.unit) || l.unit,
+                                            t,
                                           )}
                                         </span>
                                         <span style={{ color: diffColor(lineHl?.weight, T.t3) }}>
-                                          {formatWeightDisplay(l.weight, l.wtUnit)}
+                                          {formatWeightDisplay(l.weight, l.wtUnit, t)}
                                         </span>
                                       </div>
                                     );
@@ -733,17 +734,17 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
               {[
                 {
                   label: t('step2Distance'),
-                  value: route.loading ? '…' : `${route.totalDistKm} km`,
+                  value: route.loading ? '…' : `${route.totalDistKm} ${t('unitKm', 'km')}`,
                 },
                 {
                   label: t('step2DriveTime'),
-                  value: route.loading ? '…' : formatDurationMin(route.totalDriveMin),
+                  value: route.loading ? '…' : formatDurationMin(route.totalDriveMin, t),
                 },
                 { label: t('step2StopsCount'), value: String(enrichedStops.length) },
                 {
                   label: t('step2TotalWeight'),
-                  value: formatWeightKg(totals.totalWeightKg),
-                  sub: formatTripQtySummary(displayStops),
+                  value: formatWeightKg(totals.totalWeightKg, t),
+                  sub: formatTripQtySummary(displayStops, t),
                 },
                 ...(showCustomerStats
                   ? [

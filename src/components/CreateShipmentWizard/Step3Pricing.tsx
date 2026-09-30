@@ -451,15 +451,15 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     const minutes =
       route.totalDriveMin > 0 ? route.totalDriveMin : values.routeSummary?.totalDriveMin || 0;
     if (!minutes) return '—';
-    return formatDurationMin(minutes);
-  }, [route.totalDriveMin, values.routeSummary?.totalDriveMin]);
+    return formatDurationMin(minutes, t);
+  }, [route.totalDriveMin, values.routeSummary?.totalDriveMin, t]);
 
   const formattedWeight = useMemo(
-    () => (totalWeightKg > 0 ? formatWeightKg(totalWeightKg) : '—'),
-    [totalWeightKg]
+    () => (totalWeightKg > 0 ? formatWeightKg(totalWeightKg, t) : '—'),
+    [totalWeightKg, t]
   );
 
-  const formattedQty = useMemo(() => formatTripQtySummary(stops), [stops]);
+  const formattedQty = useMemo(() => formatTripQtySummary(stops, t), [stops, t]);
 
   const totalKm = values.routeSummary?.totalDistKm || 0;
   const displayKm = route.totalDistKm > 0 ? route.totalDistKm : totalKm;
@@ -2105,10 +2105,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                                     {formatQtyWithUnit(
                                       parseFloat(String(line.qty ?? '')) || 0,
                                       normalizeQtyUnit(line.unit) || line.unit,
+                                      t,
                                     )}
                                   </span>
                                   <span className="shrink-0 tabular-nums" style={{ color: T.t3 }}>
-                                    {formatWeightDisplay(line.weight, line.wtUnit)}
+                                    {formatWeightDisplay(line.weight, line.wtUnit, t)}
                                   </span>
                                 </div>
                               ))
@@ -2128,7 +2129,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 {
                   label: t('distance') || 'Distance',
                   value: displayKm > 0 ? String(Math.round(displayKm)) : '—',
-                  unit: displayKm > 0 ? 'km' : '',
+                  unit: displayKm > 0 ? t('unitKm', 'km') : '',
                   sub: '',
                 },
                 {

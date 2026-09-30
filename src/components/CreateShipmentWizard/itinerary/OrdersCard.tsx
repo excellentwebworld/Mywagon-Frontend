@@ -29,7 +29,7 @@ export const OrdersCard: React.FC<OrdersCardProps> = ({ groups, t }) => {
               <div className="oc-cust-head">
                 <span>🏪</span>
                 <span className="oc-cust-name">{group.customerName}</span>
-                <span className="oc-cust-total">{formatWeightKg(group.totalWeightKg)}</span>
+                <span className="oc-cust-total">{formatWeightKg(group.totalWeightKg, t)}</span>
               </div>
             )}
             {group.orders.map((order) => (
@@ -45,7 +45,7 @@ export const OrdersCard: React.FC<OrdersCardProps> = ({ groups, t }) => {
                     <span>{order.routeLabel.split(' → ')[1] || '—'}</span>
                   </div>
                 </div>
-                <div className="oi-wt">{formatWeightKg(order.weightKg)}</div>
+                <div className="oi-wt">{formatWeightKg(order.weightKg, t)}</div>
               </div>
             ))}
           </div>

@@ -12,6 +12,7 @@ import {
   getShipUrgency,
 } from '../../pages/ErpOrders/erpOrderUiUtils';
 import { shipmentStatusLabel } from '../ShipmentDetail/StatusBadge';
+import { translateCargoUnit } from '../../constants/cargoUnits';
 
 const ST_CLS: Record<string, string> = {
   unplanned: 'st-new',
@@ -167,10 +168,12 @@ export const OrderDetailDrawer: React.FC<Props> = ({
                               <td style={{ fontWeight: 500 }}>{line.productName}</td>
                               <td className="sku">{line.sku || '—'}</td>
                               <td style={{ textAlign: 'right', fontFamily: "var(--font-app), Poppins, sans-serif", fontWeight: 600 }}>
-                                {line.quantity ?? '—'} {line.unit || ''}
+                                {line.quantity ?? '—'} {translateCargoUnit(line.unit, t)}
                               </td>
                               <td style={{ textAlign: 'right', fontFamily: "var(--font-app), Poppins, sans-serif" }}>
-                                {line.weight != null ? `${line.weight} ${line.weightUnit}` : '—'}
+                                {line.weight != null
+                                  ? `${line.weight} ${translateCargoUnit(line.weightUnit, t)}`
+                                  : '—'}
                               </td>
                             </tr>
                           ))}

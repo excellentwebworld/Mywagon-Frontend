@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS, normalizeQtyUnit, normalizeWeightUnit } from '../../constants/cargoUnits';
+import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS, normalizeQtyUnit, normalizeWeightUnit, translateCargoUnit } from '../../constants/cargoUnits';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import type { SKU } from '../../context/AppContext';
 import type { ErpOrderLine, ErpOrderFormState } from '../../pages/ErpOrders/types';
@@ -135,7 +135,7 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
             {allowEmptySelects && <option value="">—</option>}
             {QTY_UNIT_OPTIONS.map((u) => (
               <option key={u} value={u}>
-                {u}
+                {translateCargoUnit(u, t)}
               </option>
             ))}
           </select>
@@ -154,7 +154,7 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
             {allowEmptySelects && <option value="">—</option>}
             {WEIGHT_UNIT_OPTIONS.map((u) => (
               <option key={u} value={u}>
-                {u}
+                {translateCargoUnit(u, t)}
               </option>
             ))}
           </select>

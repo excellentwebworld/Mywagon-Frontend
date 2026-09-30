@@ -176,7 +176,7 @@ export const ItineraryAiInsights: React.FC<ItineraryAiInsightsProps> = ({
             ))}
           </div>
           <div className="text-[10px] mt-2" style={{ color: T.t3 }}>
-            {t('step2TotalCargo')}: {formatWeightKg(totalWeightKg)}
+            {t('step2TotalCargo')}: {formatWeightKg(totalWeightKg, t)}
           </div>
         </div>
       </div>
