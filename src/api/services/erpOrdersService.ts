@@ -130,7 +130,11 @@ export const erpOrdersService = {
   async downloadImportTemplate(): Promise<void> {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     const response = await fetch(`${API_BASE}/erp-orders/import/template`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: {
+        // Template file content must stay English regardless of UI language.
+        'Accept-Language': 'en',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
     });
     if (!response.ok) throw new ApiError('Template download failed', response.status);
     const blob = await response.blob();
@@ -152,6 +156,8 @@ export const erpOrdersService = {
     const response = await fetch(`${API_BASE}/erp-orders/export?${exportQuery.toString()}`, {
       headers: {
         Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        // Exported file content must stay English regardless of UI language.
+        'Accept-Language': 'en',
         'X-Client-Timezone': clientTimezone,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },

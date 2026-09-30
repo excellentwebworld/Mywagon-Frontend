@@ -633,7 +633,7 @@ export function useProductMaster() {
 
   const downloadCategoryIndex = useCallback(async () => {
     try {
-      const data = await productMasterService.getAllReferenceCategories();
+      const data = await productMasterService.getAllReferenceCategories({ forceEnglish: true });
       const lines = ['Category Name,Type Name'];
       data.forEach((c) => {
         (c.types ?? []).forEach((tp) => {

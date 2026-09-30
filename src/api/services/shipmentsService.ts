@@ -138,6 +138,8 @@ export const shipmentsService = {
     const response = await fetch(`${API_BASE}/shipments/export?${query.toString()}`, {
       headers: {
         Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        // Exported file content must stay English regardless of UI language.
+        'Accept-Language': 'en',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });

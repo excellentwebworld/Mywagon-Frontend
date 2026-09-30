@@ -501,8 +501,9 @@ export default function PriceListsPage() {
   }, [savingLane, lanes, catalogLanes, editLane, t, toast, refreshAll]);
 
   // ─── Export CSV (same filters as sidebar, full matching set) ───
+  // File content is always English regardless of UI language.
   const handleExport = useCallback(async () => {
-    const lang = isGreek ? 'el' : 'en';
+    const lang = 'en';
     try {
       const { items } = await priceListsService.listLanes({
         page: 1,
@@ -557,7 +558,7 @@ export default function PriceListsPage() {
     } catch (_e) {
       toast.error(t('priceLists.error.exportFailed', 'Could not export price lanes.'));
     }
-  }, [activeNode, debouncedSearch, scopeDirectionParam, isGreek, t, toast, partnerNameById, summary?.scope_labels]);
+  }, [activeNode, debouncedSearch, scopeDirectionParam, t, toast, partnerNameById, summary?.scope_labels]);
 
   const handleImported = useCallback(async (result) => {
     const created = result?.created ?? 0;

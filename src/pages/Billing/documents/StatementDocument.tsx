@@ -1,14 +1,16 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import i18n from 'i18next';
 import type { StatementPayload } from '../../../api/types/billing';
 import { formatCurrency, formatDate, walletReasonLabel } from '../mockData';
+
+/** Export/print documents always use English labels regardless of UI language. */
+const tEn = i18n.getFixedT('en');
 
 interface StatementDocumentProps {
   statement: StatementPayload;
 }
 
 export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement }) => {
-  const { t } = useTranslation();
   const currency = statement.currency || 'EUR';
   const issuer = statement.issuer;
   const billTo = statement.bill_to;
@@ -22,6 +24,7 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
     : billTo?.address
       ? [billTo.address]
       : [];
+  const money = (val: number) => formatCurrency(val, currency, 'en');
 
   return (
     <article className="mv-doc" data-document="statement">
@@ -32,7 +35,7 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
           {issuer?.email ? <div className="mv-doc-muted">{issuer.email}</div> : null}
         </div>
         <div className="mv-doc-title-block">
-          <h1 className="mv-doc-title">{t('billingPage.statement.title', 'Statement')}</h1>
+          <h1 className="mv-doc-title">{tEn('billingPage.statement.title', 'Statement')}</h1>
           <div className="mv-doc-number">{statement.period}</div>
           {statement.from || statement.to ? (
             <div className="mv-doc-muted">
@@ -44,13 +47,13 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
 
       <div className="mv-doc-parties">
         <section>
-          <div className="mv-doc-label">{t('billingPage.statement.from', 'From')}</div>
+          <div className="mv-doc-label">{tEn('billingPage.statement.from', 'From')}</div>
           <div className="mv-doc-company">{issuer?.name || 'MYVAGON'}</div>
           {issuer?.address ? <div className="mv-doc-muted">{issuer.address}</div> : null}
           {issuer?.email ? <div className="mv-doc-muted">{issuer.email}</div> : null}
         </section>
         <section>
-          <div className="mv-doc-label">{t('billingPage.statement.account', 'Account')}</div>
+          <div className="mv-doc-label">{tEn('billingPage.statement.account', 'Account')}</div>
           <div className="mv-doc-company">{billTo?.company_name || '—'}</div>
           {billTo?.email ? <div className="mv-doc-muted">{billTo.email}</div> : null}
           {billLines.map((line) => (
@@ -60,7 +63,7 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
           ))}
           {billTo?.vat_id ? (
             <div className="mv-doc-muted">
-              {t('billingPage.statement.vat', 'VAT')} {billTo.vat_id}
+              {tEn('billingPage.statement.vat', 'VAT')} {billTo.vat_id}
             </div>
           ) : null}
         </section>
@@ -68,48 +71,48 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
 
       <div className="mv-doc-kpi">
         <div className="mv-doc-kpi-card">
-          <div className="mv-doc-label">{t('billingPage.statement.invoicesBilled', 'Invoices billed')}</div>
-          <div className="mv-doc-kpi-value">{formatCurrency(billed, currency)}</div>
+          <div className="mv-doc-label">{tEn('billingPage.statement.invoicesBilled', 'Invoices billed')}</div>
+          <div className="mv-doc-kpi-value">{money(billed)}</div>
           <div className="mv-doc-muted">
-            {t('billingPage.statement.invoiceCount', {
+            {tEn('billingPage.statement.invoiceCount', {
               count: invoices.length,
               defaultValue: '{{count}} invoices',
             })}
           </div>
         </div>
         <div className="mv-doc-kpi-card">
-          <div className="mv-doc-label">{t('billingPage.statement.paid', 'Paid')}</div>
-          <div className="mv-doc-kpi-value">{formatCurrency(paid, currency)}</div>
+          <div className="mv-doc-label">{tEn('billingPage.statement.paid', 'Paid')}</div>
+          <div className="mv-doc-kpi-value">{money(paid)}</div>
         </div>
         <div className="mv-doc-kpi-card">
-          <div className="mv-doc-label">{t('billingPage.statement.outstanding', 'Outstanding')}</div>
-          <div className="mv-doc-kpi-value">{formatCurrency(outstanding, currency)}</div>
+          <div className="mv-doc-label">{tEn('billingPage.statement.outstanding', 'Outstanding')}</div>
+          <div className="mv-doc-kpi-value">{money(outstanding)}</div>
         </div>
         <div className="mv-doc-kpi-card">
-          <div className="mv-doc-label">{t('billingPage.statement.walletBalance', 'Wallet balance')}</div>
-          <div className="mv-doc-kpi-value">{formatCurrency(statement.wallet_balance, currency)}</div>
+          <div className="mv-doc-label">{tEn('billingPage.statement.walletBalance', 'Wallet balance')}</div>
+          <div className="mv-doc-kpi-value">{money(statement.wallet_balance)}</div>
         </div>
       </div>
 
       <section className="mv-doc-section">
-        <div className="mv-doc-label">{t('billingPage.statement.invoices', 'Invoices')}</div>
+        <div className="mv-doc-label">{tEn('billingPage.statement.invoices', 'Invoices')}</div>
         <table>
           <thead>
             <tr>
-              <th>{t('billingPage.statement.colInvoice', 'Invoice')}</th>
-              <th>{t('billingPage.statement.colType', 'Type')}</th>
-              <th>{t('billingPage.statement.colStatus', 'Status')}</th>
-              <th>{t('billingPage.statement.colIssueDate', 'Issue date')}</th>
-              <th>{t('billingPage.statement.colDueDate', 'Due date')}</th>
-              <th className="num">{t('billingPage.statement.colTotal', 'Total')}</th>
-              <th className="num">{t('billingPage.statement.colRemaining', 'Remaining')}</th>
+              <th>{tEn('billingPage.statement.colInvoice', 'Invoice')}</th>
+              <th>{tEn('billingPage.statement.colType', 'Type')}</th>
+              <th>{tEn('billingPage.statement.colStatus', 'Status')}</th>
+              <th>{tEn('billingPage.statement.colIssueDate', 'Issue date')}</th>
+              <th>{tEn('billingPage.statement.colDueDate', 'Due date')}</th>
+              <th className="num">{tEn('billingPage.statement.colTotal', 'Total')}</th>
+              <th className="num">{tEn('billingPage.statement.colRemaining', 'Remaining')}</th>
             </tr>
           </thead>
           <tbody>
             {invoices.length === 0 ? (
               <tr>
                 <td className="mv-doc-empty" colSpan={7}>
-                  {t('billingPage.statement.noInvoices', 'No invoices in this period')}
+                  {tEn('billingPage.statement.noInvoices', 'No invoices in this period')}
                 </td>
               </tr>
             ) : (
@@ -120,8 +123,8 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
                   <td>{invoice.status}</td>
                   <td>{formatDate(invoice.iDate)}</td>
                   <td>{formatDate(invoice.dDate)}</td>
-                  <td className="num">{formatCurrency(invoice.tot, currency)}</td>
-                  <td className="num">{formatCurrency(invoice.rem, currency)}</td>
+                  <td className="num">{money(invoice.tot)}</td>
+                  <td className="num">{money(invoice.rem)}</td>
                 </tr>
               ))
             )}
@@ -130,30 +133,30 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
       </section>
 
       <section className="mv-doc-section">
-        <div className="mv-doc-label">{t('billingPage.statement.walletActivity', 'Wallet activity')}</div>
+        <div className="mv-doc-label">{tEn('billingPage.statement.walletActivity', 'Wallet activity')}</div>
         <table>
           <thead>
             <tr>
-              <th>{t('billingPage.statement.colDate', 'Date')}</th>
-              <th>{t('billingPage.statement.colDescription', 'Description')}</th>
-              <th className="num">{t('billingPage.statement.colAmount', 'Amount')}</th>
-              <th>{t('billingPage.statement.colType', 'Type')}</th>
-              <th>{t('billingPage.statement.colAppliedTo', 'Applied to')}</th>
+              <th>{tEn('billingPage.statement.colDate', 'Date')}</th>
+              <th>{tEn('billingPage.statement.colDescription', 'Description')}</th>
+              <th className="num">{tEn('billingPage.statement.colAmount', 'Amount')}</th>
+              <th>{tEn('billingPage.statement.colType', 'Type')}</th>
+              <th>{tEn('billingPage.statement.colAppliedTo', 'Applied to')}</th>
             </tr>
           </thead>
           <tbody>
             {movements.length === 0 ? (
               <tr>
                 <td className="mv-doc-empty" colSpan={5}>
-                  {t('billingPage.statement.noWalletMovements', 'No wallet movements in this period')}
+                  {tEn('billingPage.statement.noWalletMovements', 'No wallet movements in this period')}
                 </td>
               </tr>
             ) : (
               movements.map((row) => (
                 <tr key={row.id}>
                   <td>{formatDate(row.date)}</td>
-                  <td>{walletReasonLabel(row.reason, t)}</td>
-                  <td className="num">{formatCurrency(row.amt, currency)}</td>
+                  <td>{walletReasonLabel(row.reason, tEn)}</td>
+                  <td className="num">{money(row.amt)}</td>
                   <td>{row.type || '—'}</td>
                   <td>{row.applied || '—'}</td>
                 </tr>

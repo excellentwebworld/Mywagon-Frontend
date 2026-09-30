@@ -104,9 +104,10 @@ export const PdfPreviewModal: React.FC<PdfPreviewModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Document/PDF file content titles stay English regardless of UI language.
   const title = isStatement
-    ? `${t('billingPage.stMonthlyPDF', 'Monthly Statement')} — ${statementPeriod}`
-    : invoicePrint?.invoice.id || t('billingPage.pdfInvoice', 'INVOICE');
+    ? `Monthly Statement — ${statementPeriod}`
+    : invoicePrint?.invoice.id || 'INVOICE';
 
   const documentHtml = () => {
     if (isStatement && statement) {

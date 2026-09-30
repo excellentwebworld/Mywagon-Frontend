@@ -50,8 +50,14 @@ function parseFilenameFromDisposition(header: string | undefined, fallback: stri
 export function createWebViewBillingService(role: WebViewRole, userId: string): BillingApi {
   const axiosInstance = createWebViewApi(role, userId);
 
-  async function get<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<ApiResponse<T>> {
-    const res = await axiosInstance.get<ApiResponse<T>>(path, { params });
+  async function get<T>(
+    path: string,
+    params?: Record<string, string | number | boolean | undefined>,
+    forceEnglish = false,
+  ): Promise<ApiResponse<T>> {
+    const res = await axiosInstance.get<ApiResponse<T>>(path, {
+      params: forceEnglish ? { ...params, lang: 'en' } : params,
+    });
     if (res.data?.success === false) {
       throw new ApiError(res.data.message || 'Request failed', res.status, undefined, res.data.data);
     }
@@ -75,6 +81,8 @@ export function createWebViewBillingService(role: WebViewRole, userId: string): 
     try {
       const response = await axiosInstance.get(`${path}${qs}`, {
         responseType: 'blob',
+        // Exported file content must stay English regardless of UI language.
+        params: { lang: 'en' },
         headers: {
           Accept:
             'application/octet-stream, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, */*',
@@ -182,12 +190,14 @@ export function createWebViewBillingService(role: WebViewRole, userId: string): 
     },
 
     async getInvoicePrint(id: string | number): Promise<InvoicePrintPayload> {
-      const res = await get<InvoicePrintPayload>(`${BASE}/invoices/${id}/print`);
+      // Print/PDF body text must stay English regardless of UI language.
+      const res = await get<InvoicePrintPayload>(`${BASE}/invoices/${id}/print`, undefined, true);
       return res.data;
     },
 
     async getStatement(month: string, extra?: StatementExportExtra): Promise<StatementPayload> {
-      const res = await get<StatementPayload>(`${BASE}/statements`, { month, ...extra });
+      // Statement PDF body text must stay English regardless of UI language.
+      const res = await get<StatementPayload>(`${BASE}/statements`, { month, ...extra }, true);
       return res.data;
     },
 

@@ -1,7 +1,10 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
+import i18n from 'i18next';
 import type { BillingIssuer, BillingParty, Invoice } from '../../../api/types/billing';
 import { formatCurrency, formatDate, isInvoicePaid } from '../mockData';
+
+/** Export/print documents always use English labels regardless of UI language. */
+const tEn = i18n.getFixedT('en');
 
 function statusClass(status: string): string {
   const value = status.toLowerCase();
@@ -23,7 +26,6 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
   billTo,
   currency = invoice.cur || 'EUR',
 }) => {
-  const { t } = useTranslation();
   const lines = invoice.line_items ?? [];
   const issuerName = issuer?.name || 'MYVAGON';
   const paid = isInvoicePaid(invoice.status);
@@ -32,6 +34,7 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
     : billTo?.address
       ? [billTo.address]
       : [];
+  const money = (val: number) => formatCurrency(val, currency, 'en');
 
   return (
     <article className="mv-doc" data-document="invoice">
@@ -42,26 +45,26 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
           {issuer?.email ? <div className="mv-doc-muted">{issuer.email}</div> : null}
           {issuer?.vat_id ? (
             <div className="mv-doc-muted">
-              {t('billingPage.invoiceDoc.vat', 'VAT')} {issuer.vat_id}
+              {tEn('billingPage.invoiceDoc.vat', 'VAT')} {issuer.vat_id}
             </div>
           ) : null}
         </div>
         <div className="mv-doc-title-block">
-          <h1 className="mv-doc-title">{t('billingPage.invoiceDoc.title', 'Invoice')}</h1>
+          <h1 className="mv-doc-title">{tEn('billingPage.invoiceDoc.title', 'Invoice')}</h1>
           <div className="mv-doc-number">{invoice.id}</div>
         </div>
       </div>
 
       <div className="mv-doc-parties">
         <section>
-          <div className="mv-doc-label">{t('billingPage.invoiceDoc.from', 'From')}</div>
+          <div className="mv-doc-label">{tEn('billingPage.invoiceDoc.from', 'From')}</div>
           <div className="mv-doc-company">{issuerName}</div>
           {issuer?.account_holder ? <div className="mv-doc-muted">{issuer.account_holder}</div> : null}
           {issuer?.address ? <div className="mv-doc-muted">{issuer.address}</div> : null}
           {issuer?.email ? <div className="mv-doc-muted">{issuer.email}</div> : null}
         </section>
         <section>
-          <div className="mv-doc-label">{t('billingPage.invoiceDoc.billTo', 'Bill to')}</div>
+          <div className="mv-doc-label">{tEn('billingPage.invoiceDoc.billTo', 'Bill to')}</div>
           <div className="mv-doc-company">{billTo?.company_name || '—'}</div>
           {billTo?.email ? <div className="mv-doc-muted">{billTo.email}</div> : null}
           {billLines.map((line) => (
@@ -71,7 +74,7 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
           ))}
           {billTo?.vat_id ? (
             <div className="mv-doc-muted">
-              {t('billingPage.invoiceDoc.vat', 'VAT')} {billTo.vat_id}
+              {tEn('billingPage.invoiceDoc.vat', 'VAT')} {billTo.vat_id}
             </div>
           ) : null}
         </section>
@@ -79,15 +82,15 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
 
       <div className="mv-doc-meta-row">
         <div className="mv-doc-meta-cell">
-          <div className="mv-doc-label">{t('billingPage.invoiceDoc.issueDate', 'Issue date')}</div>
+          <div className="mv-doc-label">{tEn('billingPage.invoiceDoc.issueDate', 'Issue date')}</div>
           <div className="mv-doc-meta-value">{formatDate(invoice.iDate)}</div>
         </div>
         <div className="mv-doc-meta-cell">
-          <div className="mv-doc-label">{t('billingPage.invoiceDoc.dueDate', 'Due date')}</div>
+          <div className="mv-doc-label">{tEn('billingPage.invoiceDoc.dueDate', 'Due date')}</div>
           <div className="mv-doc-meta-value">{formatDate(invoice.dDate)}</div>
         </div>
         <div className="mv-doc-meta-cell">
-          <div className="mv-doc-label">{t('billingPage.invoiceDoc.status', 'Status')}</div>
+          <div className="mv-doc-label">{tEn('billingPage.invoiceDoc.status', 'Status')}</div>
           <div className="mv-doc-meta-value">
             <span className={statusClass(invoice.status)}>{invoice.status}</span>
           </div>
@@ -95,8 +98,8 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
         <div className="mv-doc-meta-cell">
           <div className="mv-doc-label">
             {paid
-              ? t('billingPage.invoiceDoc.paidDate', 'Paid date')
-              : t('billingPage.invoiceDoc.type', 'Type')}
+              ? tEn('billingPage.invoiceDoc.paidDate', 'Paid date')
+              : tEn('billingPage.invoiceDoc.type', 'Type')}
           </div>
           <div className="mv-doc-meta-value">
             {paid ? formatDate(invoice.pDate) : invoice.type}
@@ -108,18 +111,18 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
         <table>
           <thead>
             <tr>
-              <th>{t('billingPage.invoiceDoc.colDescription', 'Description')}</th>
-              <th className="num">{t('billingPage.invoiceDoc.colQty', 'Qty')}</th>
-              <th className="num">{t('billingPage.invoiceDoc.colUnitPrice', 'Unit price')}</th>
-              <th className="num">{t('billingPage.invoiceDoc.colVat', 'VAT')}</th>
-              <th className="num">{t('billingPage.invoiceDoc.colAmount', 'Amount')}</th>
+              <th>{tEn('billingPage.invoiceDoc.colDescription', 'Description')}</th>
+              <th className="num">{tEn('billingPage.invoiceDoc.colQty', 'Qty')}</th>
+              <th className="num">{tEn('billingPage.invoiceDoc.colUnitPrice', 'Unit price')}</th>
+              <th className="num">{tEn('billingPage.invoiceDoc.colVat', 'VAT')}</th>
+              <th className="num">{tEn('billingPage.invoiceDoc.colAmount', 'Amount')}</th>
             </tr>
           </thead>
           <tbody>
             {lines.length === 0 ? (
               <tr>
                 <td className="mv-doc-empty" colSpan={5}>
-                  {t('billingPage.invoiceDoc.noLineItems', 'No line items')}
+                  {tEn('billingPage.invoiceDoc.noLineItems', 'No line items')}
                 </td>
               </tr>
             ) : (
@@ -130,9 +133,9 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
                     {line.sid ? <div className="mv-doc-muted">{line.sid}</div> : null}
                   </td>
                   <td className="num">{line.qty || 1}</td>
-                  <td className="num">{formatCurrency(line.unit ?? 0, currency)}</td>
-                  <td className="num">{formatCurrency(line.vat ?? 0, currency)}</td>
-                  <td className="num">{formatCurrency(line.amt ?? 0, currency)}</td>
+                  <td className="num">{money(line.unit ?? 0)}</td>
+                  <td className="num">{money(line.vat ?? 0)}</td>
+                  <td className="num">{money(line.amt ?? 0)}</td>
                 </tr>
               ))
             )}
@@ -143,24 +146,24 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
       <div className="mv-doc-totals">
         <div className="mv-doc-totals-box">
           <div className="mv-doc-total-row">
-            <span className="mv-doc-muted">{t('billingPage.invoiceDoc.subtotal', 'Subtotal')}</span>
-            <span>{formatCurrency(invoice.subt, currency)}</span>
+            <span className="mv-doc-muted">{tEn('billingPage.invoiceDoc.subtotal', 'Subtotal')}</span>
+            <span>{money(invoice.subt)}</span>
           </div>
           <div className="mv-doc-total-row">
-            <span className="mv-doc-muted">{t('billingPage.invoiceDoc.vat', 'VAT')}</span>
-            <span>{formatCurrency(invoice.tax, currency)}</span>
+            <span className="mv-doc-muted">{tEn('billingPage.invoiceDoc.vat', 'VAT')}</span>
+            <span>{money(invoice.tax)}</span>
           </div>
           {(invoice.cred ?? 0) > 0 ? (
             <div className="mv-doc-total-row">
               <span className="mv-doc-muted">
-                {t('billingPage.invoiceDoc.walletCredit', 'Wallet credit')}
+                {tEn('billingPage.invoiceDoc.walletCredit', 'Wallet credit')}
               </span>
-              <span>−{formatCurrency(invoice.cred, currency)}</span>
+              <span>−{money(invoice.cred ?? 0)}</span>
             </div>
           ) : null}
           <div className="mv-doc-total-row mv-doc-total-grand">
-            <span>{t('billingPage.invoiceDoc.total', 'Total')}</span>
-            <span>{formatCurrency(invoice.tot, currency)}</span>
+            <span>{tEn('billingPage.invoiceDoc.total', 'Total')}</span>
+            <span>{money(invoice.tot)}</span>
           </div>
         </div>
       </div>
@@ -168,21 +171,21 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
       {!paid && issuer?.iban ? (
         <section className="mv-doc-pay">
           <div className="mv-doc-label">
-            {t('billingPage.invoiceDoc.paymentDetails', 'Payment details')}
+            {tEn('billingPage.invoiceDoc.paymentDetails', 'Payment details')}
           </div>
           {issuer.account_holder ? (
             <div className="mv-doc-muted">
-              {t('billingPage.invoiceDoc.accountHolder', 'Account holder')}:{' '}
+              {tEn('billingPage.invoiceDoc.accountHolder', 'Account holder')}:{' '}
               <strong style={{ color: '#111827' }}>{issuer.account_holder}</strong>
             </div>
           ) : null}
           <div className="mv-doc-muted">
-            {t('billingPage.invoiceDoc.iban', 'IBAN')}:{' '}
+            {tEn('billingPage.invoiceDoc.iban', 'IBAN')}:{' '}
             <strong style={{ color: '#111827' }}>{issuer.iban}</strong>
           </div>
           {issuer.bic ? (
             <div className="mv-doc-muted">
-              {t('billingPage.invoiceDoc.bic', 'BIC')}:{' '}
+              {tEn('billingPage.invoiceDoc.bic', 'BIC')}:{' '}
               <strong style={{ color: '#111827' }}>{issuer.bic}</strong>
             </div>
           ) : null}

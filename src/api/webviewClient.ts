@@ -45,7 +45,13 @@ export function createWebViewApi(role: WebViewRole, userId: string) {
   instance.interceptors.request.use((config) => {
     // Query/body user_id only — extra headers force a CORS preflight that many
     // in-app WebViews never complete, so the page stays on a loader forever.
-    const lang = (i18n.language || 'en').startsWith('el') ? 'el' : 'en';
+    const existingLang = config.params?.lang;
+    const lang =
+      existingLang === 'en' || existingLang === 'el'
+        ? existingLang
+        : (i18n.language || 'en').startsWith('el')
+          ? 'el'
+          : 'en';
     config.params = {
       ...config.params,
       user_id: userId,

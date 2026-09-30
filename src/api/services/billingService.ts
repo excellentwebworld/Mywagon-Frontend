@@ -139,12 +139,22 @@ export const billingService = {
   },
 
   async getInvoicePrint(id: string | number): Promise<InvoicePrintPayload> {
-    const res = await apiGet<InvoicePrintPayload>(`/billing/invoices/${id}/print`);
+    // Print/PDF body text (line descriptions, wallet reasons) must stay English.
+    const res = await apiGet<InvoicePrintPayload>(
+      `/billing/invoices/${id}/print`,
+      undefined,
+      { 'X-Force-Locale': 'en' },
+    );
     return res.data;
   },
 
   async getStatement(month: string, extra?: StatementExportExtra): Promise<StatementPayload> {
-    const res = await apiGet<StatementPayload>('/billing/statements', { month, ...extra });
+    // Statement PDF body text must stay English regardless of UI language.
+    const res = await apiGet<StatementPayload>(
+      '/billing/statements',
+      { month, ...extra },
+      { 'X-Force-Locale': 'en' },
+    );
     return res.data;
   },
 

@@ -15,9 +15,7 @@ import { useTheme } from '../../../../hooks/useTheme';
 import { formatMetricLabel, formatMetricValueLabel } from '../../../../api/utils/laneMetricDisplay';
 import {
   ACCEPTED_VALUES,
-  EXPORT_CSV_COLUMNS_EL,
   EXPORT_CSV_COLUMNS_EN,
-  SIMPLE_CSV_COLUMNS_EL,
   SIMPLE_CSV_COLUMNS_EN,
   buildTemplateCsv,
   getValidImportRows,
@@ -30,10 +28,9 @@ import { useToast } from '../../../../hooks/useToast';
 import { priceListsService } from '../../../../api/services/priceListsService';
 
 export default function ImportModal({ open, onClose, onImported, existingLanes }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { T } = useTheme();
   const toast = useToast();
-  const lang = i18n.language?.startsWith('el') ? 'el' : 'en';
   const fileRef = useRef(null);
 
   const [preview, setPreview] = useState(null);
@@ -43,8 +40,9 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
   const [dragOver, setDragOver] = useState(false);
   const [importResult, setImportResult] = useState(null);
 
-  const columns = lang === 'el' ? SIMPLE_CSV_COLUMNS_EL : SIMPLE_CSV_COLUMNS_EN;
-  const exportColumns = lang === 'el' ? EXPORT_CSV_COLUMNS_EL : EXPORT_CSV_COLUMNS_EN;
+  // UI reference can stay localized; downloaded template/export files are always English.
+  const columns = SIMPLE_CSV_COLUMNS_EN;
+  const exportColumns = EXPORT_CSV_COLUMNS_EN;
 
   const handleClose = useCallback(() => {
     setPreview(null);
@@ -56,17 +54,17 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
   }, [onClose]);
 
   const downloadTemplate = useCallback(() => {
-    const csv = buildTemplateCsv(lang);
+    const csv = buildTemplateCsv('en');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `MYVAGON_PriceList_Template_${lang === 'el' ? 'GR' : 'EN'}.csv`;
+    a.download = 'MYVAGON_PriceList_Template_EN.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [lang]);
+  }, []);
 
   const processFileText = useCallback((text) => {
     setParseError('');

@@ -561,8 +561,8 @@ export const BillingPage: React.FC<BillingPageProps> = ({
             escapeCsv(l.type),
             escapeCsv(l.desc),
             escapeCsv(l.qty),
-            escapeCsv(l.rate || (l.unit !== undefined ? formatCurrency(l.unit, inv.cur) : '')),
-            escapeCsv(formatCurrency(l.amt, inv.cur)),
+            escapeCsv(l.rate || (l.unit !== undefined ? formatCurrency(l.unit, inv.cur, 'en') : '')),
+            escapeCsv(formatCurrency(l.amt, inv.cur, 'en')),
             escapeCsv(l.sid || '—'),
           ].join(',')
         )

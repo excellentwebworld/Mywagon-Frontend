@@ -223,6 +223,8 @@ export const availabilitiesService = {
     const response = await fetch(`${API_BASE}/availabilities/export${toQueryString(params)}`, {
       headers: {
         Accept: 'text/csv',
+        // Exported file content must stay English regardless of UI language.
+        'Accept-Language': 'en',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
