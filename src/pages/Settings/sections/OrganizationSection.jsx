@@ -175,7 +175,7 @@ function isOpsValueFilled(field, value) {
 
 export default function OrganizationSection() {
   const { t } = useTranslation();
-  const { T } = useTheme();
+  const { T, isDark } = useTheme();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { refreshUser, user } = useAuth();
@@ -685,10 +685,13 @@ export default function OrganizationSection() {
       {fromCompanyInfo && (
         <div
           className="rounded-xl px-4 py-3 flex items-start gap-3"
-          style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}
+          style={{
+            background: isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB',
+            border: isDark ? '1px solid rgba(245, 158, 11, 0.45)' : '1px solid #FDE68A',
+          }}
         >
-          <AlertTriangle size={18} style={{ color: '#B45309', marginTop: 2, flexShrink: 0 }} />
-          <div style={{ fontSize: 13, color: '#92400E', lineHeight: 1.45 }}>
+          <AlertTriangle size={18} style={{ color: isDark ? '#FBBF24' : '#B45309', marginTop: 2, flexShrink: 0 }} />
+          <div style={{ fontSize: 13, color: isDark ? '#FDE68A' : '#92400E', lineHeight: 1.45 }}>
             {t(
               'settings.orgSection.companyInfoGateBanner',
               'Complete your company address (street, city, and postal code) to continue using the panel.'
@@ -700,10 +703,13 @@ export default function OrganizationSection() {
       {fromInfoForm && !fromCompanyInfo && (
         <div
           className="rounded-xl px-4 py-3 flex items-start gap-3"
-          style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}
+          style={{
+            background: isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB',
+            border: isDark ? '1px solid rgba(245, 158, 11, 0.45)' : '1px solid #FDE68A',
+          }}
         >
-          <AlertTriangle size={18} style={{ color: '#B45309', marginTop: 2, flexShrink: 0 }} />
-          <div style={{ fontSize: 13, color: '#92400E', lineHeight: 1.45 }}>
+          <AlertTriangle size={18} style={{ color: isDark ? '#FBBF24' : '#B45309', marginTop: 2, flexShrink: 0 }} />
+          <div style={{ fontSize: 13, color: isDark ? '#FDE68A' : '#92400E', lineHeight: 1.45 }}>
             {t(
               'settings.orgSection.infoFormGateBanner',
               'Complete your company operations information to continue using the panel.'
@@ -1238,6 +1244,7 @@ export default function OrganizationSection() {
 function OpsField({ field, value, editing, onChange, T }) {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { isDark } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const options = field.options || [];
@@ -1411,11 +1418,13 @@ function OpsField({ field, value, editing, onChange, T }) {
   const containerStyle = editing
     ? showUnansweredWarning
       ? {
-          background: '#FFFDF5',
-          border: '1.5px solid #F59E0B',
+          background: isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFDF5',
+          border: isDark ? '1.5px solid rgba(245, 158, 11, 0.55)' : '1.5px solid #F59E0B',
           borderRadius: 12,
           padding: '14px 16px',
-          boxShadow: '0 1px 4px rgba(245, 158, 11, 0.12)',
+          boxShadow: isDark
+            ? '0 1px 4px rgba(245, 158, 11, 0.18)'
+            : '0 1px 4px rgba(245, 158, 11, 0.12)',
           transition: 'all 0.2s ease',
         }
       : {
