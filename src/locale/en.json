@@ -1946,6 +1946,8 @@
   "cancelShipmentIntro": "Choose a reason to cancel {{id}}.",
   "cancelReasonLabel": "Cancellation reason",
   "cancelNotesLabel": "Additional notes",
+  "cancelNotesPlaceholder": "Please provide additional details about the cancellation...",
+  "cancelFeeNotice": "Please note that cancellation fees may be applicable on public loads depending on the reason for cancelling, when cancelling a load that is already scheduled with a carrier, less than 48h prior to pickup time.",
   "cancelSelectReason": "Please select a reason.",
   "cancelOtherNotesRequired": "Please add notes for Other.",
   "cancelNoReasons": "No cancel reasons available for this status.",

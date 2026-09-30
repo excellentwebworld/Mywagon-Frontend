@@ -34,7 +34,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reasons, setReasons] = useState<ApiCancelReason[]>([]);
-  const [chargeMessage, setChargeMessage] = useState('');
+  const [chargeFlag, setChargeFlag] = useState(false);
   const [reasonId, setReasonId] = useState<number | null>(null);
   const [notes, setNotes] = useState('');
 
@@ -48,7 +48,7 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
       setNotes('');
       setReasonId(null);
       setReasons([]);
-      setChargeMessage('');
+      setChargeFlag(false);
       return;
     }
 
@@ -58,14 +58,14 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
     setNotes('');
     setReasonId(null);
     setReasons([]);
-    setChargeMessage('');
+    setChargeFlag(false);
 
     shipmentsService
       .cancelReasons(reasonSourceId)
       .then((data: ApiCancelReasonsPayload) => {
         if (cancelled) return;
         setReasons(data.reasons ?? []);
-        setChargeMessage(data.cancellation_charge?.message ?? '');
+        setChargeFlag(Boolean(data.cancellation_charge?.flag));
         const first = data.reasons?.[0];
         if (first) setReasonId(first.id);
       })
@@ -156,9 +156,6 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
     : isBulk
       ? t('bulkCancelTitle', 'Cancel shipments?')
       : t('reasonToCancelShipment', 'What is the reason for canceling this shipment?');
-
-  const defaultChargeMsg =
-    'Please note that cancellation fees may be applicable on public loads depending on the reason for cancelling, when cancelling a load that is already scheduled with a carrier, less than 48h prior to pickup time.';
 
   return createPortal(
     <div
@@ -271,10 +268,18 @@ export const CancelShipmentModal: React.FC<CancelShipmentModalProps> = ({
                 </div>
               </div>
 
-              {/* Cancellation Charge Notice Banner */}
-              <div className="mt-0.5 bg-red-50 dark:bg-red-950/40 border-l-[3px] border-red-500 rounded-md p-2.5 px-3">
+              {/* Same as Laravel `.cancellation-charge` + display-none: static notice, shown when flag is true. */}
+              <div
+                className={`mt-0.5 bg-red-50 dark:bg-red-950/40 border-l-[3px] border-red-500 rounded-md p-2.5 px-3${
+                  chargeFlag ? '' : ' hidden'
+                }`}
+                aria-hidden={!chargeFlag}
+              >
                 <p className="text-[11.5px] text-red-600 dark:text-red-300 italic leading-relaxed m-0">
-                  {chargeMessage || defaultChargeMsg}
+                  {t(
+                    'cancelFeeNotice',
+                    'Please note that cancellation fees may be applicable on public loads depending on the reason for cancelling, when cancelling a load that is already scheduled with a carrier, less than 48h prior to pickup time.',
+                  )}
                 </p>
               </div>
             </div>
