@@ -19,15 +19,55 @@ import { ACTION_RBAC } from '../../../utils/shipperRbacMap';
 import { kycSettingsService } from '../../../api/services/kycSettingsService';
 
 const STATUS_STYLE = {
-  accepted: { color: '#047857', bg: '#ECFDF5', border: '#A7F3D0', Icon: CheckCircle },
-  pending: { color: '#B45309', bg: '#FFFBEB', border: '#FDE68A', Icon: Clock },
-  rejected: { color: '#B91C1C', bg: '#FEF2F2', border: '#FECACA', Icon: XCircle },
-  not_started: { color: '#6B7280', bg: '#F3F4F6', border: '#E5E7EB', Icon: AlertTriangle },
+  accepted: {
+    Icon: CheckCircle,
+    light: { color: '#047857', bg: '#ECFDF5', border: '#A7F3D0', msg: '#065F46', meta: '#047857' },
+    dark: {
+      color: '#34D399',
+      bg: 'rgba(16, 185, 129, 0.14)',
+      border: 'rgba(52, 211, 153, 0.35)',
+      msg: '#A7F3D0',
+      meta: '#6EE7B7',
+    },
+  },
+  pending: {
+    Icon: Clock,
+    light: { color: '#B45309', bg: '#FFFBEB', border: '#FDE68A', msg: '#92400E', meta: '#B45309' },
+    dark: {
+      color: '#FBBF24',
+      bg: 'rgba(245, 158, 11, 0.14)',
+      border: 'rgba(251, 191, 36, 0.4)',
+      msg: '#FDE68A',
+      meta: '#FCD34D',
+    },
+  },
+  rejected: {
+    Icon: XCircle,
+    light: { color: '#B91C1C', bg: '#FEF2F2', border: '#FECACA', msg: '#991B1B', meta: '#B91C1C' },
+    dark: {
+      color: '#F87171',
+      bg: 'rgba(239, 68, 68, 0.14)',
+      border: 'rgba(248, 113, 113, 0.35)',
+      msg: '#FECACA',
+      meta: '#FCA5A5',
+    },
+  },
+  not_started: {
+    Icon: AlertTriangle,
+    light: { color: '#6B7280', bg: '#F3F4F6', border: '#E5E7EB', msg: '#4B5563', meta: '#6B7280' },
+    dark: {
+      color: '#A3A2B8',
+      bg: 'rgba(163, 162, 184, 0.12)',
+      border: 'rgba(163, 162, 184, 0.28)',
+      msg: '#C9C8D6',
+      meta: '#A3A2B8',
+    },
+  },
 };
 
 export default function KycSection({ onStatusChange }) {
   const { t } = useTranslation();
-  const { T } = useTheme();
+  const { T, isDark } = useTheme();
   const { toast } = useToast();
   const { refreshUser } = useAuth();
   const { canAction, requirePermission: requireRbac } = useShipperPermission();
@@ -70,8 +110,9 @@ export default function KycSection({ onStatusChange }) {
   }, []);
 
   const status = data?.kyc_status || 'not_started';
-  const style = STATUS_STYLE[status] || STATUS_STYLE.not_started;
-  const StatusIcon = style.Icon;
+  const statusDef = STATUS_STYLE[status] || STATUS_STYLE.not_started;
+  const style = isDark ? statusDef.dark : statusDef.light;
+  const StatusIcon = statusDef.Icon;
   const canEdit = Boolean(data?.can_edit) && canAction('editCompanyInfo');
 
   const onFileChange = (e) => {
@@ -155,19 +196,27 @@ export default function KycSection({ onStatusChange }) {
               defaultValue: status,
             })}
           </div>
-          <div style={{ fontSize: 12, color: T.t2, marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: style.msg, marginTop: 2 }}>
             {status === 'accepted' && t('compliance.kyc.msg.accepted')}
             {status === 'pending' && t('compliance.kyc.msg.pending')}
             {status === 'rejected' && t('compliance.kyc.msg.rejected')}
             {status === 'not_started' && t('compliance.kyc.msg.notStarted')}
           </div>
           {status === 'rejected' && data.kyc_current_rejected_reason && (
-            <p className="mt-2 px-3 py-2 rounded-lg" style={{ fontSize: 12, background: '#fff', color: '#991B1B' }}>
+            <p
+              className="mt-2 px-3 py-2 rounded-lg"
+              style={{
+                fontSize: 12,
+                background: isDark ? 'rgba(239, 68, 68, 0.2)' : '#fff',
+                color: isDark ? '#FECACA' : '#991B1B',
+                border: isDark ? '1px solid rgba(248, 113, 113, 0.3)' : 'none',
+              }}
+            >
               {data.kyc_current_rejected_reason}
             </p>
           )}
           {data.kyc_update_date_time && (
-            <div style={{ fontSize: 11, color: T.t3, marginTop: 6 }}>
+            <div style={{ fontSize: 11, color: style.meta, marginTop: 6, opacity: 0.9 }}>
               {t('compliance.kyc.lastUpdated')}: {new Date(data.kyc_update_date_time).toLocaleString()}
             </div>
           )}
@@ -269,11 +318,11 @@ export default function KycSection({ onStatusChange }) {
                 : t('compliance.kyc.submit')}
           </button>
         ) : status === 'pending' ? (
-          <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 12, color: T.t3 }}>
+          <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 12, color: T.t2, border: `1px solid ${T.bd}` }}>
             {t('compliance.kyc.msg.pendingLocked')}
           </div>
         ) : status === 'accepted' ? (
-          <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 12, color: T.t3 }}>
+          <div className="px-3 py-2 rounded-lg" style={{ background: T.sa, fontSize: 12, color: T.t2, border: `1px solid ${T.bd}` }}>
             {t('compliance.kyc.msg.acceptedLocked')}
           </div>
         ) : null}
