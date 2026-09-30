@@ -6,7 +6,12 @@ import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { needsSignupComplete, openSignupIncompleteModal } from '../../hooks/useSignupCompleteGate';
 import { useAuth } from '../../context/AuthContext';
-import { scrollToValidationAnchor } from '../../components/CreateShipmentWizard/validation';
+import {
+  isTargetPriceWithinDigitLimit,
+  MAX_TARGET_PRICE_DIGITS,
+  MAX_TARGET_PRICE_VALUE,
+  scrollToValidationAnchor,
+} from '../../components/CreateShipmentWizard/validation';
 import { Step1DetailsSkeleton } from '../../components/skeletons/Step1DetailsSkeleton';
 import { Step2ItinerarySkeleton } from '../../components/skeletons/Step2ItinerarySkeleton';
 import { Step3PricingSkeleton } from '../../components/skeletons/Step3PricingSkeleton';
@@ -25,6 +30,16 @@ type WizardTranslate = (key: string, fallback?: string) => string;
 export function createWizardValidationSchema(t: WizardTranslate = (_key, fallback) => fallback || _key) {
   const targetPricePositive = t('targetPricePositive', 'Target price must be greater than 0');
   const targetPriceRequired = t('targetPriceRequired', 'Target price is required');
+  const targetPriceMaxDigits = t(
+    'targetPriceMaxDigits',
+    `Target price cannot exceed ${MAX_TARGET_PRICE_DIGITS} digits (max ${MAX_TARGET_PRICE_VALUE.toLocaleString('en-US')}).`
+  );
+
+  const withMaxDigits = <T extends Yup.NumberSchema>(schema: T) =>
+    schema.test('target-price-max-digits', targetPriceMaxDigits, (value) => {
+      if (value === undefined || value === null || Number.isNaN(value)) return true;
+      return isTargetPriceWithinDigitLimit(value);
+    });
 
   return Yup.object().shape({
     custRef: Yup.string().optional(),
@@ -53,15 +68,19 @@ export function createWizardValidationSchema(t: WizardTranslate = (_key, fallbac
       .when('negotiable', {
         is: (val: boolean | undefined) => Boolean(val),
         then: (schema) =>
-          schema
-            .nullable()
-            .optional()
-            .moreThan(0, targetPricePositive),
+          withMaxDigits(
+            schema
+              .nullable()
+              .optional()
+              .moreThan(0, targetPricePositive)
+          ),
         otherwise: (schema) =>
-          schema
-            .typeError(targetPriceRequired)
-            .required(targetPriceRequired)
-            .moreThan(0, targetPricePositive),
+          withMaxDigits(
+            schema
+              .typeError(targetPriceRequired)
+              .required(targetPriceRequired)
+              .moreThan(0, targetPricePositive)
+          ),
       }),
   });
 }

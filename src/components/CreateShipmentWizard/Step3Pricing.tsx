@@ -3,7 +3,13 @@ import { useFormikContext } from 'formik';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatVehicleSelectionSummary, findSpecLabel } from './vehicleTypes';
-import { scrollToValidationAnchor } from './validation';
+import {
+  clampTargetPriceInput,
+  isTargetPriceWithinDigitLimit,
+  MAX_TARGET_PRICE_DIGITS,
+  MAX_TARGET_PRICE_VALUE,
+  scrollToValidationAnchor,
+} from './validation';
 import { useVehicleTypes } from '../../hooks/useVehicleTypes';
 import {
   ArrowLeft,
@@ -1163,6 +1169,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   <input
                     type="number"
                     min={0}
+                    max={MAX_TARGET_PRICE_VALUE}
                     step="0.01"
                     required={!values.negotiable}
                     aria-required={!values.negotiable}
@@ -1171,7 +1178,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                     style={{ color: T.t1 }}
                     placeholder={values.negotiable ? (t('optional') || 'Optional') : '0.00'}
                     value={values.targetPrice || ''}
-                    onChange={(e) => setFieldValue('targetPrice', e.target.value)}
+                    onChange={(e) => {
+                      const next = clampTargetPriceInput(e.target.value);
+                      if (next === null) return;
+                      setFieldValue('targetPrice', next);
+                    }}
+                    onBlur={() => void setFieldTouched('targetPrice', true, true)}
                   />
                 </div>
                 <button
@@ -2250,6 +2262,27 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 void setFieldTouched('targetPrice', true, true);
                 showToast(
                   t('targetPricePositive') || 'Target price must be greater than 0.',
+                  'error'
+                );
+                window.requestAnimationFrame(() => {
+                  scrollToValidationAnchor('target-price', {
+                    focus: true,
+                    highlightClass: 'wizard-validation-flash',
+                  });
+                });
+                return;
+              }
+              if (rawPrice !== '' && !Number.isNaN(price) && !isTargetPriceWithinDigitLimit(price)) {
+                void setFieldTouched('targetPrice', true, true);
+                showToast(
+                  t(
+                    'targetPriceMaxDigits',
+                    `Target price cannot exceed ${MAX_TARGET_PRICE_DIGITS} digits (max ${MAX_TARGET_PRICE_VALUE.toLocaleString('en-US')}).`,
+                    {
+                      max: MAX_TARGET_PRICE_DIGITS,
+                      maxValue: MAX_TARGET_PRICE_VALUE.toLocaleString('en-US'),
+                    }
+                  ),
                   'error'
                 );
                 window.requestAnimationFrame(() => {

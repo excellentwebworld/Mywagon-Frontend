@@ -1104,6 +1104,7 @@
   "priceRequired": "Η τιμή είναι υποχρεωτική.",
   "targetPriceRequired": "Η τιμή στόχου είναι υποχρεωτική.",
   "targetPricePositive": "Η τιμή στόχου πρέπει να είναι μεγαλύτερη από 0.",
+  "targetPriceMaxDigits": "Η τιμή στόχου δεν μπορεί να υπερβαίνει τα {{max}} ψηφία (μέγ. {{maxValue}}).",
   "priceMustBeNumber": "Η τιμή πρέπει να είναι αριθμός.",
   "priceMinZero": "Η τιμή πρέπει να είναι μεγαλύτερη ή ίση με 0.",
   "partnerFiltersCleared": "Φίλτρα καθαρίστηκαν",

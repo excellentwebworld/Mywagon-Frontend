@@ -114,6 +114,40 @@ describe('wizardValidationSchema — Target Price & Negotiable Validation', () =
       const result = await wizardValidationSchema.validate(form);
       expect(result.targetPrice).toBe(600);
     });
+
+    it('accepts max 4-digit targetPrice (9999)', async () => {
+      const form = {
+        ...baseValidForm,
+        negotiable: false,
+        targetPrice: '9999',
+      };
+      const result = await wizardValidationSchema.validate(form);
+      expect(result.targetPrice).toBe(9999);
+    });
+
+    it('rejects targetPrice with more than 4 digits', async () => {
+      const form = {
+        ...baseValidForm,
+        negotiable: false,
+        targetPrice: '10000',
+      };
+      await expect(wizardValidationSchema.validate(form)).rejects.toThrow(
+        /cannot exceed 4 digits/i
+      );
+    });
+  });
+
+  describe('max digit limit (negotiable)', () => {
+    it('rejects oversized targetPrice when negotiable and provided', async () => {
+      const form = {
+        ...baseValidForm,
+        negotiable: true,
+        targetPrice: '45454435464564564564654654654645645654654654645645645645645',
+      };
+      await expect(wizardValidationSchema.validate(form)).rejects.toThrow(
+        /cannot exceed 4 digits/i
+      );
+    });
   });
 });
 

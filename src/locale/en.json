@@ -1104,6 +1104,7 @@
   "priceRequired": "Price is required.",
   "targetPriceRequired": "Target price is required.",
   "targetPricePositive": "Target price must be greater than 0.",
+  "targetPriceMaxDigits": "Target price cannot exceed {{max}} digits (max {{maxValue}}).",
   "priceMustBeNumber": "Price must be a number.",
   "priceMinZero": "Price must be greater than or equal to 0.",
   "partnerFiltersCleared": "Filters cleared",

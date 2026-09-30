@@ -222,3 +222,36 @@ export function focusFirstConflict(
 
   return first;
 }
+
+/** Max digits in the target price integer part (before decimal). */
+export const MAX_TARGET_PRICE_DIGITS = 4;
+export const MAX_TARGET_PRICE_DECIMALS = 2;
+export const MAX_TARGET_PRICE_VALUE = 10 ** MAX_TARGET_PRICE_DIGITS - 1; // 9_999
+
+/** Clamp typed/pasted target price to max digits + decimals. Returns null if invalid chars. */
+export function clampTargetPriceInput(raw: string | number | null | undefined): string | null {
+  const value = String(raw ?? '');
+  if (value === '' || value === '.') return value;
+  if (!/^\d*\.?\d*$/.test(value)) return null;
+
+  const [intPart = '', decPart] = value.split('.');
+  if (intPart.length > MAX_TARGET_PRICE_DIGITS) {
+    const clippedInt = intPart.slice(0, MAX_TARGET_PRICE_DIGITS);
+    if (decPart != null) {
+      return `${clippedInt}.${decPart.slice(0, MAX_TARGET_PRICE_DECIMALS)}`;
+    }
+    return clippedInt;
+  }
+  if (decPart != null && decPart.length > MAX_TARGET_PRICE_DECIMALS) {
+    return `${intPart}.${decPart.slice(0, MAX_TARGET_PRICE_DECIMALS)}`;
+  }
+  return value;
+}
+
+/** True when amount has at most MAX_TARGET_PRICE_DIGITS before the decimal. */
+export function isTargetPriceWithinDigitLimit(amount: string | number | null | undefined): boolean {
+  const n = Number(amount);
+  if (!Number.isFinite(n)) return false;
+  const digitCount = String(Math.floor(Math.abs(n))).replace(/^0+/, '') || '0';
+  return digitCount.length <= MAX_TARGET_PRICE_DIGITS && n <= MAX_TARGET_PRICE_VALUE + 0.99;
+}

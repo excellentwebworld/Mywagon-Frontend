@@ -13,6 +13,11 @@ import {
 import type { WizardFormValues } from '../../../api/mappers/createShipmentMapper';
 import { buildDefaultWizardValues, createNewStop } from '../../../components/CreateShipmentWizard/types';
 import { hasVehicleSelection } from '../../../components/CreateShipmentWizard/vehicleTypes';
+import {
+  isTargetPriceWithinDigitLimit,
+  MAX_TARGET_PRICE_DIGITS,
+  MAX_TARGET_PRICE_VALUE,
+} from '../../../components/CreateShipmentWizard/validation';
 import { useApp, type LocationItem } from '../../../context/AppContext';
 import { useVehicleTypes } from '../../../hooks/useVehicleTypes';
 import type { ErpOrder } from '../../ErpOrders/types';
@@ -912,6 +917,20 @@ export function useCreateShipmentWizard(
           showToast(t('targetPricePositive') || 'Target price must be greater than 0.', 'error');
           throw new Error('Invalid price');
         }
+        if (rawPrice !== '' && !Number.isNaN(price) && !isTargetPriceWithinDigitLimit(price)) {
+          showToast(
+            t(
+              'targetPriceMaxDigits',
+              `Target price cannot exceed ${MAX_TARGET_PRICE_DIGITS} digits (max ${MAX_TARGET_PRICE_VALUE.toLocaleString('en-US')}).`,
+              {
+                max: MAX_TARGET_PRICE_DIGITS,
+                maxValue: MAX_TARGET_PRICE_VALUE.toLocaleString('en-US'),
+              }
+            ),
+            'error'
+          );
+          throw new Error('Invalid price');
+        }
         if (values.broadcastType === 'private' && (values.selectedCarriers || []).length < 1) {
           showToast(t('selectCarrierRequired') || 'Please select at least one carrier.', 'error');
           throw new Error('No carriers selected');
@@ -989,6 +1008,20 @@ export function useCreateShipmentWizard(
       }
       if (rawPrice !== '' && !Number.isNaN(price) && price <= 0) {
         showToast(t('targetPricePositive') || 'Target price must be greater than 0.', 'error');
+        throw new Error('Invalid price');
+      }
+      if (rawPrice !== '' && !Number.isNaN(price) && !isTargetPriceWithinDigitLimit(price)) {
+        showToast(
+          t(
+            'targetPriceMaxDigits',
+            `Target price cannot exceed ${MAX_TARGET_PRICE_DIGITS} digits (max ${MAX_TARGET_PRICE_VALUE.toLocaleString('en-US')}).`,
+            {
+              max: MAX_TARGET_PRICE_DIGITS,
+              maxValue: MAX_TARGET_PRICE_VALUE.toLocaleString('en-US'),
+            }
+          ),
+          'error'
+        );
         throw new Error('Invalid price');
       }
       if (
