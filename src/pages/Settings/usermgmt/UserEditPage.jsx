@@ -485,7 +485,7 @@ export default function UserEditPage() {
               <button type="button" onClick={handleForceSignOut} className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer border-none" style={{ background: T.sa, color: T.t1, fontSize: 12 }}>
                 <LogOut size={13} /> {t('userMgmt.actions.forceSignout')}
               </button>
-              <button type="button" onClick={handleDeactivate} className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer border-none" style={{ background: '#FEF2F2', color: '#EF4444', fontSize: 12 }}>
+              <button type="button" onClick={handleDeactivate} className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer border-none" style={{ background: 'var(--danger-bg, #FEF2F2)', color: 'var(--danger, #EF4444)', fontSize: 12 }}>
                 <XCircle size={13} /> {t('userMgmt.actions.deactivate')}
               </button>
             </>

@@ -322,7 +322,7 @@ export default function UsersTab() {
   return (
     <div className="flex flex-col min-h-0">
       {error && (
-        <div className="mx-4 md:mx-6 mt-3 px-3 py-2 rounded-lg" style={{ background: '#FEF2F2', color: '#EF4444', fontSize: 12 }}>
+        <div className="mx-4 md:mx-6 mt-3 px-3 py-2 rounded-lg" style={{ background: 'var(--danger-bg, #FEF2F2)', color: 'var(--danger, #EF4444)', fontSize: 12 }}>
           {error}
         </div>
       )}

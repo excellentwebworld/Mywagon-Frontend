@@ -631,20 +631,20 @@ export function getUserAvatarColor(userId) {
  * Get the risk level color for a permission.
  */
 export function getRiskColor(risk) {
-  if (risk === 'high') return { fg: '#EF4444', bg: '#FEF2F2' };
-  if (risk === 'medium') return { fg: '#F59E0B', bg: '#FFFBEB' };
-  return { fg: '#10B981', bg: '#ECFDF5' };
+  if (risk === 'high') return { fg: 'var(--danger, #EF4444)', bg: 'var(--danger-bg, #FEF2F2)' };
+  if (risk === 'medium') return { fg: 'var(--warning, #F59E0B)', bg: 'var(--warning-bg, #FFFBEB)' };
+  return { fg: 'var(--success, #10B981)', bg: 'var(--success-bg, #ECFDF5)' };
 }
 
 /**
- * Status badge config.
+ * Status badge config — uses theme tokens so dark mode stays readable.
  */
 export const USER_STATUS_CONFIG = {
-  active:      { fg: '#10B981', bg: '#ECFDF5', bd: '#A7F3D0' },
-  invited:     { fg: '#F59E0B', bg: '#FFFBEB', bd: '#FDE68A' },
-  suspended:   { fg: '#F97316', bg: '#FFF7ED', bd: '#FDBA74' },
-  deactivated: { fg: '#9CA3AF', bg: '#F3F4F6', bd: '#D1D5DB' },
-  expired:     { fg: '#EF4444', bg: '#FEF2F2', bd: '#FECACA' },
+  active:      { fg: 'var(--success, #10B981)', bg: 'var(--success-bg, #ECFDF5)', bd: 'color-mix(in srgb, var(--success, #10B981) 35%, transparent)' },
+  invited:     { fg: 'var(--warning, #F59E0B)', bg: 'var(--warning-bg, #FFFBEB)', bd: 'color-mix(in srgb, var(--warning, #F59E0B) 35%, transparent)' },
+  suspended:   { fg: '#F97316', bg: 'var(--warning-bg, #FFF7ED)', bd: 'color-mix(in srgb, #F97316 35%, transparent)' },
+  deactivated: { fg: 'var(--text-tertiary, #9CA3AF)', bg: 'var(--surface-alt, #F3F4F6)', bd: 'var(--border, #D1D5DB)' },
+  expired:     { fg: 'var(--danger, #EF4444)', bg: 'var(--danger-bg, #FEF2F2)', bd: 'color-mix(in srgb, var(--danger, #EF4444) 35%, transparent)' },
 };
 
 /**

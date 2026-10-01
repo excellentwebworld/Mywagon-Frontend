@@ -112,6 +112,17 @@
   margin-top: 1px;
 }
 
+.dark .billing-alert--warning,
+[data-theme='dark'] .billing-alert--warning {
+  border-color: color-mix(in srgb, var(--warning, #F2C265) 40%, transparent);
+  color: var(--warning, #F2C265);
+}
+.dark .billing-alert--danger,
+[data-theme='dark'] .billing-alert--danger {
+  border-color: color-mix(in srgb, var(--danger, #F48A94) 40%, transparent);
+  color: var(--danger, #F48A94);
+}
+
 .billing-skeleton-block {
   pointer-events: none;
 }
@@ -366,6 +377,34 @@
 .billing-container .action-bar:hover {
   border-color: #fcd34d;
   box-shadow: 0 4px 12px -2px rgba(217, 119, 6, 0.12);
+}
+
+.dark .billing-container .action-bar,
+[data-theme='dark'] .billing-container .action-bar {
+  background: rgba(233, 162, 28, 0.12);
+  border-color: rgba(233, 162, 28, 0.35);
+  box-shadow: none;
+}
+
+.dark .billing-container .action-bar:hover,
+[data-theme='dark'] .billing-container .action-bar:hover {
+  border-color: rgba(242, 194, 101, 0.55);
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.25);
+}
+
+.dark .billing-container .action-bar .ab-title,
+.dark .billing-container .action-bar .ab-detail,
+.dark .billing-container .action-bar .ab-detail strong,
+[data-theme='dark'] .billing-container .action-bar .ab-title,
+[data-theme='dark'] .billing-container .action-bar .ab-detail,
+[data-theme='dark'] .billing-container .action-bar .ab-detail strong {
+  color: var(--text-primary, #fff);
+}
+
+.dark .billing-container .action-bar-icon-wrap,
+[data-theme='dark'] .billing-container .action-bar-icon-wrap {
+  background: rgba(233, 162, 28, 0.22);
+  color: #F2C265;
 }
 
 .billing-container .action-bar-icon-wrap {
@@ -959,6 +998,57 @@ table.billing-t {
   background: #ecfdf5;
   color: #047857;
   border: 1px solid #a7f3d0;
+}
+
+/* Dark mode — status / type badges */
+.dark .b-paid,
+[data-theme='dark'] .b-paid {
+  background: rgba(47, 169, 104, 0.18);
+  color: #6FD49B;
+  border-color: rgba(47, 169, 104, 0.35);
+}
+.dark .b-unpaid,
+.dark .b-open,
+[data-theme='dark'] .b-unpaid,
+[data-theme='dark'] .b-open {
+  background: rgba(233, 162, 28, 0.18);
+  color: #F2C265;
+  border-color: rgba(233, 162, 28, 0.35);
+}
+.dark .b-overdue,
+.dark .b-penalty,
+.dark .b-debit,
+[data-theme='dark'] .b-overdue,
+[data-theme='dark'] .b-penalty,
+[data-theme='dark'] .b-debit {
+  background: rgba(224, 59, 74, 0.20);
+  color: #F48A94;
+  border-color: rgba(224, 59, 74, 0.35);
+}
+.dark .b-resolved,
+.dark .b-credit,
+[data-theme='dark'] .b-resolved,
+[data-theme='dark'] .b-credit {
+  background: rgba(47, 169, 104, 0.18);
+  color: #6FD49B;
+  border-color: rgba(47, 169, 104, 0.35);
+}
+.dark .b-subscription,
+[data-theme='dark'] .b-subscription {
+  background: rgba(155, 81, 224, 0.20);
+  color: #C89BEE;
+}
+.dark .b-commission,
+.dark .b-adjustment,
+[data-theme='dark'] .b-commission,
+[data-theme='dark'] .b-adjustment {
+  background: rgba(78, 92, 220, 0.22);
+  color: #A5AEF2;
+}
+.dark .b-addon,
+[data-theme='dark'] .b-addon {
+  background: rgba(233, 162, 28, 0.18);
+  color: #F2C265;
 }
 
 /* BUTTONS */

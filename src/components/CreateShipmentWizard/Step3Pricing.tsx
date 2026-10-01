@@ -629,14 +629,24 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 <div className="flex gap-2">
                   <input
                     type="email"
-                    className="flex-1 p-2 border rounded-lg text-xs outline-none"
+                    className="wizard-tracking-email flex-1 p-2 border rounded-lg text-xs outline-none"
                     placeholder={t('createShipment.emailPlaceholder', 'email@example.com')}
                     value={em}
                     onChange={(e) => updateEmailField(o.orderId, emIdx, e.target.value)}
+                    style={{
+                      background: T.sa,
+                      borderColor: T.bd,
+                      color: T.t1,
+                    }}
                   />
                   <button
                     type="button"
-                    className="w-8 h-8 rounded-lg border flex items-center justify-center bg-white text-slate-400 hover:text-red-500"
+                    className="wizard-tracking-email-remove w-8 h-8 rounded-lg border flex items-center justify-center"
+                    style={{
+                      background: T.sf,
+                      borderColor: T.bd,
+                      color: T.t3,
+                    }}
                     onClick={() => removeEmailField(o.orderId, emIdx)}
                   >
                     ✕
@@ -649,7 +659,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
 
         <button
           type="button"
-          className="w-full py-1.5 border border-dashed rounded-lg text-[10px] font-bold text-indigo-700 bg-transparent cursor-pointer mt-2"
+          className="wizard-tracking-add-email w-full py-1.5 border border-dashed rounded-lg text-[10px] font-bold bg-transparent cursor-pointer mt-2"
+          style={{ borderColor: T.bd, color: T.ac }}
           onClick={() => addEmailField(o.orderId)}
         >
           {t('addEmail') || '+ Add email'}
@@ -1109,7 +1120,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             <div className="cb p-3 space-y-3">
               {/* Compact price hint */}
               <div
-                className="price-hint price-hint--compact bg-sky-50 text-sky-700 px-2.5 py-1.5 rounded-md text-[11px]"
+                className="price-hint price-hint--compact px-2.5 py-1.5 rounded-md text-[11px]"
                 aria-busy={aiPriceLoading && aiInsightsRequested}
               >
                 {contract ? (

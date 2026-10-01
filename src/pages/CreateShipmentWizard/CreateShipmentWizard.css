@@ -1924,6 +1924,37 @@
 }
 @keyframes price-hint-spin { to { transform: rotate(360deg); } }
 
+/* Compact price hint banner — light + dark */
+.price-hint--compact {
+  background: var(--info-bg, #e8eafb);
+  border: 1px solid color-mix(in srgb, var(--info, #4E5CDC) 28%, var(--border, #e4e4e8));
+  color: var(--info, #1e40af);
+}
+.price-hint--compact .price-hint-icon {
+  color: var(--info, #0284c7);
+}
+.price-hint--compact .price-hint-copy,
+.price-hint--compact .price-hint-copy strong {
+  color: inherit;
+}
+.price-hint--compact .price-hint-spinner {
+  border-color: color-mix(in srgb, var(--info, #4E5CDC) 35%, transparent);
+  border-top-color: var(--info, #4E5CDC);
+}
+
+html.dark .price-hint--compact,
+.dark .price-hint--compact,
+[data-theme='dark'] .price-hint--compact {
+  background: rgba(78, 92, 220, 0.18);
+  border-color: rgba(165, 174, 242, 0.35);
+  color: #A5AEF2;
+}
+html.dark .price-hint--compact .price-hint-icon,
+.dark .price-hint--compact .price-hint-icon,
+[data-theme='dark'] .price-hint--compact .price-hint-icon {
+  color: #A5AEF2;
+}
+
 .ai-suggest-btn {
   display: inline-flex;
   align-items: center;
@@ -3031,16 +3062,40 @@ html.dark .wizard-override-banner,
 [data-theme='dark'] .wizard-override-banner,
 html.dark .wizard-quota-banner,
 [data-theme='dark'] .wizard-quota-banner {
-  background: rgba(245, 158, 11, 0.16);
-  border-color: rgba(251, 191, 36, 0.45);
-  color: #fde68a;
+  background: rgba(155, 81, 224, 0.16);
+  border-color: rgba(200, 155, 238, 0.4);
+  color: #D9BCF5;
 }
 
 html.dark .wizard-override-reset,
 [data-theme='dark'] .wizard-override-reset,
 html.dark .wizard-quota-upgrade,
 [data-theme='dark'] .wizard-quota-upgrade {
-  color: #fbbf24;
+  color: #C89BEE;
+}
+
+html.dark .wizard-tracking-email,
+[data-theme='dark'] .wizard-tracking-email,
+.dark .wizard-tracking-email {
+  background: var(--surface-alt, #1A1A38) !important;
+  border-color: var(--border, #2E2E58) !important;
+  color: var(--text-primary, #fff) !important;
+  color-scheme: dark;
+}
+
+html.dark .wizard-tracking-email-remove,
+[data-theme='dark'] .wizard-tracking-email-remove,
+.dark .wizard-tracking-email-remove {
+  background: var(--surface, #1F1F41) !important;
+  border-color: var(--border, #2E2E58) !important;
+  color: var(--text-tertiary, #A3A2B8) !important;
+}
+
+html.dark .wizard-tracking-email-remove:hover,
+[data-theme='dark'] .wizard-tracking-email-remove:hover,
+.dark .wizard-tracking-email-remove:hover {
+  color: var(--danger, #F48A94) !important;
+  border-color: color-mix(in srgb, var(--danger, #F48A94) 40%, transparent) !important;
 }
 
 html.dark .wizard-step3 .hover\:bg-\[\#E4E4E8\]:hover,
@@ -3063,4 +3118,44 @@ html.dark .wizard-step3 textarea::placeholder,
 [data-theme='dark'] .wizard-step3 textarea::placeholder {
   color: var(--text-tertiary, #a3a2b8);
   opacity: 1;
+}
+
+/* Vehicle type cards — selected state must stay dark-readable */
+html.dark .vc.sel,
+.dark .vc.sel,
+[data-theme='dark'] .vc.sel {
+  background: rgba(155, 81, 224, 0.22) !important;
+  border-color: var(--accent, #9B51E0);
+  box-shadow: 0 0 0 3px rgba(155, 81, 224, 0.18);
+}
+
+html.dark .vc.sel .vn,
+.dark .vc.sel .vn,
+[data-theme='dark'] .vc.sel .vn {
+  color: var(--text-primary, #ffffff);
+}
+
+html.dark .vc.sel .vs,
+.dark .vc.sel .vs,
+[data-theme='dark'] .vc.sel .vs,
+html.dark .vc.sel .vc-fit-cap,
+.dark .vc.sel .vc-fit-cap,
+[data-theme='dark'] .vc.sel .vc-fit-cap {
+  color: var(--text-tertiary, #a3a2b8);
+}
+
+html.dark .vc.sel .vi,
+.dark .vc.sel .vi,
+[data-theme='dark'] .vc.sel .vi {
+  color: var(--accent, #9B51E0);
+  background: rgba(155, 81, 224, 0.28);
+}
+
+html.dark .csw-rhs-veh__card,
+.dark .csw-rhs-veh__card,
+[data-theme='dark'] .csw-rhs-veh__card {
+  background: rgba(155, 81, 224, 0.22);
+  border-color: var(--accent, #9B51E0);
+  box-shadow: 0 0 0 3px rgba(155, 81, 224, 0.18);
+  color: var(--text-primary, #ffffff);
 }
