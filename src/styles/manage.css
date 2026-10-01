@@ -978,6 +978,14 @@
   text-transform: uppercase;
   margin-left: 4px;
 }
+.dark .chip-spot {
+  color: #fbbf24;
+  background: rgba(233, 162, 28, 0.22);
+}
+.dark .chip-cont {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.18);
+}
 .ago {
   font-size: 12px;
   color: var(--text-tertiary);
@@ -3112,6 +3120,33 @@
   color: #34d399;
   background: rgba(16, 185, 129, 0.12);
   border-color: rgba(16, 185, 129, 0.28);
+}
+.dark .itin-cust-pill {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.28);
+}
+.dark .tl-cap-label--cur,
+.dark .tl-tip-label--cur {
+  color: #c9a0f5;
+}
+.dark .exp-cust-head {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.28);
+}
+.dark .exp-cust-head:hover {
+  background: rgba(16, 185, 129, 0.2);
+}
+.dark .exp-cust-head .cust-name,
+.dark .exp-cust-head .ord-company {
+  color: var(--text-primary);
+}
+.dark .exp-cust-head .cust-chev {
+  color: #34d399;
+}
+.dark .exp-cust-body .ord {
+  border-left-color: rgba(16, 185, 129, 0.28);
 }
 .exp-cust-group {
   margin-bottom: 10px;

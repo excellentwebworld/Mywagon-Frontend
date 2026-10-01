@@ -795,6 +795,22 @@
   background: var(--cu-bg, #F0FDF9);
 }
 
+html.dark .ld-tk-cust-head,
+.dark .ld-tk-cust-head,
+[data-theme='dark'] .ld-tk-cust-head {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.28);
+}
+
+html.dark .ld-share-email,
+.dark .ld-share-email,
+[data-theme='dark'] .ld-share-email {
+  color: var(--text-primary);
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.28);
+}
+
 @media (max-width: 1100px) {
   .ld-grid { grid-template-columns: 1fr; }
   .ld-cmd-top { flex-direction: column; }

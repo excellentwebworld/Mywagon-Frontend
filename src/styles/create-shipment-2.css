@@ -1036,3 +1036,11 @@ button {
     position: static;
   }
 }
+
+html.dark,
+.dark,
+[data-theme='dark'] {
+  --cu-c: #34d399;
+  --cu-bg: rgba(16, 185, 129, 0.12);
+  --cu-bd: rgba(16, 185, 129, 0.28);
+}

@@ -351,6 +351,13 @@
 }
 .cust-pill .ci { font-size: 10px; line-height: 1; }
 .cust-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+html.dark .cust-pill,
+.dark .cust-pill,
+[data-theme='dark'] .cust-pill {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.28);
+}
 
 /* ── Animations ── */
 @keyframes sd-fade-up { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }

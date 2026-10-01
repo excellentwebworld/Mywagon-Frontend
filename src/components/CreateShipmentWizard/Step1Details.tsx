@@ -3544,23 +3544,14 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
             )}
           </div>
         </div>
-        <span
-          className="text-[11px] font-bold px-2 py-0.5 rounded"
-          style={{ background: "#FFFFFF", color: "#000001", border: "1px solid var(--app-border-strong, #C9C8CD)" }}
-        >
+        <span className="wiz-bal-chip wiz-bal-chip--pk">
           ↑ {bal.pkU} · {fmtW(bal.pkW)}
         </span>
-        <span
-          className="text-[11px] font-bold px-2 py-0.5 rounded"
-          style={{ background: "#000001", color: "#FFFFFF", border: "1px solid var(--app-black-contour, #000001)" }}
-        >
+        <span className="wiz-bal-chip wiz-bal-chip--do">
           ↓ {bal.doU} · {fmtW(bal.doW)}
         </span>
         {bal.balanced && hasData && (
-          <span
-            className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-            style={{ background: "#D1FAE5", color: "#059669" }}
-          >
+          <span className="wiz-bal-chip wiz-bal-chip--ok">
             ✓ {t("createShipment.balanced", "Balanced")}
           </span>
         )}
@@ -3578,8 +3569,7 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
           <div className="mt-3 grid grid-cols-2 gap-4">
             <div>
               <div
-                className="flex items-center gap-1.5 mb-1 text-xs font-bold"
-                style={{ color: "#1F1F41" }}
+                className="flex items-center gap-1.5 mb-1 text-xs font-bold wiz-bal-stat--pk"
               >
                 <ArrowUp size={13} />
                 {t("createShipment.totalPickup", "Total Pickup")}
@@ -3596,8 +3586,7 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
             </div>
             <div>
               <div
-                className="flex items-center gap-1.5 mb-1 text-xs font-bold"
-                style={{ color: "#000001" }}
+                className="flex items-center gap-1.5 mb-1 text-xs font-bold wiz-bal-stat--do"
               >
                 <ArrowDown size={13} />
                 {t("createShipment.totalDropoff", "Total Dropoff")}
@@ -3645,25 +3634,19 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
                     ) : null}
                   </span>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span style={{ color: "#1F1F41" }}>
+                    <span className="wiz-bal-stat--pk">
                       ↑ {v.pk} {v.unit}
                     </span>
-                    <span style={{ color: "#000001" }}>
+                    <span className="wiz-bal-stat--do">
                       ↓ {v.do} {v.unit}
                     </span>
                     {v.pk > 0 && v.pk !== v.do && (
-                      <span
-                        className="text-[10px] font-bold px-1 rounded"
-                        style={{ background: "#FEF3C7", color: "#D97706" }}
-                      >
+                      <span className="wiz-bal-delta">
                         {v.pk - v.do > 0 ? `+${v.pk - v.do}` : v.pk - v.do}
                       </span>
                     )}
                     {v.pk > 0 && v.pk === v.do && (
-                      <span
-                        className="text-[10px]"
-                        style={{ color: "#059669" }}
-                      >
+                      <span className="text-[10px] text-[#059669] dark:text-[#34d399]">
                         ✓
                       </span>
                     )}

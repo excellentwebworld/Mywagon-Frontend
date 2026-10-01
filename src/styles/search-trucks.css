@@ -2222,6 +2222,11 @@ html.dark .sat-chip.has .sat-chip-prem,
   color: #065f46;
   text-transform: uppercase;
 }
+html.dark .sat-bid-table .chip-cont,
+[data-theme='dark'] .sat-bid-table .chip-cont {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.18);
+}
 .sat-bid-table .cust-pills {
   display: flex;
   gap: 3px;
@@ -2274,6 +2279,13 @@ html.dark .sat-chip.has .sat-chip-prem,
   background: var(--warning-bg, #FEF3C7);
   color: #92400e;
   text-transform: uppercase;
+}
+html.dark .sat-bid-table .chip-spot,
+html.dark .sat-bid-snapshot .chip-spot,
+[data-theme='dark'] .sat-bid-table .chip-spot,
+[data-theme='dark'] .sat-bid-snapshot .chip-spot {
+  color: #fbbf24;
+  background: rgba(233, 162, 28, 0.22);
 }
 .sat-bid-chip-row {
   display: flex;

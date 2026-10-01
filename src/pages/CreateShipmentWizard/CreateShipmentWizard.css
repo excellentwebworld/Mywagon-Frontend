@@ -2213,11 +2213,10 @@ html.dark .price-hint--compact .price-hint-icon,
 .sc-v { font-size: 18px; font-weight: 700; font-family: var(--font-app), 'Poppins', sans-serif; font-variant-numeric: tabular-nums; color: var(--text-primary); letter-spacing: -0.3px; }
 .sc-v .u { font-size: 11px; font-weight: 500; color: var(--text-secondary); font-family: var(--font-app), 'Poppins', sans-serif; }
 
-/* ── Sticky SAT availability context ── */
+/* ── SAT availability context ── */
 .wizard-availability-bar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
+  position: relative;
+  z-index: 2;
   padding: 12px 14px;
   margin: 0 0 16px;
   border-radius: 10px;
@@ -2440,6 +2439,134 @@ html.dark .price-hint--compact .price-hint-icon,
   .wizard-availability-bar__grid {
     grid-template-columns: 1fr;
   }
+}
+
+html.dark .wizard-availability-bar,
+.dark .wizard-availability-bar,
+[data-theme='dark'] .wizard-availability-bar {
+  border-color: rgba(155, 81, 224, 0.4);
+  background: #252448;
+  box-shadow: none;
+}
+html.dark .wizard-availability-bar__badge,
+.dark .wizard-availability-bar__badge,
+[data-theme='dark'] .wizard-availability-bar__badge {
+  background: rgba(155, 81, 224, 0.22);
+  border-color: rgba(196, 181, 253, 0.35);
+  color: #c9a0f5;
+}
+html.dark .wizard-availability-bar__preferred,
+.dark .wizard-availability-bar__preferred,
+[data-theme='dark'] .wizard-availability-bar__preferred {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+html.dark .wizard-availability-bar__toggle,
+.dark .wizard-availability-bar__toggle,
+[data-theme='dark'] .wizard-availability-bar__toggle {
+  border-color: rgba(196, 181, 253, 0.35);
+  background: rgba(155, 81, 224, 0.16);
+  color: #c9a0f5;
+}
+html.dark .wizard-availability-bar__toggle:hover,
+.dark .wizard-availability-bar__toggle:hover,
+[data-theme='dark'] .wizard-availability-bar__toggle:hover {
+  background: rgba(155, 81, 224, 0.26);
+}
+html.dark .wizard-availability-bar__grid,
+.dark .wizard-availability-bar__grid,
+[data-theme='dark'] .wizard-availability-bar__grid {
+  border-top-color: rgba(155, 81, 224, 0.28);
+}
+html.dark .wizard-availability-bar__sk-chip,
+html.dark .wizard-availability-bar__sk-line,
+.dark .wizard-availability-bar__sk-chip,
+.dark .wizard-availability-bar__sk-line,
+[data-theme='dark'] .wizard-availability-bar__sk-chip,
+[data-theme='dark'] .wizard-availability-bar__sk-line {
+  background: linear-gradient(
+    90deg,
+    rgba(155, 81, 224, 0.12) 0%,
+    rgba(155, 81, 224, 0.22) 50%,
+    rgba(155, 81, 224, 0.12) 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* Load Balance pickup / dropoff chips */
+.wiz-bal-chip {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+.wiz-bal-chip--pk {
+  background: #ffffff;
+  color: #000001;
+  border: 1px solid var(--app-border-strong, #c9c8cd);
+}
+.wiz-bal-chip--do {
+  background: #000001;
+  color: #ffffff;
+  border: 1px solid var(--app-black-contour, #000001);
+}
+.wiz-bal-chip--ok {
+  font-size: 10px;
+  background: #d1fae5;
+  color: #059669;
+}
+html.dark .wiz-bal-chip--pk,
+.dark .wiz-bal-chip--pk,
+[data-theme='dark'] .wiz-bal-chip--pk {
+  background: var(--surface-alt, #1a1a38);
+  color: var(--text-primary, #fff);
+  border-color: var(--border, #2e2e58);
+}
+html.dark .wiz-bal-chip--do,
+.dark .wiz-bal-chip--do,
+[data-theme='dark'] .wiz-bal-chip--do {
+  background: #0a0a12;
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+html.dark .wiz-bal-chip--ok,
+.dark .wiz-bal-chip--ok,
+[data-theme='dark'] .wiz-bal-chip--ok {
+  background: rgba(16, 185, 129, 0.16);
+  color: #34d399;
+}
+.wiz-bal-stat--pk {
+  color: #1f1f41;
+}
+.wiz-bal-stat--do {
+  color: #000001;
+}
+html.dark .wiz-bal-stat--pk,
+.dark .wiz-bal-stat--pk,
+[data-theme='dark'] .wiz-bal-stat--pk {
+  color: var(--text-secondary, #c9c8d6);
+}
+html.dark .wiz-bal-stat--do,
+.dark .wiz-bal-stat--do,
+[data-theme='dark'] .wiz-bal-stat--do {
+  color: var(--text-primary, #fff);
+}
+.wiz-bal-delta {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #d97706;
+}
+html.dark .wiz-bal-delta,
+.dark .wiz-bal-delta,
+[data-theme='dark'] .wiz-bal-delta {
+  background: rgba(233, 162, 28, 0.2);
+  color: #fbbf24;
 }
 
 /* ── Wizard validation ── */

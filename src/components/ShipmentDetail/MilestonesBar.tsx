@@ -19,19 +19,19 @@ function stepStyle(step: LaravelProgressStep) {
 
   let dotBg = '#9B51E0';
   let ringClass = isCur ? 'ring-4 ring-[#9B51E0]/30 animate-pulse' : 'ring-3 ring-[#9B51E0]/15';
-  let labelColor = isCur ? '#9B51E0' : '#18181B';
+  let labelClass = isCur ? 'text-[#9B51E0] dark:text-[#C9A0F5]' : 'text-slate-900 dark:text-white';
 
   if (isGreen) {
     dotBg = '#10B981';
     ringClass = isCur ? 'ring-4 ring-[#10B981]/30 animate-pulse' : 'ring-3 ring-[#10B981]/15';
-    labelColor = '#10B981';
+    labelClass = 'text-[#10B981]';
   } else if (isRed) {
     dotBg = '#EF4444';
     ringClass = isCur ? 'ring-4 ring-[#EF4444]/30 animate-pulse' : 'ring-3 ring-[#EF4444]/15';
-    labelColor = '#EF4444';
+    labelClass = 'text-[#EF4444] dark:text-[#F87171]';
   }
 
-  return { dotBg, ringClass, labelColor, isCur, isRed };
+  return { dotBg, ringClass, labelClass, isCur, isRed };
 }
 
 export const MilestonesBar: React.FC<MilestonesBarProps> = ({
@@ -69,7 +69,7 @@ export const MilestonesBar: React.FC<MilestonesBarProps> = ({
         <div className="flex items-start w-full min-w-max">
           {steps.map((step, idx) => {
             const isLast = idx === steps.length - 1;
-            const { dotBg, ringClass, labelColor, isCur, isRed } = stepStyle(step);
+            const { dotBg, ringClass, labelClass, isCur, isRed } = stepStyle(step);
             const reasonLabel = step.reason ? formatReason(step.reason, t) : null;
 
             return (
@@ -111,10 +111,9 @@ export const MilestonesBar: React.FC<MilestonesBarProps> = ({
 
                 <div className="flex flex-col items-start mt-2 w-full pr-2">
                   <span
-                    className={`text-[13px] leading-snug break-words max-w-full text-slate-900 dark:text-white ${
+                    className={`text-[13px] leading-snug break-words max-w-full ${labelClass} ${
                       isCur || isRed ? 'font-bold' : 'font-semibold'
                     }`}
-                    style={isCur || isRed ? { color: labelColor } : undefined}
                     title={step.label}
                   >
                     {step.label}
