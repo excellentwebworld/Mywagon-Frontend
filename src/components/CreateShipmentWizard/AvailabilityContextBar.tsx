@@ -1,12 +1,48 @@
 import React, { useEffect, useId, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { availabilitiesService } from '../../api';
-import type { ApiAvailabilityDetail } from '../../api/types/availabilities';
+import type {
+  ApiAvailabilityDetail,
+  ApiBilingualNameEntity,
+} from '../../api/types/availabilities';
+import { pickVehicleLabel } from './vehicleTypes';
+import { useTranslation } from '../../hooks/useTranslation';
 import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 
 interface AvailabilityContextBarProps {
   availabilityId: number;
   t: (key: string) => string;
+}
+
+function pickEntityLabel(
+  detail: ApiBilingualNameEntity | null | undefined,
+  fallback: string | null | undefined,
+  lang: 'en' | 'el',
+): string | null {
+  if (detail) {
+    const label = pickVehicleLabel(detail.name, detail.name_greek, lang).trim();
+    if (label) return label;
+  }
+  const fb = String(fallback || '').trim();
+  return fb || null;
+}
+
+function pickCargoLabels(
+  detail: ApiAvailabilityDetail,
+  lang: 'en' | 'el',
+): string | null {
+  const fromDetails = (detail.cargo_category_details ?? [])
+    .map((item) => pickVehicleLabel(item.name, item.name_greek, lang).trim())
+    .filter(Boolean);
+  if (fromDetails.length > 0) return fromDetails.join(', ');
+
+  const fromTruckCategory = pickEntityLabel(detail.truck_category_detail, null, lang);
+  if (fromTruckCategory) return fromTruckCategory;
+
+  if (detail.cargo_categories?.length) {
+    return detail.cargo_categories.join(', ');
+  }
+  return null;
 }
 
 function formatDateTime(dt: string | null | undefined): string {
@@ -60,6 +96,8 @@ export const AvailabilityContextBar: React.FC<AvailabilityContextBarProps> = ({
   availabilityId,
   t,
 }) => {
+  const { lang } = useTranslation();
+  const locale: 'en' | 'el' = lang === 'el' ? 'el' : 'en';
   const panelId = useId();
   const [detail, setDetail] = useState<ApiAvailabilityDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -135,10 +173,11 @@ export const AvailabilityContextBar: React.FC<AvailabilityContextBarProps> = ({
       ? `${detail.provider.rating.toFixed(1)}${providerType ? ` · ${providerType}` : ''}`
       : providerType;
 
-  const categories =
-    detail?.cargo_categories?.length && detail.cargo_categories.length > 0
-      ? detail.cargo_categories.join(', ')
-      : null;
+  const truckTypeLabel = detail
+    ? pickEntityLabel(detail.truck_type_detail, detail.truck_type, locale)
+    : null;
+  const categories = detail ? pickCargoLabels(detail, locale) : null;
+  const kmUnit = t('unitKm') || 'km';
 
   const bidsCount =
     detail?.bids_count != null
@@ -156,7 +195,7 @@ export const AvailabilityContextBar: React.FC<AvailabilityContextBarProps> = ({
   const startLabel = formatDateTime(detail?.start_date_time);
   const summaryMeta = [
     detail?.posting_mode === 'vehicle' ? (t('satVehicleOnlyAvailability') || 'Truck availability') : null,
-    detail?.truck_type?.trim() || null,
+    truckTypeLabel,
     startLabel !== '—' ? startLabel : null,
     priceValue,
   ].filter(Boolean);
@@ -291,7 +330,7 @@ export const AvailabilityContextBar: React.FC<AvailabilityContextBarProps> = ({
                 value={formatDateTime(detail.end_date_time)}
               />
 
-              <DetailCell label={t('satTruck') || 'Truck'} value={detail.truck_type} />
+              <DetailCell label={t('satTruck') || 'Truck'} value={truckTypeLabel} />
               <DetailCell
                 label={t('satCargoCategories') || 'Cargo / specs'}
                 value={categories}
@@ -300,7 +339,7 @@ export const AvailabilityContextBar: React.FC<AvailabilityContextBarProps> = ({
               <DetailCell
                 label={t('satRadiusFromPickup') || 'Pickup radius'}
                 value={
-                  detail.pickup_radius != null ? `${detail.pickup_radius} km` : null
+                  detail.pickup_radius != null ? `${detail.pickup_radius} ${kmUnit}` : null
                 }
               />
               <DetailCell
@@ -308,7 +347,7 @@ export const AvailabilityContextBar: React.FC<AvailabilityContextBarProps> = ({
                 value={
                   (detail.dropoff_address || detail.dropoff_city) &&
                   detail.dropoff_radius != null
-                    ? `${detail.dropoff_radius} km`
+                    ? `${detail.dropoff_radius} ${kmUnit}`
                     : null
                 }
               />

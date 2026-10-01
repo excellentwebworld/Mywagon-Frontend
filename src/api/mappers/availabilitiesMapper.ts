@@ -1,5 +1,6 @@
 import type {
   ApiAvailabilityListItem,
+  ApiBilingualNameEntity,
   ApiPendingMatch,
   ApiPendingMatchDetail,
   ListAvailabilitiesParams,
@@ -18,6 +19,41 @@ import type {
 } from '../../pages/SearchTrucks/types';
 import { formatMoney } from '../../pages/SearchTrucks/utils/money';
 import { formatUtcToDisplayDate, formatUtcToDisplayDateTime, formatUtcToDisplayTime, parseUtcInstant } from '../../utils/timezone';
+import { pickVehicleLabel } from '../../components/CreateShipmentWizard/vehicleTypes';
+import i18n from 'i18next';
+
+function uiLocale(): 'en' | 'el' {
+  const lang =
+    localStorage.getItem('shipment-lang') ||
+    localStorage.getItem('app_locale') ||
+    i18n.language ||
+    'en';
+  return String(lang).toLowerCase().startsWith('el') ? 'el' : 'en';
+}
+
+function pickEntityLabel(
+  detail: ApiBilingualNameEntity | null | undefined,
+  fallback: string | null | undefined,
+  lang: 'en' | 'el' = uiLocale(),
+): string {
+  if (detail) {
+    const label = pickVehicleLabel(detail.name, detail.name_greek, lang).trim();
+    if (label) return label;
+  }
+  return String(fallback || '').trim();
+}
+
+function pickCargoSpecLabels(item: ApiAvailabilityListItem, lang: 'en' | 'el' = uiLocale()): string {
+  const fromDetails = (item.cargo_category_details ?? [])
+    .map((d) => pickVehicleLabel(d.name, d.name_greek, lang).trim())
+    .filter(Boolean);
+  if (fromDetails.length > 0) return fromDetails.join(' · ');
+
+  const fromTruckCategory = pickEntityLabel(item.truck_category_detail, null, lang);
+  if (fromTruckCategory) return fromTruckCategory;
+
+  return (item.cargo_categories ?? []).join(' · ');
+}
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0');
@@ -112,7 +148,7 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
   const destAddress = hasDropoffPlace ? dropoffAddr || dropoffCity : 'Any';
   const pickup = pickupAddress;
   const dest = destAddress;
-  const specs = (item.cargo_categories ?? []).join(' · ');
+  const specs = pickCargoSpecLabels(item);
   const capVal = item.capacity_qty ?? 0;
   const capUnit = item.capacity_unit ?? '';
   const capacity = capVal ? `${capVal}${capUnit ? ` ${capUnit}` : ''}` : '—';
@@ -144,7 +180,7 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
     destRadius,
     dest,
     destAddress,
-    truckType: item.truck_type || '—',
+    truckType: pickEntityLabel(item.truck_type_detail, item.truck_type) || '—',
     specs,
     capacity,
     capVal,
