@@ -4281,11 +4281,11 @@
       "retention": "Περίοδος Διατήρησης",
       "maskSensitive": "Απόκρυψη ευαίσθητων δεδομένων",
       "noTraining": "Να μη χρησιμοποιούνται για εκπαίδευση AI",
-      "days": "{{count}} days",
-      "forever": "Forever",
-      "privacyTitle": "Privacy controls",
-      "maskSensitive_desc": "Replace pricing, addresses, and PII with placeholders in logs",
-      "noTraining_desc": "Your conversations will not be used to improve AI models"
+      "days": "{{count}} ημέρες",
+      "forever": "Για πάντα",
+      "privacyTitle": "Έλεγχοι απορρήτου",
+      "maskSensitive_desc": "Αντικατάσταση τιμών, διευθύνσεων και προσωπικών δεδομένων με placeholders στα αρχεία καταγραφής",
+      "noTraining_desc": "Οι συνομιλίες σας δεν θα χρησιμοποιηθούν για βελτίωση μοντέλων AI"
     },
     "provider": {
       "title": "Πάροχος AI",
@@ -4293,7 +4293,7 @@
       "default_desc": "Βελτιστοποιημένο AI backend. Περιλαμβάνεται στο πρόγραμμα.",
       "byok": "Δικός σας πάροχος",
       "byok_desc": "Σύνδεση OpenAI, Anthropic, Google ή προσαρμοσμένο.",
-      "recommended": "Recommended"
+      "recommended": "Προτεινόμενο"
     },
     "mcp": {
       "title": "Διακομιστής MCP",
