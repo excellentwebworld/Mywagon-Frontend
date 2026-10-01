@@ -326,7 +326,7 @@ export default function AuditLogPanel({ open, onClose }) {
                 onChange={setDateFrom}
                 max={dateTo || undefined}
                 direction="auto"
-                placeholder="dd/MM/yyyy"
+                placeholder={t('PriceLists.dd_mm_yyyy', 'dd/MM/yyyy')}
               />
             </div>
             <span style={{ fontSize: 12, color: T.t3 }}>→</span>
@@ -337,7 +337,7 @@ export default function AuditLogPanel({ open, onClose }) {
                 min={dateFrom || undefined}
                 direction="auto"
                 align="auto"
-                placeholder="dd/MM/yyyy"
+                placeholder={t('PriceLists.dd_mm_yyyy', 'dd/MM/yyyy')}
               />
             </div>
 
