@@ -35,7 +35,7 @@ export function createWizardValidationSchema(t: WizardTranslate = (_key, fallbac
     `Target price cannot exceed ${MAX_TARGET_PRICE_DIGITS} digits (max ${MAX_TARGET_PRICE_VALUE.toLocaleString('en-US')}).`
   );
 
-  const withMaxDigits = <T extends Yup.NumberSchema>(schema: T) =>
+  const withMaxDigits = (schema: Yup.NumberSchema<number | null | undefined>) =>
     schema.test('target-price-max-digits', targetPriceMaxDigits, (value) => {
       if (value === undefined || value === null || Number.isNaN(value)) return true;
       return isTargetPriceWithinDigitLimit(value);

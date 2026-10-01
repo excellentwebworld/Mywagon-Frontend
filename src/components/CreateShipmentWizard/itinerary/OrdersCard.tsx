@@ -5,7 +5,7 @@ import type { OrderCardCustomerGroup } from './stopGrouping';
 
 interface OrdersCardProps {
   groups: OrderCardCustomerGroup[];
-  t: (key: string, params?: Record<string, unknown>) => string;
+  t: (key: string, fallbackOrOptions?: string | Record<string, unknown>) => string;
 }
 
 export const OrdersCard: React.FC<OrdersCardProps> = ({ groups, t }) => {
