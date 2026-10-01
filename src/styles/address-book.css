@@ -486,13 +486,24 @@ table.ab-table { width: 100%; border-collapse: collapse; }
 }
 
 .ab-map-field { margin-bottom: 12px; }
-.ab-map-field .ab-label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+.ab-map-field .ab-label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: var(--text-secondary); }
+.ab-map-field .ab-label .req { color: var(--danger); }
 .ab-map-field .ab-input {
   width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  padding: 9px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
   font-size: 13px;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: border-color .15s;
+  outline: none;
+}
+.ab-map-field .ab-input::placeholder { color: var(--text-tertiary); }
+.ab-map-field .ab-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 .ab-coords-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
 .ab-field-hint { font-size: 11px; color: var(--text-tertiary); margin-top: 4px; }
