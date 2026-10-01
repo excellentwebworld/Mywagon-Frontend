@@ -674,9 +674,11 @@ table.ab-table { width: 100%; border-collapse: collapse; }
   font-size: 12px;
   line-height: 1.5;
   margin-bottom: 8px;
+  color: var(--text-primary);
 }
 .dp-note.internal { background: var(--surface-alt); border: 1px solid var(--border); }
-.dp-note.carrier  { background: #EFF6FF; border: 1px solid #BFDBFE; }
+.dp-note.carrier  { background: var(--info-bg); border: 1px solid var(--border); }
+.dp-note.carrier .dp-note-label { color: var(--info); }
 .dp-note-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--text-tertiary); margin-bottom: 4px; }
 
 .dp-map-box {
