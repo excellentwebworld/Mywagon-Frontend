@@ -466,15 +466,15 @@
   padding: 14px 16px;
   margin-bottom: 4px;
   border-radius: var(--radius-lg);
-  border: 1px solid color-mix(in srgb, #D97706 25%, var(--border));
-  background: color-mix(in srgb, #FFFBEB 80%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  background: color-mix(in srgb, var(--accent-pale) 70%, var(--surface));
   color: var(--text-primary);
 }
 
 .tut-soon-banner svg {
   flex-shrink: 0;
   margin-top: 2px;
-  color: #D97706;
+  color: var(--accent);
 }
 
 .tut-soon-banner strong {
@@ -482,6 +482,7 @@
   font-size: 13px;
   font-weight: 700;
   margin-bottom: 2px;
+  color: var(--text-primary);
 }
 
 .tut-soon-banner p {
@@ -500,9 +501,9 @@
   font-weight: 700;
   letter-spacing: 0.3px;
   text-transform: uppercase;
-  color: #B45309;
-  background: #FFFBEB;
-  border: 1px solid color-mix(in srgb, #D97706 30%, var(--border));
+  color: var(--accent);
+  background: var(--accent-pale);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
   white-space: nowrap;
 }
 
@@ -518,8 +519,20 @@
   border-top: 1px solid var(--border);
   font-size: 12px;
   font-weight: 600;
-  color: #B45309;
-  background: color-mix(in srgb, #FFFBEB 55%, var(--surface));
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent-pale) 55%, var(--surface-alt));
+}
+
+.tut-mod-soon-footer svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Soften light module icon plates in dark mode */
+html.dark .tut-mod-card .tut-mod-icon,
+.dark .tut-mod-card .tut-mod-icon,
+[data-theme='dark'] .tut-mod-card .tut-mod-icon {
+  background: color-mix(in srgb, var(--tut-mod-accent, var(--accent)) 22%, var(--surface-alt)) !important;
 }
 
 /* ── Empty & loading ── */

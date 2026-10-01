@@ -482,6 +482,15 @@ html.dark,
 .dark .text-slate-600 { color: #A5A5C4 !important; }
 .dark .text-slate-500 { color: #727294 !important; }
 .dark .text-slate-400 { color: #727294 !important; }
+.dark .text-gray-900 { color: var(--text-primary, #FFFFFF) !important; }
+.dark .text-gray-800 { color: var(--text-primary, #FFFFFF) !important; }
+.dark .text-gray-700 { color: var(--text-secondary, #C9C8D6) !important; }
+.dark .text-gray-600 { color: var(--text-secondary, #C9C8D6) !important; }
+.dark .text-gray-500 { color: var(--text-tertiary, #A3A2B8) !important; }
+.dark .text-gray-400 { color: var(--text-tertiary, #A3A2B8) !important; }
+.dark .bg-gray-50 { background-color: var(--surface-alt, #1A1A38) !important; }
+.dark .bg-gray-100 { background-color: var(--surface-alt, #1A1A38) !important; }
+.dark .border-gray-200 { border-color: var(--border, #2E2E58) !important; }
 .dark .bg-white { background-color: var(--surface, #1E1E36); }
 .dark .bg-bg { background-color: var(--bg, #0C0C14); }
 

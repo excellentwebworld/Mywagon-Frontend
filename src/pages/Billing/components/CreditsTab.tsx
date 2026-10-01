@@ -65,7 +65,7 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
         </div>
 
         <div className="p-6 bg-white border border-gray-200 rounded-xl flex flex-col justify-center shadow-sm billing-quick-actions">
-          <div className="font-semibold text-sm text-gray-900 mb-3.5">
+          <div className="font-semibold text-sm mb-3.5" style={{ color: 'var(--text-primary, var(--t1, #121217))' }}>
             {t('billingPage.quickActions', 'Quick Actions')}
           </div>
           <div className="flex gap-2 flex-wrap">
@@ -87,7 +87,7 @@ export const CreditsTab: React.FC<CreditsTabProps> = ({
       </div>
 
       <div className={`billing-tbl-card ${showTableSkeleton ? 'is-loading' : ''}`}>
-        <div className="billing-tbl-head font-bold text-sm text-gray-800">
+        <div className="billing-tbl-head font-bold text-sm" style={{ color: 'var(--text-primary, var(--t1, #121217))' }}>
           {t('billingPage.walletActivity', 'Wallet activity')}
         </div>
         {compact ? (

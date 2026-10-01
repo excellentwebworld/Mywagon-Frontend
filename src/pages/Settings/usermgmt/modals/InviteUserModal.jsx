@@ -46,7 +46,7 @@ function seatsFromErrorData(data) {
 
 export default function InviteUserModal({ open, onClose, onInvite, onSaved, user = null }) {
   const { t, i18n } = useTranslation();
-  const { T } = useTheme();
+  const { T, isDark } = useTheme();
   const navigate = useNavigate();
   const { roles, seats, setSeats } = useUserMgmt();
   const { user: authUser, refreshUser } = useAuth();
@@ -256,7 +256,12 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
           {(errors.form || atSeatLimit) && (
             <div
               className="rounded-lg px-3 py-2 flex flex-col sm:flex-row sm:items-center gap-2"
-              style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12 }}
+              style={{
+                background: isDark ? 'rgba(224,59,74,0.20)' : '#FBE6E8',
+                border: `1px solid ${isDark ? 'rgba(244,138,148,0.45)' : '#FECACA'}`,
+                color: isDark ? '#F48A94' : '#B91C1C',
+                fontSize: 12,
+              }}
             >
               <span className="flex-1">
                 {errors.form || t('userMgmt.seats.atLimitHint')}

@@ -650,7 +650,7 @@ table.billing-t {
 }
 
 .billing-t tbody tr:hover {
-  background: #fafafd;
+  background: var(--surface-alt, #fafafd);
 }
 
 .billing-t tbody tr.selected {
@@ -1292,6 +1292,7 @@ table.billing-t {
   font-size: 20px;
   font-weight: 700;
   margin-top: 4px;
+  color: var(--text-primary, var(--t1, #121217));
 }
 
 .aging-l {
@@ -1722,6 +1723,47 @@ table.billing-t {
 .billing-mf select {
   max-width: 100%;
   text-overflow: ellipsis;
+  color-scheme: light;
+}
+
+.dark .billing-mf select,
+[data-theme='dark'] .billing-mf select,
+html.dark .billing-mf select {
+  color-scheme: dark;
+}
+
+.billing-statement-hint {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border, var(--bd, #e4e4e8));
+  background: var(--surface-alt, var(--sa, #f9fafb));
+  color: var(--text-secondary, var(--t2, #4b5563));
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.billing-date-cell {
+  font-size: 12px;
+  color: var(--text-secondary, var(--t2, #4b5563));
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
+}
+
+.billing-date-cell--muted {
+  color: var(--text-tertiary, var(--t3, #9ca3af));
+}
+
+.billing-date-cell.is-overdue {
+  color: var(--danger, #dc2626);
+  font-weight: 700;
+}
+
+.billing-amount-cell {
+  color: var(--text-primary, var(--t1, #121217));
+  white-space: nowrap;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .billing-quick-actions {
