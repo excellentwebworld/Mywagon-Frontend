@@ -184,7 +184,8 @@ export const AI_CAPABILITY_GROUPS = [
 ];
 
 export const AI_KNOWLEDGE = {
-  customInstructions: '• We always prefer carriers with ADR certification for any shipment from the Ioannina facility.\n• Our standard payment terms are Net 30 days. Never accept Net 60 or longer.\n• For shipments over 20 tonnes, always suggest a semi-trailer, never a rigid truck.\n• Our peak season is June-September. Flag any carrier rate increases during this period.\n• Internal terminology: "Class A" means temperature-controlled shipments.',
+  // Sample text comes from locale key ai.knowledge.instructionsSample
+  customInstructions: '',
   dataSources: { platformDocs: true, companyData: true, externalSearch: false },
 };
 
