@@ -139,12 +139,7 @@ export const billingService = {
   },
 
   async getInvoicePrint(id: string | number): Promise<InvoicePrintPayload> {
-    // Print/PDF body text (line descriptions, wallet reasons) must stay English.
-    const res = await apiGet<InvoicePrintPayload>(
-      `/billing/invoices/${id}/print`,
-      undefined,
-      { 'X-Force-Locale': 'en' },
-    );
+    const res = await apiGet<InvoicePrintPayload>(`/billing/invoices/${id}/print`);
     return res.data;
   },
 

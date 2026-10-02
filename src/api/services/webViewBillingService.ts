@@ -188,8 +188,7 @@ export function createWebViewBillingService(role: WebViewRole, userId: string): 
     },
 
     async getInvoicePrint(id: string | number): Promise<InvoicePrintPayload> {
-      // Print/PDF body text must stay English regardless of UI language.
-      const res = await get<InvoicePrintPayload>(`${BASE}/invoices/${id}/print`, undefined, true);
+      const res = await get<InvoicePrintPayload>(`${BASE}/invoices/${id}/print`);
       return res.data;
     },
 
