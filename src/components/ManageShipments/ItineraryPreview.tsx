@@ -52,11 +52,19 @@ function isEpochOrZeroDate(dateStr?: string | null): boolean {
   return false;
 }
 
-function formatWhen(date?: string, timeStart?: string): string {
+function formatWhen(date?: string, timeStart?: string, timeEnd?: string): string {
   if (isEpochOrZeroDate(date)) return '';
   const dateLabel = date ? formatDisplayDate(date.includes('/') ? toYmd(date) : date) : '';
   if (!dateLabel || isEpochOrZeroDate(dateLabel)) return '';
-  return [dateLabel, timeStart].filter(Boolean).join(' ');
+  const start = (timeStart || '').trim();
+  const end = (timeEnd || '').trim();
+  let timeLabel = start;
+  if (start && end && start !== end) {
+    timeLabel = `${start} – ${end}`;
+  } else if (!start && end) {
+    timeLabel = end;
+  }
+  return [dateLabel, timeLabel].filter(Boolean).join(' ');
 }
 
 /** Accept dd/MM/yyyy or already-ymd and normalize toward ymd for formatDisplayDate. */
@@ -370,7 +378,7 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
       <div className="itin-timeline">
         {visible.map((stop, idx) => {
           const displayNumber = idx + 1;
-          const when = formatWhen(stop.date, stop.timeStart);
+          const when = formatWhen(stop.date, stop.timeStart, stop.timeEnd);
           const hasCargo = stop.lines.length > 0;
           // Default closed — only open when explicitly toggled / Expand all
           const cargoOpen = hasCargo && Boolean(openCargo[stop.key]);

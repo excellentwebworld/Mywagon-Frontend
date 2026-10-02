@@ -4,6 +4,7 @@ import {
   formatDisplayDateFromIso,
   formatDisplayDateTime,
   formatIsoDisplayDateTime,
+  formatScheduleWindow,
 } from './dateDisplay';
 import {
   parseUtcInstant,
@@ -58,6 +59,19 @@ describe('BUG-05: Date formatting & epoch fallback prevention', () => {
 
     expect(formatCalendarDate('0')).toBe('—');
     expect(formatCalendarDate('1970-01-01')).toBe('—');
+  });
+
+  it('formats same-day schedule windows as date + start – end', () => {
+    expect(formatScheduleWindow('02/10/2026 12:30', '02/10/2026 15:30')).toBe(
+      '02/10/2026 · 12:30\u00A0–\u00A015:30',
+    );
+    expect(formatScheduleWindow('02/10/2026 12:30', '02/10/2026 12:30')).toBe(
+      '02/10/2026 12:30',
+    );
+    expect(formatScheduleWindow('02/10/2026 12:30', '04/10/2026 00:15')).toBe(
+      '02/10/2026 12:30\u00A0–\u00A004/10/2026 00:15',
+    );
+    expect(formatScheduleWindow('02/10/2026 12:30', null)).toBe('02/10/2026 12:30');
   });
 
   it('cleans fallback dates in groupItineraryStops when pickup date is epoch/null', () => {

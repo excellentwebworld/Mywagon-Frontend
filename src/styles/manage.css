@@ -767,7 +767,7 @@
   flex-direction: column;
   gap: 2px;
   min-width: 180px;
-  max-width: 320px;
+  max-width: 360px;
 }
 
 .lane-cell .lane {
@@ -791,10 +791,15 @@
 .lane-place {
   color: var(--text-primary);
 }
+.lane-at {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
 .lane-when {
   font-weight: 400;
   color: var(--text-tertiary);
   font-size: 11px;
+  white-space: nowrap;
 }
 .lane-mid {
   font-size: 11px;
