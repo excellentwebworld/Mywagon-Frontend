@@ -100,12 +100,28 @@ function ensureBucket(
   return bucket;
 }
 
+/** Qty still allocatable for this line (falls back to ordered qty when API omits remaining). */
+function lineRemainingQty(ln: ErpOrder['lines'][number]): number | null {
+  if (ln.remainingQuantity != null) return Number(ln.remainingQuantity);
+  if (ln.quantity != null) return Number(ln.quantity);
+  return null;
+}
+
 function orderLineToCargo(
   order: ErpOrder,
   ln: ErpOrder['lines'][number],
   action: 'pickup' | 'dropoff',
   mirrorOf: string
 ): CargoLine {
+  const remainingQty = lineRemainingQty(ln);
+  const fullQty = ln.quantity != null ? Number(ln.quantity) : 0;
+  const fullWeight = ln.weight != null ? Number(ln.weight) : null;
+  // Scale weight to remaining qty when prior shipments already consumed part of the line.
+  const weight =
+    fullWeight != null && fullQty > 0 && remainingQty != null && remainingQty >= 0
+      ? (fullWeight * remainingQty) / fullQty
+      : fullWeight;
+
   return {
     id: makeId('l'),
     productId: ln.productSkuId != null ? String(ln.productSkuId) : '',
@@ -116,9 +132,9 @@ function orderLineToCargo(
     orderRef: order.orderReference,
     orderLineId: ln.id != null ? String(ln.id) : '',
     action,
-    qty: ln.quantity != null ? String(ln.quantity) : '',
+    qty: remainingQty != null ? String(remainingQty) : '',
     unit: normalizeQtyUnit(ln.unit) || 'EUR Pallets',
-    weight: ln.weight != null ? String(ln.weight) : '',
+    weight: weight != null ? String(weight) : '',
     wtUnit: normalizeWeightUnit(ln.weightUnit),
     mirrorOf,
   };
@@ -140,6 +156,7 @@ function bucketToStop(bucket: StopBucket, expanded: boolean): Stop {
  * Build wizard stops from ERP order details.
  * Unique origins become pickup stops; unique destinations become dropoff stops.
  * Same origin/dest across orders collapses onto shared stops (e.g. Athens→Ioannina).
+ * Fully planned lines (remaining_quantity <= 0) are omitted; partial lines use remaining qty/weight.
  */
 export function buildStopsFromErpOrders(
   orders: ErpOrder[],
@@ -192,6 +209,10 @@ export function buildStopsFromErpOrders(
         dest.lines.push(dropoff);
         continue;
       }
+
+      // Skip fully planned/fulfilled lines — only remaining items belong on a new load.
+      const remaining = lineRemainingQty(ln);
+      if (remaining != null && remaining <= 0) continue;
 
       const pickup = orderLineToCargo(order, ln, 'pickup', '');
       const dropoff = orderLineToCargo(order, ln, 'dropoff', pickup.id);

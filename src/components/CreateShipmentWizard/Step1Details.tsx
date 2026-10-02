@@ -872,9 +872,19 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           : "pickup";
 
       // Build lines sequentially so each dropoff prefill sees prior remaining.
+      // Skip fully planned/fulfilled lines (remaining <= 0).
       let workingStops = latestStops;
       const newLines = mo.lines
-        .filter((ln) => ln.productActive !== false)
+        .filter((ln) => {
+          if (ln.productActive === false) return false;
+          const remaining =
+            ln.remainingQuantity != null
+              ? Number(ln.remainingQuantity)
+              : ln.quantity != null
+                ? Number(ln.quantity)
+                : null;
+          return remaining == null || remaining > 0;
+        })
         .map((ln) => {
           const lineId = makeId("l");
         const productId = ln.productSkuId ? String(ln.productSkuId) : "";
