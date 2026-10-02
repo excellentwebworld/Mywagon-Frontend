@@ -91,7 +91,8 @@ export default function UsersTab() {
   }, [actionMenu, showRoleFilter, showStatusFilter]);
 
   const filtered = useMemo(() => {
-    let list = [...users];
+    // User Management shows dispatcher sub-users only (Main Shipper / owner excluded).
+    let list = users.filter((u) => !(u.isOwner || u.is_owner));
     const q = search.toLowerCase();
     if (q) {
       list = list.filter((u) =>
