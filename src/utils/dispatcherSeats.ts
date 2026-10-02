@@ -8,7 +8,7 @@ export type DispatcherSeatMeta = {
   total: number;
   remaining: number;
   can_invite: boolean;
-  plan?: string | null;
+  plan: string | null;
 };
 
 function toNonNegInt(value: unknown): number {
@@ -40,6 +40,7 @@ export function normalizeDispatcherSeats(
     total,
     remaining,
     can_invite: canInvite,
+    plan: seats.plan ?? null,
   };
 }
 
