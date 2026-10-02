@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, ApiError, AUTH_TOKEN_KEY } from '../client';
+import { apiGet, apiPost, apiPut, ApiError, AUTH_TOKEN_KEY, getAcceptLanguage } from '../client';
 import {
   facetToListParams,
   mapApiSkuToSku,
@@ -161,8 +161,7 @@ export const productMasterService = {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     const response = await fetch(`${API_BASE}/product-master/export`, {
       headers: {
-        // Exported file content must stay English regardless of UI language.
-        'Accept-Language': 'en',
+        'Accept-Language': getAcceptLanguage(),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });

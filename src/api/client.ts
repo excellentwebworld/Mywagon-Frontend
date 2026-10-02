@@ -19,6 +19,16 @@ export function clearStoredToken(): void {
   safeLocalRemove(AUTH_TOKEN_KEY);
 }
 
+/** Current UI locale for Accept-Language on API/export requests (`el` | `en`). */
+export function getAcceptLanguage(): 'el' | 'en' {
+  const currentLang =
+    safeLocalGet('shipment-lang') ||
+    safeLocalGet('app_locale') ||
+    safeLocalGet('i18nextLng') ||
+    'en';
+  return currentLang.toLowerCase().startsWith('el') ? 'el' : 'en';
+}
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
 export const axiosInstance = axios.create({
@@ -57,13 +67,8 @@ axiosInstance.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  const currentLang =
-    localStorage.getItem('shipment-lang') ||
-    localStorage.getItem('app_locale') ||
-    localStorage.getItem('i18nextLng') ||
-    'en';
-  const normLang = currentLang.toLowerCase().startsWith('el') ? 'el' : 'en';
-  // Allow per-request override (exports always force English file content).
+  const normLang = getAcceptLanguage();
+  // Allow per-request override (e.g. import templates / PDF print stay English).
   const forceLocale = config.headers['X-Force-Locale'];
   if (forceLocale) {
     const forced = String(forceLocale).toLowerCase().startsWith('el') ? 'el' : 'en';
@@ -271,8 +276,6 @@ export async function apiDownload(
       headers: {
         Accept:
           'application/octet-stream, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, */*',
-        // Exported file content must stay English regardless of UI language.
-        'X-Force-Locale': 'en',
       },
     });
     const blob = response.data as Blob;

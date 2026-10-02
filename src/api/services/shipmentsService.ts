@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete, AUTH_TOKEN_KEY, ApiError } from '../client';
+import { apiGet, apiPost, apiPut, apiDelete, AUTH_TOKEN_KEY, ApiError, getAcceptLanguage } from '../client';
 import { mapApiDetailToShipment, mapApiListItemToShipment } from '../mappers/shipmentsMapper';
 import type {
   ApiCancelReasonsPayload,
@@ -138,8 +138,7 @@ export const shipmentsService = {
     const response = await fetch(`${API_BASE}/shipments/export?${query.toString()}`, {
       headers: {
         Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        // Exported file content must stay English regardless of UI language.
-        'Accept-Language': 'en',
+        'Accept-Language': getAcceptLanguage(),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });

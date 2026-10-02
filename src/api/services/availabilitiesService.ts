@@ -1,4 +1,4 @@
-import { ApiError, apiGet, apiPost, AUTH_TOKEN_KEY } from '../client';
+import { ApiError, apiGet, apiPost, AUTH_TOKEN_KEY, getAcceptLanguage } from '../client';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 import { buildListParams, mapListItemToTruck, mapPendingMatch, mapPendingMatchDetail } from '../mappers/availabilitiesMapper';
@@ -223,8 +223,7 @@ export const availabilitiesService = {
     const response = await fetch(`${API_BASE}/availabilities/export${toQueryString(params)}`, {
       headers: {
         Accept: 'text/csv',
-        // Exported file content must stay English regardless of UI language.
-        'Accept-Language': 'en',
+        'Accept-Language': getAcceptLanguage(),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });

@@ -16,7 +16,9 @@ export default function SeatBanner() {
 
   const usedSeats = seats?.used ?? 0;
   const totalSeats = seats?.total ?? 0;
-  const atLimit = seats?.can_invite === false;
+  // Main Shipper is not a seat consumer. Never show "limit reached" when seats remain.
+  const atLimit =
+    seats?.can_invite === false && !(usedSeats < totalSeats && totalSeats > 0);
   const planLabel = seats?.plan
     ? t('userMgmt.seats.plan', { plan: seats.plan })
     : t('userMgmt.seats.currentPlan');
@@ -64,7 +66,7 @@ export default function SeatBanner() {
         >
           <div
             className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${Math.min(pct || (atLimit ? 100 : 0), 100)}%`, background: barColor }}
+            style={{ width: `${Math.min(pct, 100)}%`, background: barColor }}
           />
         </div>
       </div>

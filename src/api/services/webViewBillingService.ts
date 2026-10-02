@@ -81,8 +81,6 @@ export function createWebViewBillingService(role: WebViewRole, userId: string): 
     try {
       const response = await axiosInstance.get(`${path}${qs}`, {
         responseType: 'blob',
-        // Exported file content must stay English regardless of UI language.
-        params: { lang: 'en' },
         headers: {
           Accept:
             'application/octet-stream, text/csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, */*',
@@ -196,8 +194,7 @@ export function createWebViewBillingService(role: WebViewRole, userId: string): 
     },
 
     async getStatement(month: string, extra?: StatementExportExtra): Promise<StatementPayload> {
-      // Statement PDF body text must stay English regardless of UI language.
-      const res = await get<StatementPayload>(`${BASE}/statements`, { month, ...extra }, true);
+      const res = await get<StatementPayload>(`${BASE}/statements`, { month, ...extra });
       return res.data;
     },
 

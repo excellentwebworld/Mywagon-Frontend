@@ -52,7 +52,12 @@ export default function UsersTab() {
   const { remaining } = useSubscriptionPermission();
   const dispatcherRemaining = remaining('dispatcher_users');
   const canManageUsers = canManageShipperUsers(authUser);
-  const canInvite = canManageUsers && seats?.can_invite !== false;
+  // Seats count dispatcher sub-users only (Main Shipper excluded). Prefer live seats meta.
+  const seatLimitReached =
+    seats != null
+      ? seats.can_invite === false && !((seats.used ?? 0) < (seats.total ?? 0))
+      : dispatcherRemaining !== null && dispatcherRemaining <= 0;
+  const canInvite = canManageUsers && !seatLimitReached;
   const roleFilterOptions = roles.length ? roles : SHIPPER_ROLES;
   const rolesByKey = useMemo(() => {
     const map = {};
@@ -154,10 +159,7 @@ export default function UsersTab() {
       return;
     }
     if (!requireSignupComplete()) return;
-    if (
-      (seats && seats.can_invite === false) ||
-      (dispatcherRemaining !== null && dispatcherRemaining <= 0)
-    ) {
+    if (seatLimitReached) {
       openUpgradeGate({ variant: 'limit' });
       return;
     }
@@ -284,7 +286,16 @@ export default function UsersTab() {
 
     setExporting(true);
     try {
-      const header = ['first_name', 'last_name', 'email', 'role', 'status', 'last_active', 'created', 'phone'];
+      const header = [
+        t('userMgmt.exportCsv.firstName', 'First Name'),
+        t('userMgmt.exportCsv.lastName', 'Last Name'),
+        t('userMgmt.exportCsv.email', 'Email'),
+        t('userMgmt.table.col_role', 'Role'),
+        t('userMgmt.table.col_status', 'Status'),
+        t('userMgmt.table.col_lastActive', 'Last Active'),
+        t('userMgmt.table.col_created', 'Created'),
+        t('userMgmt.exportCsv.phone', 'Phone'),
+      ];
       const rows = filtered.map((u) => [
         u.firstName || u.first_name || '',
         u.lastName || u.last_name || '',

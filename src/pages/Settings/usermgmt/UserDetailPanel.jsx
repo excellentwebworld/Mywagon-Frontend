@@ -135,7 +135,11 @@ export default function UserDetailPanel({
     if (!validate()) return;
 
     if (!isEdit) {
-      if (seats && seats.can_invite === false) {
+      if (
+        seats &&
+        seats.can_invite === false &&
+        !((seats.used ?? 0) < (seats.total ?? 0))
+      ) {
         setErrors({ email: t('userMgmt.seats.limitReached', { defaultValue: 'Seat limit reached' }) });
         return;
       }

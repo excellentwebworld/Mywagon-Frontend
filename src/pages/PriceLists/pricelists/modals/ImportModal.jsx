@@ -40,7 +40,8 @@ export default function ImportModal({ open, onClose, onImported, existingLanes }
   const [dragOver, setDragOver] = useState(false);
   const [importResult, setImportResult] = useState(null);
 
-  // UI reference can stay localized; downloaded template/export files are always English.
+  // UI reference can stay localized; import template stays English for stable re-import.
+  // Listing Export uses the selected UI language (EN/EL).
   const columns = SIMPLE_CSV_COLUMNS_EN;
   const exportColumns = EXPORT_CSV_COLUMNS_EN;
 

@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost, apiPut, AUTH_TOKEN_KEY, ApiError } from '../client';
+import { apiDelete, apiGet, apiPost, apiPut, AUTH_TOKEN_KEY, ApiError, getAcceptLanguage } from '../client';
 import {
   directoryToListParams,
   listParamsToExportQuery,
@@ -143,8 +143,7 @@ export const addressBookService = {
     const response = await fetch(`${API_BASE}/address-book/export?${query.toString()}`, {
       headers: {
         Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        // Exported file content must stay English regardless of UI language.
-        'Accept-Language': 'en',
+        'Accept-Language': getAcceptLanguage(),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });

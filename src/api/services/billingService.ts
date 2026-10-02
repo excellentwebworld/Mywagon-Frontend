@@ -149,11 +149,9 @@ export const billingService = {
   },
 
   async getStatement(month: string, extra?: StatementExportExtra): Promise<StatementPayload> {
-    // Statement PDF body text must stay English regardless of UI language.
     const res = await apiGet<StatementPayload>(
       '/billing/statements',
       { month, ...extra },
-      { 'X-Force-Locale': 'en' },
     );
     return res.data;
   },

@@ -51,7 +51,11 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
   const { roles, seats, setSeats } = useUserMgmt();
   const { user: authUser, refreshUser } = useAuth();
   const isEdit = !!user;
-  const atSeatLimit = !isEdit && seats && seats.can_invite === false;
+  const atSeatLimit =
+    !isEdit &&
+    seats &&
+    seats.can_invite === false &&
+    !((seats.used ?? 0) < (seats.total ?? 0));
 
   const [countryCodes, setCountryCodes] = useState([]);
 
@@ -143,7 +147,7 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
     if (!validate()) return;
 
     if (!isEdit) {
-      if (seats && seats.can_invite === false) {
+      if (atSeatLimit) {
         setErrors({ form: t('userMgmt.seats.limitReached') });
         return;
       }

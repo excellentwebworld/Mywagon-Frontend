@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost, apiPut, ApiError, AUTH_TOKEN_KEY } from '../client';
+import { apiDelete, apiGet, apiPost, apiPut, ApiError, AUTH_TOKEN_KEY, getAcceptLanguage } from '../client';
 import {
   buildListParams,
   mapApiDetailToOrder,
@@ -156,8 +156,7 @@ export const erpOrdersService = {
     const response = await fetch(`${API_BASE}/erp-orders/export?${exportQuery.toString()}`, {
       headers: {
         Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        // Exported file content must stay English regardless of UI language.
-        'Accept-Language': 'en',
+        'Accept-Language': getAcceptLanguage(),
         'X-Client-Timezone': clientTimezone,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },

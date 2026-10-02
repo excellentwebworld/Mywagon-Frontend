@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Wallet, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Invoice } from '../../types';
-import { formatCurrency, isInvoicePaid, normalizeInvoiceStatus } from '../../mockData';
+import { formatCurrency, isInvoicePaid, invoiceTypeLabel, normalizeInvoiceStatus } from '../../mockData';
 import { BillingModalPortal } from './BillingModalPortal';
 import { ApplyCreditModalSkeleton } from '../BillingSkeleton';
 
@@ -96,7 +96,7 @@ export const ApplyCreditModal: React.FC<ApplyCreditModalProps> = ({
                       <select value={selectedInv} onChange={(e) => setSelectedInv(e.target.value)}>
                         {payableInvoices.map((inv) => (
                           <option key={inv.raw_id} value={inv.raw_id}>
-                            {inv.id} — {formatCurrency(inv.rem, inv.cur)} ({inv.type})
+                            {inv.id} — {formatCurrency(inv.rem, inv.cur)} ({invoiceTypeLabel(inv, t)})
                           </option>
                         ))}
                       </select>

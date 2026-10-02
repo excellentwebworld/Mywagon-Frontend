@@ -1336,17 +1336,18 @@ export function useSearchTrucks() {
       return;
     }
     const header = [
-      'ID',
-      'Visibility',
-      'Available',
-      'Pickup',
-      'Destination',
-      'Vehicle Type',
-      'Trip',
-      'Carrier',
-      'Price',
-      'Posted',
+      t('satExportColId', 'ID'),
+      t('satExportColVisibility', 'Visibility'),
+      t('satExportColAvailable', 'Available'),
+      t('satExportColPickup', 'Pickup'),
+      t('satExportColDestination', 'Destination'),
+      t('satExportColVehicleType', 'Vehicle Type'),
+      t('satExportColTrip', 'Trip'),
+      t('satExportColCarrier', 'Carrier'),
+      t('satExportColPrice', 'Price'),
+      t('satExportColPosted', 'Posted'),
     ];
+    const offerBased = t('satExportOfferBased', 'Offer-based');
     const rows = filtered.map((x) => [
       x.id,
       x.vis,
@@ -1356,7 +1357,7 @@ export function useSearchTrucks() {
       `${x.truckType} ${x.specs} ${x.capacity}`,
       x.trip,
       x.carrier,
-      x.price != null ? String(x.price) : 'Offer-based',
+      x.price != null ? String(x.price) : offerBased,
       x.posted,
     ]);
     const csv = [header, ...rows]
