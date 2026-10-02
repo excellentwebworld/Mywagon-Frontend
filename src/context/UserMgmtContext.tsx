@@ -9,6 +9,7 @@ import {
   useMemo,
   useState,
   type ReactNode,
+  type SetStateAction,
 } from 'react';
 import { useLocation } from 'react-router-dom';
 import { usersSettingsService, type SeatMeta, type SettingsUser } from '../api/services/usersSettingsService';
@@ -17,6 +18,7 @@ import {
   type PermissionCatalogGroup,
   type SettingsRole,
 } from '../api/services/rolesSettingsService';
+import { normalizeDispatcherSeats } from '../utils/dispatcherSeats';
 
 export type UserMgmtUser = SettingsUser & Record<string, unknown>;
 
@@ -62,7 +64,7 @@ export function UserMgmtProvider({ children }: { children: ReactNode }) {
         rolesSettingsService.list(),
       ]);
       setUsers((usersPayload.users || []).map((u) => ({ ...u })));
-      setSeats(usersPayload.seats || null);
+      setSeats(normalizeDispatcherSeats(usersPayload.seats) || null);
       setRoles(rolesPayload.roles || []);
       setPermissionGroups(rolesPayload.groups || []);
     } catch (e: unknown) {
@@ -95,6 +97,13 @@ export function UserMgmtProvider({ children }: { children: ReactNode }) {
     setUsers((prev) => prev.filter((u) => String(u.id) !== String(id)));
   }, []);
 
+  const setSeatsNormalized = useCallback((update: SetStateAction<SeatMeta | null>) => {
+    setSeats((prev) => {
+      const next = typeof update === 'function' ? update(prev) : update;
+      return normalizeDispatcherSeats(next) || null;
+    });
+  }, []);
+
   const value = useMemo(
     () => ({
       users,
@@ -111,7 +120,7 @@ export function UserMgmtProvider({ children }: { children: ReactNode }) {
       removeUser,
       setRoles,
       setPermissionGroups,
-      setSeats,
+      setSeats: setSeatsNormalized,
     }),
     [
       users,
@@ -125,6 +134,7 @@ export function UserMgmtProvider({ children }: { children: ReactNode }) {
       updateUser,
       addUser,
       removeUser,
+      setSeatsNormalized,
     ],
   );
 

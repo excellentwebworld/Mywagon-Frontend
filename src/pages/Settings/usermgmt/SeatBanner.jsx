@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../../hooks/useTheme';
 import { Crown, ArrowUpRight } from 'lucide-react';
 import { useUserMgmt } from '../../../context/UserMgmtContext';
+import { isDispatcherSeatLimitReached } from '../../../utils/dispatcherSeats';
 
 export default function SeatBanner() {
   const { t } = useTranslation();
@@ -16,9 +17,8 @@ export default function SeatBanner() {
 
   const usedSeats = seats?.used ?? 0;
   const totalSeats = seats?.total ?? 0;
-  // Main Shipper is not a seat consumer. Never show "limit reached" when seats remain.
-  const atLimit =
-    seats?.can_invite === false && !(usedSeats < totalSeats && totalSeats > 0);
+  // Main Shipper is not a seat consumer — limit is based on used/total only.
+  const atLimit = isDispatcherSeatLimitReached(seats);
   const planLabel = seats?.plan
     ? t('userMgmt.seats.plan', { plan: seats.plan })
     : t('userMgmt.seats.currentPlan');

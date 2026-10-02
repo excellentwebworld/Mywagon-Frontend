@@ -15,6 +15,7 @@ import { usersSettingsService } from '../../../../api/services/usersSettingsServ
 import { signupService } from '../../../../api/auth';
 import { ApiError } from '../../../../api/client';
 import { SHIPPER_ROLES, localizeShipperRoleName } from '../../../../utils/shipperAccessPresets';
+import { isDispatcherSeatLimitReached, normalizeDispatcherSeats } from '../../../../utils/dispatcherSeats';
 import { CountryCodeSelect } from '../../../Register/components/CountryCodeSelect';
 import { validateCountryCode, validatePhone } from '../../../Register/registerValidation';
 import '../../../Register/RegisterPage.css';
@@ -51,11 +52,7 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
   const { roles, seats, setSeats } = useUserMgmt();
   const { user: authUser, refreshUser } = useAuth();
   const isEdit = !!user;
-  const atSeatLimit =
-    !isEdit &&
-    seats &&
-    seats.can_invite === false &&
-    !((seats.used ?? 0) < (seats.total ?? 0));
+  const atSeatLimit = !isEdit && isDispatcherSeatLimitReached(seats);
 
   const [countryCodes, setCountryCodes] = useState([]);
 
@@ -167,7 +164,7 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
       } catch (e) {
         const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.inviteFailed', { defaultValue: 'Invite failed' });
         if (e instanceof ApiError && e.status === 403) {
-          const seatMeta = seatsFromErrorData(e.data);
+          const seatMeta = normalizeDispatcherSeats(seatsFromErrorData(e.data));
           if (seatMeta) {
             setSeats(seatMeta);
             setErrors({ form: msg || t('userMgmt.seats.limitReached') });

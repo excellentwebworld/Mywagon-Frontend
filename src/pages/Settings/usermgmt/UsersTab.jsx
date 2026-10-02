@@ -28,6 +28,7 @@ import {
 } from '../../../mocks/userMgmtData';
 import UserAvatar from './UserAvatar';
 import { canManageShipperUsers, hasCustomDirectPermissions, localizeShipperRoleName, SHIPPER_ROLES } from '../../../utils/shipperAccessPresets';
+import { isDispatcherSeatLimitReached } from '../../../utils/dispatcherSeats';
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
 import { ApiError } from '../../../api/client';
 import { parseUtcInstant } from '../../../utils/timezone';
@@ -53,10 +54,7 @@ export default function UsersTab() {
   const dispatcherRemaining = remaining('dispatcher_users');
   const canManageUsers = canManageShipperUsers(authUser);
   // Seats count dispatcher sub-users only (Main Shipper excluded). Prefer live seats meta.
-  const seatLimitReached =
-    seats != null
-      ? seats.can_invite === false && !((seats.used ?? 0) < (seats.total ?? 0))
-      : dispatcherRemaining !== null && dispatcherRemaining <= 0;
+  const seatLimitReached = isDispatcherSeatLimitReached(seats, dispatcherRemaining);
   const canInvite = canManageUsers && !seatLimitReached;
   const roleFilterOptions = roles.length ? roles : SHIPPER_ROLES;
   const rolesByKey = useMemo(() => {

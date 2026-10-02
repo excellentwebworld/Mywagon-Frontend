@@ -11,6 +11,7 @@ import { usersSettingsService } from '../../../api/services/usersSettingsService
 import { signupService } from '../../../api/auth';
 import { ApiError } from '../../../api/client';
 import { SHIPPER_ROLES, localizeShipperRoleName } from '../../../utils/shipperAccessPresets';
+import { isDispatcherSeatLimitReached, normalizeDispatcherSeats } from '../../../utils/dispatcherSeats';
 import { CountryCodeSelect } from '../../Register/components/CountryCodeSelect';
 import { validateCountryCode, validatePhone } from '../../Register/registerValidation';
 import '../../Register/RegisterPage.css';
@@ -135,11 +136,7 @@ export default function UserDetailPanel({
     if (!validate()) return;
 
     if (!isEdit) {
-      if (
-        seats &&
-        seats.can_invite === false &&
-        !((seats.used ?? 0) < (seats.total ?? 0))
-      ) {
+      if (isDispatcherSeatLimitReached(seats)) {
         setErrors({ email: t('userMgmt.seats.limitReached', { defaultValue: 'Seat limit reached' }) });
         return;
       }
@@ -157,12 +154,14 @@ export default function UserDetailPanel({
         setForm({ ...EMPTY_FORM });
         setErrors({});
         if (seats) {
-          setSeats({
+          const used = (seats.used || 0) + 1;
+          const remaining = Math.max(0, (seats.remaining || 0) - 1);
+          setSeats(normalizeDispatcherSeats({
             ...seats,
-            used: (seats.used || 0) + 1,
-            remaining: Math.max(0, (seats.remaining || 0) - 1),
-            can_invite: (seats.remaining || 0) - 1 > 0,
-          });
+            used,
+            remaining,
+            can_invite: remaining > 0,
+          }));
         }
       } catch (e) {
         const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.inviteFailed', { defaultValue: 'Invite failed' });
