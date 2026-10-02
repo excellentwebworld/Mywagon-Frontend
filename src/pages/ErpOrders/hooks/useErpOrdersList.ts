@@ -31,6 +31,7 @@ import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplet
 import { useSubscriptionPermission } from '../../../hooks/useSubscriptionPermission';
 import { useUpgradeGate } from '../../../context/UpgradeGateContext';
 import type { SKU } from '../../../context/AppContext';
+import { normalizeQtyUnit, normalizeWeightUnit } from '../../../constants/cargoUnits';
 
 const DEFAULT_FILTERS: ErpOrdersFilterState = {
   highPriority: false,
@@ -556,7 +557,14 @@ export function useErpOrdersList() {
       notes: order.notes,
       highPriority: order.highPriority,
       orderValue: order.orderValue,
-      lines: order.lines.length ? order.lines : [],
+      // Normalize units so empty API values match select options (avoids false validation errors).
+      lines: order.lines.length
+        ? order.lines.map((line) => ({
+            ...line,
+            unit: normalizeQtyUnit(line.unit) || line.unit || 'EUR Pallets',
+            weightUnit: normalizeWeightUnit(line.weightUnit || 'Kgs'),
+          }))
+        : [],
     });
     setIsFormOpen(true);
   }, [requireSignupComplete]);

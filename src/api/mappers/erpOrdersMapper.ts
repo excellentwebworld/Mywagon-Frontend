@@ -57,9 +57,11 @@ export function mapApiLineToLine(line: ApiErpOrderDetail['lines'][number]): ErpO
           ? Number(line.quantity)
           : null,
     shippedQuantity: line.shipped_quantity != null ? Number(line.shipped_quantity) : null,
-    unit: normalizeQtyUnit(line.unit) || line.unit || '',
+    // Empty unit must default to a real option — a blank controlled <select>
+    // visually shows "EUR Pallets" but leaves form state empty and fails validation.
+    unit: normalizeQtyUnit(line.unit) || line.unit || 'EUR Pallets',
     weight: line.weight ?? null,
-    weightUnit: normalizeWeightUnit(line.weight_unit ?? 'Kgs'),
+    weightUnit: normalizeWeightUnit(line.weight_unit || 'Kgs'),
   };
 }
 

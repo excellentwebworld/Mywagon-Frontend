@@ -129,7 +129,11 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
           />
           <select
             className="inp"
-            value={normalizeQtyUnit(line.unit) || line.unit}
+            value={
+              allowEmptySelects
+                ? normalizeQtyUnit(line.unit) || line.unit || ''
+                : normalizeQtyUnit(line.unit) || line.unit || 'EUR Pallets'
+            }
             onChange={(e) => updateLine(index, { unit: e.target.value })}
           >
             {allowEmptySelects && <option value="">—</option>}
@@ -148,7 +152,11 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
           />
           <select
             className="inp"
-            value={normalizeWeightUnit(line.weightUnit)}
+            value={
+              allowEmptySelects && !String(line.weightUnit || '').trim()
+                ? ''
+                : normalizeWeightUnit(line.weightUnit || 'Kgs')
+            }
             onChange={(e) => updateLine(index, { weightUnit: e.target.value })}
           >
             {allowEmptySelects && <option value="">—</option>}
