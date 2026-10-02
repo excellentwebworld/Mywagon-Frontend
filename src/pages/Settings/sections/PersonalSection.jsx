@@ -622,14 +622,20 @@ function Field({ label, value, onChange, editing, locked, lockMsg, required, ico
           style={{ border: `1px solid ${theme.bd}`, background: theme.sf, color: theme.t1, fontSize: 13 }}
         />
       ) : (
-        <div
-          className="flex items-center gap-2 px-3 py-2 rounded-lg"
-          style={{ background: theme.sa, fontSize: 13, color: locked ? theme.t3 : theme.t1 }}
-        >
-          {icon}
-          <span className="flex-1">{value || '—'}</span>
-          {locked && lockMsg && <span style={{ fontSize: 10, color: theme.t3 }}>{lockMsg}</span>}
-        </div>
+        <>
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded-lg min-w-0"
+            style={{ background: theme.sa, fontSize: 13, color: locked ? theme.t3 : theme.t1 }}
+          >
+            {icon}
+            <span className="flex-1 truncate">{value || '—'}</span>
+          </div>
+          {locked && lockMsg && (
+            <p className="mt-1 mb-0" style={{ fontSize: 10, color: theme.t3 }}>
+              {lockMsg}
+            </p>
+          )}
+        </>
       )}
     </div>
   );
