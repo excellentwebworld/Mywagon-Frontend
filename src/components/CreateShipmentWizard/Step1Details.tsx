@@ -529,6 +529,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const dupStop = useCallback(
     (sid: string) => {
+      if (stopsRef.current.length >= 2 && !can('allow_multiple_stops')) {
+        openUpgradeGate();
+        return;
+      }
       setStops((prev) => {
         const src = prev.find((s: any) => s.id === sid);
         if (!src) return prev;
@@ -551,7 +555,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         return out;
       });
     },
-    [setStops],
+    [can, openUpgradeGate, setStops],
   );
 
   // Drag-to-reorder

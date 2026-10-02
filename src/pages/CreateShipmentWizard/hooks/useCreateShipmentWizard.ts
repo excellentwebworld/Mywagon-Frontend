@@ -19,6 +19,8 @@ import {
   MAX_TARGET_PRICE_VALUE,
 } from '../../../components/CreateShipmentWizard/validation';
 import { useApp, type LocationItem } from '../../../context/AppContext';
+import { useUpgradeGate } from '../../../context/UpgradeGateContext';
+import { useSubscriptionPermission } from '../../../hooks/useSubscriptionPermission';
 import { useVehicleTypes } from '../../../hooks/useVehicleTypes';
 import type { ErpOrder } from '../../ErpOrders/types';
 import type { CompareView } from '../editDiff';
@@ -210,6 +212,12 @@ export function useCreateShipmentWizard(
   const { locations, refreshLocationsFromApi } = useApp();
   const { vehicleTypes } = useVehicleTypes();
   const queryClient = useQueryClient();
+  const { can } = useSubscriptionPermission();
+  const { openUpgradeGate } = useUpgradeGate();
+  const canRef = useRef(can);
+  const openUpgradeGateRef = useRef(openUpgradeGate);
+  canRef.current = can;
+  openUpgradeGateRef.current = openUpgradeGate;
 
   const draftUrlId = searchParams.get('id');
   const editUrlId = searchParams.get('editId');
@@ -488,6 +496,12 @@ export function useCreateShipmentWizard(
         });
 
         const stops = buildStopsFromErpOrders(orders, locations);
+        if (stops.length > 2 && !canRef.current('allow_multiple_stops')) {
+          openUpgradeGateRef.current();
+          sessionStorage.removeItem(ERP_ORDERS_PREFILL_KEY);
+          navigate('/erp-orders');
+          return;
+        }
         setLoadedValues({
           ...defaultValues,
           stops,

@@ -9,6 +9,7 @@ import { statusLabel as statusLabelEn, statusLabelKey, buildExportParams } from 
 import type { ErpOrderStatus } from '../../../api/types/erpOrders';
 import {
   ERP_ORDERS_PREFILL_KEY,
+  buildStopsFromErpOrders,
   isOrderEligibleForCreateLoad,
 } from '../../CreateShipmentWizard/hooks/erpOrdersPrefill';
 import { wizardQueryKeys } from '../../CreateShipmentWizard/hooks/wizardQueryKeys';
@@ -27,6 +28,8 @@ import type {
 } from '../types';
 import { EMPTY_ORDER_FORM as EMPTY_FORM, EMPTY_ORDER_LINE } from '../types';
 import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
+import { useSubscriptionPermission } from '../../../hooks/useSubscriptionPermission';
+import { useUpgradeGate } from '../../../context/UpgradeGateContext';
 import type { SKU } from '../../../context/AppContext';
 
 const DEFAULT_FILTERS: ErpOrdersFilterState = {
@@ -43,6 +46,8 @@ export function useErpOrdersList() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { requireSignupComplete } = useRequireSignupComplete();
+  const { can } = useSubscriptionPermission();
+  const { openUpgradeGate } = useUpgradeGate();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const setSearchParamsRef = useRef(setSearchParams);
@@ -438,6 +443,15 @@ export function useErpOrdersList() {
         return false;
       }
 
+      // Essential (and any plan without allow_multiple_stops) cannot create
+      // shipments with more than pickup + delivery. ERP multi-order selection
+      // can collapse into 3+ stops — gate before navigating to the wizard.
+      const projectedStops = buildStopsFromErpOrders(resolved);
+      if (projectedStops.length > 2 && !can('allow_multiple_stops')) {
+        openUpgradeGate();
+        return false;
+      }
+
       if (singleOrderId) {
         setSelectedIds(new Set([singleOrderId]));
       }
@@ -456,7 +470,7 @@ export function useErpOrdersList() {
       navigate('/shipments/create/step/1?erp_orders=1');
       return true;
     },
-    [selectedIds, orders, showToast, t, navigate, requireSignupComplete]
+    [selectedIds, orders, showToast, t, navigate, requireSignupComplete, can, openUpgradeGate]
   );
 
   const handleExport = useCallback(async () => {
