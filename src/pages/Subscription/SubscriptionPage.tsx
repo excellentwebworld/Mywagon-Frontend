@@ -26,8 +26,10 @@ import type {
   BillingCycle as ApiCycle,
   PurchasedAddon,
   SubscriptionAddonOffer,
+  SubscriptionCurrent,
   SubscriptionOverview,
   SubscriptionPermissionItem,
+  SubscriptionPlanItem,
   SubscriptionQuote,
 } from '../../api/types/subscription';
 import { formatDate, formatMoney } from './mockData';
@@ -102,6 +104,34 @@ function formatEuro(n: number, currency?: string): string {
 
 function toApiCycle(cycle: UiCycle): ApiCycle {
   return cycle === 'yearly' ? 'year' : 'month';
+}
+
+/**
+ * Plan CTA availability — trust API flags, with the same no-downgrade guard
+ * Laravel uses for monthly→yearly (target monthly list price must be ≥ current).
+ * Prevents monthly Pro from offering yearly Plus (lower tier).
+ */
+function planUpgradeAvailable(
+  plan: SubscriptionPlanItem,
+  cycle: UiCycle,
+  current: SubscriptionCurrent | null | undefined,
+  subscribedCycle: UiCycle,
+): boolean {
+  const apiAllows =
+    cycle === 'yearly' ? plan.upgrade_available_yearly : plan.upgrade_available_monthly;
+  if (!apiAllows) return false;
+
+  if (
+    cycle === 'yearly' &&
+    subscribedCycle === 'monthly' &&
+    current &&
+    !current.is_free &&
+    plan.price_monthly < current.list_monthly
+  ) {
+    return false;
+  }
+
+  return true;
 }
 
 function currentIntervalToUi(
@@ -1154,8 +1184,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
           {plans.map((p) => {
             const pr = cycle === 'yearly' ? p.price_yearly_monthly_rate : p.price_monthly;
             const isCurrentCard = p.id === current?.plan_id && cycle === subscribedCycle;
-            const canUpgrade =
-              cycle === 'yearly' ? p.upgrade_available_yearly : p.upgrade_available_monthly;
+            const canUpgrade = planUpgradeAvailable(p, cycle, current, subscribedCycle);
             const planPermissions = resolvePlanPermissions(
               p.permissions,
               isCurrentCard,
