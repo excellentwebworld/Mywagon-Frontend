@@ -1120,20 +1120,6 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
           </div>
         </div>
         <div className="usage-grid">
-          {!isWebView ? (
-            <>
-              <UsageMeter
-                label={tf('activeUsers', 'Active Users')}
-                used={data?.seats?.active_users ?? 0}
-                limit={null}
-              />
-              <UsageMeter
-                label={tf('paidUsers', 'Paid Users')}
-                used={data?.seats?.paid_users ?? 0}
-                limit={null}
-              />
-            </>
-          ) : null}
           {(data?.usage ?? []).map((u) => {
             const unlimited = u.unlimited || u.limit == null;
             return (
