@@ -80,7 +80,7 @@ import type {
   CreateLocationData,
   CompanyFormData,
 } from "../../pages/AddressBook/types";
-import type { ApiCompanyLookup } from "../../api/types/addressBook";
+import type { ApiCompanyEntity } from "../../api/types/addressBook";
 import {
   QTY_UNIT_OPTIONS,
   WEIGHT_UNIT_OPTIONS,
@@ -288,7 +288,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const [createData, setCreateData] =
     useState<CreateLocationData>(EMPTY_CREATE_DATA);
   const [companyQuery, setCompanyQuery] = useState("");
-  const [apiCompanies, setApiCompanies] = useState<ApiCompanyLookup[]>([]);
+  const [apiCompanies, setApiCompanies] = useState<ApiCompanyEntity[]>([]);
   const [potentialDuplicates, setPotentialDuplicates] = useState<
     LocationItem[]
   >([]);
@@ -373,7 +373,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     const q = companyQuery.trim();
     const timer = setTimeout(() => {
       addressBookService
-        .listCompanies(q || undefined, "my_locations")
+        .listCompanyEntities(q || undefined)
         .then(setApiCompanies)
         .catch(() => setApiCompanies([]));
     }, 200);
@@ -1041,11 +1041,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         });
 
         setApiCompanies((prev) => [
-          ...prev,
-          {
-            company_name: created.name,
-            company_vat: created.vat_number || "",
-          },
+          created,
+          ...prev.filter((c) => Number(c.id) !== Number(created.id)),
         ]);
         setCreateData((prev) => ({
           ...prev,

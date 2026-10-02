@@ -74,9 +74,9 @@ export const CreateLocationModal: React.FC<Props> = ({
   const companyOptions = useMemo(
     () =>
       filteredCompanies.map((c) => ({
-        value: c.company_vat,
-        label: c.company_name,
-        sublabel: c.company_vat ? `VAT: ${c.company_vat}` : undefined,
+        value: String(c.id),
+        label: c.name,
+        sublabel: c.vat_number ? `VAT: ${c.vat_number}` : undefined,
       })),
     [filteredCompanies]
   );
@@ -182,18 +182,18 @@ export const CreateLocationModal: React.FC<Props> = ({
             {t('abCompanyEntity')} <span className="req">*</span>
           </label>
           <SearchableSelect
-            value={createData.companyVat}
+            value={createData.companyEntityId ? String(createData.companyEntityId) : ''}
             options={companyOptions}
             placeholder={t('abSearchExistingCompanies')}
             searchPlaceholder={t('abTypeToSearch')}
             hasError={Boolean(fieldErrors.companyEntity)}
             onSearchChange={setCompanyQuery}
             onChange={(val, opt) => {
-              const entity = filteredCompanies.find((c) => c.company_vat === val);
+              const entity = filteredCompanies.find((c) => String(c.id) === String(val));
               update({
-                companyEntityId: null,
-                company: entity?.company_name ?? opt?.label ?? '',
-                companyVat: entity?.company_vat ?? val ?? '',
+                companyEntityId: entity?.id ?? (val ? Number(val) : null),
+                company: entity?.name ?? opt?.label ?? '',
+                companyVat: entity?.vat_number ?? '',
               });
             }}
             headerAction={{

@@ -25,7 +25,7 @@ import { validateCreateAll } from '../../pages/AddressBook/validation/locationCr
 import { checkLocationDuplicate, DUPLICATE_LOCATION_KEY, DUPLICATE_LOCATION_MESSAGE } from '../../pages/AddressBook/validation/locationDuplicateValidation';
 import { applyTemplate } from '../../pages/AddressBook/utils/locationUtils';
 import { addressBookService } from '../../api';
-import type { ApiCompanyLookup } from '../../api';
+import type { ApiCompanyEntity } from '../../api';
 import { syncCustomerDropdownCaches } from '../../api/utils/masterDataCache';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -49,7 +49,7 @@ export const ErpOrders: React.FC = () => {
   const [createStep, setCreateStep] = useState(1);
   const [createData, setCreateData] = useState<CreateLocationData>(EMPTY_CREATE_DATA);
   const [companyQuery, setCompanyQuery] = useState('');
-  const [apiCompanies, setApiCompanies] = useState<ApiCompanyLookup[]>([]);
+  const [apiCompanies, setApiCompanies] = useState<ApiCompanyEntity[]>([]);
   const [potentialDuplicates, setPotentialDuplicates] = useState<LocationItem[]>([]);
   const [isCompanyOpen, setIsCompanyOpen] = useState(false);
   const [companyData, setCompanyData] = useState<CompanyFormData>(EMPTY_COMPANY_DATA);
@@ -63,7 +63,7 @@ export const ErpOrders: React.FC = () => {
     const q = companyQuery.trim();
     const timer = setTimeout(() => {
       addressBookService
-        .listCompanies(q || undefined, 'my_locations')
+        .listCompanyEntities(q || undefined)
         .then(setApiCompanies)
         .catch(() => setApiCompanies([]));
     }, 200);
@@ -241,7 +241,7 @@ export const ErpOrders: React.FC = () => {
         'success'
       );
 
-      const updatedCompanies = await addressBookService.listCompanies(companyQuery.trim() || undefined);
+      const updatedCompanies = await addressBookService.listCompanyEntities(companyQuery.trim() || undefined);
       setApiCompanies(updatedCompanies);
       syncCustomerDropdownCaches(queryClient, { customer: created });
     } catch (err) {
