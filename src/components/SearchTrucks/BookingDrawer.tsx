@@ -990,12 +990,19 @@ export const BookingDrawer: React.FC<BookingDrawerProps> = ({
                                 const priceChipLabel = p.negotiable
                                   ? t('contract') || 'CONTRACT'
                                   : t('spot') || 'SPOT';
+                                const rowClass = [
+                                  selected ? 'sel' : '',
+                                  p.exactMatch ? 'is-exact-match' : '',
+                                ]
+                                  .filter(Boolean)
+                                  .join(' ');
                                 return (
                                   <tr
                                     key={pendingKey(p)}
-                                    className={selected ? 'sel' : ''}
+                                    className={rowClass}
                                     role="option"
                                     aria-selected={selected}
+                                    data-exact-match={p.exactMatch ? 'true' : undefined}
                                   >
                                     <td>
                                       <div className="sid">{p.sid}</div>
