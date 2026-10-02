@@ -1029,6 +1029,8 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       avatar: o.avatar ?? null,
       transporterType: o.transporterType === 'driver' || o.role === 'freelancer' ? 'freelancer' : 'carrier',
       isPartner,
+      kind: o.kind ?? (o.availabilityId != null ? 'sent' : 'received'),
+      availabilityId: o.availabilityId ?? null,
       status: o.status ?? null,
       statusText: o.counter
         ? (lastActionBy === 'shipper' ? 'Counter-bid sent · Waiting response' : 'Counter-bid received')

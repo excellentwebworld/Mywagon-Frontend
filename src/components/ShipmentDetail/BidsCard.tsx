@@ -21,8 +21,25 @@ export interface PartnerBidItem {
   time?: string;
   hasBid?: boolean;
   isInterested?: boolean;
+  /** 'sent' = shipper bid on posted truck availability (Search Trucks). */
+  kind?: 'sent' | 'received' | string | null;
+  availabilityId?: number | null;
   lastActionBy?: 'shipper' | 'transporter' | string | null;
   canCounter?: boolean;
+}
+
+/** Match Laravel / RowExpansionPending: no Accept while shipper awaits transporter. */
+function canShowAccept(item: PartnerBidItem): boolean {
+  const lastBy = String(item.lastActionBy || '').toLowerCase();
+  if (lastBy === 'shipper') return false;
+
+  const isAvailabilityBid = item.kind === 'sent' || item.availabilityId != null;
+  if (isAvailabilityBid) {
+    // Availability: Accept only after carrier/driver has responded.
+    return lastBy === 'carrier' || lastBy === 'driver' || lastBy === 'transporter';
+  }
+
+  return true;
 }
 
 interface BidsCardProps {
@@ -122,7 +139,9 @@ export const BidsCard: React.FC<BidsCardProps> = ({
         <div className="space-y-1">
           {sortedPartners.map((item, idx) => {
           const isFreelancer = item.transporterType === 'freelancer' || item.userType === 'driver';
-          const isShipperWaiting = item.lastActionBy === 'shipper';
+          const lastBy = String(item.lastActionBy || '').toLowerCase();
+          const isShipperWaiting = lastBy === 'shipper';
+          const showAccept = canShowAccept(item);
           const canCounter = item.hasBid && !isShipperWaiting && item.canCounter !== false;
           const ratingNum =
             item.rating != null && !isNaN(Number(item.rating))
@@ -219,7 +238,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                   {item.hasBid && (
                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                       {/* Match Laravel: hide Accept while shipper awaits transporter response */}
-                      {onAcceptBid && !isShipperWaiting && (
+                      {onAcceptBid && showAccept && (
                         <button
                           type="button"
                           disabled={acceptingBidId === item.id || decliningBidId === item.id}
