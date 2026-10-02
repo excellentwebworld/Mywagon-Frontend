@@ -65,8 +65,8 @@ export const MilestonesBar: React.FC<MilestonesBarProps> = ({
 
   return (
     <div className="mv-surface-card rounded-2xl px-6 py-5 mb-4 bg-[var(--surface)] border border-[var(--border)] shadow-[0_1px_3px_rgba(0,0,0,0.03)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] transition-all duration-200">
-      <div className="overflow-x-auto py-1 scrollbar-thin scrollbar-thumb-gray-200">
-        <div className="flex items-start w-full min-w-max">
+      <div className="overflow-x-auto py-2 pb-3 scrollbar-thin scrollbar-thumb-gray-200">
+        <div className="flex items-start w-max min-w-full gap-0">
           {steps.map((step, idx) => {
             const isLast = idx === steps.length - 1;
             const { dotBg, ringClass, labelClass, isCur, isRed } = stepStyle(step);
@@ -74,10 +74,8 @@ export const MilestonesBar: React.FC<MilestonesBarProps> = ({
 
             return (
               <div
-                key={step.id}
-                className={`flex flex-col items-start group ${
-                  isLast ? 'flex-1 min-w-[130px]' : 'flex-1 min-w-[140px] max-w-[240px] pr-2'
-                }`}
+                key={`${step.id}-${idx}`}
+                className="flex flex-col items-start flex-shrink-0 w-[152px] sm:w-[168px] pr-3 group"
               >
                 <div className="flex items-center w-full h-6">
                   <span

@@ -1280,6 +1280,77 @@ function progressDateTimeParts(
   };
 }
 
+/** Parse display date/time lines (DD/MM/YYYY + HH:mm) for timeline ordering. */
+function progressStepDisplaySortMs(step: LaravelProgressStep): number | null {
+  const dateLine = (step.dateLine || '').trim();
+  if (!dateLine) return null;
+  const dm = dateLine.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!dm) return null;
+  const day = Number(dm[1]);
+  const month = Number(dm[2]);
+  const year = Number(dm[3]);
+  let hours = 0;
+  let mins = 0;
+  const timeLine = (step.timeLine || '').trim();
+  if (timeLine) {
+    const tm = timeLine.match(/^(\d{1,2}):(\d{2})/);
+    if (tm) {
+      hours = Number(tm[1]);
+      mins = Number(tm[2]);
+    }
+  }
+  const ms = new Date(year, month - 1, day, hours, mins).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
+const PROGRESS_PREFIX_STEP_IDS = ['created', 'waiting', 'accepted', 'carrier', 'canceled'] as const;
+
+/** Keep booking steps first, payment last; sort on-trip events by logged time (incl. POD). */
+export function sortProgressTimelineSteps(steps: LaravelProgressStep[]): LaravelProgressStep[] {
+  if (steps.length <= 1) return steps;
+
+  const originalIndex = new Map<string, number>();
+  steps.forEach((step, idx) => {
+    if (!originalIndex.has(step.id)) originalIndex.set(step.id, idx);
+  });
+
+  const prefix: LaravelProgressStep[] = [];
+  const middle: LaravelProgressStep[] = [];
+  let payment: LaravelProgressStep | undefined;
+
+  for (const step of steps) {
+    if (step.id === 'payment') {
+      payment = step;
+      continue;
+    }
+    if ((PROGRESS_PREFIX_STEP_IDS as readonly string[]).includes(step.id)) {
+      prefix.push(step);
+    } else {
+      middle.push(step);
+    }
+  }
+
+  prefix.sort((a, b) => {
+    const ia = PROGRESS_PREFIX_STEP_IDS.indexOf(a.id as (typeof PROGRESS_PREFIX_STEP_IDS)[number]);
+    const ib = PROGRESS_PREFIX_STEP_IDS.indexOf(b.id as (typeof PROGRESS_PREFIX_STEP_IDS)[number]);
+    const ai = ia === -1 ? 999 : ia;
+    const bi = ib === -1 ? 999 : ib;
+    if (ai !== bi) return ai - bi;
+    return (originalIndex.get(a.id) ?? 0) - (originalIndex.get(b.id) ?? 0);
+  });
+
+  middle.sort((a, b) => {
+    const ta = progressStepDisplaySortMs(a);
+    const tb = progressStepDisplaySortMs(b);
+    if (ta != null && tb != null && ta !== tb) return ta - tb;
+    if (ta != null && tb == null) return -1;
+    if (ta == null && tb != null) return 1;
+    return (originalIndex.get(a.id) ?? 0) - (originalIndex.get(b.id) ?? 0);
+  });
+
+  return payment ? [...prefix, ...middle, payment] : [...prefix, ...middle];
+}
+
 /** ShipmentLocationLog status codes used by Laravel detail timeline. */
 const LOG_START_TRIP = '1';
 const LOG_UNABLE_START = '2';
@@ -1474,13 +1545,13 @@ export function buildLaravelProgressSteps(
       state: 'pending',
     });
     pushItinerarySteps();
-    return steps;
+    return sortProgressTimelineSteps(steps);
   }
 
   if (isPending) {
     steps.push({ id: 'waiting', label: waitingLabel, state: 'cur' });
     pushItinerarySteps();
-    return steps;
+    return sortProgressTimelineSteps(steps);
   }
 
   steps.push({
@@ -1563,7 +1634,7 @@ export function buildLaravelProgressSteps(
     sub: paidParts.sub,
   });
 
-  return steps;
+  return sortProgressTimelineSteps(steps);
 }
 
 export function formatStatValue(

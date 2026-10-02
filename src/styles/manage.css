@@ -1622,12 +1622,19 @@
 }
 
 .tl-enlarged .tl-step {
+  flex: 0 0 auto;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   gap: 10px;
-  min-width: 108px;
-  padding: 0 6px;
+  min-width: 120px;
+  max-width: 168px;
+  padding: 0 8px;
+}
+
+.tl-enlarged {
+  width: max-content;
+  min-width: 100%;
 }
 
 .tl-big .tl-dot,
