@@ -218,7 +218,8 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                   {/* Actions when bid is received: Accept, Reject, Counter, History */}
                   {item.hasBid && (
                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      {onAcceptBid && (
+                      {/* Match Laravel: hide Accept while shipper awaits transporter response */}
+                      {onAcceptBid && !isShipperWaiting && (
                         <button
                           type="button"
                           disabled={acceptingBidId === item.id || decliningBidId === item.id}
