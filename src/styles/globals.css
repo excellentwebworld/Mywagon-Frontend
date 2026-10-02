@@ -1505,8 +1505,10 @@ table.data-table { width: 100%; border-collapse: collapse; min-width: 800px; }
 .sat-map-endpoint__place { font-size: 11px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
 .sat-map-endpoint--pickup .sat-map-endpoint__chip { border-color: var(--app-border-strong, #C9C8CD); background: #FFFFFF; }
 .sat-map-endpoint--pickup .sat-map-endpoint__kind { color: #000001; }
+.sat-map-endpoint--pickup .sat-map-endpoint__place { color: #000001; }
 .sat-map-endpoint--dropoff .sat-map-endpoint__chip { border-color: var(--app-black-contour, #000001); background: #000001; }
 .sat-map-endpoint--dropoff .sat-map-endpoint__kind { color: #FFFFFF; }
+.sat-map-endpoint--dropoff .sat-map-endpoint__place { color: #FFFFFF; }
 
 /* Dashboard Selected Truck Floating Popup */
 .dash-truck-map-popup {

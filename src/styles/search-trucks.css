@@ -1885,8 +1885,10 @@ html.dark .sat-bg-pub,
 }
 .sat-map-endpoint--pickup .sat-map-endpoint__chip { border-color: var(--app-border-strong, #C9C8CD); background: #FFFFFF; }
 .sat-map-endpoint--pickup .sat-map-endpoint__kind { color: #000001; }
+.sat-map-endpoint--pickup .sat-map-endpoint__place { color: #000001; }
 .sat-map-endpoint--dropoff .sat-map-endpoint__chip { border-color: var(--app-black-contour, #000001); background: #000001; }
 .sat-map-endpoint--dropoff .sat-map-endpoint__kind { color: #FFFFFF; }
+.sat-map-endpoint--dropoff .sat-map-endpoint__place { color: #FFFFFF; }
 
 .sat-map-marker.private .sat-mm-tail {
   border-top-color: #9B51E0;
