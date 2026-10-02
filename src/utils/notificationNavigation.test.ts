@@ -49,8 +49,15 @@ describe('resolveLaravelStylePushRoute (parity with Blade firebase-push-handler)
     expect(resolveLaravelStylePushRoute({ type: 'partner_request' })).toBe('/partners');
     expect(resolveLaravelStylePushRoute({ type: 'message' })).toBe('/messages');
     expect(resolveLaravelStylePushRoute({ type: 'invoice' })).toBe('/billing');
+    expect(resolveLaravelStylePushRoute({ type: 'invoice', type_id: '99' })).toBe('/billing?invoice=99');
     expect(resolveLaravelStylePushRoute({ type: 'kyc_accepted' })).toBe('/settings/compliance');
     expect(resolveLaravelStylePushRoute({ type: 'terms_and_conditions' })).toBe('/settings/terms');
+  });
+
+  it('routes viewInvoice with action_id to billing invoice deep link', () => {
+    expect(
+      resolveNotificationPath({ action_type: 'viewInvoice', action_id: '55', chips: [] }),
+    ).toBe('/billing?invoice=55');
   });
 });
 

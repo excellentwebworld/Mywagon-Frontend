@@ -209,7 +209,7 @@ export function resolveLaravelStylePushRoute(data: {
     case 'invoice':
     case 'billing':
     case 'payment':
-      return '/billing';
+      return id ? `/billing?invoice=${encodeURIComponent(id)}` : '/billing';
     case 'kyc_accepted':
     case 'kyc_rejected':
       return '/settings/compliance';

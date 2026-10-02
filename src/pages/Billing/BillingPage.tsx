@@ -151,6 +151,8 @@ export const BillingPage: React.FC<BillingPageProps> = ({
   const [drawerInvoice, setDrawerInvoice] = useState<Invoice | null>(null);
   const [drawerLines, setDrawerLines] = useState<LineItem[]>([]);
   const [detailLoading, setDetailLoading] = useState(false);
+  /** Tracks which `?invoice=` deep-link we already opened so remounts/refetches don't loop. */
+  const openedInvoiceFromUrlRef = useRef<string | null>(null);
 
   const [walletInvoices, setWalletInvoices] = useState<Invoice[]>([]);
   const [walletInvoicesLoading, setWalletInvoicesLoading] = useState(false);
@@ -225,6 +227,76 @@ export const BillingPage: React.FC<BillingPageProps> = ({
       setDebouncedSearch(q);
     }
   }, [searchParams, debouncedSearch]);
+
+  const clearInvoiceQueryParam = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        if (!prev.has('invoice') && !prev.has('invoice_id')) return prev;
+        const next = new URLSearchParams(prev);
+        next.delete('invoice');
+        next.delete('invoice_id');
+        return next;
+      },
+      { replace: true }
+    );
+  }, [setSearchParams]);
+
+  const setInvoiceQueryParam = useCallback(
+    (invoiceId: string | number | null | undefined) => {
+      const id = invoiceId != null && String(invoiceId).trim() !== '' ? String(invoiceId).trim() : '';
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.delete('invoice_id');
+          if (!id) {
+            if (!next.has('invoice')) return prev;
+            next.delete('invoice');
+            return next;
+          }
+          if (next.get('invoice') === id) return prev;
+          next.set('invoice', id);
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  const openInvoiceById = useCallback(
+    async (rawId: string | number) => {
+      const id = String(rawId).trim();
+      if (!id) return;
+
+      setActiveTab('saas');
+      setDetailLoading(true);
+      try {
+        const detail = await api.getInvoiceDetail(id);
+        setDrawerInvoice(detail);
+        setDrawerLines(detail.line_items || []);
+        openedInvoiceFromUrlRef.current = id;
+        setInvoiceQueryParam(detail.raw_id ?? id);
+      } catch {
+        toast.error(t('billingPage.invoiceNotFound', 'Unable to open that invoice.'));
+        openedInvoiceFromUrlRef.current = id;
+        clearInvoiceQueryParam();
+      } finally {
+        setDetailLoading(false);
+      }
+    },
+    [api, clearInvoiceQueryParam, setInvoiceQueryParam, t, toast]
+  );
+
+  // Deep-link: /billing?invoice=123 (payment receipt "View Receipt", in-app notifications)
+  useEffect(() => {
+    const fromUrl = (searchParams.get('invoice') || searchParams.get('invoice_id') || '').trim();
+    if (!fromUrl) {
+      openedInvoiceFromUrlRef.current = null;
+      return;
+    }
+    if (openedInvoiceFromUrlRef.current === fromUrl) return;
+    void openInvoiceById(fromUrl);
+  }, [searchParams, openInvoiceById]);
 
   const fetchBillingData = useCallback(async () => {
     setLoading(true);
@@ -624,6 +696,10 @@ export const BillingPage: React.FC<BillingPageProps> = ({
   const handleSelectInvoice = async (inv: Invoice) => {
     setDrawerInvoice(inv);
     setDrawerLines(inv.line_items || []);
+    if (inv.raw_id != null) {
+      openedInvoiceFromUrlRef.current = String(inv.raw_id);
+      setInvoiceQueryParam(inv.raw_id);
+    }
     if (!inv.raw_id) return;
 
     setDetailLoading(true);
@@ -636,6 +712,13 @@ export const BillingPage: React.FC<BillingPageProps> = ({
     } finally {
       setDetailLoading(false);
     }
+  };
+
+  const handleCloseInvoiceDrawer = () => {
+    setDrawerInvoice(null);
+    setDetailLoading(false);
+    openedInvoiceFromUrlRef.current = null;
+    clearInvoiceQueryParam();
   };
 
   const walletBalance = summary?.wallet_balance ?? 0;
@@ -885,10 +968,7 @@ export const BillingPage: React.FC<BillingPageProps> = ({
 
       <InvoiceDetailDrawer
         isOpen={Boolean(drawerInvoice)}
-        onClose={() => {
-          setDrawerInvoice(null);
-          setDetailLoading(false);
-        }}
+        onClose={handleCloseInvoiceDrawer}
         invoice={drawerInvoice}
         lineItems={drawerLines}
         detailLoading={detailLoading}

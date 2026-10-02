@@ -106,6 +106,7 @@ const appRoutes = [
   { path: '/analytics', element: <Navigate to="/analytics/weekly-reports" replace /> },
   { path: '/analytics/weekly-reports', element: <WeeklyReportsPage /> },
   { path: '/billing', element: <BillingPage /> },
+  { path: '/billing/', element: <BillingPage /> },
   { path: '/subscription', element: withRbac(SHIPPER_RBAC.manageSubscriptions, <SubscriptionPage />) },
   { path: '/support', element: <SupportPage /> },
   { path: '/tutorials', element: <TutorialsPage /> },
