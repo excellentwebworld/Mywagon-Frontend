@@ -1,9 +1,64 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import {
+  navigateFromPushNotification,
   resolveLaravelStylePushRoute,
   resolveNotificationActionId,
   resolveNotificationPath,
 } from './notificationNavigation';
+
+describe('navigateFromPushNotification', () => {
+  let reloadSpy: ReturnType<typeof vi.fn>;
+  let assignSpy: ReturnType<typeof vi.fn>;
+  let openSpy: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    reloadSpy = vi.fn();
+    assignSpy = vi.fn();
+    openSpy = vi.fn();
+
+    const locationStub = {
+      origin: 'https://shipper.example.com',
+      pathname: '/shipments/10511',
+      search: '',
+      hash: '',
+      reload: reloadSpy,
+      assign: assignSpy,
+    };
+
+    vi.stubGlobal('window', {
+      location: locationStub,
+      open: openSpy,
+    });
+    vi.stubGlobal('location', locationStub);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('reloads when the target is the current route (stale SPA cache)', () => {
+    navigateFromPushNotification('/shipments/10511');
+    expect(reloadSpy).toHaveBeenCalledTimes(1);
+    expect(assignSpy).not.toHaveBeenCalled();
+  });
+
+  it('hard-assigns a different same-origin deep link', () => {
+    navigateFromPushNotification('/shipments/999');
+    expect(assignSpy).toHaveBeenCalledWith('/shipments/999');
+    expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
+  it('opens external URLs in a new tab', () => {
+    navigateFromPushNotification('https://example.com/docs');
+    expect(openSpy).toHaveBeenCalledWith(
+      'https://example.com/docs',
+      '_blank',
+      'noopener,noreferrer',
+    );
+    expect(assignSpy).not.toHaveBeenCalled();
+  });
+});
 
 describe('resolveNotificationActionId', () => {
   it('prefers action_id over SID chip (same as Laravel type_id)', () => {

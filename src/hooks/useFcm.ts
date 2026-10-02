@@ -24,6 +24,7 @@ import { getMessagingOrNull, vapidKey, isFirebaseConfigured } from '../config/fi
 import { notificationService } from '../api/services/notificationService';
 import { shouldSuppressChatForegroundNotification } from '../utils/chatNotificationGuard';
 import { parseChatMetaFromFcmData } from '../utils/chatPartnerUtils';
+import { navigateFromPushNotification } from '../utils/notificationNavigation';
 
 const SESSION_KEY = 'mv_fcm_token';
 
@@ -137,7 +138,9 @@ export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = 
         return;
       }
       if (event.data && event.data.type === 'FCM_NAVIGATE' && event.data.url) {
-        navigate(event.data.url);
+        // Hard navigation — soft navigate() leaves React Query cache stale
+        // (refetchOnMount/refetchOnWindowFocus are disabled app-wide).
+        navigateFromPushNotification(event.data.url);
       }
     };
 

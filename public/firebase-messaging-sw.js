@@ -9,7 +9,9 @@
  *      partners, billing, settings, or external links on click.
  *   2. Deduplication Cache: Prevents duplicate notification popups if duplicate FCM
  *      delivery frames arrive in background.
- *   3. Tab Focus & Navigation: Reuses and focuses existing open tabs without reloading.
+ *   3. Tab Focus & Fresh Navigation: Reuses an existing same-origin tab, then posts
+ *      FCM_NAVIGATE so the app hard-loads the target URL (latest data). Soft SPA
+ *      client.navigate alone left React Query cache stale.
  */
 
 // ── Import Firebase compat scripts from CDN ──────────────────────────────
@@ -210,28 +212,30 @@ self.addEventListener('notificationclick', (event) => {
     }
   }
 
+  const absoluteTarget = new URL(targetUrl, self.location.origin).href;
+
   event.waitUntil(
     clients
       .matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Try to find an existing open tab in the same origin
+        // Prefer an existing same-origin tab, then tell the app to hard-navigate
+        // (FCM_NAVIGATE → navigateFromPushNotification). Do not use client.navigate
+        // alone — it often focuses without refreshing SPA data.
         for (const client of clientList) {
           try {
             const url = new URL(client.url);
             if (url.origin === self.location.origin) {
-              client.focus();
-              if ('navigate' in client) {
-                return client.navigate(targetUrl);
-              }
-              client.postMessage({ type: 'FCM_NAVIGATE', url: targetUrl });
-              return;
+              return client.focus().then((focused) => {
+                const target = focused || client;
+                target.postMessage({ type: 'FCM_NAVIGATE', url: absoluteTarget });
+              });
             }
           } catch {
             /* ignore malformed URLs */
           }
         }
-        // If no tab is currently open, open a new window
-        return clients.openWindow(targetUrl);
+        // If no tab is currently open, open a new window (full load = fresh data)
+        return clients.openWindow(absoluteTarget);
       })
   );
 });

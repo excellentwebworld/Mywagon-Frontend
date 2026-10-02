@@ -129,6 +129,41 @@ export function openNotificationTarget(
 }
 
 /**
+ * Open a push-notification deep link with a full document load.
+ *
+ * Soft React Router navigation is not enough: the app QueryClient defaults to
+ * refetchOnMount/refetchOnWindowFocus = false, so focusing an existing tab (or
+ * navigating to the same route) leaves stale shipment/list data on screen.
+ * A hard assign clears that in-memory cache and fetches latest data.
+ */
+export function navigateFromPushNotification(url: string): void {
+  const trimmed = String(url ?? '').trim();
+  if (!trimmed) return;
+
+  let absolute: URL;
+  try {
+    absolute = new URL(trimmed, window.location.origin);
+  } catch {
+    return;
+  }
+
+  if (absolute.origin !== window.location.origin) {
+    window.open(absolute.href, '_blank', 'noopener,noreferrer');
+    return;
+  }
+
+  const next = `${absolute.pathname}${absolute.search}${absolute.hash}`;
+  const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+  if (current === next) {
+    window.location.reload();
+    return;
+  }
+
+  window.location.assign(next);
+}
+
+/**
  * Realtime / FCM click routing — mirrors Laravel
  * public/assets/shipper/assets/js/pages/firebase-push-handler.js → resolveClickAction().
  *
