@@ -416,24 +416,36 @@ export default function OrganizationSection() {
     return !!data?.legal?.kyc_locked && (data.legal.kyc_locked_fields || []).includes(apiKey) && isFilled;
   };
 
+  const buildInvoiceEmails = (currentList, pendingInput) => {
+    const emails = [...(currentList || [])];
+    const pending = String(pendingInput || '').trim().toLowerCase();
+    if (!pending) {
+      return { emails, error: null, clearedInput: true };
+    }
+    if (!EMAIL_RE.test(pending)) {
+      return { emails, error: t('settings.orgSection.legal.invalidEmail'), clearedInput: false };
+    }
+    if (emails.includes(pending)) {
+      return { emails, error: null, clearedInput: true };
+    }
+    if (emails.length >= MAX_INVOICE_EMAILS) {
+      return {
+        emails,
+        error: t('settings.orgSection.legal.maxEmails', { max: MAX_INVOICE_EMAILS }),
+        clearedInput: false,
+      };
+    }
+    return { emails: [...emails, pending], error: null, clearedInput: true };
+  };
+
   const addInvoiceEmail = () => {
-    const email = emailInput.trim().toLowerCase();
-    if (!email) return;
-    if (!EMAIL_RE.test(email)) {
-      toast.error(t('settings.orgSection.legal.invalidEmail'));
+    const { emails, error, clearedInput } = buildInvoiceEmails(legalDraft.invoice_emails, emailInput);
+    if (error) {
+      toast.error(error);
       return;
     }
-    const list = legalDraft.invoice_emails || [];
-    if (list.includes(email)) {
-      setEmailInput('');
-      return;
-    }
-    if (list.length >= MAX_INVOICE_EMAILS) {
-      toast.error(t('settings.orgSection.legal.maxEmails', { max: MAX_INVOICE_EMAILS }));
-      return;
-    }
-    setLegalDraft((p) => ({ ...p, invoice_emails: [...(p.invoice_emails || []), email] }));
-    setEmailInput('');
+    setLegalDraft((p) => ({ ...p, invoice_emails: emails }));
+    if (clearedInput) setEmailInput('');
   };
 
   const removeInvoiceEmail = (email) => {
@@ -463,12 +475,26 @@ export default function OrganizationSection() {
         }
       }
     }
+
+    // Commit typed-but-not-added email so Save does not drop it.
+    const { emails: invoiceEmails, error: emailError, clearedInput } = buildInvoiceEmails(
+      legalDraft.invoice_emails,
+      emailInput,
+    );
+    if (emailError) {
+      toast.error(emailError);
+      return;
+    }
+    if (clearedInput && emailInput) setEmailInput('');
+    setLegalDraft((p) => ({ ...p, invoice_emails: invoiceEmails }));
+
     setSavingLegal(true);
     try {
       const toCoord = (v) => (v == null || v === '' ? null : String(v));
       const payload = await organizationSettingsService.update({
         legal: {
           ...legalDraft,
+          invoice_emails: invoiceEmails,
           lat: toCoord(legalDraft.lat),
           lng: toCoord(legalDraft.lng),
         },
