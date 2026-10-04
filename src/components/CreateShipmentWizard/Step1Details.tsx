@@ -621,12 +621,21 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   // ═══ LINE CRUD ═══
   const addLine = useCallback(
     (sid: string, action: "pickup" | "dropoff" = "pickup") => {
+      // Classic panel gated "Add Product" behind allow_multiple_stops — Essential
+      // may keep a single cargo line per stop (one product on the load).
+      if (!can("allow_multiple_stops")) {
+        const stop = stopsRef.current.find((s: any) => s.id === sid);
+        if ((stop?.lines?.length ?? 0) >= 1) {
+          openUpgradeGate();
+          return;
+        }
+      }
       uStop(sid, (s: any) => ({
         ...s,
         lines: [...s.lines, createNewCargoLine(action)],
       }));
     },
-    [uStop],
+    [can, openUpgradeGate, uStop],
   );
 
   const delLine = useCallback(

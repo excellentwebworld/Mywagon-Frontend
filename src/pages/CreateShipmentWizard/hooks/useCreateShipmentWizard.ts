@@ -31,6 +31,7 @@ import {
 import {
   ERP_ORDERS_PREFILL_KEY,
   buildStopsFromErpOrders,
+  getErpCreateLoadPermissionBlock,
   isOrderEligibleForCreateLoad,
   type ErpOrdersPrefillPayload,
 } from './erpOrdersPrefill';
@@ -496,7 +497,13 @@ export function useCreateShipmentWizard(
         });
 
         const stops = buildStopsFromErpOrders(orders, locations);
-        if (stops.length > 2 && !canRef.current('allow_multiple_stops')) {
+        if (
+          getErpCreateLoadPermissionBlock(
+            orders,
+            canRef.current('allow_multiple_stops'),
+            locations
+          )
+        ) {
           openUpgradeGateRef.current();
           sessionStorage.removeItem(ERP_ORDERS_PREFILL_KEY);
           navigate('/erp-orders');

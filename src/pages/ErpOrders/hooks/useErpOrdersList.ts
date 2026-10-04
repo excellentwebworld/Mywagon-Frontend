@@ -9,7 +9,7 @@ import { statusLabel as statusLabelEn, statusLabelKey, buildExportParams } from 
 import type { ErpOrderStatus } from '../../../api/types/erpOrders';
 import {
   ERP_ORDERS_PREFILL_KEY,
-  buildStopsFromErpOrders,
+  getErpCreateLoadPermissionBlock,
   isOrderEligibleForCreateLoad,
 } from '../../CreateShipmentWizard/hooks/erpOrdersPrefill';
 import { wizardQueryKeys } from '../../CreateShipmentWizard/hooks/wizardQueryKeys';
@@ -411,30 +411,24 @@ export function useErpOrdersList() {
         return false;
       }
 
-      const byId = new Map(orders.map((o) => [o.id, o]));
-      const resolved: ErpOrder[] = [];
-      const missing: string[] = [];
-
-      for (const id of ids) {
-        const found = byId.get(id);
-        if (found) resolved.push(found);
-        else missing.push(id);
+      // Fast path: multi-select already needs allow_multiple_stops (Add New Order).
+      if (ids.length > 1 && !can('allow_multiple_stops')) {
+        openUpgradeGate();
+        return false;
       }
 
-      if (missing.length) {
-        const fetched = await Promise.all(
-          missing.map(async (id) => {
-            try {
-              return await erpOrdersService.getOrder(id);
-            } catch {
-              return null;
-            }
-          })
-        );
-        for (const order of fetched) {
-          if (order) resolved.push(order);
-        }
-      }
+      // Always fetch details — list stubs omit lines / location ids, so product
+      // and stop projection would be wrong for Essential gating.
+      const fetched = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            return await erpOrdersService.getOrder(id);
+          } catch {
+            return null;
+          }
+        })
+      );
+      const resolved = fetched.filter((order): order is ErpOrder => !!order);
 
       if (
         resolved.length !== ids.length ||
@@ -444,11 +438,10 @@ export function useErpOrdersList() {
         return false;
       }
 
-      // Essential (and any plan without allow_multiple_stops) cannot create
-      // shipments with more than pickup + delivery. ERP multi-order selection
-      // can collapse into 3+ stops — gate before navigating to the wizard.
-      const projectedStops = buildStopsFromErpOrders(resolved);
-      if (projectedStops.length > 2 && !can('allow_multiple_stops')) {
+      // Essential: block multi-order, multi-product (one order), and multi-stop.
+      if (
+        getErpCreateLoadPermissionBlock(resolved, can('allow_multiple_stops'))
+      ) {
         openUpgradeGate();
         return false;
       }
@@ -471,7 +464,7 @@ export function useErpOrdersList() {
       navigate('/shipments/create/step/1?erp_orders=1');
       return true;
     },
-    [selectedIds, orders, showToast, t, navigate, requireSignupComplete, can, openUpgradeGate]
+    [selectedIds, showToast, t, navigate, requireSignupComplete, can, openUpgradeGate]
   );
 
   const handleExport = useCallback(async () => {

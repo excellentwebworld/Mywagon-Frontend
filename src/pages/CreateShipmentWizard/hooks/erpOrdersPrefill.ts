@@ -242,3 +242,55 @@ export function isOrderEligibleForCreateLoad(order: Pick<
   if (order.hasRemaining === false) return false;
   return order.status === 'unplanned' || order.status === 'partially_planned';
 }
+
+/**
+ * Why Essential (no allow_multiple_stops) cannot Create Load from these orders.
+ * Matches classic panel: Add New Order + Add Product both require the permission,
+ * and multi-location itineraries are blocked as well.
+ */
+export type ErpCreateLoadPermissionBlock =
+  | 'multi_order'
+  | 'multi_product'
+  | 'multi_stop';
+
+/** Count lines still allocatable for a new load (detail lines preferred). */
+export function countRemainingErpProductLines(order: ErpOrder): number {
+  if (order.lines?.length) {
+    let count = 0;
+    for (const ln of order.lines) {
+      const remaining = lineRemainingQty(ln);
+      if (remaining != null && remaining <= 0) continue;
+      count += 1;
+    }
+    return count;
+  }
+  // List stubs omit lines — fall back to productCount when present.
+  if (typeof order.productCount === 'number' && order.productCount > 0) {
+    return order.productCount;
+  }
+  return 0;
+}
+
+/**
+ * Returns a block reason when the selection would require allow_multiple_stops.
+ * Pass fully fetched order details when possible so product lines / locations are accurate.
+ */
+export function getErpCreateLoadPermissionBlock(
+  orders: ErpOrder[],
+  allowMultipleStops: boolean,
+  locations?: LocationItem[]
+): ErpCreateLoadPermissionBlock | null {
+  if (allowMultipleStops || orders.length === 0) return null;
+
+  if (orders.length > 1) return 'multi_order';
+
+  let remainingProducts = 0;
+  for (const order of orders) {
+    remainingProducts += countRemainingErpProductLines(order);
+  }
+  if (remainingProducts > 1) return 'multi_product';
+
+  if (buildStopsFromErpOrders(orders, locations).length > 2) return 'multi_stop';
+
+  return null;
+}
