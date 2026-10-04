@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS, normalizeQtyUnit, normalizeWeightUnit, translateCargoUnit } from '../../constants/cargoUnits';
+import { useSubscriptionPermission } from '../../hooks/useSubscriptionPermission';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import type { SKU } from '../../context/AppContext';
 import type { ErpOrderLine, ErpOrderFormState } from '../../pages/ErpOrders/types';
@@ -35,6 +36,7 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
   allowEmptySelects = false,
   skusLoading = false,
 }) => {
+  const { requirePermission } = useSubscriptionPermission();
   const selectedSkuCount = useMemo(
     () => lines.filter((line) => line.productSkuId != null).length,
     [lines]
@@ -90,6 +92,10 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
 
   const addLine = () => {
     if (!canAddLine) return;
+    // Essential: one product line per order (same allow_multiple_stops gate as Create Load).
+    if (lines.length >= 1 && !requirePermission('allow_multiple_stops')) {
+      return;
+    }
     onChange([...lines, { ...EMPTY_ORDER_LINE }]);
   };
 
