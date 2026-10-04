@@ -25,6 +25,8 @@ interface AuthContextValue {
   verifyTwoFactorRecovery: (challengeToken: string, code: string) => Promise<{ two_factor_reset: boolean; user: ShipperUser }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<ShipperUser | null>;
+  /** Merge fields into the in-memory auth user (e.g. after locale change). */
+  patchUser: (partial: Partial<ShipperUser>) => void;
   clearLoginError: () => void;
 }
 
@@ -260,6 +262,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearLoginError = useCallback(() => setLoginError(null), []);
 
+  const patchUser = useCallback((partial: Partial<ShipperUser>) => {
+    setUser((prev) => (prev ? { ...prev, ...partial } : prev));
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -274,6 +280,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       verifyTwoFactorRecovery,
       logout,
       refreshUser,
+      patchUser,
       clearLoginError,
     }),
     [
@@ -288,6 +295,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       verifyTwoFactorRecovery,
       logout,
       refreshUser,
+      patchUser,
       clearLoginError,
     ]
   );

@@ -162,6 +162,25 @@ export const authService = {
     return res.data;
   },
 
+  /** Persist shipper panel language (`en` | `el`) on the user `locale` column. */
+  async updateLocale(locale: 'en' | 'el'): Promise<'en' | 'el'> {
+    const res = await authRequest<{
+      status: boolean;
+      message: string;
+      data?: { locale?: string };
+    }>('/auth/locale', {
+      method: 'PUT',
+      body: { locale },
+    });
+
+    if (!res.status) {
+      throw new Error(res.message || 'Failed to update locale');
+    }
+
+    const saved = res.data?.locale === 'el' ? 'el' : 'en';
+    return saved;
+  },
+
   async forgotPassword(email: string): Promise<{ status: boolean; message: string }> {
     try {
       const res = await authRequest<{ status: boolean; message: string }>('/auth/forgot-password', {
