@@ -1580,7 +1580,11 @@
         "ruleLength": "Τουλάχιστον {{n}} χαρακτήρες",
         "ruleUpper": "Περιέχει κεφαλαίο γράμμα",
         "ruleNumber": "Περιέχει αριθμό",
-        "ruleSpecial": "Περιέχει ειδικό χαρακτήρα"
+        "ruleSpecial": "Περιέχει ειδικό χαρακτήρα",
+        "socialPopupTitle": "Ο κωδικός δεν είναι διαθέσιμος",
+        "socialTitle": "Σύνδεση μέσω {{provider}}",
+        "socialMessage": "Αυτός ο λογαριασμός δημιουργήθηκε με {{provider}}, επομένως δεν υπάρχει κωδικός που μπορείτε να αλλάξετε εδώ. Συνεχίστε να συνδέεστε με {{provider}}. Αν θέλετε αργότερα σύνδεση με email, ορίστε κωδικό από τη σελίδα «Ξέχασα τον κωδικό» στη σύνδεση.",
+        "socialGotIt": "Κατάλαβα"
       },
       "mfa": {
         "title": "Αυθεντικοποίηση Δύο Παραγόντων",
@@ -7570,6 +7574,10 @@
   "settings.securitySection.password.hint": "Ασφάλεια",
   "settings.securitySection.password.saveFailed": "Αδυναμία ενημέρωσης κωδικού",
   "settings.securitySection.password.useStrong": "Χρησιμοποιήστε ισχυρό μοναδικό κωδικό",
+  "settings.securitySection.password.socialPopupTitle": "Ο κωδικός δεν είναι διαθέσιμος",
+  "settings.securitySection.password.socialTitle": "Σύνδεση μέσω {{provider}}",
+  "settings.securitySection.password.socialMessage": "Αυτός ο λογαριασμός δημιουργήθηκε με {{provider}}, επομένως δεν υπάρχει κωδικός που μπορείτε να αλλάξετε εδώ. Συνεχίστε να συνδέεστε με {{provider}}. Αν θέλετε αργότερα σύνδεση με email, ορίστε κωδικό από τη σελίδα «Ξέχασα τον κωδικό» στη σύνδεση.",
+  "settings.securitySection.password.socialGotIt": "Κατάλαβα",
   "settled": "Διακανονισμένο / Πληρωμένο",
   "severity": "Σοβαρότητα",
   "shareLiveTracking": "Κοινοποίηση ζωντανής παρακολούθησης",

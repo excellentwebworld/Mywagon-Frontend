@@ -1580,7 +1580,11 @@
         "ruleLength": "At least {{n}} characters",
         "ruleUpper": "Contains uppercase letter",
         "ruleNumber": "Contains number",
-        "ruleSpecial": "Contains special character"
+        "ruleSpecial": "Contains special character",
+        "socialPopupTitle": "Password not available",
+        "socialTitle": "Signed in with {{provider}}",
+        "socialMessage": "This account was created with {{provider}}, so there is no password you can change here. Keep signing in with {{provider}}. To use email login later, set a password from the Forgot Password page on login.",
+        "socialGotIt": "Got it"
       },
       "mfa": {
         "title": "Two-Factor Authentication",
@@ -7570,6 +7574,10 @@
   "settings.securitySection.password.hint": "Security",
   "settings.securitySection.password.saveFailed": "Could not update password",
   "settings.securitySection.password.useStrong": "Use a strong unique password",
+  "settings.securitySection.password.socialPopupTitle": "Password not available",
+  "settings.securitySection.password.socialTitle": "Signed in with {{provider}}",
+  "settings.securitySection.password.socialMessage": "This account was created with {{provider}}, so there is no password you can change here. Keep signing in with {{provider}}. To use email login later, set a password from the Forgot Password page on login.",
+  "settings.securitySection.password.socialGotIt": "Got it",
   "settled": "Settled / Paid",
   "severity": "Severity",
   "shareLiveTracking": "Share live tracking",
