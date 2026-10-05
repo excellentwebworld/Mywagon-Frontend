@@ -173,6 +173,44 @@ function isOpsValueFilled(field, value) {
   return value != null && String(value).trim() !== '';
 }
 
+/** Count multi-select choices treating Other + its custom text as one selection. */
+function countMultiOpsSelections(values, options = []) {
+  if (!Array.isArray(values) || values.length === 0) return 0;
+  const opts = Array.isArray(options) ? options : [];
+  const findOpt = (v) => {
+    const s = String(v);
+    return (
+      opts.find((o) => String(o.value) === s) ||
+      opts.find((o) => slugify(o.label) === s) ||
+      opts.find((o) => slugify(o.value) === s) ||
+      null
+    );
+  };
+  const hasOtherOption = opts.some(
+    (o) => isOtherLike(o.value) || isOtherLike(o.label)
+  );
+  let count = 0;
+  let otherGroup = false;
+  for (const v of values) {
+    const opt = findOpt(v);
+    if (opt) {
+      if (isOtherLike(opt.value) || isOtherLike(opt.label) || isOtherLike(v)) {
+        otherGroup = true;
+      } else {
+        count += 1;
+      }
+    } else if (isOtherLike(v)) {
+      otherGroup = true;
+    } else if (hasOtherOption) {
+      // Free-text "Please specify" value for Other — same selection as Other
+      otherGroup = true;
+    } else {
+      count += 1;
+    }
+  }
+  return count + (otherGroup ? 1 : 0);
+}
+
 export default function OrganizationSection() {
   const { t } = useTranslation();
   const { T, isDark } = useTheme();
@@ -542,11 +580,16 @@ export default function OrganizationSection() {
       return;
     }
 
-    // Validate max selection limits on multi-select fields (e.g. product_types max 5)
+    // Validate max selection limits on multi-select fields (e.g. product_types max 5).
+    // Other + its custom "Please specify" text count as one selection.
     for (const field of opsFields) {
       const maxAllowed = field.max_selection || field.max || OPS_FIELD_MAX_SELECTIONS[field.key];
       const val = opsDraft[field.key];
-      if (maxAllowed && Array.isArray(val) && val.length > maxAllowed) {
+      if (
+        maxAllowed &&
+        Array.isArray(val) &&
+        countMultiOpsSelections(val, field.options) > maxAllowed
+      ) {
         toast.error(
           t('settings.orgSection.operational.maxSelectionsField', {
             field: field.label,
@@ -1383,6 +1426,17 @@ function OpsField({ field, value, editing, onChange, T }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, isMulti]);
 
+  /** Collapse bare Other + custom specify text into a single stored value. */
+  const collapseMultiOtherDupes = (list) => {
+    if (!otherOption || !Array.isArray(list)) return list;
+    const predefined = list.filter((v) => findOption(v) && !isOtherSelectedValue(v));
+    const customs = list.filter((v) => !findOption(v) && !isOtherSelectedValue(v));
+    const hasOther = list.some((v) => isOtherSelectedValue(v));
+    if (customs.length > 0) return [...predefined, customs.join(', ')];
+    if (hasOther) return [...predefined, String(otherOption.value)];
+    return predefined;
+  };
+
   const clearMultiOther = () => {
     const without = multiSelected.filter((v) => findOption(v) && !isOtherSelectedValue(v));
     setMultiOtherText('');
@@ -1394,11 +1448,9 @@ function OpsField({ field, value, editing, onChange, T }) {
     const predefined = multiSelected.filter((v) => findOption(v));
     const canonical = otherOption ? String(otherOption.value) : 'other';
     const withoutOther = predefined.filter((v) => !isOtherSelectedValue(v));
-    const next = [...withoutOther, canonical];
-    if (text.trim()) {
-      next.push(text.trim());
-    }
-    onChange(next);
+    const trimmed = text.trim();
+    // Store custom text OR the Other option — never both (one selection)
+    onChange(trimmed ? [...withoutOther, trimmed] : [...withoutOther, canonical]);
   };
 
   // Single-choice state for "Other" custom specify text
@@ -1603,6 +1655,8 @@ function OpsField({ field, value, editing, onChange, T }) {
 
   if (isMulti && options.length > 0) {
     const selected = multiSelected;
+    // Chips already merge Other + specify text into one entry
+    const selectionCount = multiDisplayChips.length;
 
     const collapsedOptions = (() => {
       if (!editing || expanded || options.length <= CHIP_PREVIEW) return options;
@@ -1660,13 +1714,13 @@ function OpsField({ field, value, editing, onChange, T }) {
                 <span style={{ fontSize: 11, fontWeight: 700, color: T.ac, marginRight: 2 }}>
                   {maxSelection
                     ? t('settings.orgSection.operational.selectedCountWithMax', {
-                        count: selected.length,
+                        count: selectionCount,
                         max: maxSelection,
-                        defaultValue: `Selected (${selected.length}/${maxSelection}):`,
+                        defaultValue: `Selected (${selectionCount}/${maxSelection}):`,
                       })
                     : t('settings.orgSection.operational.selectedCount', {
-                        count: selected.length,
-                        defaultValue: `Selected (${selected.length}):`,
+                        count: selectionCount,
+                        defaultValue: `Selected (${selectionCount}):`,
                       })}
                 </span>
                 {multiDisplayChips.map((chip) => (
@@ -1695,7 +1749,11 @@ function OpsField({ field, value, editing, onChange, T }) {
                           slugify(chip.key),
                           slugify(chip.label),
                         ]);
-                        onChange(selected.filter((v) => !aliases.has(String(v))));
+                        onChange(
+                          collapseMultiOtherDupes(
+                            selected.filter((v) => !aliases.has(String(v)))
+                          )
+                        );
                       }}
                       className="border-none bg-transparent cursor-pointer p-0 ml-0.5 flex items-center"
                       style={{ color: T.ac }}
@@ -1777,7 +1835,7 @@ function OpsField({ field, value, editing, onChange, T }) {
                           if (isMultiOtherActive) {
                             clearMultiOther();
                           } else {
-                            if (maxSelection && selected.length >= maxSelection) {
+                            if (maxSelection && selectionCount >= maxSelection) {
                               toast.warning(
                                 t('settings.orgSection.operational.maxReached', {
                                   max: maxSelection,
@@ -1787,11 +1845,12 @@ function OpsField({ field, value, editing, onChange, T }) {
                               return;
                             }
                             const canonical = String(opt.value);
-                            const next = [...selected, canonical];
-                            if (multiOtherText.trim()) {
-                              next.push(multiOtherText.trim());
-                            }
-                            onChange(next);
+                            const without = selected.filter(
+                              (v) => findOption(v) && !isOtherSelectedValue(v)
+                            );
+                            const trimmed = multiOtherText.trim();
+                            // Other + specify text = one selection
+                            onChange(trimmed ? [...without, trimmed] : [...without, canonical]);
                           }
                         } else {
                           const canonical = String(opt.value);
@@ -1802,9 +1861,9 @@ function OpsField({ field, value, editing, onChange, T }) {
                           ]);
                           const without = selected.filter((v) => !aliases.has(v));
                           if (active) {
-                            onChange(without);
+                            onChange(collapseMultiOtherDupes(without));
                           } else {
-                            if (maxSelection && selected.length >= maxSelection) {
+                            if (maxSelection && selectionCount >= maxSelection) {
                               toast.warning(
                                 t('settings.orgSection.operational.maxReached', {
                                   max: maxSelection,
@@ -1813,7 +1872,7 @@ function OpsField({ field, value, editing, onChange, T }) {
                               );
                               return;
                             }
-                            onChange([...without, canonical]);
+                            onChange(collapseMultiOtherDupes([...without, canonical]));
                           }
                         }
                       }}
