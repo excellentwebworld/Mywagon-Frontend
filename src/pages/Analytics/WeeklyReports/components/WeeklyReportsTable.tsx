@@ -77,10 +77,9 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
           <thead>
             <tr>
               <th className="wr-th-period">{t('weeklyReports.period', 'Week Period')}</th>
-              <th className="wr-th-delivery">{t('weeklyReports.deliveryDate', 'Delivered On')}</th>
+              <th className="wr-th-delivery">{t('weeklyReports.reportDate', 'Report Date')}</th>
               <th className="wr-th-fulfilled">{t('weeklyReports.loadsFulfilled', 'Fulfilled')}</th>
               <th className="wr-th-created">{t('weeklyReports.loadsCreated', 'Created')}</th>
-              <th className="wr-th-active">{t('weeklyReports.onTrip', 'In Progress')}</th>
               <th className="wr-th-pending">{t('weeklyReports.pending', 'Loads Currently Pending')}</th>
               <th className="wr-th-partners">{t('weeklyReports.newPartners', 'Partners')}</th>
               <th className="wr-th-actions">
@@ -101,7 +100,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                       </div>
                     </div>
                   </td>
-                  {/* Delivery date */}
+                  {/* Report date */}
                   <td className="wr-td-delivery">
                     <div className="wr-delivery-cell">
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '90px', height: '13px', marginBottom: '5px' }} />
@@ -120,14 +119,6 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     <div className="wr-metric-cell">
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '36px', height: '16px', marginBottom: '4px' }} />
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '32px', height: '14px', borderRadius: '4px' }} />
-                    </div>
-                  </td>
-                  {/* In Progress */}
-                  <td className="wr-td-progress">
-                    <div className="wr-progress-chips">
-                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '50px', height: '20px', borderRadius: '6px' }} />
-                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '58px', height: '20px', borderRadius: '6px' }} />
-                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '52px', height: '20px', borderRadius: '6px' }} />
                     </div>
                   </td>
                   {/* Pending */}
@@ -151,7 +142,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
               ))
             ) : reports.length === 0 ? (
               <tr>
-                <td colSpan={8} className="wr-empty-td">
+                <td colSpan={7} className="wr-empty-td">
                   <div className="wr-empty-state">
                     <Inbox size={42} className="wr-empty-icon" />
                     <h3 className="wr-empty-title">
@@ -170,9 +161,6 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
               reports.map((r) => {
                 const fulfilled = r.metrics.fulfilled;
                 const created = r.metrics.created;
-                const onTrip = r.metrics.on_trip?.value ?? 0;
-                const scheduled = r.metrics.scheduled?.value ?? 0;
-                const ready = r.metrics.ready?.value ?? 0;
                 const pending = r.metrics.pending?.value ?? 0;
                 const newPartners = r.metrics.new_partners?.value ?? 0;
 
@@ -202,7 +190,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                       </div>
                     </td>
 
-                    {/* Delivery Date / Sent Status */}
+                    {/* Report Date / Sent Status */}
                     <td className="wr-td-delivery">
                       <div className="wr-delivery-cell">
                         <span className="wr-delivery-date">
@@ -236,33 +224,6 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                           {created?.value ?? 0}
                         </span>
                         {renderDelta(created?.delta ?? 0)}
-                      </div>
-                    </td>
-
-                    {/* In-Progress (On Trip, Scheduled, Ready) */}
-                    <td className="wr-td-progress">
-                      <div className="wr-progress-chips">
-                        <span
-                          className="wr-sub-chip wr-chip-ontrip"
-                          title={t('analytics.weeklyReports.loadsOnTrip', 'Loads on trip')}
-                        >
-                          <strong>{onTrip}</strong>{' '}
-                          {t('analytics.weeklyReports.chipTrip', 'trip')}
-                        </span>
-                        <span
-                          className="wr-sub-chip wr-chip-scheduled"
-                          title={t('analytics.weeklyReports.loadsScheduled', 'Loads scheduled')}
-                        >
-                          <strong>{scheduled}</strong>{' '}
-                          {t('analytics.weeklyReports.chipSched', 'sched')}
-                        </span>
-                        <span
-                          className="wr-sub-chip wr-chip-ready"
-                          title={t('analytics.weeklyReports.loadsReady', 'Loads ready')}
-                        >
-                          <strong>{ready}</strong>{' '}
-                          {t('analytics.weeklyReports.chipReady', 'ready')}
-                        </span>
                       </div>
                     </td>
 
