@@ -1115,13 +1115,11 @@
   border-bottom: 1px solid var(--border);
 }
 
-.wr-logo-txt {
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: -0.5px;
+.wr-logo-img {
+  height: 28px;
+  width: auto;
+  display: block;
 }
-.wr-logo-my { color: var(--text-tertiary); }
-.wr-logo-vagon { color: var(--text-primary); }
 
 .wr-email-badge {
   font-size: 11px;

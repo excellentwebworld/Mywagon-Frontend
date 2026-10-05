@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from '../../../../hooks/useTranslation';
 import type { WeeklyReportItem } from '../../../../api/types/weeklyReports';
+import fullLogo from '../../../../assets/logo/fullLogo.svg';
 import {
   formatWeeklyDeliveryDate,
   formatWeeklyPeriodLabel,
@@ -219,10 +220,12 @@ export const WeeklyReportEmailModal: React.FC<WeeklyReportEmailModalProps> = ({
             {/* Header Brand */}
             <div className="wr-card-brand">
               <div className="wr-logo-wrap">
-                <span className="wr-logo-txt">
-                  <span className="wr-logo-my">MY</span>
-                  <span className="wr-logo-vagon">VAGON</span>
-                </span>
+                <img
+                  src={fullLogo}
+                  alt={t('appName', 'MYVAGON')}
+                  className="wr-logo-img"
+                  height={28}
+                />
               </div>
               <div className="wr-email-badge">
                 {t('analytics.weeklyReports.weeklyDigest', 'Weekly Digest')}
