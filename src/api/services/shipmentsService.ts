@@ -57,6 +57,10 @@ function toQuery(params: ListShipmentsParams): Record<string, string | number> {
   assign('dropoff_to', params.dropoff_to);
   assign('posted_from', params.posted_from);
   assign('posted_to', params.posted_to);
+  assign('completed_from', params.completed_from);
+  assign('completed_to', params.completed_to);
+  assign('pod', params.pod);
+  assign('co_owner_id', params.co_owner_id);
   assign('bid_state', params.bid_state);
   assign('customer', params.customer);
   assign('pickup_location_name', params.pickup_location_name);

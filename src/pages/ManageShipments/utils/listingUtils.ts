@@ -151,6 +151,10 @@ export interface ShipmentsFilterState {
   dropoff_to: string;
   posted_from: string;
   posted_to: string;
+  completed_from: string;
+  completed_to: string;
+  pod: '' | 'yes' | 'no';
+  co_owner_id: string;
   bid_state: '' | 'has_interest' | 'no_interest';
   customer: string;
   trip_mode: '' | 'direct' | 'multiple';
@@ -180,6 +184,10 @@ export const DEFAULT_FILTERS: ShipmentsFilterState = {
   dropoff_to: '',
   posted_from: '',
   posted_to: '',
+  completed_from: '',
+  completed_to: '',
+  pod: '',
+  co_owner_id: '',
   bid_state: '',
   customer: '',
   trip_mode: '',
@@ -327,13 +335,20 @@ export function filtersToApiParams(filters: ShipmentsFilterState): Omit<ListShip
   const dropoffTo = toUtcFilterParam(filters.dropoff_to);
   const postedFrom = toUtcFilterParam(filters.posted_from);
   const postedTo = toUtcFilterParam(filters.posted_to);
+  const completedFrom = toUtcFilterParam(filters.completed_from);
+  const completedTo = toUtcFilterParam(filters.completed_to);
   if (pickupFrom) params.pickup_from = pickupFrom;
   if (pickupTo) params.pickup_to = pickupTo;
   if (dropoffFrom) params.dropoff_from = dropoffFrom;
   if (dropoffTo) params.dropoff_to = dropoffTo;
   if (postedFrom) params.posted_from = postedFrom;
   if (postedTo) params.posted_to = postedTo;
+  if (completedFrom) params.completed_from = completedFrom;
+  if (completedTo) params.completed_to = completedTo;
 
+  if (filters.pod) params.pod = filters.pod;
+  const coOwnerId = toOptionalNumber(filters.co_owner_id);
+  if (coOwnerId !== undefined) params.co_owner_id = coOwnerId;
   if (filters.bid_state) params.bid_state = filters.bid_state;
   if (filters.customer.trim()) params.customer = filters.customer.trim();
   if (filters.trip_mode) params.trip_mode = filters.trip_mode;
@@ -419,6 +434,9 @@ export type FilterChipKey =
   | 'pickup_dates'
   | 'dropoff_dates'
   | 'posted_dates'
+  | 'completed_dates'
+  | 'pod'
+  | 'co_owner_id'
   | 'bid_state'
   | 'customer'
   | 'trip_mode';
@@ -431,7 +449,8 @@ export interface FilterChip {
 export function buildFilterChips(
   filters: ShipmentsFilterState,
   t: (key: string) => string,
-  productTypeNames: Record<string, string> = {}
+  productTypeNames: Record<string, string> = {},
+  coOwnerNames: Record<string, string> = {}
 ): FilterChip[] {
   const chips: FilterChip[] = [];
 
@@ -504,6 +523,25 @@ export function buildFilterChips(
       label: `${t('filterPostedDate')}: ${formatFilterChipDateTime(filters.posted_from)} → ${formatFilterChipDateTime(filters.posted_to)}`,
     });
   }
+  if (filters.completed_from || filters.completed_to) {
+    chips.push({
+      key: 'completed_dates',
+      label: `${t('filterCompletedDate')}: ${formatFilterChipDateTime(filters.completed_from)} → ${formatFilterChipDateTime(filters.completed_to)}`,
+    });
+  }
+  if (filters.pod) {
+    chips.push({
+      key: 'pod',
+      label: `${t('filterPodUploaded')}: ${filters.pod === 'yes' ? t('filterPodYes') : t('filterPodNo')}`,
+    });
+  }
+  if (filters.co_owner_id.trim()) {
+    const coOwnerLabel = coOwnerNames[filters.co_owner_id] || filters.co_owner_id;
+    chips.push({
+      key: 'co_owner_id',
+      label: `${t('filterCoOwner')}: ${coOwnerLabel}`,
+    });
+  }
   if (filters.bid_state) {
     chips.push({
       key: 'bid_state',
@@ -565,6 +603,12 @@ export function clearFilterChip(filters: ShipmentsFilterState, key: FilterChipKe
       return { ...filters, dropoff_from: '', dropoff_to: '' };
     case 'posted_dates':
       return { ...filters, posted_from: '', posted_to: '' };
+    case 'completed_dates':
+      return { ...filters, completed_from: '', completed_to: '' };
+    case 'pod':
+      return { ...filters, pod: '' };
+    case 'co_owner_id':
+      return { ...filters, co_owner_id: '' };
     case 'bid_state':
       return { ...filters, bid_state: '' };
     case 'customer':

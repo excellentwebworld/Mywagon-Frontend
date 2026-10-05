@@ -20,6 +20,7 @@ interface FilterModalProps {
   customerOptions?: string[];
   pickupLocationOptions?: string[];
   dropoffLocationOptions?: string[];
+  coOwnerOptions?: Array<{ id: number; name: string }>;
   onClose: () => void;
   onApply: (filters: ShipmentsFilterState, productTypeNames: Record<string, string>) => boolean;
   t: (key: string) => string;
@@ -104,6 +105,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
   customerOptions = [],
   pickupLocationOptions = [],
   dropoffLocationOptions = [],
+  coOwnerOptions = [],
   onClose,
   onApply,
   t,
@@ -229,6 +231,21 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       ...dropoffLocationChoices.map((name) => ({ value: name, label: name })),
     ];
   }, [dropoffLocationChoices, t]);
+
+  const coOwnerSelectOptions = useMemo(() => {
+    const options = [...coOwnerOptions];
+    if (
+      draft.co_owner_id &&
+      !options.some((o) => String(o.id) === draft.co_owner_id)
+    ) {
+      options.unshift({ id: Number(draft.co_owner_id), name: draft.co_owner_id });
+    }
+    if (options.length === 0) return [];
+    return [
+      { value: '', label: t('filterCoOwnerAll') },
+      ...options.map((o) => ({ value: String(o.id), label: o.name })),
+    ];
+  }, [coOwnerOptions, draft.co_owner_id, t]);
 
   const update = <K extends keyof ShipmentsFilterState>(key: K, value: ShipmentsFilterState[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
@@ -517,11 +534,62 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 onChange={(v) => update('posted_to', v)}
                 minDate={splitDateTimeLocal(draft.posted_from).date || undefined}
               />
+              <FilterDateTimeField
+                id="completed-from"
+                label={t('filterCompletedFrom')}
+                value={draft.completed_from}
+                onChange={(v) => update('completed_from', v)}
+              />
+              <FilterDateTimeField
+                id="completed-to"
+                label={t('filterCompletedTo')}
+                value={draft.completed_to}
+                onChange={(v) => update('completed_to', v)}
+                minDate={splitDateTimeLocal(draft.completed_from).date || undefined}
+              />
             </div>
           </section>
 
           <section className="mgmt-pop-sec">
             <h4 className="mgmt-pop-sec-title">{t('filterSectionMore') || 'More'}</h4>
+            <div className="mgmt-pop-field">
+              <span className="mgmt-pop-label">{t('filterPodUploaded')}</span>
+              <div className="mgmt-seg" role="group" aria-label={t('filterPodUploaded')}>
+                {(
+                  [
+                    ['', 'filterAny'],
+                    ['yes', 'filterPodYes'],
+                    ['no', 'filterPodNo'],
+                  ] as const
+                ).map(([value, labelKey]) => (
+                  <button
+                    key={labelKey}
+                    type="button"
+                    className={`mgmt-seg-btn${draft.pod === value ? ' act' : ''}`}
+                    onClick={() => update('pod', value)}
+                  >
+                    {t(labelKey)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="mgmt-pop-field">
+              <span className="mgmt-pop-label">{t('filterCoOwner')}</span>
+              <SearchableSelect
+                options={coOwnerSelectOptions}
+                value={draft.co_owner_id}
+                onChange={(v) => update('co_owner_id', v)}
+                placeholder={
+                  coOwnerSelectOptions.length === 0
+                    ? t('filterNoCoOwners')
+                    : t('filterCoOwnerAll')
+                }
+                searchPlaceholder={t('filterCoOwnerPlaceholder')}
+                disabled={coOwnerSelectOptions.length === 0 && !draft.co_owner_id}
+                menuFixed
+                direction="auto"
+              />
+            </div>
             <div className="mgmt-pop-field">
               <span className="mgmt-pop-label">{t('filterBidInterestState')}</span>
               <div className="mgmt-seg" role="group" aria-label={t('filterBidInterestState')}>

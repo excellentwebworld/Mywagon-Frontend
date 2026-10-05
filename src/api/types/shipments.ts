@@ -415,6 +415,10 @@ export interface ListShipmentsParams {
   dropoff_to?: string;
   posted_from?: string;
   posted_to?: string;
+  completed_from?: string;
+  completed_to?: string;
+  pod?: 'yes' | 'no';
+  co_owner_id?: number;
   bid_state?: 'has_interest' | 'no_interest';
   customer?: string;
   pickup_location_name?: string;
@@ -434,6 +438,7 @@ export interface ApiShipmentsFilterFacets {
   customers: string[];
   pickup_locations: string[];
   dropoff_locations: string[];
+  co_owners?: Array<{ id: number; name: string }>;
 }
 
 export interface ApiCancelReason {
