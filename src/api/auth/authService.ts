@@ -361,8 +361,16 @@ export const authService = {
       /\/$/,
       '',
     );
+    const currentLang =
+      localStorage.getItem('app_locale') ||
+      localStorage.getItem('shipment-lang') ||
+      localStorage.getItem('i18nextLng') ||
+      'en';
+    const lang = currentLang.toLowerCase().startsWith('el') ? 'el' : 'en';
+
     return `${apiBase}/auth/social/${provider}/redirect?${new URLSearchParams({
       return_url: returnUrl,
+      lang,
     }).toString()}`;
   },
 };

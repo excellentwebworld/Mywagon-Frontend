@@ -20,6 +20,7 @@ import { postAuthDestination } from '../../hooks/postAuthDestination';
 import { clearInfoFormReminderSkip } from '../../components/layout/InfoFormReminderModal';
 import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
 import { applyVerticalNavOnLogin } from '../../utils/navMode';
+import { localizeSocialAuthError } from '../../utils/socialAuthErrors';
 import './LoginPage.css';
 
 function isTwoFactorChallenge(
@@ -176,9 +177,8 @@ export const LoginPage: React.FC = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     if (params.get('social_error') !== '1') return;
-    const message =
-      params.get('message') ||
-      t('socialAuth.failed', { defaultValue: 'Social sign-in failed. Please try again.' });
+    // Backend may return English in the URL; map known strings to panel language.
+    const message = localizeSocialAuthError(params.get('message'), t);
     setLocalError(message);
     // Do not bounce back to a previous incomplete social account's complete-signup.
     if (isAuthenticated) {

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { clearStoredToken } from '../../api/auth';
+import { panelLangFromStorage } from '../../utils/socialAuthErrors';
 import './SocialAuthButtons.css';
 
 type SocialProvider = 'google' | 'microsoft';
@@ -28,7 +29,11 @@ function socialRedirectUrl(provider: SocialProvider): string {
     '',
   );
   const path = `${apiBase}/auth/social/${provider}/redirect`;
-  const qs = new URLSearchParams({ return_url: returnUrl });
+  // Pass panel language — browser Accept-Language does not follow the GR/EN toggle.
+  const qs = new URLSearchParams({
+    return_url: returnUrl,
+    lang: panelLangFromStorage(),
+  });
   return `${path}?${qs.toString()}`;
 }
 

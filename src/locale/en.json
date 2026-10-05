@@ -2660,7 +2660,13 @@
     "microsoft": "Microsoft 365",
     "failed": "Social sign-in failed. Please try again.",
     "missingToken": "Social sign-in failed. Please try again.",
-    "sessionFailed": "Could not start your session. Please try again."
+    "sessionFailed": "Could not start your session. Please try again.",
+    "cancelled": "Social sign-in was cancelled.",
+    "invalidResponse": "Invalid social sign-in response.",
+    "sessionExpired": "Social sign-in session expired. Please try again.",
+    "companyDomainRegistered": "A company with this email domain is already registered in MYVAGON. Please contact your company admin to join the existing account.",
+    "emailAlreadyRegistered": "This email is already registered in MYVAGON. Please log in instead.",
+    "emailRegisteredOtherType": "This email is already registered with another account type."
   },
   "signupComplete": {
     "title": "Complete company information",
