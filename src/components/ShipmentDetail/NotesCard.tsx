@@ -45,6 +45,7 @@ interface NotesCardProps {
 }
 
 const NOTE_MAX_LEN = 130;
+const NOTE_BODY_MAX_LENGTH = 250;
 
 function NoteItem({
   note,
@@ -104,11 +105,18 @@ function NoteItem({
       <div className="p-3 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/40 dark:bg-purple-950/20 space-y-2">
         <textarea
           value={editBody}
-          onChange={(e) => setEditBody(e.target.value)}
+          maxLength={NOTE_BODY_MAX_LENGTH}
+          onChange={(e) => setEditBody(e.target.value.slice(0, NOTE_BODY_MAX_LENGTH))}
           rows={2}
           disabled={isBusy}
+          title={t('noteBodyMaxLength', 'Note must not exceed 250 characters')}
           className="w-full text-xs p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-none focus:border-purple-500 disabled:opacity-60"
         />
+        <div className="flex justify-end">
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+            {editBody.length}/{NOTE_BODY_MAX_LENGTH}
+          </span>
+        </div>
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2">
             <label className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-1 cursor-pointer">
@@ -311,11 +319,18 @@ export const NotesCard: React.FC<NotesCardProps> = ({
           <div className="mb-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 space-y-2">
             <textarea
               value={newNote}
-              onChange={(e) => setNewNote(e.target.value)}
+              maxLength={NOTE_BODY_MAX_LENGTH}
+              onChange={(e) => setNewNote(e.target.value.slice(0, NOTE_BODY_MAX_LENGTH))}
               placeholder={t('enterNotePlaceholder', 'Type note instructions…')}
+              title={t('noteBodyMaxLength', 'Note must not exceed 250 characters')}
               rows={2}
               className="w-full text-xs p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white outline-none focus:border-purple-500"
             />
+            <div className="flex justify-end">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+                {newNote.length}/{NOTE_BODY_MAX_LENGTH}
+              </span>
+            </div>
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <label className="text-[11px] text-slate-600 dark:text-slate-300 flex items-center gap-1 cursor-pointer">

@@ -14,6 +14,8 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
   onUpload,
   t,
 }) => {
+  const DOC_NAME_MAX_LENGTH = 50;
+  const DOC_DESC_MAX_LENGTH = 250;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
@@ -21,6 +23,9 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const clampDocName = (value: string) => value.slice(0, DOC_NAME_MAX_LENGTH);
+  const clampDocDescription = (value: string) => value.slice(0, DOC_DESC_MAX_LENGTH);
 
   if (!isOpen) return null;
 
@@ -68,7 +73,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
     if (!name.trim()) {
       // Pre-fill name from file name without extension
       const baseName = selectedFile.name.replace(/\.[^/.]+$/, '');
-      setName(baseName);
+      setName(clampDocName(baseName));
     }
   };
 
@@ -76,6 +81,14 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
     e.preventDefault();
     if (!name.trim()) {
       setError(t('enterDocName', 'Please enter a document name.'));
+      return;
+    }
+    if (name.trim().length > DOC_NAME_MAX_LENGTH) {
+      setError(t('docNameMaxLength', 'Document name must not exceed 50 characters'));
+      return;
+    }
+    if (description.trim().length > DOC_DESC_MAX_LENGTH) {
+      setError(t('docDescMaxLength', 'Document description must not exceed 250 characters'));
       return;
     }
     if (!file) {
@@ -90,7 +103,7 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
       const formData = new FormData();
       formData.append('name', name.trim());
       if (description.trim()) {
-        formData.append('description', description.trim());
+        formData.append('description', clampDocDescription(description.trim()));
       }
       formData.append('file', file);
 
@@ -171,11 +184,18 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              maxLength={DOC_NAME_MAX_LENGTH}
+              onChange={(e) => setName(clampDocName(e.target.value))}
               placeholder={t('docNamePlaceholder', 'e.g., CMR, Delivery Note, Invoice, Customs Declaration')}
+              title={t('docNameMaxLength', 'Document name must not exceed 50 characters')}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white bg-white dark:bg-slate-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
               required
             />
+            <div className="flex justify-end mt-1">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+                {name.length}/{DOC_NAME_MAX_LENGTH}
+              </span>
+            </div>
           </div>
 
           {/* Quick preset suggestions */}
@@ -211,11 +231,18 @@ export const UploadDocumentModal: React.FC<UploadDocumentModalProps> = ({
             </label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              maxLength={DOC_DESC_MAX_LENGTH}
+              onChange={(e) => setDescription(clampDocDescription(e.target.value))}
               placeholder={t('docDescPlaceholder', 'Add extra details, reference numbers or notes about this document…')}
+              title={t('docDescMaxLength', 'Document description must not exceed 250 characters')}
               rows={2}
               className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs text-slate-900 dark:text-white bg-white dark:bg-slate-800 outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all resize-none"
             />
+            <div className="flex justify-end mt-1">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 tabular-nums">
+                {description.length}/{DOC_DESC_MAX_LENGTH}
+              </span>
+            </div>
           </div>
 
           {/* File Upload Dropzone */}

@@ -186,6 +186,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   const [docDescription, setDocDescription] = useState('');
   const hydratedDocIdRef = useRef<string>('');
 
+  const DOC_NAME_MAX_LENGTH = 50;
+  const DOC_DESC_MAX_LENGTH = 250;
+  const DRIVER_NOTES_MAX_LENGTH = 250;
+  const clampDocName = (value: string) => value.slice(0, DOC_NAME_MAX_LENGTH);
+  const clampDocDescription = (value: string) => value.slice(0, DOC_DESC_MAX_LENGTH);
+
   // Create mode: hydrate the single-slot form from the attached document.
   useEffect(() => {
     if (isEditMode) return;
@@ -197,8 +203,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
       setDocDescription('');
       return;
     }
-    setDocName(attachedDoc.name || '');
-    setDocDescription(attachedDoc.description || '');
+    setDocName(clampDocName(attachedDoc.name || ''));
+    setDocDescription(clampDocDescription(attachedDoc.description || ''));
   }, [attachedDoc, isEditMode]);
 
   const isPersistedDocId = (id: string | number | undefined | null) =>
@@ -211,7 +217,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
       return;
     }
 
-    const defaultName = docName.trim() || file.name.replace(/\.[^/.]+$/, '');
+    const defaultName = clampDocName(docName.trim() || file.name.replace(/\.[^/.]+$/, ''));
     if (!docName.trim()) {
       setDocName(defaultName);
     }
@@ -228,7 +234,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     const newDoc = {
       id: `temp-${Date.now()}`,
       name: defaultName,
-      description: docDescription.trim(),
+      description: clampDocDescription(docDescription.trim()),
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type || 'application/octet-stream',
@@ -1537,7 +1543,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 >
                   <textarea
                     value={values.driverNotes || ''}
-                    onChange={(e) => setFieldValue('driverNotes', e.target.value)}
+                    onChange={(e) =>
+                      setFieldValue(
+                        'driverNotes',
+                        e.target.value.slice(0, DRIVER_NOTES_MAX_LENGTH)
+                      )
+                    }
                     placeholder={t('enterNotePlaceholder', 'Type note instructions…')}
                     rows={2}
                     className="w-full text-xs p-2.5 rounded-lg outline-none transition-all resize-y"
@@ -1546,7 +1557,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                       border: `1px solid ${T.bd}`,
                       color: T.t1,
                     }}
-                    maxLength={500}
+                    maxLength={DRIVER_NOTES_MAX_LENGTH}
                   />
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-3">
@@ -1577,6 +1588,9 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                         <span>{t('carrierVisible', 'Carrier-visible')}</span>
                       </label>
                     </div>
+                    <span className="text-[11px] tabular-nums" style={{ color: T.t3 }}>
+                      {(values.driverNotes || '').length}/{DRIVER_NOTES_MAX_LENGTH}
+                    </span>
                   </div>
                 </div>
               )}
@@ -1678,15 +1692,21 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                     <input
                       type="text"
                       value={docName}
+                      maxLength={DOC_NAME_MAX_LENGTH}
                       onChange={(e) => {
-                        setDocName(e.target.value);
+                        const nextName = clampDocName(e.target.value);
+                        setDocName(nextName);
                         if (attachedDoc) {
-                          setFieldValue('documentsList', [{ ...attachedDoc, name: e.target.value }]);
+                          setFieldValue('documentsList', [{ ...attachedDoc, name: nextName }]);
                         }
                       }}
                       placeholder={t(
                         'docNamePlaceholder',
                         'e.g., CMR, Delivery Note, Invoice, Customs Declaration'
+                      )}
+                      title={t(
+                        'docNameMaxLength',
+                        'Document name must not exceed 50 characters'
                       )}
                       className="w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none transition-all"
                       style={{
@@ -1695,6 +1715,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                         background: T.sf,
                       }}
                     />
+                    <div className="flex justify-end mt-1">
+                      <span className="text-[11px] tabular-nums" style={{ color: T.t3 }}>
+                        {docName.length}/{DOC_NAME_MAX_LENGTH}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -1743,17 +1768,23 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                     </label>
                     <textarea
                       value={docDescription}
+                      maxLength={DOC_DESC_MAX_LENGTH}
                       onChange={(e) => {
-                        setDocDescription(e.target.value);
+                        const nextDescription = clampDocDescription(e.target.value);
+                        setDocDescription(nextDescription);
                         if (attachedDoc) {
                           setFieldValue('documentsList', [
-                            { ...attachedDoc, description: e.target.value },
+                            { ...attachedDoc, description: nextDescription },
                           ]);
                         }
                       }}
                       placeholder={t(
                         'docDescPlaceholder',
                         'Add extra details, reference numbers or notes about this document…'
+                      )}
+                      title={t(
+                        'docDescMaxLength',
+                        'Document description must not exceed 250 characters'
                       )}
                       rows={2}
                       className="w-full px-3.5 py-2 rounded-xl border text-xs outline-none transition-all resize-y"
@@ -1763,6 +1794,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                         background: T.sf,
                       }}
                     />
+                    <div className="flex justify-end mt-1">
+                      <span className="text-[11px] tabular-nums" style={{ color: T.t3 }}>
+                        {docDescription.length}/{DOC_DESC_MAX_LENGTH}
+                      </span>
+                    </div>
                   </div>
 
                   <div>
