@@ -1700,6 +1700,8 @@
         "unanswered": "Unanswered",
         "answered": "Completed",
         "requiredHint": "Please answer this question",
+        "otherSpecifyRequired": "Please specify a value for \"Other\" before saving.",
+        "otherSpecifyRequiredHint": "Please specify is required when Other is selected",
         "locations": "Primary Locations",
         "equipment": "Equipment Types",
         "industries": "Industries",

@@ -168,9 +168,52 @@ function isMandatoryField(field) {
 
 function isOpsValueFilled(field, value) {
   if (field.type === 'multi') {
-    return Array.isArray(value) && value.length > 0;
+    if (!Array.isArray(value) || value.length === 0) return false;
+    if (isOtherSelectedWithoutSpecify(field, value)) return false;
+    return true;
   }
-  return value != null && String(value).trim() !== '';
+  if (value == null || String(value).trim() === '') return false;
+  if (isOtherSelectedWithoutSpecify(field, value)) return false;
+  return true;
+}
+
+function findFieldOtherOption(options = []) {
+  return (options || []).find((o) => isOtherLike(o.value) || isOtherLike(o.label)) || null;
+}
+
+function findFieldOption(options, v) {
+  const s = String(v);
+  const opts = options || [];
+  return (
+    opts.find((o) => String(o.value) === s) ||
+    opts.find((o) => slugify(o.label) === s) ||
+    opts.find((o) => slugify(o.value) === s) ||
+    null
+  );
+}
+
+/** True when the free-text Other option is selected but "Please specify" is empty. */
+function isOtherSelectedWithoutSpecify(field, value) {
+  const otherOpt = findFieldOtherOption(field?.options);
+  if (!otherOpt) return false;
+
+  if (field.type === 'multi') {
+    if (!Array.isArray(value) || value.length === 0) return false;
+    const vals = value.map(String);
+    const hasCustom = vals.some((v) => !findFieldOption(field.options, v) && !isOtherLike(v));
+    if (hasCustom) return false;
+    return vals.some(
+      (v) => isOtherLike(v) || String(v) === String(otherOpt.value)
+    );
+  }
+
+  const current = value == null ? '' : String(value).trim();
+  if (!current) return false;
+  if (!findFieldOption(field.options, current) && !isOtherLike(current)) {
+    // Custom specify text is the value
+    return false;
+  }
+  return isOtherLike(current) || current === String(otherOpt.value);
 }
 
 /** Count multi-select choices treating Other + its custom text as one selection. */
@@ -574,6 +617,30 @@ export default function OrganizationSection() {
         setOpenOpsSections((prev) => ({ ...prev, [parentSection.id]: true }));
       }
       const el = document.getElementById(`ops-field-${missingMandatory.key}`);
+      if (el) {
+        scrollWithinSettings(el, { behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
+    // Other selected → "Please specify" text is required
+    const missingOtherSpecify = opsFields.find((field) =>
+      isOtherSelectedWithoutSpecify(field, opsDraft[field.key])
+    );
+    if (missingOtherSpecify) {
+      toast.error(
+        t(
+          'settings.orgSection.operational.otherSpecifyRequired',
+          'Please specify a value for "Other" before saving.'
+        )
+      );
+      const parentSection = groupedOpsSections.find((s) =>
+        s.fields.some((f) => f.key === missingOtherSpecify.key)
+      );
+      if (parentSection) {
+        setOpenOpsSections((prev) => ({ ...prev, [parentSection.id]: true }));
+      }
+      const el = document.getElementById(`ops-field-${missingOtherSpecify.key}`);
       if (el) {
         scrollWithinSettings(el, { behavior: 'smooth', block: 'center' });
       }
@@ -1334,7 +1401,9 @@ function OpsField({ field, value, editing, onChange, T }) {
 
   const mandatory = isMandatoryField(field);
   const filled = isOpsValueFilled(field, value);
-  const showUnansweredWarning = editing && mandatory && !filled;
+  const otherSpecifyMissing = isOtherSelectedWithoutSpecify(field, value);
+  // Specify-field has its own inline hint when Other is selected without text
+  const showUnansweredWarning = editing && mandatory && !filled && !otherSpecifyMissing;
 
   const CHIP_PREVIEW = 12;
 
@@ -1819,10 +1888,10 @@ function OpsField({ field, value, editing, onChange, T }) {
                 }}
               >
                 {displayOptions.map((opt) => {
-                  const isThisOther = otherOption && (
-                    String(opt.value) === String(otherOption.value) ||
-                    isOtherLike(opt.value) ||
-                    isOtherLike(opt.label)
+                  // Only the exact free-text "Other" option shares the specify UI —
+                  // not labels like "Other Miscellaneous (...)"
+                  const isThisOther = Boolean(
+                    otherOption && String(opt.value) === String(otherOption.value)
                   );
                   const active = isThisOther ? isMultiOtherActive : isSelected(opt, selected);
 
@@ -1938,20 +2007,36 @@ function OpsField({ field, value, editing, onChange, T }) {
               <div className="mt-3 pt-2.5" style={{ borderTop: `1px dashed ${T.bd}` }}>
                 <label className="block mb-1.5 font-semibold" style={{ fontSize: 12, color: T.t2 }}>
                   {t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
+                  <span style={{ color: '#DC2626', fontWeight: 700, marginLeft: 3 }}>*</span>
                 </label>
                 <input
                   type="text"
                   value={multiOtherText}
                   onChange={(e) => handleMultiOtherTextChange(e.target.value)}
                   placeholder={t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
+                  required
+                  aria-required="true"
                   className="w-full px-3 py-2 rounded-lg outline-none"
                   style={{
-                    border: `1px solid ${T.bd}`,
+                    border: `1.5px solid ${!multiOtherText.trim() ? '#F59E0B' : T.bd}`,
                     background: T.sf,
                     color: T.t1,
                     fontSize: 13,
                   }}
                 />
+                {!multiOtherText.trim() && (
+                  <div
+                    className="flex items-center gap-1.5 mt-1.5"
+                    style={{ fontSize: 11.5, color: '#B45309', fontWeight: 500 }}
+                  >
+                    <AlertTriangle size={12} style={{ color: '#D97706', flexShrink: 0 }} />
+                    <span>
+                      {t('settings.orgSection.operational.otherSpecifyRequiredHint', {
+                        defaultValue: 'Please specify is required when Other is selected',
+                      })}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -2045,10 +2130,8 @@ function OpsField({ field, value, editing, onChange, T }) {
                 }}
               >
                 {displayOptions.map((opt) => {
-                  const isThisOther = otherOption && (
-                    String(opt.value) === String(otherOption.value) ||
-                    isOtherLike(opt.value) ||
-                    isOtherLike(opt.label)
+                  const isThisOther = Boolean(
+                    otherOption && String(opt.value) === String(otherOption.value)
                   );
                   const active = isThisOther ? isSingleOtherActive : selectValue === String(opt.value);
 
@@ -2091,20 +2174,36 @@ function OpsField({ field, value, editing, onChange, T }) {
               <div className="mt-3 pt-2.5" style={{ borderTop: `1px dashed ${T.bd}` }}>
                 <label className="block mb-1.5 font-semibold" style={{ fontSize: 12, color: T.t2 }}>
                   {t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
+                  <span style={{ color: '#DC2626', fontWeight: 700, marginLeft: 3 }}>*</span>
                 </label>
                 <input
                   type="text"
                   value={singleOtherText}
                   onChange={(e) => handleSingleOtherTextChange(e.target.value)}
                   placeholder={t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
+                  required
+                  aria-required="true"
                   className="w-full px-3 py-2 rounded-lg outline-none"
                   style={{
-                    border: `1px solid ${T.bd}`,
+                    border: `1.5px solid ${!singleOtherText.trim() ? '#F59E0B' : T.bd}`,
                     background: T.sf,
                     color: T.t1,
                     fontSize: 13,
                   }}
                 />
+                {!singleOtherText.trim() && (
+                  <div
+                    className="flex items-center gap-1.5 mt-1.5"
+                    style={{ fontSize: 11.5, color: '#B45309', fontWeight: 500 }}
+                  >
+                    <AlertTriangle size={12} style={{ color: '#D97706', flexShrink: 0 }} />
+                    <span>
+                      {t('settings.orgSection.operational.otherSpecifyRequiredHint', {
+                        defaultValue: 'Please specify is required when Other is selected',
+                      })}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -2444,16 +2543,19 @@ function slugify(text) {
     .replace(/_+/g, '_');
 }
 
-/** Detect "Other" / "Other please specify" / Greek Άλλο option labels & values. */
+/** Detect free-text "Other" option only — not labels like "Other Miscellaneous". */
 function isOtherLike(text) {
   const raw = String(text || '').trim();
   if (!raw) return false;
   const lower = raw.toLowerCase();
+  // Exact Other / Άλλο
   if (lower === 'other' || lower === 'άλλο' || lower === 'αλλo') return true;
   const slug = slugify(raw);
-  if (slug === 'other' || slug.startsWith('other_')) return true;
-  if (lower.startsWith('other ') || lower.startsWith('other,')) return true;
-  if (lower.includes('please specify') && lower.includes('other')) return true;
+  if (slug === 'other' || slug === 'allo') return true;
+  // "Other please specify", "Other (please specify)", other_please_specify
+  if (slug === 'other_please_specify' || slug.startsWith('other_please_specify_')) return true;
+  if (/^other\s*[(,]?\s*please\s+specify\b/.test(lower)) return true;
+  if (lower === 'other please specify' || lower.startsWith('other please specify')) return true;
   return false;
 }
 
