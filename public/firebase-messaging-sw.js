@@ -12,6 +12,8 @@
  *   3. Tab Focus & Fresh Navigation: Reuses an existing same-origin tab, then posts
  *      FCM_NAVIGATE so the app hard-loads the target URL (latest data). Soft SPA
  *      client.navigate alone left React Query cache stale.
+ *   4. Badge Sync: Posts FCM_BACKGROUND_RECEIVED to open clients so the header
+ *      unread badge updates while the tab is backgrounded (onMessage is foreground-only).
  */
 
 // ── Import Firebase compat scripts from CDN ──────────────────────────────
@@ -153,21 +155,43 @@ messaging.onBackgroundMessage((payload) => {
     });
   }
 
+  const title = payload.notification?.title
+    ?? payload.data?.title
+    ?? 'MYVAGON Notification';
+
+  const body = payload.notification?.body
+    ?? payload.data?.body
+    ?? payload.data?.notification_body
+    ?? '';
+
+  // Tell any open (including backgrounded) app tabs to refresh the unread badge.
+  // Foreground messages already update via onMessage; background only hits this SW path.
+  const notifyOpenClients = clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    const detail = {
+      title,
+      body,
+      type: payload.data?.type ?? '',
+      type_id: payload.data?.type_id ?? payload.data?.shipment_id ?? payload.data?.id ?? payload.data?.action_id ?? '',
+      action_id: payload.data?.action_id ?? '',
+      action_type: payload.data?.action_type ?? '',
+      external_url: payload.data?.external_url ?? '',
+      redirect_slug: payload.data?.redirect_slug ?? '',
+      load_ref: payload.data?.load_ref ?? payload.data?.shipment_auto_id ?? '',
+      data: payload.data || {},
+    };
+    clientList.forEach((client) => {
+      client.postMessage({ type: 'FCM_BACKGROUND_RECEIVED', detail });
+    });
+  });
+
   // When the FCM payload includes a `notification` block, the Firebase SDK already
   // displays a system tray notification. Calling showNotification again doubles it
   // (common when the browser tab is backgrounded). Android/iOS are unaffected —
   // this handler only runs in the web service worker.
   // Data-only payloads still need an explicit showNotification below.
   if (payload.notification) {
-    return;
+    return notifyOpenClients;
   }
-
-  const title = payload.data?.title
-    ?? 'MYVAGON Notification';
-
-  const body = payload.data?.body
-    ?? payload.data?.notification_body
-    ?? '';
 
   const targetUrl = resolveTargetUrl(payload.data);
 
@@ -189,7 +213,10 @@ messaging.onBackgroundMessage((payload) => {
     },
   };
 
-  self.registration.showNotification(title, notificationOptions);
+  return Promise.all([
+    notifyOpenClients,
+    self.registration.showNotification(title, notificationOptions),
+  ]);
 });
 
 

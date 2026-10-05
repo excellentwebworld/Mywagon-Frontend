@@ -208,11 +208,23 @@ export const Header: React.FC<HeaderProps> = ({
       }
     };
 
+    // Safety net: browsers may freeze background tabs; re-sync when user returns.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadUnreadCount();
+        if (notifOpen) {
+          loadHeaderNotificationList();
+        }
+      }
+    };
+
     window.addEventListener('shipper:notification-received', handlePushReceived);
     window.addEventListener('shipper:notifications-updated', handleNotifsUpdated);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       window.removeEventListener('shipper:notification-received', handlePushReceived);
       window.removeEventListener('shipper:notifications-updated', handleNotifsUpdated);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [notifOpen]);
 

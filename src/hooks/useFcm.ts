@@ -131,10 +131,28 @@ export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = 
 
     let cancelled = false;
 
-    // ── 0. Listen for navigation messages from Service Worker ─────────
+    // ── 0. Listen for navigation / badge-sync messages from Service Worker ─
     const handleSwMessage = (event: MessageEvent) => {
       if (event.data?.type === 'FCM_FORCE_LOGOUT') {
         window.dispatchEvent(new CustomEvent('shipper:force-logout'));
+        return;
+      }
+      // Background push: SW shows the system tray notification; page JS must
+      // still refresh the header unread badge (onMessage only runs in foreground).
+      // Do not apply chat toast suppression here — we are not showing a toast.
+      if (event.data?.type === 'FCM_BACKGROUND_RECEIVED') {
+        const detail = event.data.detail ?? {};
+        const title = String(detail.title ?? 'New Notification');
+        const body = String(detail.body ?? '');
+        const type = String(detail.type ?? '');
+        const type_id = String(detail.type_id ?? '');
+        const msgKey = `${title}_${body}_${type}_${type_id}`;
+        if (isDuplicateMessage(msgKey)) {
+          return;
+        }
+        window.dispatchEvent(
+          new CustomEvent('shipper:notification-received', { detail })
+        );
         return;
       }
       if (event.data && event.data.type === 'FCM_NAVIGATE' && event.data.url) {
