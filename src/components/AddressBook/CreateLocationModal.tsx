@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { LocationItem } from '../../context/AppContext';
-import { getDockTypeOptions, getQuickTemplateFacilityLabel, getQuickTemplateFacilityOptions } from '../../pages/AddressBook/constants';
+import { getDockTypeOptions, getQuickTemplateFacilityLabel, getQuickTemplateFacilityOptions, LOAD_TIME_MINUTES_MAX, LOAD_TIME_MINUTES_MIN } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { inferQuickTemplateFromType } from '../../pages/AddressBook/utils/locationUtils';
 import {
@@ -450,10 +450,26 @@ export const CreateLocationModal: React.FC<Props> = ({
       </div>
 
       <div className={`mf${fieldErrors.loadTime ? ' has-error' : ''}`}>
-        <label>
+        <label htmlFor="create-load-time">
           {t('abEstLoadTime')} <span className="req">*</span>
         </label>
-        <input type="number" min={1} placeholder={t('abEgLoadTime', 'e.g. 45')} value={createData.loadTime} onChange={(e) => update({ loadTime: e.target.value })} />
+        <input
+          id="create-load-time"
+          type="number"
+          min={LOAD_TIME_MINUTES_MIN}
+          max={LOAD_TIME_MINUTES_MAX}
+          step={1}
+          inputMode="numeric"
+          placeholder={t('abEgLoadTime', 'e.g. 45')}
+          value={createData.loadTime}
+          onKeyDown={(e) => ['e', 'E', '+', '-', '.'].includes(e.key) && e.preventDefault()}
+          onChange={(e) => {
+            const next = e.target.value;
+            if (next === '' || /^\d{1,5}$/.test(next)) {
+              update({ loadTime: next });
+            }
+          }}
+        />
         <FormFieldError message={fieldErrors.loadTime} />
       </div>
 

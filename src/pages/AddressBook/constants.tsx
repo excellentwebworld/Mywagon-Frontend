@@ -82,6 +82,10 @@ export function getSystemDirectories(t: (k: string) => string): { id: string; na
   ];
 }
 
+/** Matches shipper_addresses.load_time_minutes (unsignedSmallInteger). */
+export const LOAD_TIME_MINUTES_MIN = 1;
+export const LOAD_TIME_MINUTES_MAX = 65535;
+
 export const DOCK_TYPES = ['Dock-level', 'Ramp', 'Ground'] as const;
 
 const DOCK_TYPE_LABEL_KEYS: Record<(typeof DOCK_TYPES)[number], string> = {

@@ -1,6 +1,7 @@
 import type { LocationItem } from '../../../context/AppContext';
 import type { LocationFormValues } from './locationFormSchema';
 import { coerceFormString } from './locationFormCoerce';
+import { LOAD_TIME_MINUTES_MAX, LOAD_TIME_MINUTES_MIN } from '../constants';
 
 /** Coerce form/API values to strings so `.trim()` and Yup string rules never throw. */
 export { coerceFormString } from './locationFormCoerce';
@@ -56,7 +57,8 @@ export function locationToFormValues(loc: LocationItem): LocationFormValues {
     maxWeight: cleanNumericMeasurement(loc.maxWeight),
     adr: loc.adr,
     palletExchange: loc.palletExchange,
-    loadTime: loc.loadTime && loc.loadTime >= 1 ? String(loc.loadTime) : '',
+    loadTime:
+      loc.loadTime && loc.loadTime >= LOAD_TIME_MINUTES_MIN ? String(loc.loadTime) : '',
     noteInternal: loc.noteInternal ?? '',
     noteCarrier: loc.noteCarrier ?? '',
     equipment: loc.equipment ?? [],
@@ -69,6 +71,12 @@ export function locationToFormValues(loc: LocationItem): LocationFormValues {
 export function formValuesToLocationItem(values: LocationFormValues, existing: LocationItem): LocationItem {
   const normalized = normalizeLocationFormValues(values);
   const loadTime = parseInt(normalized.loadTime, 10);
+  const safeLoadTime =
+    Number.isFinite(loadTime) &&
+    loadTime >= LOAD_TIME_MINUTES_MIN &&
+    loadTime <= LOAD_TIME_MINUTES_MAX
+      ? loadTime
+      : LOAD_TIME_MINUTES_MIN;
 
   return {
     ...existing,
@@ -98,7 +106,7 @@ export function formValuesToLocationItem(values: LocationFormValues, existing: L
     maxWeight: normalized.maxWeight.trim(),
     adr: normalized.adr ?? false,
     palletExchange: normalized.palletExchange ?? false,
-    loadTime: Number.isFinite(loadTime) && loadTime >= 1 ? loadTime : 1,
+    loadTime: safeLoadTime,
     noteInternal: normalized.noteInternal ?? '',
     noteCarrier: normalized.noteCarrier ?? '',
     equipment: normalized.equipment ?? [],
