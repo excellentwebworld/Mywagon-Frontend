@@ -115,24 +115,24 @@ describe('wizardValidationSchema — Target Price & Negotiable Validation', () =
       expect(result.targetPrice).toBe(600);
     });
 
-    it('accepts max 4-digit targetPrice (9999)', async () => {
+    it('accepts max 7-digit targetPrice (9999999)', async () => {
       const form = {
         ...baseValidForm,
         negotiable: false,
-        targetPrice: '9999',
+        targetPrice: '9999999',
       };
       const result = await wizardValidationSchema.validate(form);
-      expect(result.targetPrice).toBe(9999);
+      expect(result.targetPrice).toBe(9999999);
     });
 
-    it('rejects targetPrice with more than 4 digits', async () => {
+    it('rejects targetPrice with more than 7 digits', async () => {
       const form = {
         ...baseValidForm,
         negotiable: false,
-        targetPrice: '10000',
+        targetPrice: '10000000',
       };
       await expect(wizardValidationSchema.validate(form)).rejects.toThrow(
-        /cannot exceed 4 digits/i
+        /cannot exceed 7 digits/i
       );
     });
   });
@@ -145,7 +145,7 @@ describe('wizardValidationSchema — Target Price & Negotiable Validation', () =
         targetPrice: '45454435464564564564654654654645645654654654645645645645645',
       };
       await expect(wizardValidationSchema.validate(form)).rejects.toThrow(
-        /cannot exceed 4 digits/i
+        /cannot exceed 7 digits/i
       );
     });
   });

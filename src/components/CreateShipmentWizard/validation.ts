@@ -224,9 +224,9 @@ export function focusFirstConflict(
 }
 
 /** Max digits in the target price integer part (before decimal). */
-export const MAX_TARGET_PRICE_DIGITS = 4;
+export const MAX_TARGET_PRICE_DIGITS = 7;
 export const MAX_TARGET_PRICE_DECIMALS = 2;
-export const MAX_TARGET_PRICE_VALUE = 10 ** MAX_TARGET_PRICE_DIGITS - 1; // 9_999
+export const MAX_TARGET_PRICE_VALUE = 10 ** MAX_TARGET_PRICE_DIGITS - 1; // 9_999_999
 
 /** Clamp typed/pasted target price to max digits + decimals. Returns null if invalid chars. */
 export function clampTargetPriceInput(raw: string | number | null | undefined): string | null {
