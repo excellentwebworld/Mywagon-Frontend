@@ -30,6 +30,29 @@ export interface SatFilterDraft {
   quickFilters: QuickFilterKey[];
 }
 
+/** Default filter-modal draft (Laravel defaults: multi-stop on, radii 100). */
+export function emptySatFilterDraft(): SatFilterDraft {
+  return {
+    truckTypeIds: [],
+    availableFromStart: '',
+    availableFromEnd: '',
+    pickupCity: '',
+    pickupLat: null,
+    pickupLng: null,
+    pickupRadius: 100,
+    dropoffCity: '',
+    dropoffLat: null,
+    dropoffLng: null,
+    dropoffRadius: 100,
+    stopsMulti: true,
+    stopsDirect: false,
+    providerNames: [],
+    minPrice: '',
+    maxPrice: '',
+    quickFilters: [],
+  };
+}
+
 interface SatFilterModalProps {
   open: boolean;
   draft: SatFilterDraft;
@@ -510,6 +533,11 @@ export const SatFilterModal: React.FC<SatFilterModalProps> = ({
             type="button"
             className="sat-btn"
             onClick={() => {
+              const empty = emptySatFilterDraft();
+              setDraft(empty);
+              setProviderQuery('');
+              setPickupSuggestOpen(false);
+              setDropoffSuggestOpen(false);
               onReset();
               onClose();
             }}

@@ -14,7 +14,10 @@ import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplet
 import { useShipperPermission } from '../../../hooks/useShipperPermission';
 import { ACTION_RBAC } from '../../../utils/shipperRbacMap';
 import type { SatFilterDraft } from '../../../components/SearchTrucks/SatFilterModal';
-import { resolveTripType } from '../../../components/SearchTrucks/SatFilterModal';
+import {
+  emptySatFilterDraft,
+  resolveTripType,
+} from '../../../components/SearchTrucks/SatFilterModal';
 import { toApiPickupDate } from '../../../api/mappers/availabilitiesMapper';
 import { geocodeCityName } from '../../../components/SearchTrucks/usePlaceSuggestions';
 import { MOCK_PENDING, MOCK_TRUCKS } from '../mockData';
@@ -730,20 +733,30 @@ export function useSearchTrucks() {
   }, []);
 
   const resetPanelFilters = useCallback(() => {
+    const empty = emptySatFilterDraft();
+    // Clear every field the filter modal can apply — including pickup/dropoff
+    // location + coords (previously omitted, so Reset left location filters active).
+    // tripType must be 'any' (not resolveTripType(multi,!direct) which yields multi_stop).
     const patch: Partial<SearchCriteria> = {
-      truckTypeIds: [],
-      availableFromStart: '',
-      availableFromEnd: '',
-      pickupRadius: 100,
-      dropoffRadius: 100,
-      stopsMulti: true,
-      stopsDirect: false,
+      truckTypeIds: empty.truckTypeIds,
+      availableFromStart: empty.availableFromStart,
+      availableFromEnd: empty.availableFromEnd,
+      pickupCity: empty.pickupCity,
+      pickupLat: empty.pickupLat,
+      pickupLng: empty.pickupLng,
+      pickupRadius: empty.pickupRadius,
+      dropoffCity: empty.dropoffCity,
+      dropoffLat: empty.dropoffLat,
+      dropoffLng: empty.dropoffLng,
+      dropoffRadius: empty.dropoffRadius,
+      stopsMulti: empty.stopsMulti,
+      stopsDirect: empty.stopsDirect,
       tripType: 'any',
-      providerNames: [],
-      minPrice: '',
-      maxPrice: '',
+      providerNames: empty.providerNames,
+      minPrice: empty.minPrice,
+      maxPrice: empty.maxPrice,
     };
-    setQuickFilters(new Set());
+    setQuickFilters(new Set(empty.quickFilters));
     setCriteria((prev) => ({ ...prev, ...patch }));
     setAppliedCriteria((prev) => ({ ...prev, ...patch }));
     setSelectedId(null);
