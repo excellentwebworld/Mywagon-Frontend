@@ -65,6 +65,10 @@ const STATUS_STYLE = {
   },
 };
 
+/** VAT numbers may include a country prefix (e.g. EL) + digits — letters/digits only. Max 16 (register parity). */
+const VAT_MAX_LENGTH = 16;
+const sanitizeVat = (value) => String(value || '').replace(/[^A-Za-z0-9]/g, '').slice(0, VAT_MAX_LENGTH);
+
 export default function KycSection({ onStatusChange }) {
   const { t } = useTranslation();
   const { T, isDark } = useTheme();
@@ -78,12 +82,14 @@ export default function KycSection({ onStatusChange }) {
   const [loadFailed, setLoadFailed] = useState(false);
   const [data, setData] = useState(null);
   const [vatNumber, setVatNumber] = useState('');
+  const [vatError, setVatError] = useState('');
   const [file, setFile] = useState(null);
   const [fileError, setFileError] = useState('');
 
   const applyPayload = useCallback((payload) => {
     setData(payload);
-    setVatNumber(payload.vat_number || '');
+    setVatNumber(sanitizeVat(payload.vat_number || ''));
+    setVatError('');
     setFile(null);
     setFileError('');
     onStatusChange?.(payload);
@@ -129,8 +135,15 @@ export default function KycSection({ onStatusChange }) {
 
   const submit = async () => {
     if (!requireRbac(ACTION_RBAC.editCompanyInfo)) return;
-    if (!vatNumber.trim() || vatNumber.trim().length < 2) {
+    const vat = sanitizeVat(vatNumber);
+    if (!vat || vat.length < 2) {
+      setVatError(t('compliance.kyc.vatRequired'));
       toast.error(t('compliance.kyc.vatRequired'));
+      return;
+    }
+    if (!/^[A-Za-z0-9]+$/.test(vat)) {
+      setVatError(t('compliance.kyc.vatInvalid'));
+      toast.error(t('compliance.kyc.vatInvalid'));
       return;
     }
     if (!data?.certificate?.url && !file) {
@@ -138,9 +151,10 @@ export default function KycSection({ onStatusChange }) {
       return;
     }
 
+    setVatError('');
     setSaving(true);
     try {
-      const payload = await kycSettingsService.submit(vatNumber.trim(), file);
+      const payload = await kycSettingsService.submit(vat, file);
       applyPayload(payload);
       toast.success(t('compliance.kyc.submitSuccess'));
       await refreshUser().catch(() => {});
@@ -232,19 +246,28 @@ export default function KycSection({ onStatusChange }) {
           <input
             type="text"
             value={vatNumber}
-            onChange={(e) => setVatNumber(e.target.value)}
+            onChange={(e) => {
+              setVatNumber(sanitizeVat(e.target.value));
+              if (vatError) setVatError('');
+            }}
             disabled={!canEdit || saving}
-            maxLength={15}
+            maxLength={VAT_MAX_LENGTH}
+            inputMode="text"
+            autoComplete="off"
             className="w-full px-3 py-2.5 rounded-lg outline-none"
             style={{
-              border: `1px solid ${T.bd}`,
+              border: `1px solid ${vatError ? '#EF4444' : T.bd}`,
               background: canEdit ? T.sf : T.sa,
               color: T.t1,
               fontSize: 13,
               opacity: canEdit ? 1 : 0.85,
             }}
             placeholder={t('compliance.kyc.vatPlaceholder')}
+            aria-invalid={Boolean(vatError)}
           />
+          {vatError && (
+            <div style={{ fontSize: 11, color: '#EF4444', marginTop: 4 }}>{vatError}</div>
+          )}
         </div>
 
         <div>

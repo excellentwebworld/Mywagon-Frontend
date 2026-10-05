@@ -42,7 +42,7 @@ export const KycStep: React.FC<KycStepProps> = ({
           value={vat}
           disabled={disabled}
           maxLength={16}
-          onChange={(e) => onVat(e.target.value)}
+          onChange={(e) => onVat(e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 16))}
           placeholder={`${t('registerVat', 'Company V.A.T Number')}*`}
           aria-label={t('registerVat', 'Company V.A.T Number')}
         />

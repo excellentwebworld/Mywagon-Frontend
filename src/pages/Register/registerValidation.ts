@@ -238,6 +238,12 @@ export function validateVatNumber(value: string, t: Translate): string | undefin
   if (!v) return t('registerVatRequired', 'Company V.A.T Number is required');
   if (v.length < 2) return t('registerVatMinLength', 'Minimum 2 characters are required');
   if (v.length > 16) return t('registerVatMaxLength', 'VAT number must not exceed 16 characters');
+  if (!/^[A-Za-z0-9]+$/.test(v)) {
+    return t(
+      'registerVatInvalid',
+      'VAT number may only contain letters and numbers (no special characters)'
+    );
+  }
   return undefined;
 }
 
