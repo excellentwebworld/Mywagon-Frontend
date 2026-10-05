@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { clearStoredToken, setStoredToken } from '../../api/auth';
@@ -23,11 +23,14 @@ export const SocialCallbackPage: React.FC = () => {
   const navigate = useNavigate();
   const { refreshUser, verifyTwoFactor, isAuthenticated, user } = useAuth();
   const { t } = useTranslation();
+  const tRef = useRef(t);
+  tRef.current = t;
   const [error, setError] = useState<string | null>(null);
   const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null);
   const [otpCode, setOtpCode] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [handoffDone, setHandoffDone] = useState(false);
+  const handoffStarted = useRef(false);
 
   useEffect(() => {
     const token = params.get('token');
@@ -51,21 +54,23 @@ export const SocialCallbackPage: React.FC = () => {
       clearStoredToken();
       forceLogoutKeepPage();
       setError(
-        t('socialAuth.missingToken', {
+        tRef.current('socialAuth.missingToken', {
           defaultValue: 'Social sign-in failed. Please try again.',
         }),
       );
       return;
     }
 
-    let cancelled = false;
+    if (handoffStarted.current) return;
+    handoffStarted.current = true;
+
+    let unmounted = false;
     (async () => {
       try {
         clearStoredToken();
         setStoredToken(token);
         applyVerticalNavOnLogin();
         const profile = await refreshUser();
-        if (cancelled) return;
 
         if (!profile) {
           throw new Error('missing profile');
@@ -77,16 +82,17 @@ export const SocialCallbackPage: React.FC = () => {
         await new Promise<void>((resolve) => {
           window.requestAnimationFrame(() => resolve());
         });
-        if (cancelled) return;
 
+        // Always finish once the session exists — do not abort for locale/`t` churn.
         setHandoffDone(true);
         navigate(postAuthDestination(profile), { replace: true });
       } catch {
-        if (cancelled) return;
+        if (unmounted) return;
+        handoffStarted.current = false;
         clearStoredToken();
         forceLogoutKeepPage();
         setError(
-          t('socialAuth.sessionFailed', {
+          tRef.current('socialAuth.sessionFailed', {
             defaultValue: 'Could not start your session. Please try again.',
           }),
         );
@@ -94,9 +100,10 @@ export const SocialCallbackPage: React.FC = () => {
     })();
 
     return () => {
-      cancelled = true;
+      unmounted = true;
+      handoffStarted.current = false;
     };
-  }, [params, refreshUser, navigate, t]);
+  }, [params, refreshUser, navigate]);
 
   if (error) {
     return <Navigate to={`/login?social_error=1&message=${encodeURIComponent(error)}`} replace />;

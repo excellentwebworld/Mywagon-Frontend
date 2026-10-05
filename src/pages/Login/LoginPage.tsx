@@ -83,6 +83,10 @@ export const LoginPage: React.FC = () => {
   const [localError, setLocalError] = useState<string | null>(null);
   const [socialHandoff, setSocialHandoff] = useState(false);
   const socialHandoffStarted = useRef(false);
+  // Keep t out of the OAuth effect deps — locale sync after refreshUser recreates t and
+  // was cancelling the in-flight handoff (spinner stuck on /login?token=…).
+  const tRef = useRef(t);
+  tRef.current = t;
 
   const from =
     (location.state as { from?: string } | null)?.from || '/dashboard';
@@ -136,32 +140,33 @@ export const LoginPage: React.FC = () => {
     socialHandoffStarted.current = true;
     setSocialHandoff(true);
 
-    let cancelled = false;
+    let unmounted = false;
     (async () => {
       try {
         clearStoredToken();
         setStoredToken(token);
         applyVerticalNavOnLogin();
         const profile = await refreshUser();
-        if (cancelled) return;
         if (!profile) {
           throw new Error('missing profile');
         }
         clearInfoFormReminderSkip(profile.id);
+        // One frame so AuthContext user/token commit before the destination mounts.
         await new Promise<void>((resolve) => {
           window.requestAnimationFrame(() => resolve());
         });
-        if (cancelled) return;
 
+        // Always navigate once the session exists. Do not abort for effect cleanup /
+        // locale sync — that left the boot spinner stuck with ?token= still in the URL.
         const dest = postAuthDestination(profile, from);
         navigate(dest, { replace: true });
       } catch {
-        if (cancelled) return;
+        if (unmounted) return;
         socialHandoffStarted.current = false;
         setSocialHandoff(false);
         clearStoredToken();
         setLocalError(
-          t('socialAuth.sessionFailed', {
+          tRef.current('socialAuth.sessionFailed', {
             defaultValue: 'Could not start your session. Please try again.',
           }),
         );
@@ -170,9 +175,11 @@ export const LoginPage: React.FC = () => {
     })();
 
     return () => {
-      cancelled = true;
+      unmounted = true;
+      // Strict Mode / dep churn: allow a fresh handoff attempt on the next effect run.
+      socialHandoffStarted.current = false;
     };
-  }, [location.search, navigate, refreshUser, t, from]);
+  }, [location.search, navigate, refreshUser, from]);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);

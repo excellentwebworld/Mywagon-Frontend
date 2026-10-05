@@ -286,6 +286,9 @@ function mapApiItem(n: ApiNotification): NotificationItem {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+/** Must stay within API `per_page` max (NotificationsController: max:100). */
+const PER_PAGE_OPTIONS = [10, 20, 50, 100] as const;
+
 type NotificationsPageProps = {
   /** When true, render inside Settings chrome (no full-page padding). */
   embedded?: boolean;
@@ -346,6 +349,15 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
     scrollToTop();
   };
 
+  const handlePerPageChange = (size: number) => {
+    if (!(PER_PAGE_OPTIONS as readonly number[]).includes(size)) return;
+    // Batch page reset with per-page change so the fetch effect never runs
+    // with a stale page against the new page size (empty list / broken pager).
+    setPerPage(size);
+    setCurrentPage(1);
+    scrollToTop();
+  };
+
   // ── i18n ───────────────────────────────────────────────────────────────
   const currentLang = (lang === 'el' ? 'el' : 'en') as 'en' | 'el';
   const loc = (key: string): string => {
@@ -402,12 +414,19 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
       const items = res.data.map(mapApiItem);
       setNotifications(items);
       setMeta(res.meta);
+      // Keep local page in sync if API clamped an out-of-range page.
+      if (res.meta.current_page && res.meta.current_page !== page) {
+        setCurrentPage(res.meta.current_page);
+      }
     } catch {
-      // Handled
+      showToast(
+        tHook('Notifications.failed_to_load', 'Failed to load notifications'),
+        'error',
+      );
     } finally {
       setLoading(false);
     }
-  }, [lang]);
+  }, [lang, showToast, tHook]);
 
   // ── Reset page to 1 when filters change ────────────────────────────────
   useEffect(() => {
@@ -550,8 +569,9 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
 
   const total = meta.total ?? 0;
   const lastPage = Math.max(meta.last_page ?? 1, 1);
-  const start = total === 0 ? 0 : (currentPage - 1) * perPage + 1;
-  const end = Math.min(currentPage * perPage, total);
+  const effectivePerPage = meta.per_page || perPage;
+  const start = total === 0 ? 0 : (currentPage - 1) * effectivePerPage + 1;
+  const end = Math.min(currentPage * effectivePerPage, total);
   const pageList = useMemo(() => buildPageList(currentPage, lastPage), [currentPage, lastPage]);
 
   // ──────────────────────────────────────────────────────────────────────
@@ -963,10 +983,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
               </span>
               <select
                 value={perPage}
-                onChange={(e) => {
-                  setPerPage(Number(e.target.value));
-                  handlePageChange(1);
-                }}
+                onChange={(e) => handlePerPageChange(Number(e.target.value))}
                 disabled={loading}
                 aria-label={loc('perPage')}
                 className="px-2.5 py-1 rounded-lg text-xs font-semibold outline-none cursor-pointer transition-all"
@@ -976,7 +993,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                   color: T.t1,
                 }}
               >
-                {[10, 20, 50, 100].map((n) => (
+                {PER_PAGE_OPTIONS.map((n) => (
                   <option key={n} value={n}>
                     {n} / {loc('perPage')}
                   </option>
