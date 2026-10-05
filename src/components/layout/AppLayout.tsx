@@ -162,7 +162,9 @@ export const AppLayout: React.FC = () => {
         {!isSideMode && <TopNav />}
 
         <main className="page-body">
-          <Outlet key={`${location.pathname}${location.search}`} />
+          {/* Key by pathname only — including search remounts the page on every
+              query update (e.g. Price Lists debounced search) and steals input focus. */}
+          <Outlet key={location.pathname} />
         </main>
       </div>
 
