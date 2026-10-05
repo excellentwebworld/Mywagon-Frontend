@@ -17,6 +17,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useShipperPermission } from '../../../hooks/useShipperPermission';
 import { ACTION_RBAC } from '../../../utils/shipperRbacMap';
 import { kycSettingsService } from '../../../api/services/kycSettingsService';
+import { formatUtcToDisplayDateTime } from '../../../utils/timezone';
 
 const STATUS_STYLE = {
   accepted: {
@@ -231,7 +232,7 @@ export default function KycSection({ onStatusChange }) {
           )}
           {data.kyc_update_date_time && (
             <div style={{ fontSize: 11, color: style.meta, marginTop: 6, opacity: 0.9 }}>
-              {t('compliance.kyc.lastUpdated')}: {new Date(data.kyc_update_date_time).toLocaleString()}
+              {t('compliance.kyc.lastUpdated')}: {formatUtcToDisplayDateTime(data.kyc_update_date_time) || data.kyc_update_date_time}
             </div>
           )}
         </div>
