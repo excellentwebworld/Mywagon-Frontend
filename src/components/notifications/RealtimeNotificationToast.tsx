@@ -352,7 +352,7 @@ export const RealtimeNotificationToast: React.FC<RealtimeNotificationToastProps>
         startTimeRef.current = Date.now() - (100 - progress) * (DURATION_MS / 100);
       }}
       onClick={handleNavigate}
-      className="fixed bottom-6 right-6 z-[999999] w-[380px] max-w-[calc(100vw-2rem)] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 p-4 transition-all duration-300 transform animate-in slide-in-from-bottom-5 fade-in hover:shadow-indigo-500/10 hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer overflow-hidden group select-none"
+      className="mv-push-toast fixed bottom-6 right-6 z-[999999] w-[380px] max-w-[calc(100vw-2rem)] bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/80 dark:border-slate-800 p-4 transition-all duration-300 transform animate-in slide-in-from-bottom-5 fade-in hover:shadow-indigo-500/10 hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer overflow-hidden group select-none"
     >
       {/* Top Header */}
       <div className="flex items-start justify-between gap-3 mb-2">
