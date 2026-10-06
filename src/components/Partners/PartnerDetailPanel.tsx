@@ -395,6 +395,15 @@ export const PartnerDetailPanel: React.FC<Props> = ({
                       val: `${perf.unfulfilled_pct}%`,
                       lbl: t("unfulfilledPct"),
                     },
+                    ...(perf.on_time_pickup_pct != null
+                      ? [
+                          {
+                            val: `${perf.on_time_pickup_pct}%`,
+                            lbl: t("satOnTimePickup"),
+                            cls: "ptn-ki-g",
+                          },
+                        ]
+                      : []),
                     ...(perf.on_time_delivery_pct != null
                       ? [
                           {

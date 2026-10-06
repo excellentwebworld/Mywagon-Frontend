@@ -391,6 +391,7 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     carrierRatingCount: (item.carrier as any)?.rating_count ?? null,
     carrierTripsCount: item.carrier?.trips_count ?? null,
     carrierPhone: item.carrier?.phone ?? null,
+    carrierOnTimePickupPct: item.carrier?.on_time_pickup_pct ?? null,
     carrierOnTimeDeliveryPct: item.carrier?.on_time_delivery_pct ?? null,
     carrierCancellationRatePct: item.carrier?.cancellation_rate_pct ?? null,
     carrierAvgPickupDelayMinutes: item.carrier?.avg_pickup_delay_minutes ?? null,
@@ -778,6 +779,8 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
       (detail.carrier as any)?.phone ??
       (base as any).carrierPhone ??
       null,
+    carrierOnTimePickupPct:
+      (detail.carrier as any)?.on_time_pickup_pct ?? base.carrierOnTimePickupPct ?? null,
     carrierOnTimeDeliveryPct:
       (detail.carrier as any)?.on_time_delivery_pct ?? base.carrierOnTimeDeliveryPct ?? null,
     carrierCancellationRatePct:

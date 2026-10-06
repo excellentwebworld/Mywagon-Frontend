@@ -226,6 +226,7 @@ describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => 
       carrierType: 'driver',
       carrierRating: 4.7,
       carrierTripsCount: 85,
+      carrierOnTimePickupPct: 95,
       carrierOnTimeDeliveryPct: 98,
       carrierCancellationRatePct: 0.5,
       carrierAvgPickupDelayMinutes: 8,
@@ -241,6 +242,9 @@ describe('buildShipmentDetailViewModel (Comprehensive Phase-Wise Tests)', () => 
     expect(vm.carrier?.tripsCount).toBe(85);
     expect(vm.carrier?.vehicleType).toBe('Semi-Trailer Truck');
     expect(vm.carrier?.plates).toEqual(['ΒΕ-1234', 'ΤΡ-9988']);
+    expect(vm.carrier?.onTimePickup).toBe('95%');
+    expect(vm.carrier?.onTimeDelivery).toBe('98%');
+    expect(vm.carrier?.avgPickupDelay).toBe('8m');
   });
 
   it('Scheduled, Ready, and Past Due load displays transporter rating and trips even before trip completion review', () => {

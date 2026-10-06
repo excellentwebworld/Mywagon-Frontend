@@ -108,6 +108,8 @@ export interface AvailableTruck {
   occurrences: string[];
   recurrenceLabel: string;
   bidSent?: boolean;
+  /** On-time pickup % from provider history; null = unknown */
+  onTimePickupPct?: number | null;
   /** On-time delivery % from provider history; null = unknown */
   onTimeDeliveryPct?: number | null;
   cancellationRate?: number | null;

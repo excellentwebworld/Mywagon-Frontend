@@ -942,8 +942,10 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
           (shipment.carrier as any)?.phone ||
           (isFreelancer ? shipment.assignedDriverPhone : null) ||
           undefined,
-        showDeliveryOnTime: Boolean(shipment.carrierOnTimeDeliveryPct != null),
-        onTimePickup: shipment.carrierOnTimeDeliveryPct != null ? fmtPct(shipment.carrierOnTimeDeliveryPct) : '—',
+        showDeliveryOnTime: Boolean(
+          shipment.carrierOnTimePickupPct != null || shipment.carrierOnTimeDeliveryPct != null
+        ),
+        onTimePickup: shipment.carrierOnTimePickupPct != null ? fmtPct(shipment.carrierOnTimePickupPct) : '—',
         onTimeDelivery: shipment.carrierOnTimeDeliveryPct != null ? fmtPct(shipment.carrierOnTimeDeliveryPct) : '—',
         cancelRate: shipment.carrierCancellationRatePct != null ? fmtPct(shipment.carrierCancellationRatePct) : '—',
         avgPickupDelay: shipment.carrierAvgPickupDelayMinutes != null ? fmtMin(shipment.carrierAvgPickupDelayMinutes) : '—',

@@ -235,6 +235,7 @@ export interface Shipment {
   carrierRatingCount?: number | null;
   carrierTripsCount?: number | null;
   carrierPhone?: string | null;
+  carrierOnTimePickupPct?: number | null;
   carrierOnTimeDeliveryPct?: number | null;
   carrierCancellationRatePct?: number | null;
   carrierAvgPickupDelayMinutes?: number | null;
