@@ -225,7 +225,13 @@ export default function UserEditPage() {
       applyServerUser(updated);
       setEditingPerms(false);
       setEditedPerms(null);
-      toast.success(t('userMgmt.toast.resetToDefaults'));
+      if (updated?.forced_signout) {
+        toast.success(t('userMgmt.toast.userUpdatedWithSignout', {
+          defaultValue: 'User updated. They were signed out and must log in again.',
+        }));
+      } else {
+        toast.success(t('userMgmt.toast.resetToDefaults'));
+      }
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' }));
     } finally {
@@ -257,7 +263,13 @@ export default function UserEditPage() {
       applyServerUser(updated);
       setEditingPerms(false);
       setEditedPerms(null);
-      toast.success(t('userMgmt.toast.permissionsSaved'));
+      if (updated?.forced_signout) {
+        toast.success(t('userMgmt.toast.userUpdatedWithSignout', {
+          defaultValue: 'User updated. They were signed out and must log in again.',
+        }));
+      } else {
+        toast.success(t('userMgmt.toast.permissionsSaved'));
+      }
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' }));
     } finally {
