@@ -17,6 +17,8 @@ export interface PartnerBidItem {
   tripsCount?: number;
   isPartner?: boolean;
   bidAmount?: number | null;
+  /** shipment_partners.status: 0 pending, 1 interested, 2 declined, 3 accepted, 4 rejected */
+  status?: string | null;
   statusText?: string;
   time?: string;
   hasBid?: boolean;
@@ -34,6 +36,12 @@ export interface PartnerBidItem {
 export function isInterestOffer(item: Pick<PartnerBidItem, 'type' | 'id' | 'isInterested'>): boolean {
   if (item.type === 'interest' || item.isInterested === true) return true;
   return String(item.id || '').toLowerCase().startsWith('interest-');
+}
+
+/** Invite already declined/rejected/accepted — cancel invite no longer applies. */
+function isInviteTerminal(item: Pick<PartnerBidItem, 'status'>): boolean {
+  const s = String(item.status ?? '');
+  return s === '2' || s === '3' || s === '4';
 }
 
 /**
@@ -240,7 +248,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                         </span>
                       </div>
                     ) : (
-                      onCancelInvite && !item.hasBid && !isInterestOffer(item) && (
+                      onCancelInvite && !item.hasBid && !isInterestOffer(item) && !isInviteTerminal(item) && (
                         <button
                           type="button"
                           disabled={cancellingInviteId === item.userId}
