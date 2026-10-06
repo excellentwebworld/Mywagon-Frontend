@@ -712,10 +712,11 @@ export const StopsCard: React.FC<StopsCardProps> = ({
 
                       <StopTag type={isPickup ? 'pickup' : 'dropoff'} />
 
-                      {/* NEW Tag for new stop (matching Step 2) */}
+                      {/* NEW Tag for new stop (matching Step 2 — red like change diffs) */}
                       {stopHl?.isNew && (
                         <span
-                          className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider bg-[var(--mv-success)] text-white shadow-xs"
+                          className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider text-white shadow-xs"
+                          style={{ background: DIFF_RED }}
                         >
                           {t('newTag', 'NEW')}
                         </span>
@@ -855,7 +856,10 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                   {t('orderLabelPrefix', 'Order:')} {order.orderId}
                                 </span>
                                 {ordHl?.isNew && !stopHl?.isNew && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider bg-[var(--mv-success)] text-white shadow-xs">
+                                  <span
+                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider text-white shadow-xs"
+                                    style={{ background: DIFF_RED }}
+                                  >
                                     {t('newTag', 'NEW')}
                                   </span>
                                 )}
