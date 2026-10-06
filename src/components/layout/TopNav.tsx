@@ -1,168 +1,27 @@
 /**
  * TopNav — horizontal nav when Appearance → Top menu.
- * Dropdowns match MV_Web_Panel_React TopNav (hover menus with icons + left accent).
+ * Menu structure matches Sidebar via shared mainNavConfig.
  */
 import { useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import {
-  ChevronDown,
-  LayoutGrid,
-  PlusCircle,
-  ClipboardList,
-  Search,
-  BookUser,
-  Package,
-  Users,
-  Activity,
-  Sparkles,
-  DollarSign,
-  HelpCircle,
-  BarChart3,
-  type LucideIcon,
-} from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePastDueLock } from '../../hooks/usePastDueLock';
 import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
 import { isSignupCompleteAllowedPath } from '../../hooks/useSignupCompleteGate';
 import { useShipperPermission } from '../../hooks/useShipperPermission';
-import type { ShipperRbacNavKey } from '../../utils/shipperRbacMap';
-import { useApp } from '../../context/AppContext';
-
-type NavItem = {
-  id: string;
-  labelKey: string;
-  fallback: string;
-  route?: string;
-  icon: LucideIcon;
-  tag?: string;
-  action?: 'vagon-ai';
-  /** Spatie nav gate; omit = always visible. */
-  rbacNav?: ShipperRbacNavKey;
-};
-
-type NavSection = {
-  id: string;
-  labelKey: string;
-  fallback: string;
-  items: NavItem[];
-};
-
-const TOP_ITEM: NavItem = {
-  id: 'dashboard',
-  labelKey: 'dashboard',
-  fallback: 'Dashboard',
-  route: '/dashboard',
-  icon: LayoutGrid,
-};
-
-const SECTIONS: NavSection[] = [
-  {
-    id: 'ops',
-    labelKey: 'sidebar.operations',
-    fallback: 'Operations',
-    items: [
-      {
-        id: 'vagon-ai',
-        labelKey: 'vagonai.title',
-        fallback: 'Vagon AI',
-        icon: Sparkles,
-        action: 'vagon-ai',
-      },
-      {
-        id: 'create',
-        labelKey: 'createShipment.label',
-        fallback: 'Create Shipment',
-        route: '/shipments/create',
-        icon: PlusCircle,
-        rbacNav: 'createShipment',
-      },
-      {
-        id: 'manage',
-        labelKey: 'navManageShipments',
-        fallback: 'Manage Shipments',
-        route: '/shipments',
-        icon: ClipboardList,
-        rbacNav: 'manageShipments',
-      },
-      {
-        id: 'search',
-        labelKey: 'truckAvailability',
-        fallback: 'Search Trucks',
-        route: '/search-trucks',
-        icon: Search,
-        tag: 'BETA',
-        rbacNav: 'searchTrucks',
-      },
-    ],
-  },
-  {
-    id: 'master',
-    labelKey: 'masterData',
-    fallback: 'Master Data',
-    items: [
-      {
-        id: 'addresses',
-        labelKey: 'addressBook',
-        fallback: 'Address Book',
-        route: '/address-book',
-        icon: BookUser,
-      },
-      {
-        id: 'products',
-        labelKey: 'prodMaster',
-        fallback: 'Product Master',
-        route: '/products',
-        icon: Package,
-      },
-      {
-        id: 'orders',
-        labelKey: 'navErpOrders',
-        fallback: 'Orders',
-        route: '/erp-orders',
-        icon: Activity,
-      },
-      {
-        id: 'partners',
-        labelKey: 'navPartners',
-        fallback: 'Partners',
-        route: '/partners',
-        icon: Users,
-        rbacNav: 'partners',
-      },
-      {
-        id: 'pricing',
-        labelKey: 'priceLists.title',
-        fallback: 'Price Lists',
-        route: '/pricing',
-        icon: DollarSign,
-      },
-    ],
-  },
-  {
-    id: 'analytics',
-    labelKey: 'navAnalytics',
-    fallback: 'Analytics',
-    items: [
-      {
-        id: 'weekly-reports',
-        labelKey: 'navWeeklyReports',
-        fallback: 'Weekly Reports',
-        route: '/analytics/weekly-reports',
-        icon: BarChart3,
-      },
-    ],
-  },
-];
-
-const FOOTER: NavItem[] = [
-  { id: 'support', labelKey: 'support', fallback: 'Support & Feedback', route: '/support', icon: HelpCircle },
-];
+import {
+  MAIN_NAV_FOOTER,
+  MAIN_NAV_SECTIONS,
+  isMainNavRouteActive,
+  type MainNavItem,
+  type MainNavSection,
+} from './mainNavConfig';
 
 export function TopNav() {
   const { t } = useTranslation();
   const { T } = useTheme();
-  const { showToast } = useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const pastDueLocked = usePastDueLock();
@@ -171,10 +30,10 @@ export function TopNav() {
   const [hoverSection, setHoverSection] = useState<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const itemAllowed = (item: NavItem) =>
+  const itemAllowed = (item: MainNavItem) =>
     !item.rbacNav || canNav(item.rbacNav);
 
-  const visibleSections = SECTIONS.map((section) => ({
+  const visibleSections = MAIN_NAV_SECTIONS.map((section) => ({
     ...section,
     items: section.items.filter(itemAllowed),
   })).filter((section) => section.items.length > 0);
@@ -188,15 +47,6 @@ export function TopNav() {
     navigate(pastDueLocked && route !== '/billing' ? '/billing' : route);
   };
 
-  const activateItem = (item: NavItem) => {
-    if (item.action === 'vagon-ai') {
-      if (!requireSignupComplete()) return;
-      showToast(t('vagonai.title') || 'Vagon AI', 'info');
-      return;
-    }
-    go(item.route);
-  };
-
   const isWhiteNav = T.nav === '#FFFFFF';
   const txtBase = T.navT;
   const txtHover = T.navH;
@@ -204,17 +54,11 @@ export function TopNav() {
   const bgActive = T.navA;
   const bgHover = T.navHov;
 
-  const isActive = (route?: string) => {
-    if (!route) return false;
-    if (route === '/dashboard') return location.pathname === '/dashboard';
-    if (route === '/shipments') {
-      return location.pathname.startsWith('/shipments') && !location.pathname.startsWith('/shipments/create');
-    }
-    return location.pathname.startsWith(route);
-  };
+  const isActive = (item: Pick<MainNavItem, 'route' | 'exact'>) =>
+    isMainNavRouteActive(location.pathname, item);
 
-  const isSectionActive = (section: NavSection) =>
-    section.items.some((item) => isActive(item.route));
+  const isSectionActive = (section: MainNavSection) =>
+    section.items.some((item) => isActive(item));
 
   const handleEnter = (id: string) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -241,33 +85,6 @@ export function TopNav() {
         zIndex: 40,
       }}
     >
-      <button
-        type="button"
-        onClick={() => go(TOP_ITEM.route)}
-        className="top-nav-item"
-        style={{
-          background: isActive(TOP_ITEM.route) ? bgActive : 'transparent',
-          color: isActive(TOP_ITEM.route) ? txtActive : txtBase,
-          fontSize: 13,
-          fontWeight: isActive(TOP_ITEM.route) ? 600 : 500,
-        }}
-        onMouseEnter={(e) => {
-          if (!isActive(TOP_ITEM.route)) {
-            e.currentTarget.style.background = bgHover;
-            e.currentTarget.style.color = txtHover;
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!isActive(TOP_ITEM.route)) {
-            e.currentTarget.style.background = 'transparent';
-            e.currentTarget.style.color = txtBase;
-          }
-        }}
-      >
-        <TOP_ITEM.icon size={16} />
-        <span>{label(TOP_ITEM.labelKey, TOP_ITEM.fallback)}</span>
-      </button>
-
       {visibleSections.map((section) => {
         const sectionActive = isSectionActive(section);
         const open = hoverSection === section.id;
@@ -316,17 +133,18 @@ export function TopNav() {
                   }}
                 >
                   {section.items.map((item) => {
-                    const active = isActive(item.route);
+                    const active = isActive(item);
                     return (
                       <button
                         type="button"
                         key={item.id}
                         role="menuitem"
                         onClick={() => {
-                          activateItem(item);
+                          go(item.route);
                           setHoverSection(null);
                         }}
                         className="top-nav-dropdown-item"
+                        data-tour={item.tourId}
                         style={{
                           background: active ? T.al : 'transparent',
                           color: active ? T.ac : T.t1,
@@ -375,15 +193,15 @@ export function TopNav() {
 
       <div style={{ flex: 1 }} />
 
-      {FOOTER.map((item) => {
-        const active = isActive(item.route);
+      {MAIN_NAV_FOOTER.filter(itemAllowed).map((item) => {
+        const active = isActive(item);
         return (
           <button
             type="button"
             key={item.id}
             onClick={() => go(item.route)}
             className="top-nav-item"
-            data-tour={item.id === 'support' ? 'support' : undefined}
+            data-tour={item.tourId}
             style={{
               background: active ? bgActive : 'transparent',
               color: active ? txtActive : txtBase,
