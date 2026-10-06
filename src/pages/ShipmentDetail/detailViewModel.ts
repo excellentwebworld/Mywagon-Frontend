@@ -1087,6 +1087,22 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     };
   });
 
+  const inviteeStatusText = (status: string | null | undefined): string => {
+    switch (String(status ?? '')) {
+      case '1':
+        return 'Interested';
+      case '2':
+        return 'Declined';
+      case '3':
+        return 'Accepted';
+      case '4':
+        return 'Rejected';
+      case '0':
+      default:
+        return 'Invited · Waiting response';
+    }
+  };
+
   const mappedInvitees: PartnerBidItem[] = (shipment.invitees || [])
     .filter((inv) => !mappedOffers.some((o) => o.userId === (inv.transporterId ?? inv.id) || o.name === inv.name))
     .map((i) => ({
@@ -1098,7 +1114,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       userType: i.transporterType === 'driver' || i.role === 'freelancer' ? 'driver' : (i.transporterType ?? 'carrier'),
       isPartner: true,
       status: i.status || 'invited',
-      statusText: 'Invited · Waiting response',
+      statusText: inviteeStatusText(i.status),
       hasBid: false,
       isInterested: false,
       rating: (i as any).rating ?? (i as any).rating_average ?? (i as any).avg_rating ?? 4.8,
