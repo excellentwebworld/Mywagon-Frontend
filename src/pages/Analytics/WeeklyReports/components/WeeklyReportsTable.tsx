@@ -46,10 +46,13 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const renderDelta = (delta: number) => {
+  // `lowerIsBetter` flips the colours for metrics where an increase is bad (e.g. canceled loads).
+  const renderDelta = (delta: number, lowerIsBetter = false) => {
+    const upClass = lowerIsBetter ? 'wr-delta-down' : 'wr-delta-up';
+    const downClass = lowerIsBetter ? 'wr-delta-up' : 'wr-delta-down';
     if (delta > 0) {
       return (
-        <span className="wr-tbl-delta wr-delta-up">
+        <span className={`wr-tbl-delta ${upClass}`}>
           <ArrowUpRight size={12} />
           <span>+{delta}</span>
         </span>
@@ -57,7 +60,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
     }
     if (delta < 0) {
       return (
-        <span className="wr-tbl-delta wr-delta-down">
+        <span className={`wr-tbl-delta ${downClass}`}>
           <ArrowDownRight size={12} />
           <span>{delta}</span>
         </span>
@@ -122,14 +125,18 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     </div>
                   </td>
                   {/* Canceled */}
-                  <td className="wr-td-canceled">
-                    <div className="wr-pending-cell">
-                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '76px', height: '20px', borderRadius: '6px' }} />
+                  <td className="wr-td-metric">
+                    <div className="wr-metric-cell">
+                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '36px', height: '16px', marginBottom: '4px' }} />
+                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '32px', height: '14px', borderRadius: '4px' }} />
                     </div>
                   </td>
                   {/* Partners */}
-                  <td className="wr-td-partners">
-                    <div className="wr-sk-line wr-sk-shimmer" style={{ width: '28px', height: '16px', margin: '0 auto' }} />
+                  <td className="wr-td-metric">
+                    <div className="wr-metric-cell">
+                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '36px', height: '16px', marginBottom: '4px' }} />
+                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '32px', height: '14px', borderRadius: '4px' }} />
+                    </div>
                   </td>
                   {/* Actions */}
                   <td className="wr-td-actions">
@@ -161,8 +168,8 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
               reports.map((r) => {
                 const fulfilled = r.metrics.fulfilled;
                 const created = r.metrics.created;
-                const canceled = r.metrics.canceled?.value ?? 0;
-                const newPartners = r.metrics.new_partners?.value ?? 0;
+                const canceled = r.metrics.canceled;
+                const newPartners = r.metrics.new_partners;
 
                 const isExportingThis = exportingReportId === r.id;
 
@@ -227,20 +234,24 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                       </div>
                     </td>
 
-                    {/* Canceled */}
-                    <td className="wr-td-canceled">
-                      <div className="wr-pending-cell">
-                        <span className="wr-sub-chip wr-chip-canceled">
-                          {canceled} {t('analytics.weeklyReports.chipCanceled', 'canceled')}
+                    {/* Canceled Metric */}
+                    <td className="wr-td-metric">
+                      <div className="wr-metric-cell">
+                        <span className="wr-metric-main-val font-semibold">
+                          {canceled?.value ?? 0}
                         </span>
+                        {renderDelta(canceled?.delta ?? 0, true)}
                       </div>
                     </td>
 
-                    {/* New Partners */}
-                    <td className="wr-td-partners">
-                      <span className="wr-partner-badge">
-                        {newPartners > 0 ? `+${newPartners}` : '0'}
-                      </span>
+                    {/* New Partners Metric */}
+                    <td className="wr-td-metric">
+                      <div className="wr-metric-cell">
+                        <span className="wr-metric-main-val font-semibold">
+                          {newPartners?.value ?? 0}
+                        </span>
+                        {renderDelta(newPartners?.delta ?? 0)}
+                      </div>
                     </td>
 
                     {/* Row Actions */}
