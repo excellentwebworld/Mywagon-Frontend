@@ -2,6 +2,22 @@
  * shipperAccessPresets.ts — Admin/Dispatcher helpers (Blade-parity Spatie values).
  */
 
+/** Unused / legacy — hide from Roles & User permission grids (React UI only). */
+export const HIDDEN_PERMISSION_CATALOG_NAMES = ['view_quotes'] as const;
+
+export function filterPermissionCatalogGroups<
+  T extends { permissions?: Array<{ name?: string }> },
+>(groups: T[] | null | undefined): T[] {
+  if (!groups?.length) return [];
+  const hidden = new Set<string>(HIDDEN_PERMISSION_CATALOG_NAMES);
+  return groups
+    .map((g) => ({
+      ...g,
+      permissions: (g.permissions || []).filter((p) => !hidden.has(String(p.name || ''))),
+    }))
+    .filter((g) => (g.permissions || []).length > 0);
+}
+
 /**
  * Display label for system roles (Admin / Dispatcher). Custom roles pass through unchanged.
  */

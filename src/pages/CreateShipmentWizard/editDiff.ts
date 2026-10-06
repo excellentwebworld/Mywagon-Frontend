@@ -72,7 +72,8 @@ export function walkWizardLineIndexes(
 /**
  * Build red-field highlights for Updated Load.
  * Schedule fields (date/time) are refined against old_itinerary by shipment_location_id
- * so time-only edits never redden the date (and vice versa). New stops get no field reds.
+ * so time-only edits never redden the date (and vice versa). Brand-new stops/lines are
+ * skipped here — the UI paints them red from isNewStop / isNewLine plus the NEW badge.
  */
 export function buildEditDiffHighlights(
   stops: ApiStop[],

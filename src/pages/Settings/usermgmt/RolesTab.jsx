@@ -18,7 +18,12 @@ import { useUserMgmt } from '../../../context/UserMgmtContext';
 import { rolesSettingsService } from '../../../api/services/rolesSettingsService';
 import { ApiError } from '../../../api/client';
 import { useAuth } from '../../../context/AuthContext';
-import { canManageShipperUsers, expandPermissionDependencies, localizeShipperRoleName } from '../../../utils/shipperAccessPresets';
+import {
+  canManageShipperUsers,
+  expandPermissionDependencies,
+  filterPermissionCatalogGroups,
+  localizeShipperRoleName,
+} from '../../../utils/shipperAccessPresets';
 import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 
 const COLORS = ['#9B51E0', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#EC4899', '#9B51E0'];
@@ -62,7 +67,7 @@ function ColorSwatches({ value, onChange, size = 'md' }) {
 
 function applyRolesPayload(data, setApiRoles, setPermissionGroups) {
   setApiRoles(data.roles || []);
-  setPermissionGroups(data.groups || []);
+  setPermissionGroups(filterPermissionCatalogGroups(data.groups || []));
 }
 
 export default function RolesTab() {

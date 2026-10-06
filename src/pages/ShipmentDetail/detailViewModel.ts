@@ -1,6 +1,7 @@
 import type { Shipment, ShipmentStop } from '../../context/AppContext';
-import type { PartnerBidItem } from '../../components/ShipmentDetail/BidsCard';
+import { isInterestOffer, type PartnerBidItem } from '../../components/ShipmentDetail/BidsCard';
 export type { PartnerBidItem };
+export { isInterestOffer };
 import type { LoadSummaryData } from '../../components/ShipmentDetail/LoadSummaryCard';
 
 export type MilestoneState = 'done' | 'cur' | 'skip';
@@ -941,8 +942,10 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
           (shipment.carrier as any)?.phone ||
           (isFreelancer ? shipment.assignedDriverPhone : null) ||
           undefined,
-        showDeliveryOnTime: Boolean(shipment.carrierOnTimeDeliveryPct != null),
-        onTimePickup: shipment.carrierOnTimeDeliveryPct != null ? fmtPct(shipment.carrierOnTimeDeliveryPct) : '—',
+        showDeliveryOnTime: Boolean(
+          shipment.carrierOnTimePickupPct != null || shipment.carrierOnTimeDeliveryPct != null
+        ),
+        onTimePickup: shipment.carrierOnTimePickupPct != null ? fmtPct(shipment.carrierOnTimePickupPct) : '—',
         onTimeDelivery: shipment.carrierOnTimeDeliveryPct != null ? fmtPct(shipment.carrierOnTimeDeliveryPct) : '—',
         cancelRate: shipment.carrierCancellationRatePct != null ? fmtPct(shipment.carrierCancellationRatePct) : '—',
         avgPickupDelay: shipment.carrierAvgPickupDelayMinutes != null ? fmtMin(shipment.carrierAvgPickupDelayMinutes) : '—',
@@ -999,8 +1002,23 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     const name = o.name || 'Transporter';
     const lastActionBy = o.lastActionBy || null;
     const canCounter = isNegotiable && lastActionBy !== 'shipper';
-    const hasBid = Boolean(o.price != null || o.counter != null || o.status === 'bid' || o.status === 'offered' || o.status === 'pending');
-    const isInterested = Boolean(o.status === 'interested' || (o as any).isInterested);
+    const offerType: 'bid' | 'interest' | undefined =
+      o.type === 'interest' || String(o.id || '').toLowerCase().startsWith('interest-')
+        ? 'interest'
+        : o.type === 'bid' || String(o.id || '').toLowerCase().startsWith('bid-')
+          ? 'bid'
+          : undefined;
+    const isInterested = Boolean(
+      offerType === 'interest' || o.status === 'interested' || (o as any).isInterested
+    );
+    const hasBid = Boolean(
+      isInterested ||
+        o.price != null ||
+        o.counter != null ||
+        o.status === 'bid' ||
+        o.status === 'offered' ||
+        o.status === 'pending'
+    );
 
     const isPartner = Boolean(
       o.isPartner ||
@@ -1029,6 +1047,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       avatar: o.avatar ?? null,
       transporterType: o.transporterType === 'driver' || o.role === 'freelancer' ? 'freelancer' : 'carrier',
       isPartner,
+      type: offerType,
       kind: o.kind ?? (o.availabilityId != null ? 'sent' : 'received'),
       availabilityId: o.availabilityId ?? null,
       status: o.status ?? null,
@@ -1070,6 +1089,22 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     };
   });
 
+  const inviteeStatusText = (status: string | null | undefined): string => {
+    switch (String(status ?? '')) {
+      case '1':
+        return 'Interested';
+      case '2':
+        return 'Declined';
+      case '3':
+        return 'Accepted';
+      case '4':
+        return 'Rejected';
+      case '0':
+      default:
+        return 'Invited · Waiting response';
+    }
+  };
+
   const mappedInvitees: PartnerBidItem[] = (shipment.invitees || [])
     .filter((inv) => !mappedOffers.some((o) => o.userId === (inv.transporterId ?? inv.id) || o.name === inv.name))
     .map((i) => ({
@@ -1081,7 +1116,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       userType: i.transporterType === 'driver' || i.role === 'freelancer' ? 'driver' : (i.transporterType ?? 'carrier'),
       isPartner: true,
       status: i.status || 'invited',
-      statusText: 'Invited · Waiting response',
+      statusText: inviteeStatusText(i.status),
       hasBid: false,
       isInterested: false,
       rating: (i as any).rating ?? (i as any).rating_average ?? (i as any).avg_rating ?? 4.8,

@@ -105,6 +105,9 @@ export function useManageShipments() {
   const [filterCustomerOptions, setFilterCustomerOptions] = useState<string[]>([]);
   const [filterPickupLocationOptions, setFilterPickupLocationOptions] = useState<string[]>([]);
   const [filterDropoffLocationOptions, setFilterDropoffLocationOptions] = useState<string[]>([]);
+  const [filterCoOwnerOptions, setFilterCoOwnerOptions] = useState<
+    Array<{ id: number; name: string }>
+  >([]);
 
   const isOutbound = direction === 'outbound';
 
@@ -220,6 +223,7 @@ export function useManageShipments() {
       setFilterCustomerOptions([]);
       setFilterPickupLocationOptions([]);
       setFilterDropoffLocationOptions([]);
+      setFilterCoOwnerOptions([]);
       return;
     }
 
@@ -233,6 +237,7 @@ export function useManageShipments() {
         setFilterCustomerOptions(facets.customers);
         setFilterPickupLocationOptions(facets.pickup_locations);
         setFilterDropoffLocationOptions(facets.dropoff_locations);
+        setFilterCoOwnerOptions(facets.co_owners ?? []);
       })
       .catch(() => {
         if (cancelled) return;
@@ -240,6 +245,7 @@ export function useManageShipments() {
         setFilterCustomerOptions([]);
         setFilterPickupLocationOptions([]);
         setFilterDropoffLocationOptions([]);
+        setFilterCoOwnerOptions([]);
       });
 
     return () => {
@@ -247,9 +253,17 @@ export function useManageShipments() {
     };
   }, [filterFacetParams, tabSupported, isOutbound, refreshKey]);
 
+  const coOwnerNames = useMemo(() => {
+    const map: Record<string, string> = {};
+    filterCoOwnerOptions.forEach((o) => {
+      map[String(o.id)] = o.name;
+    });
+    return map;
+  }, [filterCoOwnerOptions]);
+
   const filterChips = useMemo(
-    () => buildFilterChips(appliedFilters, t, productTypeNames),
-    [appliedFilters, t, productTypeNames]
+    () => buildFilterChips(appliedFilters, t, productTypeNames, coOwnerNames),
+    [appliedFilters, t, productTypeNames, coOwnerNames]
   );
 
   const kpiChip = useMemo(
@@ -941,6 +955,7 @@ export function useManageShipments() {
     filterCustomerOptions,
     filterPickupLocationOptions,
     filterDropoffLocationOptions,
+    filterCoOwnerOptions,
     handleClearFilterChip,
     handleClearAllFilters,
     kpiChip,

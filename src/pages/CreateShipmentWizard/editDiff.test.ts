@@ -207,7 +207,7 @@ describe('editDiff', () => {
     expect(res.stops[0]?.time).toBeUndefined();
   });
 
-  it('does not red-highlight newly added stops (NEW badge only)', () => {
+  it('skips newly added stops in diff map (UI paints red from isNewStop + NEW badge)', () => {
     const stopsWithNew: ApiStop[] = [
       ...sampleStops,
       {
@@ -236,6 +236,7 @@ describe('editDiff', () => {
     };
 
     const res = buildEditDiffHighlights(stopsWithNew, diff as any, oldItinerary);
+    // Diff builder still skips brand-new rows; Step2 applies red via isNewStop.
     expect(res.stops[2]).toBeUndefined();
     expect(isNewStop(stopsWithNew[2], oldItinerary)).toBe(true);
   });

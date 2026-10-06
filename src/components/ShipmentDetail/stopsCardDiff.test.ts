@@ -177,7 +177,7 @@ describe('computeStopsDiff', () => {
     expect(order0Hl?.products?.[0]?.weight).toBe(false);
   });
 
-  it('marks entirely new stops with NEW only (no red field highlights, matching Step2)', () => {
+  it('marks entirely new stops with NEW badge and red field highlights', () => {
     const oldStops = [
       createMockPhysicalStop({ id: 1, type: 'pickup' }),
     ];
@@ -189,10 +189,11 @@ describe('computeStopsDiff', () => {
     const diff = computeStopsDiff(updatedStops, oldStops);
     expect(diff[0]).toBeUndefined(); // First stop is identical
     expect(diff[1]?.isNew).toBe(true);
-    expect(diff[1]?.schedule).toBeUndefined();
-    expect(diff[1]?.date).toBeUndefined();
-    expect(diff[1]?.location).toBeUndefined();
-    expect(diff[1]?.address).toBeUndefined();
+    expect(diff[1]?.schedule).toBe(true);
+    expect(diff[1]?.date).toBe(true);
+    expect(diff[1]?.time).toBe(true);
+    expect(diff[1]?.location).toBe(true);
+    expect(diff[1]?.address).toBe(true);
   });
 
   it('matches updated stops to old stops when ids are strings vs numbers', () => {

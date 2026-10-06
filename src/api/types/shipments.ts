@@ -8,6 +8,7 @@ export interface ApiShipmentListCarrier {
   rating_count?: number | null;
   trips_count?: number | null;
   phone?: string | null;
+  on_time_pickup_pct?: number | null;
   on_time_delivery_pct?: number | null;
   cancellation_rate_pct?: number | null;
   avg_pickup_delay_minutes?: number | null;
@@ -155,6 +156,10 @@ export interface ApiShipmentStop {
   logs?: Array<{ status?: string | number | null; created_at?: string | null }> | null;
   unable_status?: string | number | null;
   reason?: string | null;
+  /** Edit-shipment live location link (not pickup↔delivery). */
+  location_reference_id?: number | null;
+  /** Delivery stop → linked pickup location id. */
+  reference_id?: number | null;
   sort_order?: number;
 }
 
@@ -415,6 +420,10 @@ export interface ListShipmentsParams {
   dropoff_to?: string;
   posted_from?: string;
   posted_to?: string;
+  completed_from?: string;
+  completed_to?: string;
+  pod?: 'yes' | 'no';
+  co_owner_id?: number;
   bid_state?: 'has_interest' | 'no_interest';
   customer?: string;
   pickup_location_name?: string;
@@ -434,6 +443,7 @@ export interface ApiShipmentsFilterFacets {
   customers: string[];
   pickup_locations: string[];
   dropoff_locations: string[];
+  co_owners?: Array<{ id: number; name: string }>;
 }
 
 export interface ApiCancelReason {

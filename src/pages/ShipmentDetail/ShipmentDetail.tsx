@@ -40,7 +40,13 @@ import { ACTION_RBAC } from '../../utils/shipperRbacMap';
 import { useUpgradeGate } from '../../context/UpgradeGateContext';
 import { useShipment } from '../../hooks/useShipments';
 import { ShipmentDetailSkeleton } from '../../components/skeletons/ShipmentDetailSkeleton';
-import { buildShipmentDetailViewModel, type DetailNote, type DetailDocument, type PartnerBidItem } from './detailViewModel';
+import {
+  buildShipmentDetailViewModel,
+  type DetailNote,
+  type DetailDocument,
+  type PartnerBidItem,
+} from './detailViewModel';
+import { offerUsesInterestPermission } from '../../components/ShipmentDetail/BidsCard';
 import { shipmentsService } from '../../api';
 import { CancelShipmentModal } from '../../components/ManageShipments/CancelShipmentModal';
 
@@ -577,10 +583,12 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
 
   const handleAcceptBid = useCallback(async (bid: PartnerBidItem) => {
     if (!id) return;
-    const isInterest = String((bid as { type?: string }).type || '').toLowerCase().includes('interest');
+    const negotiable = vm?.isNegotiable !== false;
     if (
       !requireRbac(
-        isInterest ? ACTION_RBAC.approveRejectInterest : ACTION_RBAC.approveRejectBid,
+        offerUsesInterestPermission(bid, negotiable)
+          ? ACTION_RBAC.approveRejectInterest
+          : ACTION_RBAC.approveRejectBid,
       )
     ) {
       return;
@@ -595,14 +603,16 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
     } finally {
       setAcceptingBidId(null);
     }
-  }, [id, refetch, requireRbac, showToast, t]);
+  }, [id, refetch, requireRbac, showToast, t, vm?.isNegotiable]);
 
   const handleRejectBid = useCallback(async (bid: PartnerBidItem) => {
     if (!id) return;
-    const isInterest = String((bid as { type?: string }).type || '').toLowerCase().includes('interest');
+    const negotiable = vm?.isNegotiable !== false;
     if (
       !requireRbac(
-        isInterest ? ACTION_RBAC.approveRejectInterest : ACTION_RBAC.approveRejectBid,
+        offerUsesInterestPermission(bid, negotiable)
+          ? ACTION_RBAC.approveRejectInterest
+          : ACTION_RBAC.approveRejectBid,
       )
     ) {
       return;
@@ -617,7 +627,7 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
     } finally {
       setDecliningBidId(null);
     }
-  }, [id, refetch, requireRbac, showToast, t]);
+  }, [id, refetch, requireRbac, showToast, t, vm?.isNegotiable]);
 
   const handleSendCounterBid = useCallback(
     async (amount: number, notes?: string) => {
@@ -931,18 +941,12 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
                 partners={vm.partners}
                 expanded={sections.bids}
                 onToggle={() => toggleSection('bids')}
-                onAcceptBid={
-                  readOnly || !(canAction('approveRejectBid') || canAction('approveRejectInterest'))
-                    ? undefined
-                    : handleAcceptBid
-                }
+                onAcceptBid={readOnly ? undefined : handleAcceptBid}
                 acceptingBidId={acceptingBidId}
-                onRejectBid={
-                  readOnly || !(canAction('approveRejectBid') || canAction('approveRejectInterest'))
-                    ? undefined
-                    : handleRejectBid
-                }
+                onRejectBid={readOnly ? undefined : handleRejectBid}
                 decliningBidId={decliningBidId}
+                canApproveBid={canAction('approveRejectBid')}
+                canApproveInterest={canAction('approveRejectInterest')}
                 onCounterBid={readOnly ? undefined : (bid) => setPendingCounterBid(bid)}
                 onCancelInvite={readOnly ? undefined : handleCancelInvite}
                 cancellingInviteId={cancellingInviteId}

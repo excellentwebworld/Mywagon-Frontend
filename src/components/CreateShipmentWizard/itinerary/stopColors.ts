@@ -7,7 +7,8 @@ export const STOP_COLOR = {
   pickupFg: '#000000',
   dropoffBg: '#000000',
   dropoffFg: '#FFFFFF',
-  newBg: '#10B981',
+  /** Same red as Updated Load field diffs (#DC2626). */
+  newBg: '#DC2626',
   newFg: '#FFFFFF',
   shadow: '0px 3px 6px #00000029',
 } as const;

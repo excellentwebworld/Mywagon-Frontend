@@ -2494,6 +2494,18 @@ html.dark .wizard-availability-bar__sk-line,
   background-size: 200% 100%;
 }
 
+/* Cargo line Pick / Drop toggle — black in light, primary in dark */
+.wiz-line-action__btn.is-on {
+  background: #000001;
+  color: #fff;
+}
+html.dark .wiz-line-action__btn.is-on,
+.dark .wiz-line-action__btn.is-on,
+[data-theme='dark'] .wiz-line-action__btn.is-on {
+  background: var(--accent, #9B51E0);
+  color: #fff;
+}
+
 /* Load Balance pickup / dropoff chips */
 .wiz-bal-chip {
   font-size: 11px;

@@ -184,7 +184,10 @@ export function mapLocationToPayload(data: CreateLocationData): ApiLocationPaylo
     max_weight: data.maxWeight?.trim() || null,
     adr_allowed: data.adr,
     pallet_exchange: data.palletExchange,
-    load_time_minutes: parseInt(String(data.loadTime ?? ''), 10) || null,
+    load_time_minutes: (() => {
+      const minutes = parseInt(String(data.loadTime ?? ''), 10);
+      return Number.isFinite(minutes) && minutes >= 1 && minutes <= 65535 ? minutes : null;
+    })(),
   };
 }
 
@@ -232,7 +235,7 @@ export function mapLocationItemToPayload(loc: LocationItem): ApiLocationPayload 
     pallet_exchange: loc.palletExchange,
     load_time_minutes: (() => {
       const minutes = typeof loc.loadTime === 'number' ? loc.loadTime : parseInt(String(loc.loadTime ?? ''), 10);
-      return Number.isFinite(minutes) && minutes >= 1 ? minutes : 1;
+      return Number.isFinite(minutes) && minutes >= 1 && minutes <= 65535 ? minutes : 1;
     })(),
   };
 }

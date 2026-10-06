@@ -19,6 +19,7 @@ import {
   type SettingsRole,
 } from '../api/services/rolesSettingsService';
 import { normalizeDispatcherSeats } from '../utils/dispatcherSeats';
+import { filterPermissionCatalogGroups } from '../utils/shipperAccessPresets';
 
 export type UserMgmtUser = SettingsUser & Record<string, unknown>;
 
@@ -66,7 +67,7 @@ export function UserMgmtProvider({ children }: { children: ReactNode }) {
       setUsers((usersPayload.users || []).map((u) => ({ ...u })));
       setSeats(normalizeDispatcherSeats(usersPayload.seats) || null);
       setRoles(rolesPayload.roles || []);
-      setPermissionGroups(rolesPayload.groups || []);
+      setPermissionGroups(filterPermissionCatalogGroups(rolesPayload.groups || []));
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : 'Failed to load users & roles';
       setError(message);

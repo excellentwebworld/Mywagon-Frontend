@@ -124,7 +124,7 @@ function PerformanceStatsGrid({
       value: carrier.cancelRate && carrier.cancelRate !== '—' ? carrier.cancelRate : '—',
     },
     {
-      label: t('avgResponse', 'Avg response'),
+      label: t('avgPickupDelay', 'Avg pickup delay'),
       value: carrier.avgPickupDelay && carrier.avgPickupDelay !== '—' ? carrier.avgPickupDelay : '—',
     },
   ];

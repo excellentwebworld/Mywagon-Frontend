@@ -2969,16 +2969,16 @@ const CargoTable: React.FC<CargoTableProps> = ({
                   </td>
                   <td style={{ ...tdS, textAlign: "center" }}>
                     <div
-                      className="inline-flex overflow-hidden rounded"
+                      className="wiz-line-action inline-flex overflow-hidden rounded"
                       style={{ border: `1px solid ${T.bd}` }}
                     >
                       <button
                         type="button"
-                        className="py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none"
+                        className={`wiz-line-action__btn py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none${ln.action === "pickup" ? " is-on" : ""}`}
                         style={{
                           background:
-                            ln.action === "pickup" ? "#000001" : T.sf,
-                          color: ln.action === "pickup" ? "#fff" : T.t3,
+                            ln.action === "pickup" ? undefined : T.sf,
+                          color: ln.action === "pickup" ? undefined : T.t3,
                           fontFamily: "inherit",
                         }}
                         onClick={() => onSetField(ln.id, "action", "pickup")}
@@ -2987,11 +2987,11 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       </button>
                       <button
                         type="button"
-                        className="py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none"
+                        className={`wiz-line-action__btn py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none${ln.action === "dropoff" ? " is-on" : ""}`}
                         style={{
                           background:
-                            ln.action === "dropoff" ? "#000001" : T.sf,
-                          color: ln.action === "dropoff" ? "#fff" : T.t3,
+                            ln.action === "dropoff" ? undefined : T.sf,
+                          color: ln.action === "dropoff" ? undefined : T.t3,
                           fontFamily: "inherit",
                         }}
                         onClick={() => onSetField(ln.id, "action", "dropoff")}

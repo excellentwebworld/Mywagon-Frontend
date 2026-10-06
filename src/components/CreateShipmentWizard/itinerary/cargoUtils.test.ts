@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { ApiStop } from '../../../api/types/createShipment';
-import { computeCargoLineQtyWeight, syncDropoffMirrorLinks } from './cargoUtils';
+import {
+  computeCargoLineQtyWeight,
+  computeRunningWeights,
+  computeStopRunningWeights,
+  syncDropoffMirrorLinks,
+} from './cargoUtils';
 
 function stop(partial: Partial<ApiStop> & { id: string; lines: ApiStop['lines'] }): ApiStop {
   return {
@@ -318,5 +323,174 @@ describe('syncDropoffMirrorLinks', () => {
     const synced = syncDropoffMirrorLinks(stops);
     expect(synced[1].lines[0].mirrorOf).toBe('pk-400');
     expect(synced[2].lines[0].mirrorOf).toBe('pk-400');
+  });
+});
+
+function line(
+  partial: Partial<NonNullable<ApiStop['lines']>[number]> & {
+    id: string;
+    action: 'pickup' | 'dropoff';
+  }
+): NonNullable<ApiStop['lines']>[number] {
+  return {
+    productId: 'p1',
+    productName: 'Cargo',
+    customerId: '',
+    customerName: '',
+    orderId: 'ord1',
+    orderRef: 'ORD-1',
+    orderLineId: '',
+    qty: '1',
+    unit: 'Boxes',
+    weight: '0',
+    wtUnit: 'kg',
+    mirrorOf: '',
+    ...partial,
+  };
+}
+
+describe('computeStopRunningWeights / computeRunningWeights', () => {
+  it('split delivery: pickup 10 → drop 5 → drop 5 shows remaining (not peak, not 0 on last)', () => {
+    const stops: ApiStop[] = [
+      stop({ id: 's1', lines: [line({ id: 'pk', action: 'pickup', weight: '10' })] }),
+      stop({ id: 's2', lines: [line({ id: 'do1', action: 'dropoff', weight: '5' })] }),
+      stop({ id: 's3', lines: [line({ id: 'do2', action: 'dropoff', weight: '5' })] }),
+    ];
+
+    const detail = computeStopRunningWeights(stops);
+    expect(detail.map((r) => r.arrivalKg)).toEqual([0, 10, 5]);
+    expect(detail.map((r) => r.departureKg)).toEqual([10, 5, 0]);
+    // Stop2 remaining 5 after partial drop; Stop3 emptied → show arrival 5 (not 0).
+    expect(detail.map((r) => r.onTruckKg)).toEqual([10, 5, 5]);
+    expect(computeRunningWeights(stops)).toEqual([10, 5, 5]);
+  });
+
+  it('simple pickup then full dropoff', () => {
+    const stops: ApiStop[] = [
+      stop({ id: 's1', lines: [line({ id: 'pk', action: 'pickup', weight: '10' })] }),
+      stop({ id: 's2', lines: [line({ id: 'do', action: 'dropoff', weight: '10' })] }),
+    ];
+    expect(computeRunningWeights(stops)).toEqual([10, 10]);
+    const detail = computeStopRunningWeights(stops);
+    expect(detail[1].arrivalKg).toBe(10);
+    expect(detail[1].departureKg).toBe(0);
+  });
+
+  it('unload-then-load at a mixed stop', () => {
+    const stops: ApiStop[] = [
+      stop({ id: 's1', lines: [line({ id: 'pk1', action: 'pickup', weight: '20' })] }),
+      stop({
+        id: 's2',
+        lines: [
+          line({ id: 'do', action: 'dropoff', weight: '20' }),
+          line({ id: 'pk2', action: 'pickup', weight: '8' }),
+        ],
+      }),
+      stop({ id: 's3', lines: [line({ id: 'do2', action: 'dropoff', weight: '8' })] }),
+    ];
+
+    const detail = computeStopRunningWeights(stops);
+    expect(detail[1]).toMatchObject({
+      arrivalKg: 20,
+      dropoffKg: 20,
+      pickupKg: 8,
+      departureKg: 8,
+      onTruckKg: 8,
+    });
+    expect(computeRunningWeights(stops)).toEqual([20, 8, 8]);
+  });
+
+  it('ignores empty placeholder lines and unknown actions', () => {
+    const stops: ApiStop[] = [
+      stop({
+        id: 's1',
+        lines: [
+          line({ id: 'pk', action: 'pickup', weight: '10' }),
+          {
+            id: 'empty',
+            productId: '',
+            productName: '',
+            customerId: '',
+            customerName: '',
+            orderId: '',
+            orderRef: '',
+            orderLineId: '',
+            action: 'pickup',
+            qty: '',
+            unit: 'Boxes',
+            weight: '',
+            wtUnit: 'kg',
+            mirrorOf: '',
+          },
+          {
+            ...line({ id: 'weird', action: 'pickup', weight: '99' }),
+            action: 'transfer' as 'pickup',
+          },
+        ],
+      }),
+      stop({ id: 's2', lines: [line({ id: 'do', action: 'dropoff', weight: '10' })] }),
+    ];
+
+    expect(computeRunningWeights(stops)).toEqual([10, 10]);
+  });
+
+  it('converts tonnes to kg for running totals', () => {
+    const stops: ApiStop[] = [
+      stop({
+        id: 's1',
+        lines: [line({ id: 'pk', action: 'pickup', weight: '1.5', wtUnit: 'Tonnes' })],
+      }),
+      stop({
+        id: 's2',
+        lines: [line({ id: 'do', action: 'dropoff', weight: '500', wtUnit: 'Kgs' })],
+      }),
+    ];
+
+    const detail = computeStopRunningWeights(stops);
+    expect(detail[0].departureKg).toBe(1500);
+    expect(detail[1].arrivalKg).toBe(1500);
+    expect(detail[1].departureKg).toBe(1000);
+    expect(computeRunningWeights(stops)).toEqual([1500, 1000]);
+  });
+
+  it('new stop with empty lines keeps prior on-truck (does not force 0)', () => {
+    const stops: ApiStop[] = [
+      stop({ id: 's1', lines: [line({ id: 'pk', action: 'pickup', weight: '10' })] }),
+      stop({ id: 's2', lines: [line({ id: 'do1', action: 'dropoff', weight: '5' })] }),
+      stop({
+        id: 's3',
+        lines: [
+          {
+            id: 'placeholder',
+            productId: '',
+            productName: '',
+            customerId: '',
+            customerName: '',
+            orderId: '',
+            orderRef: '',
+            orderLineId: '',
+            action: 'pickup',
+            qty: '',
+            unit: 'EUR Pallets',
+            weight: '',
+            wtUnit: 'Kgs',
+            mirrorOf: '',
+          },
+        ],
+      }),
+    ];
+
+    // Empty new stop: departure stays 5 after stop2 partial drop.
+    expect(computeRunningWeights(stops)).toEqual([10, 5, 5]);
+  });
+
+  it('over-dropoff yields negative departure but onTruck stays at arrival', () => {
+    const stops: ApiStop[] = [
+      stop({ id: 's1', lines: [line({ id: 'pk', action: 'pickup', weight: '5' })] }),
+      stop({ id: 's2', lines: [line({ id: 'do', action: 'dropoff', weight: '8' })] }),
+    ];
+    const detail = computeStopRunningWeights(stops);
+    expect(detail[1].departureKg).toBe(-3);
+    expect(detail[1].onTruckKg).toBe(5);
   });
 });

@@ -153,6 +153,7 @@ export const ManageShipments: React.FC = () => {
         customerOptions={m.filterCustomerOptions}
         pickupLocationOptions={m.filterPickupLocationOptions}
         dropoffLocationOptions={m.filterDropoffLocationOptions}
+        coOwnerOptions={m.filterCoOwnerOptions}
         onClose={() => m.setIsFilterOpen(false)}
         onApply={m.handleApplyFilters}
         t={m.t}

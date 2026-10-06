@@ -85,7 +85,7 @@ describe('Address Book Location Measurement and Step 3 Validation', () => {
       const errors = validateCreateStep3(invalidData);
       expect(errors.maxTruck).toBe('Must be greater than 0');
       expect(errors.maxWeight).toBe('Must be greater than 0');
-      expect(errors.loadTime).toBe('Must be at least 1 minute');
+      expect(errors.loadTime).toBe('Enter a whole number of minutes');
     });
 
     it('flags zero loadTime and missing dock type', () => {
@@ -97,6 +97,34 @@ describe('Address Book Location Measurement and Step 3 Validation', () => {
       const errors = validateCreateStep3(invalidData);
       expect(errors.dock).toBe('Dock type is required');
       expect(errors.loadTime).toBe('Must be at least 1 minute');
+    });
+
+    it('flags oversized and non-integer loadTime values', () => {
+      const oversized = validateCreateStep3({
+        ...baseValidData,
+        loadTime: '9876789067898765456789876545678987654567876567898765445678',
+      });
+      expect(oversized.loadTime).toBe('Must be at most 65535 minutes');
+
+      const overMax = validateCreateStep3({
+        ...baseValidData,
+        loadTime: '65536',
+      });
+      expect(overMax.loadTime).toBe('Must be at most 65535 minutes');
+
+      const nonInteger = validateCreateStep3({
+        ...baseValidData,
+        loadTime: '45.5',
+      });
+      expect(nonInteger.loadTime).toBe('Enter a whole number of minutes');
+    });
+
+    it('accepts loadTime at the unsignedSmallInteger upper bound', () => {
+      const errors = validateCreateStep3({
+        ...baseValidData,
+        loadTime: '65535',
+      });
+      expect(errors.loadTime).toBeUndefined();
     });
 
     it('flags alphabetic and invalid non-numeric inputs for maxTruck and maxWeight', () => {
@@ -134,6 +162,16 @@ describe('Address Book Location Measurement and Step 3 Validation', () => {
       await expect(
         locationEditValidationSchema.validateAt('maxTruck', { maxTruck: '' })
       ).resolves.toBe('');
+    });
+
+    it('rejects oversized loadTime on edit schema', async () => {
+      await expect(
+        locationEditValidationSchema.validateAt('loadTime', { loadTime: '65536' })
+      ).rejects.toThrow('Must be at most 65535 minutes');
+
+      await expect(
+        locationEditValidationSchema.validateAt('loadTime', { loadTime: '45' })
+      ).resolves.toBe('45');
     });
   });
 });

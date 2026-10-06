@@ -181,6 +181,7 @@ export default function UserEditPage() {
     if (!validateProfile()) return;
     setSaving(true);
     try {
+      const previousRole = user.role;
       const updated = await usersSettingsService.update(user.id, {
         first_name: draft.firstName.trim(),
         last_name: draft.lastName.trim(),
@@ -191,7 +192,13 @@ export default function UserEditPage() {
       });
       applyServerUser(updated);
       setProfileErrors({});
-      toast.success(t('userMgmt.toast.userUpdated'));
+      if (updated?.forced_signout || (!isOwner && draft.role && draft.role !== previousRole)) {
+        toast.success(t('userMgmt.toast.userUpdatedWithSignout', {
+          defaultValue: 'User updated. They were signed out and must log in again.',
+        }));
+      } else {
+        toast.success(t('userMgmt.toast.userUpdated'));
+      }
     } catch (e) {
       if (e instanceof ApiError && e.fieldErrors) {
         const mapped = {};
@@ -218,7 +225,13 @@ export default function UserEditPage() {
       applyServerUser(updated);
       setEditingPerms(false);
       setEditedPerms(null);
-      toast.success(t('userMgmt.toast.resetToDefaults'));
+      if (updated?.forced_signout) {
+        toast.success(t('userMgmt.toast.userUpdatedWithSignout', {
+          defaultValue: 'User updated. They were signed out and must log in again.',
+        }));
+      } else {
+        toast.success(t('userMgmt.toast.resetToDefaults'));
+      }
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' }));
     } finally {
@@ -250,7 +263,13 @@ export default function UserEditPage() {
       applyServerUser(updated);
       setEditingPerms(false);
       setEditedPerms(null);
-      toast.success(t('userMgmt.toast.permissionsSaved'));
+      if (updated?.forced_signout) {
+        toast.success(t('userMgmt.toast.userUpdatedWithSignout', {
+          defaultValue: 'User updated. They were signed out and must log in again.',
+        }));
+      } else {
+        toast.success(t('userMgmt.toast.permissionsSaved'));
+      }
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' }));
     } finally {

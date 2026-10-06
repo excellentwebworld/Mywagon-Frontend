@@ -62,6 +62,7 @@ export const TransporterProfileContent: React.FC<TransporterProfileContentProps>
     show_performance_kpis: true,
   };
   const performance = data?.performance || {
+    on_time_pickup_pct: null,
     on_time_delivery_pct: null,
     cancellation_rate_pct: null,
     avg_pickup_delay_minutes: null,
@@ -106,6 +107,9 @@ export const TransporterProfileContent: React.FC<TransporterProfileContentProps>
           </div>
           {showPerformanceKpis && (
           <div className="tp-kpi-row">
+            <span className="tp-kpi">
+              {t('onTimePickup')}: <strong>{fmtPct(performance.on_time_pickup_pct)}</strong>
+            </span>
             <span className="tp-kpi">
               {t('onTimeDelivery')}: <strong>{fmtPct(performance.on_time_delivery_pct)}</strong>
             </span>

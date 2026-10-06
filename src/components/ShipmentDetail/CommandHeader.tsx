@@ -231,13 +231,13 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
         )}
 
         <div className="flex items-center gap-1.5 flex-wrap">
-          {!readOnly && canEdit && (
+          {!readOnly && canEdit && onEdit && (
             <MvButton
               type="button"
               variant="primary"
               size="sm"
               icon={<Pencil size={14} />}
-              onClick={onEdit || (() => onToast(t('editShipment', 'Edit shipment')))}
+              onClick={onEdit}
             >
               {t('editShipment', 'Edit shipment')}
             </MvButton>

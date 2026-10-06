@@ -1,5 +1,10 @@
 import * as Yup from 'yup';
-import { DOCK_TYPES, FACILITY_TYPES } from '../constants';
+import {
+  DOCK_TYPES,
+  FACILITY_TYPES,
+  LOAD_TIME_MINUTES_MAX,
+  LOAD_TIME_MINUTES_MIN,
+} from '../constants';
 import { DUPLICATE_LOCATION_MESSAGE } from './locationDuplicateValidation';
 import { areTimeRangesValid } from './timeRangeValidation';
 import { coerceFormString } from './locationFormCoerce';
@@ -122,10 +127,23 @@ export function getLocationEditValidationSchema(t: TFn = (_k, fb) => fb ?? _k) {
     loadTime: Yup.string()
       .transform((v) => coerceFormString(v))
       .required(t('abValLoadTimeRequired', 'Estimated loading/unloading time is required'))
+      .test(
+        'integer-load-time',
+        t('abValLoadTimeInteger', 'Enter a whole number of minutes'),
+        (v) => /^\d+$/.test(String(v ?? '').trim())
+      )
       .test('min-load-time', t('abValLoadTimeMin', 'Must be at least 1 minute'), (v) => {
-        const n = parseInt(v ?? '', 10);
-        return Number.isFinite(n) && n >= 1;
-      }),
+        const n = Number(String(v ?? '').trim());
+        return Number.isFinite(n) && n >= LOAD_TIME_MINUTES_MIN;
+      })
+      .test(
+        'max-load-time',
+        t('abValLoadTimeMax', `Must be at most ${LOAD_TIME_MINUTES_MAX} minutes`),
+        (v) => {
+          const n = Number(String(v ?? '').trim());
+          return Number.isFinite(n) && n <= LOAD_TIME_MINUTES_MAX;
+        }
+      ),
     hours: Yup.string().max(255),
     appt: Yup.boolean(),
     timeRanges: Yup.array()
