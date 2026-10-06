@@ -265,6 +265,13 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
       : (stop as any).locationReferenceId != null
       ? Number((stop as any).locationReferenceId)
       : null,
+    // Delivery → linked pickup (Laravel tracking-email edit gate).
+    referenceId:
+      (stop as any).reference_id != null
+        ? Number((stop as any).reference_id)
+        : (stop as any).referenceId != null
+          ? Number((stop as any).referenceId)
+          : null,
   } as any;
 }
 

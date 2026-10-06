@@ -189,6 +189,8 @@ export interface ShipmentStop {
   tracking_url?: string | null;
   trackingUrl?: string | null;
   locationReferenceId?: number | null;
+  /** Delivery → linked pickup location id (tracking-email edit gate). */
+  referenceId?: number | null;
 }
 
 export interface Shipment {

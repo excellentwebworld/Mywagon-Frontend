@@ -155,6 +155,10 @@ export interface ApiShipmentStop {
   logs?: Array<{ status?: string | number | null; created_at?: string | null }> | null;
   unable_status?: string | number | null;
   reason?: string | null;
+  /** Edit-shipment live location link (not pickup↔delivery). */
+  location_reference_id?: number | null;
+  /** Delivery stop → linked pickup location id. */
+  reference_id?: number | null;
   sort_order?: number;
 }
 
