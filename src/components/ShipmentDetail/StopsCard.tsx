@@ -126,17 +126,28 @@ export function computeStopsDiff(
     }
 
     if (!matchedOldStop) {
-      // Brand-new stop: NEW badge only — same as edit Step2 (no red field paints).
+      // Brand-new stop: NEW badge + red on all stop/line fields (load change).
       const orderHighlights: Record<number, OrderDiffHighlight> = {};
       upStop.orders.forEach((ord, oIdx) => {
         const prodHighlights: Record<number, ProductDiffHighlight> = {};
         ord.products.forEach((_, pIdx) => {
-          prodHighlights[pIdx] = { isNew: true };
+          prodHighlights[pIdx] = { isNew: true, name: true, qty: true, weight: true };
         });
-        orderHighlights[oIdx] = { isNew: true, products: prodHighlights };
+        orderHighlights[oIdx] = {
+          isNew: true,
+          orderId: true,
+          customerName: true,
+          products: prodHighlights,
+        };
       });
       highlights[upIdx] = {
         isNew: true,
+        schedule: true,
+        date: true,
+        time: true,
+        timeEnd: Boolean(normalizeDiffTime(upStop.timeEnd)),
+        location: true,
+        address: true,
         orders: orderHighlights,
       };
       return;
@@ -165,12 +176,17 @@ export function computeStopsDiff(
       }
 
       if (!matchedOldOrd) {
-        // New order line on an existing stop: NEW badge only (matches Step2).
+        // New order on an existing stop: NEW badge + red field paints.
         const prodHighlights: Record<number, ProductDiffHighlight> = {};
         upOrd.products.forEach((_, pIdx) => {
-          prodHighlights[pIdx] = { isNew: true };
+          prodHighlights[pIdx] = { isNew: true, name: true, qty: true, weight: true };
         });
-        orderHighlights[oIdx] = { isNew: true, products: prodHighlights };
+        orderHighlights[oIdx] = {
+          isNew: true,
+          orderId: true,
+          customerName: true,
+          products: prodHighlights,
+        };
         return;
       }
 
@@ -185,7 +201,7 @@ export function computeStopsDiff(
         }
 
         if (!matchedOldProd) {
-          prodHighlights[pIdx] = { isNew: true };
+          prodHighlights[pIdx] = { isNew: true, name: true, qty: true, weight: true };
           return;
         }
 

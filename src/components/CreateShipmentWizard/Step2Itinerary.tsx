@@ -346,9 +346,18 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                 const rw = runningWeights[si] || 0;
                 const pin = pinColors(stop.hasPickup, stop.hasDropoff);
                 const isStopNew = isEditMode && !viewingCurrent && isNewStop(stop, editDiff?.old_itinerary);
-                // New stops use the NEW badge only — never red field highlights.
-                const stopHl =
-                  showDiffHighlights && !isStopNew ? highlights.stops[si] : undefined;
+                // NEW badge plus red on stop fields — whole stop is a load change.
+                const stopHl = showDiffHighlights
+                  ? isStopNew
+                    ? {
+                        address_id: true,
+                        date: true,
+                        time: true,
+                        date_to: Boolean(stop.dateTo),
+                        time_to: Boolean(stop.timeTo),
+                      }
+                    : highlights.stops[si]
+                  : undefined;
                 const locationChanged = Boolean(stopHl?.address_id);
 
                 return (
@@ -554,9 +563,9 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                             )}
                             {customerGroup.orders.map((orderGroup, oi) => {
                               const orderChanged =
-                                !isStopNew &&
+                                isStopNew ||
                                 orderGroup.lines.some((l) => {
-                                  if (isNewLine(l, editDiff?.old_itinerary)) return false;
+                                  if (isNewLine(l, editDiff?.old_itinerary)) return true;
                                   const lineIndex = (stop.lines || []).indexOf(l);
                                   return Boolean(highlights.lines[`${si}:${lineIndex}`]?.order_id);
                                 });
@@ -573,10 +582,17 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
                                   {orderGroup.lines.map((l, li) => {
                                     const lineIndex = (stop.lines || []).indexOf(l);
                                     const lineIsNew = isNewLine(l, editDiff?.old_itinerary);
-                                    const lineHl =
-                                      showDiffHighlights && !lineIsNew
-                                        ? highlights.lines[`${si}:${lineIndex}`]
-                                        : undefined;
+                                    const lineHl = showDiffHighlights
+                                      ? lineIsNew || isStopNew
+                                        ? {
+                                            qty: true,
+                                            weight: true,
+                                            product_id: true,
+                                            order_id: true,
+                                            type: true,
+                                          }
+                                        : highlights.lines[`${si}:${lineIndex}`]
+                                      : undefined;
                                     return (
                                       <div
                                         key={li}
