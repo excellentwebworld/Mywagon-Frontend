@@ -1267,7 +1267,7 @@
       "chipSched": "sched",
       "chipReady": "ready",
       "chipPending": "pending",
-      "chipCanceled": "cxl",
+      "chipCanceled": "canceled",
       "sent": "Sent",
       "available": "Available",
       "kpiTotalReports": "Total Weekly Reports",

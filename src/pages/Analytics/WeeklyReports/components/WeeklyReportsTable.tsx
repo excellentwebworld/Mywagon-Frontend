@@ -231,7 +231,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                     <td className="wr-td-canceled">
                       <div className="wr-pending-cell">
                         <span className="wr-sub-chip wr-chip-canceled">
-                          {canceled} {t('analytics.weeklyReports.chipCanceled', 'cxl')}
+                          {canceled} {t('analytics.weeklyReports.chipCanceled', 'canceled')}
                         </span>
                       </div>
                     </td>
