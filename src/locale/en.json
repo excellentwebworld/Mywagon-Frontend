@@ -1183,7 +1183,7 @@
   "weeklyReports.subtitle": "Weekly logistics performance reports delivered every Monday",
   "weeklyReports.period": "Period",
   "weeklyReports.deliveryDate": "Delivery Date",
-  "weeklyReports.reportDate": "Delivery Date",
+  "weeklyReports.reportDate": "Report Date",
   "weeklyReports.status": "Delivery Status",
   "weeklyReports.sent": "Sent",
   "weeklyReports.loadsFulfilled": "Loads Fulfilled",
