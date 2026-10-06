@@ -40,7 +40,13 @@ import { ACTION_RBAC } from '../../utils/shipperRbacMap';
 import { useUpgradeGate } from '../../context/UpgradeGateContext';
 import { useShipment } from '../../hooks/useShipments';
 import { ShipmentDetailSkeleton } from '../../components/skeletons/ShipmentDetailSkeleton';
-import { buildShipmentDetailViewModel, type DetailNote, type DetailDocument, type PartnerBidItem } from './detailViewModel';
+import {
+  buildShipmentDetailViewModel,
+  isInterestOffer,
+  type DetailNote,
+  type DetailDocument,
+  type PartnerBidItem,
+} from './detailViewModel';
 import { shipmentsService } from '../../api';
 import { CancelShipmentModal } from '../../components/ManageShipments/CancelShipmentModal';
 
@@ -577,10 +583,9 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
 
   const handleAcceptBid = useCallback(async (bid: PartnerBidItem) => {
     if (!id) return;
-    const isInterest = String((bid as { type?: string }).type || '').toLowerCase().includes('interest');
     if (
       !requireRbac(
-        isInterest ? ACTION_RBAC.approveRejectInterest : ACTION_RBAC.approveRejectBid,
+        isInterestOffer(bid) ? ACTION_RBAC.approveRejectInterest : ACTION_RBAC.approveRejectBid,
       )
     ) {
       return;
@@ -599,10 +604,9 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
 
   const handleRejectBid = useCallback(async (bid: PartnerBidItem) => {
     if (!id) return;
-    const isInterest = String((bid as { type?: string }).type || '').toLowerCase().includes('interest');
     if (
       !requireRbac(
-        isInterest ? ACTION_RBAC.approveRejectInterest : ACTION_RBAC.approveRejectBid,
+        isInterestOffer(bid) ? ACTION_RBAC.approveRejectInterest : ACTION_RBAC.approveRejectBid,
       )
     ) {
       return;

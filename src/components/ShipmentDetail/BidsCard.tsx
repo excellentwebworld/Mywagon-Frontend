@@ -21,11 +21,19 @@ export interface PartnerBidItem {
   time?: string;
   hasBid?: boolean;
   isInterested?: boolean;
+  /** Offer kind from API — drives Accept/Reject Spatie permission. */
+  type?: 'bid' | 'interest' | string | null;
   /** 'sent' = shipper bid on posted truck availability (Search Trucks). */
   kind?: 'sent' | 'received' | string | null;
   availabilityId?: number | null;
   lastActionBy?: 'shipper' | 'transporter' | string | null;
   canCounter?: boolean;
+}
+
+/** True for partner interest rows (vs priced bids). */
+export function isInterestOffer(item: Pick<PartnerBidItem, 'type' | 'id' | 'isInterested'>): boolean {
+  if (item.type === 'interest' || item.isInterested === true) return true;
+  return String(item.id || '').toLowerCase().startsWith('interest-');
 }
 
 /** Match Laravel / RowExpansionPending: no Accept while shipper awaits transporter. */
@@ -208,7 +216,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                         </span>
                       </div>
                     ) : (
-                      onCancelInvite && (
+                      onCancelInvite && !item.hasBid && !isInterestOffer(item) && (
                         <button
                           type="button"
                           disabled={cancellingInviteId === item.userId}

@@ -1,6 +1,7 @@
 import type { Shipment, ShipmentStop } from '../../context/AppContext';
-import type { PartnerBidItem } from '../../components/ShipmentDetail/BidsCard';
+import { isInterestOffer, type PartnerBidItem } from '../../components/ShipmentDetail/BidsCard';
 export type { PartnerBidItem };
+export { isInterestOffer };
 import type { LoadSummaryData } from '../../components/ShipmentDetail/LoadSummaryCard';
 
 export type MilestoneState = 'done' | 'cur' | 'skip';
@@ -999,8 +1000,23 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
     const name = o.name || 'Transporter';
     const lastActionBy = o.lastActionBy || null;
     const canCounter = isNegotiable && lastActionBy !== 'shipper';
-    const hasBid = Boolean(o.price != null || o.counter != null || o.status === 'bid' || o.status === 'offered' || o.status === 'pending');
-    const isInterested = Boolean(o.status === 'interested' || (o as any).isInterested);
+    const offerType: 'bid' | 'interest' | undefined =
+      o.type === 'interest' || String(o.id || '').toLowerCase().startsWith('interest-')
+        ? 'interest'
+        : o.type === 'bid' || String(o.id || '').toLowerCase().startsWith('bid-')
+          ? 'bid'
+          : undefined;
+    const isInterested = Boolean(
+      offerType === 'interest' || o.status === 'interested' || (o as any).isInterested
+    );
+    const hasBid = Boolean(
+      isInterested ||
+        o.price != null ||
+        o.counter != null ||
+        o.status === 'bid' ||
+        o.status === 'offered' ||
+        o.status === 'pending'
+    );
 
     const isPartner = Boolean(
       o.isPartner ||
@@ -1029,6 +1045,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       avatar: o.avatar ?? null,
       transporterType: o.transporterType === 'driver' || o.role === 'freelancer' ? 'freelancer' : 'carrier',
       isPartner,
+      type: offerType,
       kind: o.kind ?? (o.availabilityId != null ? 'sent' : 'received'),
       availabilityId: o.availabilityId ?? null,
       status: o.status ?? null,
