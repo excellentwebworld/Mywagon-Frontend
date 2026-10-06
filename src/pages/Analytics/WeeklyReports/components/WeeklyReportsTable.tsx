@@ -80,7 +80,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
               <th className="wr-th-delivery">{t('weeklyReports.reportDate', 'Report Date')}</th>
               <th className="wr-th-fulfilled">{t('weeklyReports.loadsFulfilled', 'Fulfilled')}</th>
               <th className="wr-th-created">{t('weeklyReports.loadsCreated', 'Created')}</th>
-              <th className="wr-th-pending">{t('weeklyReports.pending', 'Loads Currently Pending')}</th>
+              <th className="wr-th-canceled">{t('weeklyReports.canceled', 'Loads Canceled')}</th>
               <th className="wr-th-partners">{t('weeklyReports.newPartners', 'Partners')}</th>
               <th className="wr-th-actions">
                 {t('analytics.weeklyReports.actions', 'Actions')}
@@ -121,8 +121,8 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '32px', height: '14px', borderRadius: '4px' }} />
                     </div>
                   </td>
-                  {/* Pending */}
-                  <td className="wr-td-pending">
+                  {/* Canceled */}
+                  <td className="wr-td-canceled">
                     <div className="wr-pending-cell">
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '76px', height: '20px', borderRadius: '6px' }} />
                     </div>
@@ -161,7 +161,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
               reports.map((r) => {
                 const fulfilled = r.metrics.fulfilled;
                 const created = r.metrics.created;
-                const pending = r.metrics.pending?.value ?? 0;
+                const canceled = r.metrics.canceled?.value ?? 0;
                 const newPartners = r.metrics.new_partners?.value ?? 0;
 
                 const isExportingThis = exportingReportId === r.id;
@@ -227,11 +227,11 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                       </div>
                     </td>
 
-                    {/* Pending */}
-                    <td className="wr-td-pending">
+                    {/* Canceled */}
+                    <td className="wr-td-canceled">
                       <div className="wr-pending-cell">
-                        <span className="wr-sub-chip wr-chip-pending">
-                          {pending} {t('analytics.weeklyReports.chipPending', 'pending')}
+                        <span className="wr-sub-chip wr-chip-canceled">
+                          {canceled} {t('analytics.weeklyReports.chipCanceled', 'cxl')}
                         </span>
                       </div>
                     </td>
