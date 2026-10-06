@@ -36,6 +36,21 @@ export function isInterestOffer(item: Pick<PartnerBidItem, 'type' | 'id' | 'isIn
   return String(item.id || '').toLowerCase().startsWith('interest-');
 }
 
+/**
+ * Which Spatie permission gates Accept/Decline for this offer.
+ * - Partner interest rows → approve/Reject_carrier_interest
+ * - Non-negotiable received responses (API may still send type=bid) → interest
+ * - Negotiable / availability bids → approve/Reject_carrier_bid
+ */
+export function offerUsesInterestPermission(
+  item: Pick<PartnerBidItem, 'type' | 'id' | 'isInterested' | 'kind'>,
+  negotiable: boolean,
+): boolean {
+  if (isInterestOffer(item)) return true;
+  const isAvailability = item.kind === 'sent';
+  return !negotiable && !isAvailability;
+}
+
 /** Match Laravel / RowExpansionPending: no Accept while shipper awaits transporter. */
 function canShowAccept(item: PartnerBidItem): boolean {
   const lastBy = String(item.lastActionBy || '').toLowerCase();
@@ -62,6 +77,10 @@ interface BidsCardProps {
   acceptingBidId?: string | null;
   onRejectBid?: (bid: PartnerBidItem) => void;
   decliningBidId?: string | null;
+  /** When false, hide Accept/Decline on priced / negotiable bids. */
+  canApproveBid?: boolean;
+  /** When false, hide Accept/Decline on interest / non-negotiable responses. */
+  canApproveInterest?: boolean;
   onCounterBid?: (bid: PartnerBidItem) => void;
   onCancelInvite?: (partner: PartnerBidItem) => void;
   cancellingInviteId?: number | null;
@@ -83,6 +102,8 @@ export const BidsCard: React.FC<BidsCardProps> = ({
   acceptingBidId = null,
   onRejectBid,
   decliningBidId = null,
+  canApproveBid = true,
+  canApproveInterest = true,
   onCounterBid,
   onCancelInvite,
   cancellingInviteId = null,
@@ -150,6 +171,9 @@ export const BidsCard: React.FC<BidsCardProps> = ({
           const lastBy = String(item.lastActionBy || '').toLowerCase();
           const isShipperWaiting = lastBy === 'shipper';
           const showAccept = canShowAccept(item);
+          const canActOnOffer = offerUsesInterestPermission(item, isNegotiable)
+            ? canApproveInterest
+            : canApproveBid;
           const canCounter = item.hasBid && !isShipperWaiting && item.canCounter !== false;
           const ratingNum =
             item.rating != null && !isNaN(Number(item.rating))
@@ -246,7 +270,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                   {item.hasBid && (
                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                       {/* Match Laravel: hide Accept while shipper awaits transporter response */}
-                      {onAcceptBid && showAccept && (
+                      {onAcceptBid && showAccept && canActOnOffer && (
                         <button
                           type="button"
                           disabled={acceptingBidId === item.id || decliningBidId === item.id}
@@ -274,7 +298,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                         </button>
                       )}
 
-                      {onRejectBid && (
+                      {onRejectBid && canActOnOffer && (
                         <button
                           type="button"
                           disabled={acceptingBidId === item.id || decliningBidId === item.id}
