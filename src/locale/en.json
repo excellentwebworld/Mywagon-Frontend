@@ -2134,6 +2134,7 @@
   "carrierLabel": "Carrier",
   "carrierAssigned": "Carrier Assigned",
   "startTrip": "Start Trip",
+  "canceledShipment": "Canceled Shipment",
   "arrival": "Arrival",
   "paymentSuccessful": "Payment Successful",
   "tl_created": "Created",

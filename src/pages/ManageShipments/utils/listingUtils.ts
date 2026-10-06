@@ -1347,9 +1347,9 @@ function progressStepDisplaySortMs(step: LaravelProgressStep): number | null {
   return Number.isFinite(ms) ? ms : null;
 }
 
-const PROGRESS_PREFIX_STEP_IDS = ['created', 'waiting', 'accepted', 'carrier', 'canceled'] as const;
+const PROGRESS_PREFIX_STEP_IDS = ['created', 'waiting', 'accepted', 'carrier'] as const;
 
-/** Keep booking steps first, payment last; sort on-trip events by logged time (incl. POD). */
+/** Keep booking steps first; canceled then payment last; sort on-trip events by logged time (incl. POD). */
 export function sortProgressTimelineSteps(steps: LaravelProgressStep[]): LaravelProgressStep[] {
   if (steps.length <= 1) return steps;
 
@@ -1360,11 +1360,17 @@ export function sortProgressTimelineSteps(steps: LaravelProgressStep[]): Laravel
 
   const prefix: LaravelProgressStep[] = [];
   const middle: LaravelProgressStep[] = [];
+  let canceled: LaravelProgressStep | undefined;
   let payment: LaravelProgressStep | undefined;
 
   for (const step of steps) {
     if (step.id === 'payment') {
       payment = step;
+      continue;
+    }
+    // Laravel always appends "Canceled Shipment" after itinerary events.
+    if (step.id === 'canceled') {
+      canceled = step;
       continue;
     }
     if ((PROGRESS_PREFIX_STEP_IDS as readonly string[]).includes(step.id)) {
@@ -1392,7 +1398,10 @@ export function sortProgressTimelineSteps(steps: LaravelProgressStep[]): Laravel
     return (originalIndex.get(a.id) ?? 0) - (originalIndex.get(b.id) ?? 0);
   });
 
-  return payment ? [...prefix, ...middle, payment] : [...prefix, ...middle];
+  const tail: LaravelProgressStep[] = [];
+  if (canceled) tail.push(canceled);
+  if (payment) tail.push(payment);
+  return [...prefix, ...middle, ...tail];
 }
 
 /** ShipmentLocationLog status codes used by Laravel detail timeline. */
@@ -1560,7 +1569,8 @@ export function buildLaravelProgressSteps(
 
       if (isUnable) {
         stepState = 'pending';
-      } else if (fulfilledLike) {
+      } else if (fulfilledLike || isCanceled) {
+        // Laravel canceled detail still lists completed pickup/drop-off logs.
         stepState = 'done';
       } else if (onTrip) {
         if (idx < currentItinIndex) stepState = 'done';
@@ -1583,12 +1593,46 @@ export function buildLaravelProgressSteps(
   };
 
   if (isCanceled) {
+    // Match Laravel manage_shipment detail: skip accepted/carrier, keep trip
+    // logs when present, then append "Canceled Shipment" with cancel time last.
+    const unableStartAt =
+      findLogCreatedAt(itineraryStops[0]?.logs, LOG_UNABLE_START) ||
+      findAnyStopLogCreatedAt(shipment.stops, LOG_UNABLE_START);
+    if (startTripAt) {
+      steps.push({
+        id: 'start_trip',
+        label: t('startTrip'),
+        state: 'done',
+        dateLine: startTripParts.dateLine,
+        timeLine: startTripParts.timeLine,
+        sub: startTripParts.sub,
+      });
+    } else if (unableStartAt) {
+      const unableStartParts = progressDateTimeParts(unableStartAt);
+      steps.push({
+        id: 'start_trip',
+        label: t('startTrip'),
+        state: 'pending',
+        dateLine: unableStartParts.dateLine,
+        timeLine: unableStartParts.timeLine,
+        sub: unableStartParts.sub,
+        reason: itineraryStops[0]?.reason || undefined,
+      });
+    }
+
+    pushItinerarySteps();
+
+    const canceledAt =
+      shipment.cancellationDate || shipment.updatedAt || shipment.updated || null;
+    const canceledParts = progressDateTimeParts(canceledAt);
     steps.push({
       id: 'canceled',
-      label: t(status === 'cancelled' ? 'cancelled' : 'canceled'),
+      label: t('canceledShipment', { defaultValue: 'Canceled Shipment' }),
       state: 'pending',
+      dateLine: canceledParts.dateLine,
+      timeLine: canceledParts.timeLine,
+      sub: canceledParts.sub,
     });
-    pushItinerarySteps();
     return sortProgressTimelineSteps(steps);
   }
 

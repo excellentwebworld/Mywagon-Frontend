@@ -2135,6 +2135,7 @@
   "carrierLabel": "Μεταφορέας",
   "carrierAssigned": "Ανάθεση μεταφορέα",
   "startTrip": "Έναρξη διαδρομής",
+  "canceledShipment": "Ακυρωμένη αποστολή",
   "arrival": "Άφιξη",
   "paymentSuccessful": "Επιτυχής πληρωμή",
   "tl_created": "Δημιουργία",
