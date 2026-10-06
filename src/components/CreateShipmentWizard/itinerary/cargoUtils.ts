@@ -491,15 +491,69 @@ export function formatTripQtySummary(stops: ApiStop[], t?: CargoUnitTranslate): 
   return parts.length > 0 ? parts.join(' · ') : '—';
 }
 
-export function computeRunningWeights(stops: ApiStop[]): number[] {
-  let w = 0;
+/** Per-stop running load in kg (unload-then-load dock sequence). */
+export interface StopRunningWeight {
+  /** Weight on truck when arriving (previous stop's departure; 0 at first stop). */
+  arrivalKg: number;
+  /** Sum of pickup line weights at this stop. */
+  pickupKg: number;
+  /** Sum of dropoff line weights at this stop. */
+  dropoffKg: number;
+  /** Weight after unload then load: arrival − dropoff + pickup. */
+  departureKg: number;
+  /**
+   * "On Truck" display: cargo left after this stop (departure).
+   * If a dropoff empties the truck (departure ≤ 0), show arrival instead so the
+   * final unload is not a misleading 0 — it still shows what was on truck to deliver.
+   */
+  onTruckKg: number;
+}
+
+/**
+ * Compute arrival / departure running weights along the route.
+ *
+ * General logistics rules:
+ * 1. Start empty (arrival at stop 0 = 0).
+ * 2. At each stop, unload first then load (frees capacity before new cargo).
+ * 3. Only explicit `pickup` / `dropoff` lines affect the truck (unknown actions ignored).
+ * 4. Departure of stop i becomes arrival of stop i+1.
+ * 5. "On Truck" = remaining after the stop (departure). After a full unload,
+ *    show arrival so split/final dropoffs are not displayed as 0.
+ */
+export function computeStopRunningWeights(stops: ApiStop[]): StopRunningWeight[] {
+  let prevDepartureKg = 0;
+
   return stops.map((s) => {
+    const arrivalKg = prevDepartureKg;
+    let pickupKg = 0;
+    let dropoffKg = 0;
+
     (s.lines || []).forEach((ln) => {
       const wk = weightToKg(ln.weight, ln.wtUnit);
-      w += ln.action === 'pickup' ? wk : -wk;
+      if (ln.action === 'pickup') pickupKg += wk;
+      else if (ln.action === 'dropoff') dropoffKg += wk;
     });
-    return w;
+
+    const departureKg = arrivalKg - dropoffKg + pickupKg;
+    prevDepartureKg = departureKg;
+
+    // Remaining after stop; if unload emptied the truck, show what arrived to deliver.
+    const onTruckKg =
+      departureKg > 0 ? departureKg : dropoffKg > 0 ? arrivalKg : Math.max(0, departureKg);
+
+    return {
+      arrivalKg,
+      pickupKg,
+      dropoffKg,
+      departureKg,
+      onTruckKg,
+    };
   });
+}
+
+/** On-truck kg per stop (remaining after stop). See {@link computeStopRunningWeights}. */
+export function computeRunningWeights(stops: ApiStop[]): number[] {
+  return computeStopRunningWeights(stops).map((r) => r.onTruckKg);
 }
 
 export function buildCargoFlows(stops: ApiStop[]): CargoFlow[] {
