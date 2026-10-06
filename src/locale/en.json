@@ -3842,6 +3842,7 @@
       "roleUpdating": "Updating role…",
       "saveFailed": "Save failed",
       "userUpdated": "User details updated",
+      "userUpdatedWithSignout": "User updated. They were signed out and must log in again.",
       "invited": "Invitation sent to {{email}}",
       "inviteResent": "Invitation resent to {{email}}",
       "sessionRevoked": "Sessions revoked for {{name}}",

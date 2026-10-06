@@ -5,7 +5,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Search, Pencil, X, Check, AlertTriangle, Plus, Copy, Trash2, Loader2,
+  Search, Pencil, X, Check, Plus, Copy, Trash2, Loader2,
 } from 'lucide-react';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
@@ -18,7 +18,12 @@ import { useUserMgmt } from '../../../context/UserMgmtContext';
 import { rolesSettingsService } from '../../../api/services/rolesSettingsService';
 import { ApiError } from '../../../api/client';
 import { useAuth } from '../../../context/AuthContext';
-import { canManageShipperUsers, expandPermissionDependencies, localizeShipperRoleName } from '../../../utils/shipperAccessPresets';
+import {
+  canManageShipperUsers,
+  expandPermissionDependencies,
+  filterPermissionCatalogGroups,
+  localizeShipperRoleName,
+} from '../../../utils/shipperAccessPresets';
 import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 
 const COLORS = ['#9B51E0', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#EC4899', '#9B51E0'];
@@ -62,7 +67,7 @@ function ColorSwatches({ value, onChange, size = 'md' }) {
 
 function applyRolesPayload(data, setApiRoles, setPermissionGroups) {
   setApiRoles(data.roles || []);
-  setPermissionGroups(data.groups || []);
+  setPermissionGroups(filterPermissionCatalogGroups(data.groups || []));
 }
 
 export default function RolesTab() {
@@ -218,15 +223,8 @@ export default function RolesTab() {
       }
       applyRolesPayload(data, setApiRoles, setPermissionGroups);
       cancelEdit();
-      const forced = Number(data?.forced_signouts || 0);
-      if (forced > 0) {
-        toast.success(t('userMgmt.toast.roleSavedWithSignouts', {
-          n: forced,
-          defaultValue: `Role saved. ${forced} user(s) were signed out and must log in again.`,
-        }));
-      } else {
-        toast.success(t('userMgmt.toast.roleSaved'));
-      }
+      // Permission edits do not force logout — backend enforces access on each request.
+      toast.success(t('userMgmt.toast.roleSaved'));
       // Sub-users may inherit the edited pack — refresh Spatie permissions.
       if (authUser?.is_sub_user === true || authUser?.type === 'sub_user') {
         await refreshUser().catch(() => null);
@@ -681,15 +679,6 @@ export default function RolesTab() {
                     </span>
                   )}
               </p>
-            )}
-
-            {editing && usersOnRole.length > 0 && (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg mb-3" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-                <AlertTriangle size={14} style={{ color: '#F59E0B' }} />
-                <span style={{ fontSize: 12, color: '#92400E' }}>
-                  {t('userMgmt.roles.affectsUsers', { n: usersOnRole.length })}
-                </span>
-              </div>
             )}
 
             {editing && (
