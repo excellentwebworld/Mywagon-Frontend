@@ -21,6 +21,9 @@ const GROUP_ICONS = {
   control: 'Shield',
   billing: 'CreditCard',
   company_account_information: 'Building2',
+  orders: 'Activity',
+  price_lists: 'DollarSign',
+  vagon_ai: 'Sparkles',
 };
 
 export default function PermissionGrid({

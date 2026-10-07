@@ -59,6 +59,10 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   edit_company_account_information: ['view_company_account_information'],
   edit_all_existing_shipments: ['view_all_existing_shipments'],
   delete_all_existing_shipments: ['view_all_existing_shipments'],
+  edit_orders: ['view_orders'],
+  delete_orders: ['view_orders'],
+  edit_price_lists: ['view_price_lists'],
+  delete_price_lists: ['view_price_lists'],
 };
 
 /** @deprecated Prefer buildPermissionDependencyMaps(catalog).dependents */

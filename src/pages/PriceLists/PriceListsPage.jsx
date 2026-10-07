@@ -17,6 +17,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
+import { useShipperPermission } from '../../hooks/useShipperPermission';
 import { ApiError } from '../../api/client';
 import { priceListsService } from '../../api/services/priceListsService';
 import { partnersService } from '../../api';
@@ -151,6 +152,9 @@ export default function PriceListsPage() {
   const { role } = useAuth();
   const { toast } = useToast();
   const { requireSignupComplete } = useRequireSignupComplete();
+  const { canAction, requirePermission } = useShipperPermission();
+  const canEditPriceLists = canAction('editPriceLists');
+  const canDeletePriceLists = canAction('deletePriceLists');
   const isGreek = i18n.language === 'el';
   const [searchParams, setSearchParams] = useSearchParams();
   const setSearchParamsRef = useRef(setSearchParams);
@@ -395,6 +399,13 @@ export default function PriceListsPage() {
   // ─── CRUD actions ───
   const handleAction = useCallback((action, lane) => {
     if (!requireSignupComplete()) return;
+    // No separate "add" permission — duplicate (create) stays available with view.
+    // edit_* only gates editing existing lanes; delete_* gates archive/delete.
+    const needsDelete = action === 'archive' || action === 'deleteForever';
+    const needsEdit = ['edit', 'reactivate', 'activate', 'deactivate'].includes(action);
+    if (needsDelete && !requirePermission('delete_price_lists')) return;
+    if (needsEdit && !requirePermission('edit_price_lists')) return;
+
     switch (action) {
       case 'edit':
         setEditLane(lane);
@@ -457,7 +468,7 @@ export default function PriceListsPage() {
       default:
         break;
     }
-  }, [t, toast, selectedId, persistLaneStatus, requireSignupComplete]);
+  }, [t, toast, selectedId, persistLaneStatus, requireSignupComplete, requirePermission]);
 
   // ─── Save lane (add/edit) ───
   const handleSaveLane = useCallback(async (entry, existingId) => {
@@ -627,7 +638,7 @@ export default function PriceListsPage() {
             <UploadIcon size={14} />
             {t('priceLists.importBtn', 'Import')}
           </button>
-          <button onClick={() => { if (!requireSignupComplete()) return; setEditLane(null); setAddEditOpen(true); }}
+          <button onClick={() => { if (!requireSignupComplete()) return; setEditLane(null); setModalMode('add'); setAddEditOpen(true); }}
             className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg cursor-pointer border-none text-white"
             style={{ background: T.ac, fontSize: 12, fontWeight: 600 }}>
             <Plus size={14} />
@@ -722,6 +733,8 @@ export default function PriceListsPage() {
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
                 partnerNameById={partnerNameById}
+                canEdit={canEditPriceLists}
+                canDelete={canDeletePriceLists}
               />
             </div>
 
@@ -743,6 +756,8 @@ export default function PriceListsPage() {
                   onAction={handleAction}
                   allLanes={catalogLanes}
                   partnerNameById={partnerNameById}
+                  canEdit={canEditPriceLists}
+                  canDelete={canDeletePriceLists}
                 />
               )}
             </div>

@@ -647,6 +647,7 @@ export function useErpOrdersList() {
     submitForm,
     formSaving: createMutation.isPending || updateMutation.isPending,
     deleteOrder: (id: string) => deleteMutation.mutate(id),
+    deletingOrder: deleteMutation.isPending,
     isAiWizardOpen,
     openAiWizard,
     closeAiWizard,

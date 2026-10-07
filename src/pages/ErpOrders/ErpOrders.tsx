@@ -29,8 +29,11 @@ import type { ApiCompanyEntity } from '../../api';
 import { syncCustomerDropdownCaches } from '../../api/utils/masterDataCache';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
+import { useShipperPermission } from '../../hooks/useShipperPermission';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import type { LocationItem } from '../../context/AppContext';
 import { EMPTY_ORDER_LINE } from './types';
+import type { ErpOrder } from './types';
 import type { SKU } from '../../context/AppContext';
 
 type LocationTarget = 'origin' | 'dest';
@@ -39,6 +42,10 @@ export const ErpOrders: React.FC = () => {
   const state = useErpOrdersList();
   const { showToast } = useApp();
   const { t } = useTranslation();
+  const { canAction, requirePermission } = useShipperPermission();
+  const canEditOrders = canAction('editOrders');
+  const canDeleteOrders = canAction('deleteOrders');
+  const [orderPendingDelete, setOrderPendingDelete] = useState<ErpOrder | null>(null);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
   const [locationTarget, setLocationTarget] = useState<LocationTarget>('origin');
   const [skuModalOpen, setSkuModalOpen] = useState(false);
@@ -359,8 +366,13 @@ export const ErpOrders: React.FC = () => {
         open={!!state.selectedOrderId}
         onClose={state.closeDrawer}
         onEdit={(order) => {
+          if (!requirePermission('edit_orders')) return;
           state.closeDrawer();
           state.openEditOrder(order);
+        }}
+        onDelete={(order) => {
+          if (!requirePermission('delete_orders')) return;
+          setOrderPendingDelete(order);
         }}
         onCreateLoad={(orderId) => {
           state.closeDrawer();
@@ -368,6 +380,27 @@ export const ErpOrders: React.FC = () => {
         }}
         onResync={state.handleResync}
         statusLabel={state.statusLabel}
+        canEditOrders={canEditOrders}
+        canDeleteOrders={canDeleteOrders}
+        deleting={state.deletingOrder}
+      />
+
+      <ConfirmDialog
+        open={!!orderPendingDelete}
+        onClose={() => setOrderPendingDelete(null)}
+        title={t('erpOrdersDeleteConfirmTitle', 'Delete order?')}
+        message={t(
+          'erpOrdersDeleteConfirmMessage',
+          'Delete order {{ref}}? This cannot be undone.',
+        ).replace('{{ref}}', orderPendingDelete?.orderReference || '')}
+        confirmLabel={t('erpOrdersDelete', 'Delete')}
+        variant="danger"
+        onConfirm={() => {
+          if (!orderPendingDelete) return;
+          const id = orderPendingDelete.id;
+          setOrderPendingDelete(null);
+          state.deleteOrder(id);
+        }}
       />
 
       <CreateEditOrderModal

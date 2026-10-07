@@ -30,9 +30,13 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onEdit: (order: ErpOrder) => void;
+  onDelete?: (order: ErpOrder) => void;
   onCreateLoad: (orderId: string) => void;
   onResync: (order: ErpOrder) => void;
   statusLabel: (status: ErpOrder['status']) => string;
+  canEditOrders?: boolean;
+  canDeleteOrders?: boolean;
+  deleting?: boolean;
 };
 
 export const OrderDetailDrawer: React.FC<Props> = ({
@@ -42,9 +46,13 @@ export const OrderDetailDrawer: React.FC<Props> = ({
   open,
   onClose,
   onEdit,
+  onDelete,
   onCreateLoad: _onCreateLoad,
   onResync,
   statusLabel,
+  canEditOrders = true,
+  canDeleteOrders = true,
+  deleting = false,
 }) => {
   const lineTotals = useMemo(
     () => (order ? getOrderListTotals(order) : { lineCount: 0, pallets: 0, weightTons: '0.0' }),
@@ -217,7 +225,7 @@ export const OrderDetailDrawer: React.FC<Props> = ({
               )}
             </div>
 
-            {order && (
+            {order && (order.canEdit && (canEditOrders || canDeleteOrders)) && (
               <div className="erp-order-drawer-foot">
                 {/* Create Load — temporarily hidden
             {!order.linkedLoadSid && (
@@ -227,11 +235,20 @@ export const OrderDetailDrawer: React.FC<Props> = ({
               </button>
             )}
             */}
-                <div className="
-                ">
-                  {order.canEdit && (
+                <div className="erp-order-drawer-actions">
+                  {order.canEdit && canEditOrders && (
                     <button type="button" className="btn btn-md erp-order-drawer-action" onClick={() => onEdit(order)}>
                       {t('edit')}
+                    </button>
+                  )}
+                  {order.canEdit && canDeleteOrders && onDelete && (
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-md erp-order-drawer-action"
+                      onClick={() => onDelete(order)}
+                      disabled={deleting}
+                    >
+                      {deleting ? t('erpOrdersDeleting') : t('erpOrdersDelete')}
                     </button>
                   )}
                   {/* <button type="button" className="btn btn-sm erp-order-drawer-action" onClick={() => onResync(order)}>

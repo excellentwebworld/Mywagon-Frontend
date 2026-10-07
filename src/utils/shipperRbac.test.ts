@@ -73,6 +73,9 @@ describe('resolveRouteRbac', () => {
     expect(resolveRouteRbac('/settings/users/roles')).toBe(
       SHIPPER_RBAC.managePermissions,
     );
+    expect(resolveRouteRbac('/erp-orders')).toBe(SHIPPER_RBAC.viewOrders);
+    expect(resolveRouteRbac('/pricing')).toBe(SHIPPER_RBAC.viewPriceLists);
+    expect(resolveRouteRbac('/vagonai')).toBe(SHIPPER_RBAC.accessVagonAi);
     expect(resolveRouteRbac('/dashboard')).toBeNull();
   });
 });

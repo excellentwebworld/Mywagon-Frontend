@@ -69,7 +69,7 @@ const legalRoutes = [
 ];
 
 const appRoutes = [
-  { path: '/vagonai', element: <VagonAIPage /> },
+  { path: '/vagonai', element: withRbac(SHIPPER_RBAC.accessVagonAi, <VagonAIPage />) },
   { path: '/dashboard', element: <Dashboard /> },
   { path: '/notifications', element: <Navigate to="/settings/notifications" replace /> },
   { path: '/messages', element: withRbac(SHIPPER_RBAC.chatWithCarrier, <MessagesPage />) },
@@ -96,8 +96,8 @@ const appRoutes = [
       <Partners />,
     ),
   },
-  { path: '/pricing', element: <PriceListsPage /> },
-  { path: '/erp-orders', element: <ErpOrders /> },
+  { path: '/pricing', element: withRbac(SHIPPER_RBAC.viewPriceLists, <PriceListsPage />) },
+  { path: '/erp-orders', element: withRbac(SHIPPER_RBAC.viewOrders, <ErpOrders />) },
   { path: '/settings', element: <Navigate to="/settings/personal" replace /> },
   { path: '/settings/subscription', element: <Navigate to="/subscription" replace /> },
   { path: '/settings/billing', element: <Navigate to="/billing" replace /> },

@@ -54,6 +54,7 @@ export const MAIN_NAV_SECTIONS: MainNavSection[] = [
         route: '/vagonai',
         icon: Sparkles,
         tag: 'BETA',
+        rbacNav: 'vagonAi',
         tourId: 'vagon-ai',
       },
       {
@@ -120,6 +121,7 @@ export const MAIN_NAV_SECTIONS: MainNavSection[] = [
         fallback: 'Orders',
         route: '/erp-orders',
         icon: Activity,
+        rbacNav: 'orders',
         tourId: 'erp-orders',
       },
       {
@@ -137,6 +139,7 @@ export const MAIN_NAV_SECTIONS: MainNavSection[] = [
         fallback: 'Price Lists',
         route: '/pricing',
         icon: DollarSign,
+        rbacNav: 'priceLists',
         tourId: 'price-lists',
       },
     ],
