@@ -3312,6 +3312,65 @@
     "viewAllNotifications": "View all notifications",
     "viewAllMessages": "View all messages"
   },
+  "uiSwitch": {
+    "switchToClassic": "Switch to Classic UI",
+    "switching": "Switching…",
+    "switchFailed": "Could not switch to Classic UI.",
+    "handingOff": "Switching to the new panel…",
+    "handoffMissing": "This switch link is missing a code. Please sign in again.",
+    "handoffFailed": "This switch link has expired or is invalid. Please sign in again.",
+    "backToLogin": "Back to login"
+  },
+  "whatsNew": {
+    "badge": "What's new",
+    "previous": "Previous",
+    "next": "Next",
+    "gotIt": "Got it",
+    "saving": "Saving…",
+    "skip": "Skip for now",
+    "slides": {
+      "vagonAi": {
+        "title": "Vagon AI",
+        "body": "Ask Vagon AI to draft loads, summarize activity, and speed up everyday shipping work.",
+        "cta": "Open Vagon AI"
+      },
+      "orders": {
+        "title": "Orders module",
+        "body": "Manage ERP and manual orders in one place with filters, details, and bulk actions.",
+        "cta": "Go to Orders"
+      },
+      "priceLists": {
+        "title": "Price lists",
+        "body": "Build lane price lists, import CSV, and keep contracted rates ready for pricing.",
+        "cta": "Open Price Lists"
+      },
+      "ordersToLoads": {
+        "title": "Create loads from Orders",
+        "body": "Select orders and turn them into shipments without retyping itinerary or cargo details.",
+        "cta": "Try from Orders"
+      },
+      "security": {
+        "title": "Security (2FA)",
+        "body": "Protect your account with authenticator or email two-factor authentication.",
+        "cta": "Open Security settings"
+      },
+      "darkMode": {
+        "title": "Dark mode",
+        "body": "Switch between light and dark themes from your profile menu or Settings.",
+        "cta": "Open Settings"
+      },
+      "analytics": {
+        "title": "Analytics module",
+        "body": "Review weekly performance reports and share insights with your team.",
+        "cta": "Open Analytics"
+      },
+      "customization": {
+        "title": "User customization",
+        "body": "Personalize navigation, language, and workspace preferences to match how you work.",
+        "cta": "Customize workspace"
+      }
+    }
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",

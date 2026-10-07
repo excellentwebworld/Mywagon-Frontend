@@ -7,6 +7,7 @@ import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
 import { useTranslation } from '../../hooks/useTranslation';
 import { postAuthDestination } from '../../hooks/postAuthDestination';
 import { applyVerticalNavOnLogin } from '../../utils/navMode';
+import { redirectToClassicPanelIfNeeded } from '../../utils/preferredUiRedirect';
 import type { TwoFactorChallenge, TwoFactorMethod } from '../../api/auth';
 
 function forceLogoutKeepPage(): void {
@@ -77,6 +78,11 @@ export const SocialCallbackPage: React.FC = () => {
         }
 
         clearInfoFormReminderSkip(profile.id);
+
+        if (await redirectToClassicPanelIfNeeded(profile)) {
+          setHandoffDone(true);
+          return;
+        }
 
         // Wait one frame so AuthContext user/token commit before CompleteSignup mounts.
         await new Promise<void>((resolve) => {

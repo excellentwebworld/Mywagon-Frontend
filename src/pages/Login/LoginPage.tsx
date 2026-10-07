@@ -21,6 +21,7 @@ import { clearInfoFormReminderSkip } from '../../components/layout/InfoFormRemin
 import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
 import { applyVerticalNavOnLogin } from '../../utils/navMode';
 import { localizeSocialAuthError } from '../../utils/socialAuthErrors';
+import { redirectToClassicPanelIfNeeded } from '../../utils/preferredUiRedirect';
 import './LoginPage.css';
 
 function isTwoFactorChallenge(
@@ -29,8 +30,13 @@ function isTwoFactorChallenge(
   return 'challenge_token' in value;
 }
 
-function postLoginPath(user: ShipperUser, from: string): string {
-  return postAuthDestination(user, from);
+async function finishLoginNavigation(
+  user: ShipperUser,
+  from: string,
+  navigate: (to: string, opts?: { replace?: boolean }) => void,
+): Promise<void> {
+  if (await redirectToClassicPanelIfNeeded(user)) return;
+  navigate(postAuthDestination(user, from), { replace: true });
 }
 
 const EyeIcon: React.FC<{ open: boolean }> = ({ open }) =>
@@ -209,7 +215,7 @@ export const LoginPage: React.FC = () => {
     if (params.get('social_error') === '1') {
       return <MyVagonBootScreen />;
     }
-    const dest = user ? postLoginPath(user, from) : from;
+    const dest = user ? postAuthDestination(user, from) : from;
     return <Navigate to={dest} replace />;
   }
 
@@ -270,7 +276,7 @@ export const LoginPage: React.FC = () => {
         }
         return;
       }
-      navigate(postLoginPath(result, from), { replace: true });
+      await finishLoginNavigation(result, from, navigate);
     } catch {
       // loginError set in context
     } finally {
@@ -293,10 +299,10 @@ export const LoginPage: React.FC = () => {
         if (two_factor_reset) {
           sessionStorage.setItem('shipper_mfa_reset_toast', '1');
         }
-        navigate(postLoginPath(profile, from), { replace: true });
+        await finishLoginNavigation(profile, from, navigate);
       } else {
         const profile = await verifyTwoFactor(challenge.challenge_token, otpCode.trim());
-        navigate(postLoginPath(profile, from), { replace: true });
+        await finishLoginNavigation(profile, from, navigate);
       }
     } catch {
       // loginError set in context

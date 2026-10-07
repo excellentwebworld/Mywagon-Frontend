@@ -18,6 +18,8 @@ import { InfoFormReminderModal } from './InfoFormReminderModal';
 import { RouterLocationSync } from './RouterLocationSync';
 import { OnboardingTourHost } from '../../onboarding';
 import { SignupIncompleteGateHost } from '../auth/SignupIncompleteGateHost';
+import { PreferredUiRedirectHost } from './PreferredUiRedirectHost';
+import { WhatsNewGuideHost } from '../../whatsNew';
 import { UpgradeGateProvider } from '../../context/UpgradeGateContext';
 
 const SIDEBAR_COLLAPSED_KEY = 'shipper-sidebar-collapsed';
@@ -171,7 +173,9 @@ export const AppLayout: React.FC = () => {
       <RouterLocationSync />
       <InfoFormReminderModal />
       <SignupIncompleteGateHost />
+      <PreferredUiRedirectHost />
       <OnboardingTourHost expandSidebar={expandSidebar} />
+      <WhatsNewGuideHost />
 
       {toast.show && (
         <div className="toast-container" role="status" aria-live="polite">

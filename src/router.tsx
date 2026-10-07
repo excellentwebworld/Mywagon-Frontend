@@ -9,6 +9,7 @@ import { ForgotPasswordPage } from './pages/Auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/Auth/ResetPasswordPage';
 import { PasswordChangeSuccessPage } from './pages/Auth/PasswordChangeSuccessPage';
 import { SocialCallbackPage } from './pages/Auth/SocialCallbackPage';
+import { UiHandoffPage } from './pages/Auth/UiHandoffPage';
 import { RootRedirect } from './pages/Auth/RootRedirect';
 import { Dashboard } from './pages/Dashboard';
 import { ManageShipments } from './pages/ManageShipments';
@@ -51,6 +52,7 @@ const authRoutes = [
   { path: '/login', element: <LoginPage /> },
   { path: '/shipper/register', element: <RegisterPage /> },
   { path: '/auth/social/callback', element: <SocialCallbackPage /> },
+  { path: '/auth/handoff', element: <UiHandoffPage /> },
   { path: '/complete-signup', element: <Navigate to="/settings/personal" replace /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/any/reset/email/:userType', element: <ForgotPasswordPage /> },

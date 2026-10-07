@@ -1,0 +1,132 @@
+.wn-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.wn-modal {
+  position: relative;
+  width: min(520px, 100%);
+  border-radius: 16px;
+  border: 1px solid;
+  padding: 28px 28px 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+}
+
+.wn-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+}
+
+.wn-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 4px 10px;
+  margin-bottom: 14px;
+}
+
+.wn-title {
+  margin: 0 0 10px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.wn-body {
+  margin: 0 0 22px;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.wn-dots {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.wn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  opacity: 0.7;
+}
+
+.wn-dot.is-active {
+  opacity: 1;
+  width: 18px;
+}
+
+.wn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.wn-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+}
+
+.wn-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.wn-btn-primary {
+  border: none;
+}
+
+.wn-btn-secondary,
+.wn-btn-ghost {
+  background: transparent;
+}
+
+.wn-skip {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  text-align: center;
+  padding: 6px;
+}
+
+@media (max-width: 560px) {
+  .wn-actions {
+    flex-direction: column;
+  }
+
+  .wn-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

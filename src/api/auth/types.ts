@@ -56,6 +56,13 @@ export interface ShipperUser {
   /** Guided UI tour completed (shippers.onboarding_completed). */
   onboarding_completed?: boolean;
   onboarding_completed_at?: string | null;
+  /** Preferred panel: classic (Blade) | react (SPA). */
+  preferred_ui?: 'classic' | 'react' | string;
+  whats_new_revamp_seen?: boolean;
+  whats_new_revamp_seen_at?: string | null;
+  whats_new_version?: string | null;
+  /** Server kill-switch for Classic ↔ New UI switcher. */
+  ui_switch_enabled?: boolean;
   /**
    * False for social sign-up prospects until phone + company/address are saved
    * via settings/personal → settings/organization.
