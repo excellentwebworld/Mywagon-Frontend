@@ -83,6 +83,7 @@ export default function ListPane({
   onPageChange,
   onPageSizeChange,
   partnerNameById,
+  canCreate = true,
   canEdit = true,
   canDelete = true,
 }) {
@@ -416,26 +417,29 @@ export default function ListPane({
                     <UpdatedDateTime iso={lane.updatedAt} />
                   </td>
                   <td style={tdStyle} onClick={(e) => e.stopPropagation()}>
-                    <div className="relative">
-                      <button
-                        onClick={() => setOpenMenuId(openMenuId === lane.id ? null : lane.id)}
-                        className="border-none cursor-pointer bg-transparent rounded p-1"
-                        style={{ color: T.t3 }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = T.sh; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
-                      >
-                        <MoreHorizontal size={16} />
-                      </button>
-                      {openMenuId === lane.id && (
-                        <RowMenu
-                          lane={lane} T={T} t={t}
-                          canEdit={canEdit}
-                          canDelete={canDelete}
-                          onAction={(action) => { setOpenMenuId(null); onAction(action, lane); }}
-                          onClose={() => setOpenMenuId(null)}
-                        />
-                      )}
-                    </div>
+                    {(canCreate || canEdit || canDelete) ? (
+                      <div className="relative">
+                        <button
+                          onClick={() => setOpenMenuId(openMenuId === lane.id ? null : lane.id)}
+                          className="border-none cursor-pointer bg-transparent rounded p-1"
+                          style={{ color: T.t3 }}
+                          onMouseEnter={(e) => { e.currentTarget.style.background = T.sh; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                        >
+                          <MoreHorizontal size={16} />
+                        </button>
+                        {openMenuId === lane.id && (
+                          <RowMenu
+                            lane={lane} T={T} t={t}
+                            canCreate={canCreate}
+                            canEdit={canEdit}
+                            canDelete={canDelete}
+                            onAction={(action) => { setOpenMenuId(null); onAction(action, lane); }}
+                            onClose={() => setOpenMenuId(null)}
+                          />
+                        )}
+                      </div>
+                    ) : null}
                   </td>
                 </tr>
               );
@@ -460,7 +464,7 @@ export default function ListPane({
   );
 }
 
-function RowMenu({ lane, T, t, onAction, onClose, canEdit = true, canDelete = true }) {
+function RowMenu({ lane, T, t, onAction, onClose, canCreate = true, canEdit = true, canDelete = true }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -487,8 +491,9 @@ function RowMenu({ lane, T, t, onAction, onClose, canEdit = true, canDelete = tr
       {canEdit && (
         <MenuItem T={T} onClick={() => onAction('edit')}>✏️ {t('common.edit', 'Edit')}</MenuItem>
       )}
-      {/* Duplicate creates a new lane — no separate add permission, keep with view. */}
-      <MenuItem T={T} onClick={() => onAction('duplicate')}>📋 {t('priceLists.actions.duplicate', 'Duplicate')}</MenuItem>
+      {canCreate && (
+        <MenuItem T={T} onClick={() => onAction('duplicate')}>📋 {t('priceLists.actions.duplicate', 'Duplicate')}</MenuItem>
+      )}
       {canDelete && lane.status !== 'archived' && (
         <MenuItem T={T} onClick={() => onAction('archive')}>🗄️ {t('priceLists.actions.archive', 'Archive')}</MenuItem>
       )}

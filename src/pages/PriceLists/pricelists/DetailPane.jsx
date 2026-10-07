@@ -32,7 +32,7 @@ function marginColor(pct) {
   return MARGIN_COLORS.bad;
 }
 
-export default function DetailPane({ lane, onClose, role, onAction, allLanes, partnerNameById, canEdit = true, canDelete = true }) {
+export default function DetailPane({ lane, onClose, role, onAction, allLanes, partnerNameById, canCreate = true, canEdit = true, canDelete = true }) {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
   const lang = i18n.language;
@@ -375,19 +375,20 @@ export default function DetailPane({ lane, onClose, role, onAction, allLanes, pa
       </div>
 
       {/* ─── Footer Actions ─── */}
-      <div className="shrink-0 flex items-center gap-2 p-3 flex-wrap" style={{ borderTop: `1px solid ${T.bd}`, background: T.sh }}>
-        {canEdit && <ActionBtn T={T} onClick={() => onAction('edit', lane)}>✏️ {t('common.edit', 'Edit')}</ActionBtn>}
-        {/* Duplicate creates a new lane — no separate add permission, keep with view. */}
-        <ActionBtn T={T} onClick={() => onAction('duplicate', lane)}>📋 {t('priceLists.actions.duplicate', 'Duplicate')}</ActionBtn>
-        {canEdit && lane.status === 'active' && <ActionBtn T={T} onClick={() => onAction('deactivate', lane)}>⏸️ {t('priceLists.actions.deactivate', 'Deactivate')}</ActionBtn>}
-        {canEdit && lane.status === 'inactive' && <ActionBtn T={T} onClick={() => onAction('activate', lane)}>▶️ {t('priceLists.actions.activate', 'Activate')}</ActionBtn>}
-        {canDelete && lane.status !== 'archived'
-          ? <ActionBtn T={T} onClick={() => onAction('archive', lane)}>🗄️ {t('priceLists.actions.archive', 'Archive')}</ActionBtn>
-          : null}
-        {canEdit && lane.status === 'archived'
-          ? <ActionBtn T={T} onClick={() => onAction('reactivate', lane)}>♻️ {t('priceLists.actions.reactivate', 'Reactivate')}</ActionBtn>
-          : null}
-      </div>
+      {(canCreate || canEdit || canDelete) && (
+        <div className="shrink-0 flex items-center gap-2 p-3 flex-wrap" style={{ borderTop: `1px solid ${T.bd}`, background: T.sh }}>
+          {canEdit && <ActionBtn T={T} onClick={() => onAction('edit', lane)}>✏️ {t('common.edit', 'Edit')}</ActionBtn>}
+          {canCreate && <ActionBtn T={T} onClick={() => onAction('duplicate', lane)}>📋 {t('priceLists.actions.duplicate', 'Duplicate')}</ActionBtn>}
+          {canEdit && lane.status === 'active' && <ActionBtn T={T} onClick={() => onAction('deactivate', lane)}>⏸️ {t('priceLists.actions.deactivate', 'Deactivate')}</ActionBtn>}
+          {canEdit && lane.status === 'inactive' && <ActionBtn T={T} onClick={() => onAction('activate', lane)}>▶️ {t('priceLists.actions.activate', 'Activate')}</ActionBtn>}
+          {canDelete && lane.status !== 'archived'
+            ? <ActionBtn T={T} onClick={() => onAction('archive', lane)}>🗄️ {t('priceLists.actions.archive', 'Archive')}</ActionBtn>
+            : null}
+          {canEdit && lane.status === 'archived'
+            ? <ActionBtn T={T} onClick={() => onAction('reactivate', lane)}>♻️ {t('priceLists.actions.reactivate', 'Reactivate')}</ActionBtn>
+            : null}
+        </div>
+      )}
     </div>
   );
 }

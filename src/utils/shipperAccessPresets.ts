@@ -59,8 +59,10 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   edit_company_account_information: ['view_company_account_information'],
   edit_all_existing_shipments: ['view_all_existing_shipments'],
   delete_all_existing_shipments: ['view_all_existing_shipments'],
+  create_orders: ['view_orders'],
   edit_orders: ['view_orders'],
   delete_orders: ['view_orders'],
+  create_price_lists: ['view_price_lists'],
   edit_price_lists: ['view_price_lists'],
   delete_price_lists: ['view_price_lists'],
 };
@@ -79,7 +81,7 @@ export const PERMISSION_DEPENDENTS: Record<string, string[]> = (() => {
 
 /**
  * Build full dependency maps from the live permission catalog.
- * Rule: enabling edit_X or delete_X also requires view_X when present.
+ * Rule: enabling create_X / edit_X / delete_X also requires view_X when present.
  */
 export function buildPermissionDependencyMaps(catalogNames: string[]): {
   dependencies: Record<string, string[]>;
@@ -100,7 +102,9 @@ export function buildPermissionDependencyMaps(catalogNames: string[]): {
   }
 
   for (const name of catalog) {
-    if (name.startsWith('edit_')) {
+    if (name.startsWith('create_')) {
+      addDep(name, `view_${name.slice('create_'.length)}`);
+    } else if (name.startsWith('edit_')) {
       addDep(name, `view_${name.slice('edit_'.length)}`);
     } else if (name.startsWith('delete_')) {
       addDep(name, `view_${name.slice('delete_'.length)}`);

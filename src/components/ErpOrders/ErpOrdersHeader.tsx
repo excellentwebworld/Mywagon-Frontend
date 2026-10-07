@@ -10,6 +10,7 @@ type Props = {
   onExport: () => void;
   exporting?: boolean;
   onCreateLoad: () => void;
+  canCreateOrders?: boolean;
 };
 
 export const ErpOrdersHeader: React.FC<Props> = ({
@@ -21,6 +22,7 @@ export const ErpOrdersHeader: React.FC<Props> = ({
   onExport,
   exporting = false,
   onCreateLoad: _onCreateLoad,
+  canCreateOrders = true,
 }) => (
   <div className="pg-head anim">
     <div className="pg-head-l">
@@ -30,13 +32,17 @@ export const ErpOrdersHeader: React.FC<Props> = ({
       </div>
     </div>
     <div className="pg-head-r">
-      <button type="button" className="btn btn-p" onClick={openCreateOrder}>
-        <PlusIcon />
-        {t('erpOrdersCreateOrder')}
-      </button>
-      <button type="button" className="btn" onClick={openAiWizard}>
-        ✨ {t('erpOrdersImport')}
-      </button>
+      {canCreateOrders && (
+        <button type="button" className="btn btn-p" onClick={openCreateOrder}>
+          <PlusIcon />
+          {t('erpOrdersCreateOrder')}
+        </button>
+      )}
+      {canCreateOrders && (
+        <button type="button" className="btn" onClick={openAiWizard}>
+          ✨ {t('erpOrdersImport')}
+        </button>
+      )}
       <button type="button" className="btn" onClick={onExport} disabled={exporting}>
         <ExportIcon />
         {exporting ? t('erpOrdersExporting') : t('erpOrdersExport')}

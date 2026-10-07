@@ -153,6 +153,7 @@ export default function PriceListsPage() {
   const { toast } = useToast();
   const { requireSignupComplete } = useRequireSignupComplete();
   const { canAction, requirePermission } = useShipperPermission();
+  const canCreatePriceLists = canAction('createPriceLists');
   const canEditPriceLists = canAction('editPriceLists');
   const canDeletePriceLists = canAction('deletePriceLists');
   const isGreek = i18n.language === 'el';
@@ -399,10 +400,10 @@ export default function PriceListsPage() {
   // ─── CRUD actions ───
   const handleAction = useCallback((action, lane) => {
     if (!requireSignupComplete()) return;
-    // No separate "add" permission — duplicate (create) stays available with view.
-    // edit_* only gates editing existing lanes; delete_* gates archive/delete.
+    const needsCreate = action === 'duplicate';
     const needsDelete = action === 'archive' || action === 'deleteForever';
     const needsEdit = ['edit', 'reactivate', 'activate', 'deactivate'].includes(action);
+    if (needsCreate && !requirePermission('create_price_lists')) return;
     if (needsDelete && !requirePermission('delete_price_lists')) return;
     if (needsEdit && !requirePermission('edit_price_lists')) return;
 
@@ -632,18 +633,22 @@ export default function PriceListsPage() {
             <Download size={14} />
             {t('priceLists.exportBtn', 'Export')}
           </button>
-          <button onClick={() => { if (!requireSignupComplete()) return; setImportOpen(true); }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer border-none"
-            style={{ background: T.sf, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12, fontWeight: 500 }}>
-            <UploadIcon size={14} />
-            {t('priceLists.importBtn', 'Import')}
-          </button>
-          <button onClick={() => { if (!requireSignupComplete()) return; setEditLane(null); setModalMode('add'); setAddEditOpen(true); }}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg cursor-pointer border-none text-white"
-            style={{ background: T.ac, fontSize: 12, fontWeight: 600 }}>
-            <Plus size={14} />
-            {t('priceLists.addLane', 'Add Lane')}
-          </button>
+          {canCreatePriceLists && (
+            <button onClick={() => { if (!requireSignupComplete()) return; setImportOpen(true); }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg cursor-pointer border-none"
+              style={{ background: T.sf, border: `1px solid ${T.bd}`, color: T.t2, fontSize: 12, fontWeight: 500 }}>
+              <UploadIcon size={14} />
+              {t('priceLists.importBtn', 'Import')}
+            </button>
+          )}
+          {canCreatePriceLists && (
+            <button onClick={() => { if (!requireSignupComplete()) return; setEditLane(null); setModalMode('add'); setAddEditOpen(true); }}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg cursor-pointer border-none text-white"
+              style={{ background: T.ac, fontSize: 12, fontWeight: 600 }}>
+              <Plus size={14} />
+              {t('priceLists.addLane', 'Add Lane')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -733,6 +738,7 @@ export default function PriceListsPage() {
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
                 partnerNameById={partnerNameById}
+                canCreate={canCreatePriceLists}
                 canEdit={canEditPriceLists}
                 canDelete={canDeletePriceLists}
               />
@@ -756,6 +762,7 @@ export default function PriceListsPage() {
                   onAction={handleAction}
                   allLanes={catalogLanes}
                   partnerNameById={partnerNameById}
+                  canCreate={canCreatePriceLists}
                   canEdit={canEditPriceLists}
                   canDelete={canDeletePriceLists}
                 />

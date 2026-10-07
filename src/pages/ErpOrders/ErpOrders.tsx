@@ -43,6 +43,7 @@ export const ErpOrders: React.FC = () => {
   const { showToast } = useApp();
   const { t } = useTranslation();
   const { canAction, requirePermission } = useShipperPermission();
+  const canCreateOrders = canAction('createOrders');
   const canEditOrders = canAction('editOrders');
   const canDeleteOrders = canAction('deleteOrders');
   const [orderPendingDelete, setOrderPendingDelete] = useState<ErpOrder | null>(null);
@@ -310,11 +311,18 @@ export const ErpOrders: React.FC = () => {
         t={state.t}
         summarySubtitle={state.summarySubtitle}
         selectedCount={state.selectedCount}
-        openCreateOrder={state.openCreateOrder}
-        openAiWizard={state.openAiWizard}
+        openCreateOrder={() => {
+          if (!requirePermission('create_orders')) return;
+          state.openCreateOrder();
+        }}
+        openAiWizard={() => {
+          if (!requirePermission('create_orders')) return;
+          state.openAiWizard();
+        }}
         onExport={state.handleExport}
         exporting={state.exporting}
         onCreateLoad={() => handleCreateLoad()}
+        canCreateOrders={canCreateOrders}
       />
 
       <ErpOrdersKpiStrip

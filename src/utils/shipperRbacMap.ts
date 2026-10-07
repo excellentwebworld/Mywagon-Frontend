@@ -26,9 +26,11 @@ export const SHIPPER_RBAC = {
   viewCompanyInfo: 'view_company_account_information',
   editCompanyInfo: 'edit_company_account_information',
   viewOrders: 'view_orders',
+  createOrders: 'create_orders',
   editOrders: 'edit_orders',
   deleteOrders: 'delete_orders',
   viewPriceLists: 'view_price_lists',
+  createPriceLists: 'create_price_lists',
   editPriceLists: 'edit_price_lists',
   deletePriceLists: 'delete_price_lists',
   accessVagonAi: 'access_vagon_ai',
@@ -113,8 +115,10 @@ export type ShipperRbacActionKey =
   | 'viewQuotes'
   | 'editCompanyInfo'
   | 'manageSubscriptions'
+  | 'createOrders'
   | 'editOrders'
   | 'deleteOrders'
+  | 'createPriceLists'
   | 'editPriceLists'
   | 'deletePriceLists';
 
@@ -133,8 +137,10 @@ export const ACTION_RBAC: Record<ShipperRbacActionKey, string> = {
   viewQuotes: SHIPPER_RBAC.viewQuotes,
   editCompanyInfo: SHIPPER_RBAC.editCompanyInfo,
   manageSubscriptions: SHIPPER_RBAC.manageSubscriptions,
+  createOrders: SHIPPER_RBAC.createOrders,
   editOrders: SHIPPER_RBAC.editOrders,
   deleteOrders: SHIPPER_RBAC.deleteOrders,
+  createPriceLists: SHIPPER_RBAC.createPriceLists,
   editPriceLists: SHIPPER_RBAC.editPriceLists,
   deletePriceLists: SHIPPER_RBAC.deletePriceLists,
 };
