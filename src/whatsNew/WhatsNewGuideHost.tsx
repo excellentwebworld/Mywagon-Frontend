@@ -30,7 +30,7 @@ function shouldShowWhatsNew(user: NonNullable<ReturnType<typeof useAuth>['user']
 
 export const WhatsNewGuideHost: React.FC = () => {
   const { user, refreshUser } = useAuth();
-  const { T } = useTheme();
+  const { T, isDark } = useTheme();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -81,11 +81,20 @@ export const WhatsNewGuideHost: React.FC = () => {
   if (!open || !user) return null;
 
   const slide = WHATS_NEW_SLIDES[index];
+  const isFirst = index === 0;
   const isLast = index >= WHATS_NEW_SLIDES.length - 1;
+  const ghostBg = isDark ? 'rgba(148, 163, 184, 0.16)' : 'rgba(148, 163, 184, 0.14)';
 
   return (
     <div className="wn-overlay" role="dialog" aria-modal="true" aria-labelledby="wn-title">
-      <div className="wn-modal" style={{ background: T.bg, borderColor: T.bd, color: T.t1 }}>
+      <div
+        className="wn-modal"
+        style={{
+          background: T.bg,
+          borderColor: isDark ? 'rgba(148, 163, 184, 0.22)' : 'rgba(226, 232, 240, 0.95)',
+          color: T.t1,
+        }}
+      >
         <button
           type="button"
           className="wn-close"
@@ -93,88 +102,102 @@ export const WhatsNewGuideHost: React.FC = () => {
           onClick={() => void dismiss()}
           style={{ color: T.t3 }}
         >
-          <X size={18} />
+          <X size={18} strokeWidth={2.25} />
         </button>
 
         <div className="wn-badge" style={{ background: T.al, color: T.ac }}>
-          <Sparkles size={14} />
-          <span>{t('whatsNew.badge', 'What\'s new')}</span>
+          <Sparkles size={13} strokeWidth={2.25} />
+          <span>{t('whatsNew.badge', "What's new")}</span>
         </div>
 
-        <h2 id="wn-title" className="wn-title">
-          {t(slide.titleKey, slide.titleFallback)}
-        </h2>
-        <p className="wn-body" style={{ color: T.t2 }}>
-          {t(slide.bodyKey, slide.bodyFallback)}
-        </p>
+        <div key={slide.id} className="wn-content">
+          <h2 id="wn-title" className="wn-title">
+            {t(slide.titleKey, slide.titleFallback)}
+          </h2>
+          <p className="wn-body" style={{ color: T.t2 }}>
+            {t(slide.bodyKey, slide.bodyFallback)}
+          </p>
+        </div>
 
-        <div className="wn-dots" aria-hidden>
+        <div className="wn-dots" aria-label={t('whatsNew.progress', 'Guide progress')}>
           {WHATS_NEW_SLIDES.map((s, i) => (
-            <span
+            <button
               key={s.id}
+              type="button"
               className={`wn-dot${i === index ? ' is-active' : ''}`}
-              style={{ background: i === index ? T.ac : T.bd }}
+              aria-label={t('whatsNew.goToSlide', 'Go to tip {{n}}', { n: i + 1 })}
+              aria-current={i === index ? 'step' : undefined}
+              disabled={saving}
+              onClick={() => setIndex(i)}
+              style={{
+                background: i === index ? T.ac : isDark ? 'rgba(148, 163, 184, 0.45)' : '#D8DEE9',
+                border: 'none',
+                padding: 0,
+                cursor: saving ? 'not-allowed' : 'pointer',
+              }}
             />
           ))}
         </div>
 
-        <div className="wn-actions">
-          <button
-            type="button"
-            className="wn-btn wn-btn-ghost"
-            disabled={index === 0 || saving}
-            onClick={() => setIndex((v) => Math.max(0, v - 1))}
-            style={{ color: T.t2, borderColor: T.bd }}
-          >
-            <ChevronLeft size={16} />
-            {t('whatsNew.previous', 'Previous')}
-          </button>
+        <div className="wn-footer">
+          <div className="wn-actions">
+            <button
+              type="button"
+              className="wn-btn wn-btn-ghost"
+              disabled={isFirst || saving}
+              onClick={() => setIndex((v) => Math.max(0, v - 1))}
+              style={{ color: T.t2, background: ghostBg }}
+            >
+              <ChevronLeft size={16} strokeWidth={2.25} />
+              {t('whatsNew.previous', 'Previous')}
+            </button>
+
+            <button
+              type="button"
+              className="wn-btn wn-btn-secondary"
+              disabled={saving}
+              onClick={() => void goCta()}
+              style={{ color: T.ac, borderColor: T.ac }}
+            >
+              {t(slide.ctaKey, slide.ctaFallback)}
+            </button>
+
+            {isLast ? (
+              <button
+                type="button"
+                className="wn-btn wn-btn-primary"
+                disabled={saving}
+                onClick={() => void dismiss()}
+                style={{ background: T.ac, color: '#fff' }}
+              >
+                {saving
+                  ? t('whatsNew.saving', 'Saving…')
+                  : t('whatsNew.gotIt', 'Got it')}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="wn-btn wn-btn-primary"
+                disabled={saving}
+                onClick={() => setIndex((v) => Math.min(WHATS_NEW_SLIDES.length - 1, v + 1))}
+                style={{ background: T.ac, color: '#fff' }}
+              >
+                {t('whatsNew.next', 'Next')}
+                <ChevronRight size={16} strokeWidth={2.25} />
+              </button>
+            )}
+          </div>
 
           <button
             type="button"
-            className="wn-btn wn-btn-secondary"
+            className="wn-skip"
             disabled={saving}
-            onClick={() => void goCta()}
-            style={{ color: T.ac, borderColor: T.ac }}
+            onClick={() => void dismiss()}
+            style={{ color: T.t3 }}
           >
-            {t(slide.ctaKey, slide.ctaFallback)}
+            {t('whatsNew.skip', 'Skip for now')}
           </button>
-
-          {isLast ? (
-            <button
-              type="button"
-              className="wn-btn wn-btn-primary"
-              disabled={saving}
-              onClick={() => void dismiss()}
-              style={{ background: T.ac, color: '#fff' }}
-            >
-              {saving
-                ? t('whatsNew.saving', 'Saving…')
-                : t('whatsNew.gotIt', 'Got it')}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="wn-btn wn-btn-primary"
-              disabled={saving}
-              onClick={() => setIndex((v) => Math.min(WHATS_NEW_SLIDES.length - 1, v + 1))}
-              style={{ background: T.ac, color: '#fff' }}
-            >
-              {t('whatsNew.next', 'Next')}
-              <ChevronRight size={16} />
-            </button>
-          )}
         </div>
-
-        <button
-          type="button"
-          className="wn-skip"
-          disabled={saving}
-          onClick={() => void dismiss()}
-          style={{ color: T.t3 }}
-        >
-          {t('whatsNew.skip', 'Skip for now')}
-        </button>
       </div>
     </div>
   );
