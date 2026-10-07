@@ -1,0 +1,3 @@
+# AWS Amplify / Netlify SPA fallback — serve index.html for client routes (200).
+# Without this, deep links like /auth/handoff/?code=… return a hard 404.
+/*    /index.html   200

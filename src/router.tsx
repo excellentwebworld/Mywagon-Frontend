@@ -53,6 +53,8 @@ const authRoutes = [
   { path: '/shipper/register', element: <RegisterPage /> },
   { path: '/auth/social/callback', element: <SocialCallbackPage /> },
   { path: '/auth/handoff', element: <UiHandoffPage /> },
+  // Amplify / hosts often normalize a trailing slash
+  { path: '/auth/handoff/', element: <UiHandoffPage /> },
   { path: '/complete-signup', element: <Navigate to="/settings/personal" replace /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/any/reset/email/:userType', element: <ForgotPasswordPage /> },

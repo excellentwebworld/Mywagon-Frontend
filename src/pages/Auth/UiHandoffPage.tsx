@@ -12,20 +12,25 @@ import { redirectToClassicPanelIfNeeded } from '../../utils/preferredUiRedirect'
 
 /**
  * Blade → React auto-login landing: exchanges one-time handoff code for Sanctum token.
+ *
+ * Important: do not re-run / abort on `t` identity churn (i18n) — that left the boot
+ * screen stuck forever after the first effect cleanup (same pattern as SocialCallbackPage).
  */
 export const UiHandoffPage: React.FC = () => {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { refreshUser } = useAuth();
   const { t } = useTranslation();
+  const tRef = useRef(t);
+  tRef.current = t;
   const [error, setError] = useState<string | null>(null);
   const started = useRef(false);
 
   useEffect(() => {
-    const code = params.get('code');
+    const code = params.get('code')?.trim() || '';
     if (!code) {
       setError(
-        t('uiSwitch.handoffMissing', {
+        tRef.current('uiSwitch.handoffMissing', {
           defaultValue: 'This switch link is missing a code. Please sign in again.',
         }),
       );
@@ -52,16 +57,16 @@ export const UiHandoffPage: React.FC = () => {
           window.requestAnimationFrame(() => resolve());
         });
 
-        if (unmounted) return;
+        // Finish even if this effect was cleaned up for locale/`t` churn.
         navigate(postAuthDestination(profile), { replace: true });
       } catch (err) {
-        if (unmounted) return;
         started.current = false;
         clearStoredToken();
+        if (unmounted) return;
         setError(
           err instanceof Error
             ? err.message
-            : t('uiSwitch.handoffFailed', {
+            : tRef.current('uiSwitch.handoffFailed', {
                 defaultValue: 'This switch link has expired or is invalid. Please sign in again.',
               }),
         );
@@ -71,7 +76,8 @@ export const UiHandoffPage: React.FC = () => {
     return () => {
       unmounted = true;
     };
-  }, [params, navigate, refreshUser, t]);
+    // Intentionally omit `t` — use tRef. Include code via params.
+  }, [params, navigate, refreshUser]);
 
   if (error) {
     return (
