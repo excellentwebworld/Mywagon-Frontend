@@ -5,6 +5,7 @@ import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { erpOrdersService, ApiError, getApiErrorMessage, addressBookService, productMasterService } from '../../../api';
+import { erpIntegrationService } from '../../../api/services/erpIntegrationService';
 import { statusLabel as statusLabelEn, statusLabelKey, buildExportParams } from '../../../api/mappers/erpOrdersMapper';
 import type { ErpOrderStatus } from '../../../api/types/erpOrders';
 import {
@@ -496,10 +497,25 @@ export function useErpOrdersList() {
   ]);
 
   const handleResync = useCallback(
-    (order: ErpOrder) => {
-      showToast(t('erpOrdersResyncTriggered', { id: order.orderReference }), 'info');
+    async (order: ErpOrder) => {
+      try {
+        showToast(t('erpOrdersResyncTriggered', { id: order.orderReference }), 'info');
+        const result = await erpIntegrationService.syncBusinessCentral(['orders']);
+        await queryClient.invalidateQueries({ queryKey: ['erp-orders'] });
+        showToast(
+          t('integrations.bc.syncOk', {
+            created: result.run.created,
+            updated: result.run.updated,
+            skipped: result.run.skipped,
+            failed: result.run.failed,
+          }),
+          result.run.failed > 0 && result.run.created + result.run.updated === 0 ? 'error' : 'success'
+        );
+      } catch (err) {
+        showToast(err instanceof ApiError ? err.message : t('integrations.bc.syncError'), 'error');
+      }
     },
-    [showToast, t]
+    [showToast, t, queryClient]
   );
 
   const clearFilters = useCallback(() => {

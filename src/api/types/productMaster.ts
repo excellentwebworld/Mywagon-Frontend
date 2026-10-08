@@ -24,6 +24,7 @@ export interface ApiProductSummary {
   inactive: number;
   archived?: number;
   unmapped: number;
+  erp_synced?: number;
   categories: ApiProductSummaryCategory[];
 }
 
@@ -46,6 +47,9 @@ export interface ApiSkuListItem {
   is_unmapped: boolean;
   source: string;
   sync_status: string;
+  erp_system?: string | null;
+  erp_external_id?: string | null;
+  erp_synced_at?: string | null;
   active: boolean;
   archived?: boolean;
   updated_at?: string | null;

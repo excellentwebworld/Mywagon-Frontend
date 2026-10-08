@@ -37,6 +37,8 @@ export default function BusinessCentralConnectPanel({ T, t, toast, onChanged }) 
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  /** @type {[string|null, function]} which sync button is busy: 'all' | 'items' | 'customers' | 'locations' | 'orders' */
+  const [syncingType, setSyncingType] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [oauthConfigured, setOauthConfigured] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -90,21 +92,44 @@ export default function BusinessCentralConnectPanel({ T, t, toast, onChanged }) 
     toast.error(t('integrations.bc.oauthConnectFailed', { message: text }));
   };
 
-  const syncOrders = async (connectionSnapshot) => {
+  const formatRunDetails = (run) => {
+    if (!run?.details || typeof run.details !== 'object') return '';
+    return Object.entries(run.details)
+      .map(([type, counts]) => `${type}: +${counts.created}/↑${counts.updated}/skip ${counts.skipped}/fail ${counts.failed}`)
+      .join(' · ');
+  };
+
+  /**
+   * @param {string[]|undefined} types - omit/empty = sync all modules
+   * @param {object} [connectionSnapshot]
+   * @param {string} [busyKey]
+   */
+  const runSync = async (types, connectionSnapshot, busyKey = 'all') => {
     const companyId = connectionSnapshot?.settings?.company_id || form.company_id;
     if (!companyId) return;
     setSyncing(true);
+    setSyncingType(busyKey);
     try {
-      const result = await erpIntegrationService.syncBusinessCentral();
+      const result = await erpIntegrationService.syncBusinessCentral(
+        types?.length ? types : undefined
+      );
       applyConnection(result.connection);
       setLastRun(result.run);
+      const detail = formatRunDetails(result.run);
       toast.success(
-        t('integrations.bc.syncOk', {
-          created: result.run.created,
-          updated: result.run.updated,
-          skipped: result.run.skipped,
-          failed: result.run.failed,
-        })
+        detail
+          ? `${t('integrations.bc.syncOk', {
+              created: result.run.created,
+              updated: result.run.updated,
+              skipped: result.run.skipped,
+              failed: result.run.failed,
+            })} (${detail})`
+          : t('integrations.bc.syncOk', {
+              created: result.run.created,
+              updated: result.run.updated,
+              skipped: result.run.skipped,
+              failed: result.run.failed,
+            })
       );
       onChanged?.();
     } catch (err) {
@@ -113,6 +138,7 @@ export default function BusinessCentralConnectPanel({ T, t, toast, onChanged }) 
       console.error(LOG_PREFIX, 'sync failed', msg);
     } finally {
       setSyncing(false);
+      setSyncingType(null);
     }
   };
 
@@ -180,9 +206,7 @@ export default function BusinessCentralConnectPanel({ T, t, toast, onChanged }) 
           showConnectSuccess(result.connection, result.companies);
           onChanged?.();
           clearOauthQuery();
-          if (result.connection?.settings?.company_id) {
-            await syncOrders(result.connection);
-          }
+          // No auto full-sync — user picks Sync products / partners / locations / orders.
         } catch (err) {
           const msg = err instanceof ApiError ? err.message : t('integrations.bc.oauthError');
           showConnectFailure(msg, 'callback');
@@ -380,8 +404,7 @@ export default function BusinessCentralConnectPanel({ T, t, toast, onChanged }) 
                   const match = companies.find((c) => c.id === id);
                   const next = { ...form, company_id: id, company_name: match?.name || '' };
                   setForm(next);
-                  const saved = await saveSettings(next);
-                  if (saved && id) await syncOrders(saved);
+                  await saveSettings(next);
                 }}
                 className="px-3 py-2 rounded-lg outline-none cursor-pointer"
                 style={inputStyle}
@@ -412,45 +435,83 @@ export default function BusinessCentralConnectPanel({ T, t, toast, onChanged }) 
         <div style={{ fontSize: 11, color: T.t3 }}>
           {t('integrations.lastSync')}: {lastRun.finished_at ? new Date(lastRun.finished_at).toLocaleString() : '—'}
           {' · '}
+          {(lastRun.entity_types || []).join(', ') || 'orders'}
+          {' · '}
           {t('integrations.bc.runSummary', {
             created: lastRun.created,
             updated: lastRun.updated,
             skipped: lastRun.skipped,
             failed: lastRun.failed,
           })}
+          {formatRunDetails(lastRun) ? (
+            <div style={{ marginTop: 4 }}>{formatRunDetails(lastRun)}</div>
+          ) : null}
         </div>
       )}
 
       {connected && (
-        <div className="flex flex-wrap gap-2 pt-1">
-          <button
-            type="button"
-            disabled={testing}
-            onClick={test}
-            className="px-3 py-1.5 rounded-lg cursor-pointer font-semibold"
-            style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t1, fontSize: 12, opacity: testing ? 0.7 : 1 }}
-          >
-            {t('integrations.bc.test')}
-          </button>
-          <button
-            type="button"
-            disabled={syncing || !canSync}
-            onClick={() => syncOrders()}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer font-semibold"
-            style={{ background: T.ac, color: '#fff', fontSize: 12, opacity: syncing || !canSync ? 0.7 : 1 }}
-          >
-            <RefreshCw size={12} /> {t('integrations.bc.syncNow')}
-          </button>
-          {status !== 'disconnected' && (
+        <div className="space-y-2 pt-1">
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              disabled={saving}
-              onClick={disconnect}
+              disabled={testing}
+              onClick={test}
               className="px-3 py-1.5 rounded-lg cursor-pointer font-semibold"
-              style={{ background: 'transparent', border: `1px solid ${T.bd}`, color: T.t3, fontSize: 12 }}
+              style={{ background: T.sa, border: `1px solid ${T.bd}`, color: T.t1, fontSize: 12, opacity: testing ? 0.7 : 1 }}
             >
-              {t('integrations.bc.disconnect')}
+              {t('integrations.bc.test')}
             </button>
+            {status !== 'disconnected' && (
+              <button
+                type="button"
+                disabled={saving || syncing}
+                onClick={disconnect}
+                className="px-3 py-1.5 rounded-lg cursor-pointer font-semibold"
+                style={{ background: 'transparent', border: `1px solid ${T.bd}`, color: T.t3, fontSize: 12 }}
+              >
+                {t('integrations.bc.disconnect')}
+              </button>
+            )}
+          </div>
+
+          {canSync && (
+            <div>
+              <div className="font-semibold mb-1.5" style={{ fontSize: 11, color: T.t3 }}>
+                {t('integrations.bc.syncModules')}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'items', types: ['items'], labelKey: 'integrations.bc.syncProducts' },
+                  { key: 'customers', types: ['customers'], labelKey: 'integrations.bc.syncPartners' },
+                  { key: 'locations', types: ['locations'], labelKey: 'integrations.bc.syncLocations' },
+                  { key: 'orders', types: ['orders'], labelKey: 'integrations.bc.syncOrders' },
+                ].map((btn) => {
+                  const busy = syncing && syncingType === btn.key;
+                  return (
+                    <button
+                      key={btn.key}
+                      type="button"
+                      disabled={syncing || !canSync}
+                      onClick={() => runSync(btn.types, undefined, btn.key)}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg cursor-pointer font-semibold"
+                      style={{
+                        background: T.sa,
+                        color: T.t1,
+                        border: `1px solid ${T.bd}`,
+                        fontSize: 12,
+                        opacity: syncing || !canSync ? 0.7 : 1,
+                      }}
+                    >
+                      <RefreshCw size={12} className={busy ? 'animate-spin' : undefined} />
+                      {busy ? t('integrations.bc.syncing') : t(btn.labelKey)}
+                    </button>
+                  );
+                })}
+              </div>
+              <p style={{ fontSize: 11, color: T.t3, marginTop: 6, lineHeight: 1.4 }}>
+                {t('integrations.bc.syncModulesHint')}
+              </p>
+            </div>
           )}
         </div>
       )}

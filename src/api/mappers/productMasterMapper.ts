@@ -43,10 +43,17 @@ export function mapApiSkuToSku(item: ApiSkuListItem | ApiSkuDetail): SKU {
     active: item.active,
     archived: Boolean(item.archived || (item as any).deleted_at),
     erp: {
-      system: '',
-      extId: '',
-      lastSync: '',
-      status: item.sync_status === 'error' ? 'error' : item.sync_status === 'conflict' ? 'conflict' : '',
+      system: item.erp_system || (item.source === 'erp' ? 'Business Central' : ''),
+      extId: item.erp_external_id || '',
+      lastSync: item.erp_synced_at ? formatErpLastUpdate(item.erp_synced_at) : '',
+      status:
+        item.sync_status === 'error'
+          ? 'error'
+          : item.sync_status === 'conflict'
+            ? 'conflict'
+            : item.source === 'erp'
+              ? 'ok'
+              : '',
       error: '',
     },
     weight: item.weight ?? '',

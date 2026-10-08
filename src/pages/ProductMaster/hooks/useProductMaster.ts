@@ -278,9 +278,9 @@ export function useProductMaster() {
   const inactiveCount = summary?.inactive ?? 0;
   const archivedCount = summary?.archived ?? 0;
   const unmappedCount = summary?.unmapped ?? 0;
-  const erpSyncedCount = 0;
-  const manualCount = totalSkusCount;
-  const syncIssuesCount = 0;
+  const erpSyncedCount = summary?.erp_synced ?? skus.filter((s) => s.source === 'erp').length;
+  const manualCount = Math.max(0, totalSkusCount - erpSyncedCount);
+  const syncIssuesCount = skus.filter((s) => s.erp?.status === 'error' || s.erp?.status === 'conflict').length;
 
   const catName = useCallback((c: Category) => getCategoryName(c, lang), [lang]);
 

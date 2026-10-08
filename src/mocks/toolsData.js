@@ -26,7 +26,7 @@ export const CONNECTORS = [
 
   // Not connected
   { id: 'sap_b1', name: 'SAP Business One', category: 'erp', icon: '🔷', status: 'coming_soon', region: null, dataTypes: ['orders', 'products', 'customers', 'invoices'], description: 'Enterprise-grade ERP with comprehensive supply chain management and financial reporting.' },
-  { id: 'business_central', name: 'Dynamics 365 BC', category: 'erp', icon: '🟦', status: 'not_connected', region: null, dataTypes: ['orders'], description: 'Microsoft Business Central for small-to-mid-size businesses. Orders inbound sync.' },
+  { id: 'business_central', name: 'Dynamics 365 Business Central', category: 'erp', icon: '🟦', status: 'not_connected', region: null, dataTypes: ['items', 'customers', 'locations', 'orders'], description: 'Microsoft Business Central inbound sync for products, partners, locations, and sales orders.' },
   { id: 'epsilon', name: 'Epsilon Net (Pylon)', category: 'erp', icon: '🟩', status: 'not_connected', region: 'GR', featured: true, dataTypes: ['orders', 'invoices'], description: 'Popular Greek ERP for accounting, payroll, and commercial management.' },
   { id: 'netsuite', name: 'Oracle NetSuite', category: 'erp', icon: '🔴', status: 'not_connected', region: null, dataTypes: ['orders', 'products', 'customers', 'invoices'], description: 'Cloud ERP for growing businesses. Full financial management and inventory control.' },
   { id: 'custom_erp', name: 'Custom ERP', category: 'erp', icon: '🔌', status: 'not_connected', region: null, dataTypes: ['orders', 'products'], description: 'Connect any ERP via our universal REST/SOAP adapter. Custom field mapping supported.' },
