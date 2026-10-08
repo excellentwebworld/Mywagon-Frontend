@@ -430,8 +430,19 @@ export interface ListShipmentsParams {
   dropoff_location_name?: string;
   trip_mode?: 'direct' | 'multiple';
   direction?: 'outbound' | 'inbound';
+  from?: string;
+  to?: string;
+  start_date?: string;
+  end_date?: string;
   ids?: number[];
 }
+
+export type CalendarShipmentsParams = Omit<ListShipmentsParams, 'page' | 'per_page' | 'sort'> & {
+  from?: string;
+  to?: string;
+  start_date?: string;
+  end_date?: string;
+};
 
 export interface ApiShipmentsSummary {
   kpis: Record<ShipmentKpiKey, number>;

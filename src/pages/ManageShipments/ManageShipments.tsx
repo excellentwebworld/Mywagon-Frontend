@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   BulkBar,
+  CalendarView,
   CancelShipmentModal,
   FilterChips,
   FilterModal,
@@ -59,6 +60,8 @@ export const ManageShipments: React.FC = () => {
         sortActive={Boolean(m.sortKey)}
         filterActive={m.filtersActive}
         exporting={m.exporting}
+        viewMode={m.viewMode}
+        onViewModeChange={m.setViewMode}
         t={m.t}
       />
 
@@ -78,57 +81,71 @@ export const ManageShipments: React.FC = () => {
         t={m.t}
       />
 
-      <div className="tbl-block">
-        <div className="tbl-wrap">
-          <ShipmentTable
-            loading={m.loading}
-            shipments={m.pagination.items}
-            aiDraftIds={m.aiDraftIdSet}
-            activeTab={m.activeTab}
-            selectedIds={m.selectedIds}
-            expandedId={m.expandedId}
-            detailLoadingIds={m.detailLoadingIds}
-            detailRefreshingIds={m.detailRefreshingIds}
-            isDetailCached={m.isDetailCached}
-            resolveShipment={m.mergedShipment}
-            emptyReason={m.filtersActive ? 'filters' : 'default'}
-            onClearFilters={m.handleClearAllFilters}
-            onSelectAll={m.handleSelectAll}
-            onSelectRow={m.handleSelectRow}
-            onToggleExpand={m.handleToggleExpand}
-            onRefreshDetail={m.handleRefreshExpanded}
-            onCopyId={m.handleCopyId}
-            onDelete={m.handleDeleteRequest}
-            onEdit={m.handleEdit}
-            onViewNewTab={m.handleViewNewTab}
-            onMessage={m.handleMessage}
-            onAcceptOffer={m.handleAcceptOffer}
-            onRejectOffer={m.handleRejectOffer}
-            onCounterOffer={m.handleCounterOffer}
-            onRemindInvitee={m.handleRemindInvitee}
-            onRemoveInvitee={m.handleRemoveInvitee}
-            onInviteMore={m.handleInviteMore}
-            onEditBlocked={m.handleEditBlocked}
-            t={m.t}
-          />
-        </div>
-        <Pagination
-          page={m.pagination.page}
-          totalPages={m.pagination.totalPages}
-          total={m.pagination.total}
-          perPage={m.perPage}
-          onPageChange={m.setPage}
+      {m.viewMode === 'calendar' ? (
+        <CalendarView
+          direction={m.direction}
+          activeTabStatus={m.activeTab}
+          searchQuery={m.searchQuery}
+          appliedFilters={m.appliedFilters}
+          viewMode={m.viewMode}
+          onViewModeChange={m.setViewMode}
           t={m.t}
         />
-      </div>
+      ) : (
+        <>
+          <div className="tbl-block">
+            <div className="tbl-wrap">
+              <ShipmentTable
+                loading={m.loading}
+                shipments={m.pagination.items}
+                aiDraftIds={m.aiDraftIdSet}
+                activeTab={m.activeTab}
+                selectedIds={m.selectedIds}
+                expandedId={m.expandedId}
+                detailLoadingIds={m.detailLoadingIds}
+                detailRefreshingIds={m.detailRefreshingIds}
+                isDetailCached={m.isDetailCached}
+                resolveShipment={m.mergedShipment}
+                emptyReason={m.filtersActive ? 'filters' : 'default'}
+                onClearFilters={m.handleClearAllFilters}
+                onSelectAll={m.handleSelectAll}
+                onSelectRow={m.handleSelectRow}
+                onToggleExpand={m.handleToggleExpand}
+                onRefreshDetail={m.handleRefreshExpanded}
+                onCopyId={m.handleCopyId}
+                onDelete={m.handleDeleteRequest}
+                onEdit={m.handleEdit}
+                onViewNewTab={m.handleViewNewTab}
+                onMessage={m.handleMessage}
+                onAcceptOffer={m.handleAcceptOffer}
+                onRejectOffer={m.handleRejectOffer}
+                onCounterOffer={m.handleCounterOffer}
+                onRemindInvitee={m.handleRemindInvitee}
+                onRemoveInvitee={m.handleRemoveInvitee}
+                onInviteMore={m.handleInviteMore}
+                onEditBlocked={m.handleEditBlocked}
+                t={m.t}
+              />
+            </div>
+            <Pagination
+              page={m.pagination.page}
+              totalPages={m.pagination.totalPages}
+              total={m.pagination.total}
+              perPage={m.perPage}
+              onPageChange={m.setPage}
+              t={m.t}
+            />
+          </div>
 
-      <BulkBar
-        count={m.selectedIds.size}
-        onCancel={() => m.handleBulkAction('cancel')}
-        onExport={() => m.handleBulkAction('export')}
-        onClose={m.clearSelection}
-        t={m.t}
-      />
+          <BulkBar
+            count={m.selectedIds.size}
+            onCancel={() => m.handleBulkAction('cancel')}
+            onExport={() => m.handleBulkAction('export')}
+            onClose={m.clearSelection}
+            t={m.t}
+          />
+        </>
+      )}
 
       <InviteCarrierModal
         open={m.isInviteOpen}

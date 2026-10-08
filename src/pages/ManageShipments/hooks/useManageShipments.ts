@@ -49,6 +49,9 @@ export function useManageShipments() {
   } = useCreateShipmentPartners();
 
   const [direction, setDirectionState] = useState<LoadsDirection>('outbound');
+  const [viewMode, setViewModeState] = useState<'list' | 'calendar'>(() => {
+    return searchParams.get('view') === 'calendar' ? 'calendar' : 'list';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeKpi, setActiveKpiState] = useState<KpiKey | null>(() => {
@@ -72,6 +75,27 @@ export function useManageShipments() {
   const [page, setPage] = useState(1);
   const [appliedFilters, setAppliedFilters] = useState<ShipmentsFilterState>(DEFAULT_FILTERS);
   const [productTypeNames, setProductTypeNames] = useState<Record<string, string>>({});
+
+  const setViewMode = useCallback(
+    (mode: 'list' | 'calendar') => {
+      setViewModeState(mode);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (mode === 'calendar') {
+            next.set('view', 'calendar');
+          } else {
+            next.delete('view');
+            next.delete('cal_view');
+            next.delete('cal_date');
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
 
   /**
    * MS3-338 — ids of this shipper's AI drafts, for the "AI" marker on a row.
@@ -960,5 +984,7 @@ export function useManageShipments() {
     handleClearAllFilters,
     kpiChip,
     filtersActive: filterChips.length > 0 || Boolean(activeKpi),
+    viewMode,
+    setViewMode,
   };
 }

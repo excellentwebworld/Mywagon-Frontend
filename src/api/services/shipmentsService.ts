@@ -11,6 +11,7 @@ import type {
   ApiShipmentsSummary,
   ApiShipmentsFilterFacets,
   ListShipmentsParams,
+  CalendarShipmentsParams,
   PaginatedShipmentsResult,
 } from '../types/shipments';
 import type { Shipment } from '../../context/AppContext';
@@ -67,6 +68,10 @@ function toQuery(params: ListShipmentsParams): Record<string, string | number> {
   assign('dropoff_location_name', params.dropoff_location_name);
   assign('trip_mode', params.trip_mode);
   assign('direction', params.direction);
+  assign('from', params.from);
+  assign('to', params.to);
+  assign('start_date', params.start_date);
+  assign('end_date', params.end_date);
   if (params.ids?.length) {
     params.ids.forEach((id, i) => {
       query[`ids[${i}]`] = id;
@@ -95,6 +100,11 @@ export const shipmentsService = {
         last_page: res.meta?.last_page ?? 1,
       },
     };
+  },
+
+  async calendar(params: CalendarShipmentsParams = {}): Promise<Shipment[]> {
+    const res = await apiGet<ApiShipmentListItem[]>('/shipments/calendar', toQuery(params as ListShipmentsParams));
+    return (res.data ?? []).map(mapApiListItemToShipment);
   },
 
   async listMapped(params: ListShipmentsParams = {}): Promise<{ shipments: Shipment[]; meta: ApiListMeta }> {

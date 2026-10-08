@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ShipmentKpiKey } from '../../api/types/shipments';
-import { X } from 'lucide-react';
+import { Calendar as CalendarIcon, List, X } from 'lucide-react';
 
 interface ListToolbarProps {
   searchQuery: string;
@@ -12,7 +12,9 @@ interface ListToolbarProps {
   filterActive?: boolean;
   exporting?: boolean;
   kpiSlot?: React.ReactNode;
-  t: (key: string) => string;
+  viewMode?: 'list' | 'calendar';
+  onViewModeChange?: (mode: 'list' | 'calendar') => void;
+  t: (key: string, defaultValue?: string) => string;
 }
 
 export const ListToolbar: React.FC<ListToolbarProps> = ({
@@ -25,6 +27,8 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
   filterActive = false,
   exporting = false,
   kpiSlot,
+  viewMode,
+  onViewModeChange,
   t,
 }) => (
   <div className="fbar list-toolbar list-toolbar--with-kpis a d2">
@@ -82,6 +86,27 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
         </svg>
         {exporting ? t('exporting') : t('export')}
       </button>
+
+      {onViewModeChange ? (
+        <button
+          type="button"
+          className={`f-pill ${viewMode === 'calendar' ? 'has' : ''}`}
+          onClick={() => onViewModeChange(viewMode === 'calendar' ? 'list' : 'calendar')}
+          title={viewMode === 'calendar' ? t('switchToTableView', 'Switch to table view') : t('switchToCalendarView', 'Switch to calendar view')}
+        >
+          {viewMode === 'calendar' ? (
+            <>
+              <List size={12} />
+              {t('table', 'Table')}
+            </>
+          ) : (
+            <>
+              <CalendarIcon size={12} />
+              {t('calendar', 'Calendar')}
+            </>
+          )}
+        </button>
+      ) : null}
     </div>
   </div>
 );
