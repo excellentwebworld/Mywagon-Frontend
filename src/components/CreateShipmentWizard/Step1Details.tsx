@@ -151,6 +151,7 @@ import {
   translateResolution,
 } from "./validation";
 import { useSubscriptionPermission } from "../../hooks/useSubscriptionPermission";
+import { useShipperPermission } from "../../hooks/useShipperPermission";
 import { useUpgradeGate } from "../../context/UpgradeGateContext";
 
 const makeId = (prefix: string) =>
@@ -219,6 +220,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 }) => {
   const { t } = useTranslation();
   const { requirePermission, can } = useSubscriptionPermission();
+  const { canAction, requirePermission: requireRbac } = useShipperPermission();
+  const canCreateOrders = canAction('createOrders');
   const { openUpgradeGate } = useUpgradeGate();
   const { values, setFieldValue } = useFormikContext<any>();
   const stops = values.stops || [];
@@ -1255,6 +1258,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const handleCreateOrder = useCallback(
     async (values: ErpOrderFormState) => {
+      if (!requireRbac('create_orders')) return;
       try {
         setErpOrderSaving(true);
 
@@ -1320,7 +1324,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         setErpOrderSaving(false);
       }
     },
-    [addOrder, pCtx, setLF, showToast, t],
+    [addOrder, pCtx, requireRbac, setLF, showToast, t],
   );
 
   const selProdLine = useCallback(
@@ -2244,11 +2248,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           setMSku(true);
                         }}
                         onNewOrd={(lid) => {
+                          if (!requireRbac('create_orders')) return;
                           setPCtx({ ordS: stop.id, ordL: lid });
                           setMOrd(true);
                         }}
                         onQuickFill={(oid) => quickFill(stop.id, oid)}
                         onQuickFillNew={() => {
+                          if (!requireRbac('create_orders')) return;
                           setPCtx({ ordS: stop.id, ordL: null });
                           setMOrd(true);
                         }}
@@ -2259,6 +2265,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         orderLoadingLineId={orderLoadingLineId}
                         ordersLoading={ordersLoading}
                         pmSkus={pmSkus}
+                        canCreateOrders={canCreateOrders}
                       />
                     </div>
 
@@ -2666,6 +2673,7 @@ interface CargoTableProps {
   orderLoadingLineId?: string | null;
   ordersLoading?: boolean;
   pmSkus?: any[];
+  canCreateOrders?: boolean;
 }
 
 const CargoTable: React.FC<CargoTableProps> = ({
@@ -2695,6 +2703,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
   orderLoadingLineId = null,
   ordersLoading = false,
   pmSkus = [],
+  canCreateOrders = true,
 }) => {
   const thS: React.CSSProperties = {
     fontSize: 10,
@@ -2858,6 +2867,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       onSelOrd={(v) => onSelOrd(ln.id, v)}
                       onClearOrder={() => onClearOrder(ln.id)}
                       onNewOrd={() => onNewOrd(ln.id)}
+                      canCreateOrders={canCreateOrders}
                     />
                     <FieldValidationHint
                       conflicts={getBlockersForAnchor(
@@ -3356,13 +3366,17 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         }}
                         options={ordOpts}
                         placeholder={t("createShipment.searchErpOrders", "Search ERP orders...")}
-                        footerAction={{
-                          label: t("createShipment.createOrderPlus", "+ Create Order"),
-                          onClick: () => {
-                            setQfOpen(false);
-                            onQuickFillNew();
-                          },
-                        }}
+                        footerAction={
+                          canCreateOrders
+                            ? {
+                                label: t("createShipment.createOrderPlus", "+ Create Order"),
+                                onClick: () => {
+                                  setQfOpen(false);
+                                  onQuickFillNew();
+                                },
+                              }
+                            : undefined
+                        }
                         menuFixed={true}
                       />
                     ) : (
@@ -3420,6 +3434,7 @@ interface OrderCellProps {
   onSelOrd: (val: string) => void;
   onClearOrder: () => void;
   onNewOrd: () => void;
+  canCreateOrders?: boolean;
 }
 
 const OrderCell: React.FC<OrderCellProps> = ({
@@ -3433,6 +3448,7 @@ const OrderCell: React.FC<OrderCellProps> = ({
   onSelOrd,
   onClearOrder,
   onNewOrd,
+  canCreateOrders = true,
 }) => {
   const chipLabel = String(
     displayOrderRef || ln.orderRef || ln.orderId || "",
@@ -3476,10 +3492,14 @@ const OrderCell: React.FC<OrderCellProps> = ({
       options={ordOpts}
       placeholder="—"
       hasError={hasError}
-      footerAction={{
-        label: t("createShipment.createOrderPlus", "+ Create Order"),
-        onClick: onNewOrd,
-      }}
+      footerAction={
+        canCreateOrders
+          ? {
+              label: t("createShipment.createOrderPlus", "+ Create Order"),
+              onClick: onNewOrd,
+            }
+          : undefined
+      }
       menuFixed={true}
       hideSublabelInTrigger={true}
       minMenuWidth={240}
