@@ -1,9 +1,31 @@
 import { describe, expect, it } from 'vitest';
+import {
+  LOAD_TIME_MINUTES_MAX,
+  sanitizeLoadTimeMinutesInput,
+} from '../constants';
 import { isPositiveMeasurement, locationEditValidationSchema } from './locationFormSchema';
 import { validateCreateStep3 } from './locationCreateValidation';
 import type { CreateLocationData } from '../types';
 
 describe('Address Book Location Measurement and Step 3 Validation', () => {
+  describe('sanitizeLoadTimeMinutesInput', () => {
+    it('allows empty, in-range digits, and rejects oversized pastes', () => {
+      expect(sanitizeLoadTimeMinutesInput('')).toBe('');
+      expect(sanitizeLoadTimeMinutesInput('45')).toBe('45');
+      expect(sanitizeLoadTimeMinutesInput(String(LOAD_TIME_MINUTES_MAX))).toBe(
+        String(LOAD_TIME_MINUTES_MAX)
+      );
+      expect(sanitizeLoadTimeMinutesInput('65536')).toBeNull();
+      expect(
+        sanitizeLoadTimeMinutesInput(
+          '9876789067898765456789876545678987654567876567898765445678'
+        )
+      ).toBeNull();
+      expect(sanitizeLoadTimeMinutesInput('45.5')).toBeNull();
+      expect(sanitizeLoadTimeMinutesInput('-1')).toBeNull();
+    });
+  });
+
   describe('isPositiveMeasurement helper', () => {
     it('rejects negative numbers and negative numbers with units', () => {
       expect(isPositiveMeasurement('-5', /m$/i)).toBe(false);

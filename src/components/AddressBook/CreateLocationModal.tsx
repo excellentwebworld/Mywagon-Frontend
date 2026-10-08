@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { LocationItem } from '../../context/AppContext';
-import { getDockTypeOptions, getQuickTemplateFacilityLabel, getQuickTemplateFacilityOptions, LOAD_TIME_MINUTES_MAX, LOAD_TIME_MINUTES_MIN } from '../../pages/AddressBook/constants';
+import { getDockTypeOptions, getQuickTemplateFacilityLabel, getQuickTemplateFacilityOptions, LOAD_TIME_MINUTES_MAX, LOAD_TIME_MINUTES_MIN, sanitizeLoadTimeMinutesInput } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { inferQuickTemplateFromType } from '../../pages/AddressBook/utils/locationUtils';
 import {
@@ -455,19 +455,18 @@ export const CreateLocationModal: React.FC<Props> = ({
         </label>
         <input
           id="create-load-time"
-          type="number"
-          min={LOAD_TIME_MINUTES_MIN}
-          max={LOAD_TIME_MINUTES_MAX}
-          step={1}
+          type="text"
           inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={5}
           placeholder={t('abEgLoadTime', 'e.g. 45')}
           value={createData.loadTime}
+          aria-valuemin={LOAD_TIME_MINUTES_MIN}
+          aria-valuemax={LOAD_TIME_MINUTES_MAX}
           onKeyDown={(e) => ['e', 'E', '+', '-', '.'].includes(e.key) && e.preventDefault()}
           onChange={(e) => {
-            const next = e.target.value;
-            if (next === '' || /^\d{1,5}$/.test(next)) {
-              update({ loadTime: next });
-            }
+            const next = sanitizeLoadTimeMinutesInput(e.target.value);
+            if (next !== null) update({ loadTime: next });
           }}
         />
         <FormFieldError message={fieldErrors.loadTime} />
