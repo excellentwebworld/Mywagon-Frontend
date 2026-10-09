@@ -6,24 +6,12 @@ import { useTheme } from '../hooks/useTheme';
 import { useTranslation } from '../hooks/useTranslation';
 import { uiSwitchService } from '../api/services/uiSwitchService';
 import { isOnboardingTourRunning } from '../onboarding';
-import { needsCompanyInfoGate, needsKycGate } from '../hooks/useKycGate';
-import { needsInfoFormHardGate } from '../hooks/useInfoFormGate';
-import { needsSignupComplete } from '../hooks/useSignupCompleteGate';
 import { WHATS_NEW_SLIDES, WHATS_NEW_VERSION } from './whatsNewSlides';
+import { isWhatsNewPending, WHATS_NEW_DISMISSED_EVENT } from './whatsNewVisibility';
 import './whatsNew.css';
 
-function gatesClear(user: NonNullable<ReturnType<typeof useAuth>['user']>): boolean {
-  if (needsSignupComplete(user)) return false;
-  if (needsInfoFormHardGate(user)) return false;
-  if (needsKycGate(user)) return false;
-  if (needsCompanyInfoGate(user)) return false;
-  return true;
-}
-
 function shouldShowWhatsNew(user: NonNullable<ReturnType<typeof useAuth>['user']>): boolean {
-  if (user.onboarding_completed === false) return false;
-  if (user.whats_new_revamp_seen === true) return false;
-  if (!gatesClear(user)) return false;
+  if (!isWhatsNewPending(user)) return false;
   if (isOnboardingTourRunning()) return false;
   return true;
 }
@@ -67,6 +55,7 @@ export const WhatsNewGuideHost: React.FC = () => {
     } finally {
       setOpen(false);
       setSaving(false);
+      window.dispatchEvent(new CustomEvent(WHATS_NEW_DISMISSED_EVENT));
     }
   }, [refreshUser, saving]);
 
