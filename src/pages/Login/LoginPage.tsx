@@ -21,7 +21,6 @@ import { clearInfoFormReminderSkip } from '../../components/layout/InfoFormRemin
 import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
 import { applyVerticalNavOnLogin } from '../../utils/navMode';
 import { localizeSocialAuthError } from '../../utils/socialAuthErrors';
-import { redirectToClassicPanelIfNeeded } from '../../utils/preferredUiRedirect';
 import './LoginPage.css';
 
 function isTwoFactorChallenge(
@@ -35,8 +34,8 @@ async function finishLoginNavigation(
   from: string,
   navigate: (to: string, opts?: { replace?: boolean }) => void,
 ): Promise<void> {
-  if (await redirectToClassicPanelIfNeeded(user)) return;
-  navigate(postAuthDestination(user, from), { replace: true });
+  // This form is the React panel. The login request stores preferred_ui=react.
+  navigate(postAuthDestination({ ...user, preferred_ui: 'react' }, from), { replace: true });
 }
 
 const EyeIcon: React.FC<{ open: boolean }> = ({ open }) =>

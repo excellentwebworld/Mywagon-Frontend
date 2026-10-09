@@ -153,8 +153,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       applyVerticalNavOnLogin();
       setStoredToken(result.token);
       setToken(result.token);
-      setUser(result.user);
-      return result.user;
+      const profile = { ...result.user, preferred_ui: 'react' as const };
+      setUser(profile);
+      return profile;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed';
       setLoginError(message);
@@ -170,8 +171,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       applyVerticalNavOnLogin();
       setStoredToken(bearerToken);
       setToken(bearerToken);
-      setUser(profile);
-      return profile;
+      const signedIn = { ...profile, preferred_ui: 'react' as const };
+      setUser(signedIn);
+      return signedIn;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Verification failed';
       setLoginError(message);
@@ -196,8 +198,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       applyVerticalNavOnLogin();
       setStoredToken(bearerToken);
       setToken(bearerToken);
-      setUser(profile);
-      return { two_factor_reset, user: profile };
+      const signedIn = { ...profile, preferred_ui: 'react' as const };
+      setUser(signedIn);
+      return { two_factor_reset, user: signedIn };
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Recovery verification failed';
       setLoginError(message);

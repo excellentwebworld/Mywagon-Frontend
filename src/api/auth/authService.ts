@@ -58,7 +58,7 @@ export const authService = {
   async login(payload: LoginPayload): Promise<LoginResult> {
     const res = await authRequest<LoginResponse>('/auth/login', {
       method: 'POST',
-      body: payload,
+      body: { ...payload, panel: 'react' },
     }, null);
 
     if (res.two_factor_required) {
