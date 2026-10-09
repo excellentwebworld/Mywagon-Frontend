@@ -103,10 +103,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setLoading(true);
     setError(null);
 
-    const apiStatus =
-      activeTabStatus && activeTabStatus !== 'all'
-        ? statusTabToApiStatus(activeTabStatus)
-        : undefined;
+    const apiStatus = activeTabStatus
+      ? statusTabToApiStatus(activeTabStatus)
+      : undefined;
 
     const params: CalendarShipmentsParams = {
       from: dateRange.from,
