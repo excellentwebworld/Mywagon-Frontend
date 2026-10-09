@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
 import {
+  formatEventTimeRange,
   getWeekdayLabels,
   toDateLocale,
   type CalendarDayCell,
@@ -78,8 +79,9 @@ export const MonthView: React.FC<MonthViewProps> = ({
               <div className="cal-day-events-list">
                 {visibleEvents.map((ev) => {
                   const isPickup = ev.type === 'pickup';
+                  const timeLabel = formatEventTimeRange(ev.timeStart, ev.timeEnd);
                   const titleDesc = `${ev.sid} · ${isPickup ? t('pickup', 'Pickup') : t('dropoff', 'Dropoff')}${
-                    ev.timeStart ? ` · ${ev.timeStart}` : ''
+                    timeLabel ? ` · ${timeLabel}` : ''
                   }${ev.productName ? ` · ${ev.productName}` : ''}${ev.orderId ? ` · Order: ${ev.orderId}` : ''}`;
 
                   return (
@@ -93,7 +95,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                       <span className="cal-event-chip-icon">
                         {isPickup ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
                       </span>
-                      {ev.timeStart && <span className="cal-event-chip-time">{ev.timeStart}</span>}
+                      {timeLabel && <span className="cal-event-chip-time">{timeLabel}</span>}
                       <span className="cal-event-chip-sid">{ev.sid}</span>
                       {ev.productName ? (
                         <span className="cal-event-chip-prod">{ev.productName}</span>

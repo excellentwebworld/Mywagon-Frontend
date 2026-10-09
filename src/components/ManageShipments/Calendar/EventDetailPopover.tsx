@@ -1,7 +1,12 @@
 import React from 'react';
 import { ArrowDownRight, ArrowUpRight, ExternalLink, MapPin, Package, Truck, X } from 'lucide-react';
 import { translateCargoUnit } from '../../../constants/cargoUnits';
-import { parseYmdDate, toDateLocale, type CalendarEvent } from './calendarUtils';
+import {
+  formatEventTimeRange,
+  parseYmdDate,
+  toDateLocale,
+  type CalendarEvent,
+} from './calendarUtils';
 import { useTranslation } from '../../../hooks/useTranslation';
 
 interface EventDetailPopoverProps {
@@ -38,6 +43,7 @@ export const EventDetailPopover: React.FC<EventDetailPopoverProps> = ({
 
   const isPickup = event.type === 'pickup';
   const cargoSpecs = formatEventCargoSpecs(event, t);
+  const timeLabel = formatEventTimeRange(event.timeStart, event.timeEnd);
   const dateLabel = parseYmdDate(event.dateYmd).toLocaleDateString(toDateLocale(lang), {
     day: '2-digit',
     month: '2-digit',
@@ -80,7 +86,7 @@ export const EventDetailPopover: React.FC<EventDetailPopoverProps> = ({
             <div className="cal-popover-label">{t('scheduledTime', 'Scheduled Time')}</div>
             <div className="cal-popover-val cal-popover-val--time">
               {dateLabel}
-              {event.timeStart ? ` · ${event.timeStart}${event.timeEnd ? ` – ${event.timeEnd}` : ''}` : ''}
+              {timeLabel ? ` · ${timeLabel}` : ''}
             </div>
           </div>
 

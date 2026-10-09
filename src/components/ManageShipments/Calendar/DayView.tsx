@@ -9,7 +9,12 @@ import {
   Truck,
 } from 'lucide-react';
 import { translateCargoUnit } from '../../../constants/cargoUnits';
-import { formatDayHeader, toDateLocale, type CalendarEvent } from './calendarUtils';
+import {
+  formatDayHeader,
+  formatEventTimeRange,
+  toDateLocale,
+  type CalendarEvent,
+} from './calendarUtils';
 
 function formatCargoSpecs(
   ev: CalendarEvent,
@@ -108,7 +113,8 @@ export const DayView: React.FC<DayViewProps> = ({
                     <div className="cal-card-time">
                       <Clock size={13} />
                       <span>
-                        {ev.timeStart ? `${ev.timeStart}${ev.timeEnd ? ` – ${ev.timeEnd}` : ''}` : t('flexibleTime', 'All Day / Flexible')}
+                        {formatEventTimeRange(ev.timeStart, ev.timeEnd) ||
+                          t('flexibleTime', 'All Day / Flexible')}
                       </span>
                     </div>
                   </div>

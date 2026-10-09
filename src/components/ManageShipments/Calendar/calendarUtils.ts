@@ -441,6 +441,22 @@ export function getWeekdayLabels(locale = 'en-US', uppercase = true): string[] {
   return labels;
 }
 
+/**
+ * Format stop time for calendar UI.
+ * - Single time when end is missing or same as start (e.g. "12:31")
+ * - Range only when end differs (e.g. "09:00 – 10:30")
+ */
+export function formatEventTimeRange(
+  timeStart?: string | null,
+  timeEnd?: string | null
+): string {
+  const start = (timeStart || '').trim();
+  if (!start) return '';
+  const end = (timeEnd || '').trim();
+  if (!end || end === start) return start;
+  return `${start} – ${end}`;
+}
+
 export function formatMonthYear(year: number, monthIndex: number, locale = 'en-US'): string {
   const d = new Date(year, monthIndex, 1);
   return d.toLocaleDateString(locale, { month: 'long', year: 'numeric' });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   extractCalendarEvents,
+  formatEventTimeRange,
   getAdjacentDay,
   getAdjacentMonth,
   getCalendarMonthGrid,
@@ -182,6 +183,21 @@ describe('calendarUtils', () => {
       expect(events[0].dateYmd).toBe('2026-10-15');
       expect(events[1].type).toBe('delivery');
       expect(events[1].dateYmd).toBe('2026-10-16');
+    });
+  });
+
+  describe('formatEventTimeRange', () => {
+    it('shows a single time when start equals end', () => {
+      expect(formatEventTimeRange('12:31', '12:31')).toBe('12:31');
+    });
+
+    it('shows a range only when end differs from start', () => {
+      expect(formatEventTimeRange('09:00', '10:30')).toBe('09:00 – 10:30');
+    });
+
+    it('shows start alone when end is missing', () => {
+      expect(formatEventTimeRange('14:00', '')).toBe('14:00');
+      expect(formatEventTimeRange('14:00', null)).toBe('14:00');
     });
   });
 });
