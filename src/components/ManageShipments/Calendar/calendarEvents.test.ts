@@ -7,7 +7,9 @@ import {
   getAdjacentMonth,
   getCalendarMonthGrid,
   getMonthDateRange,
+  getWeekdayLabels,
   groupEventsByDate,
+  toDateLocale,
 } from './calendarUtils';
 import type { Shipment } from '../../../context/AppContext';
 
@@ -123,6 +125,82 @@ describe('Calendar Event Logic & Data Mapping', () => {
     expect(grouped['2026-10-15'][1].type).toBe('delivery');
   });
 
+  it('maps list-mapper camelCase stops (timeStart + customers) into calendar events', () => {
+    const mappedShipment: Partial<Shipment> = {
+      id: '777',
+      autoId: 'MYV-777',
+      status: 'scheduled',
+      stops: [
+        {
+          id: 11,
+          type: 'pickup',
+          location: 'Athens Hub',
+          address: 'Street 1',
+          date: '2026-10-20',
+          timeStart: '08:30',
+          timeEnd: '09:00',
+          customers: [
+            {
+              name: 'Acme Corp',
+              orders: [
+                {
+                  id: 'ORD-777',
+                  products: 'Olive Oil',
+                  qty: 20,
+                  qtyUnit: 'Pallets',
+                  weight: 1000,
+                  weightUnit: 'kg',
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: 12,
+          type: 'delivery',
+          location: 'Patras Port',
+          address: 'Street 2',
+          date: '2026-10-21',
+          timeStart: '16:00',
+          timeEnd: '17:00',
+          customers: [
+            {
+              name: 'Acme Corp',
+              orders: [
+                {
+                  id: 'ORD-777',
+                  products: 'Olive Oil',
+                  qty: 20,
+                  qtyUnit: 'Pallets',
+                  weight: 1000,
+                  weightUnit: 'kg',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const events = extractCalendarEvents([mappedShipment as Shipment]);
+    expect(events).toHaveLength(2);
+    expect(events[0]).toMatchObject({
+      sid: 'MYV-777',
+      type: 'pickup',
+      dateYmd: '2026-10-20',
+      timeStart: '08:30',
+      orderId: 'ORD-777',
+      productName: 'Olive Oil',
+      companyName: 'Acme Corp',
+    });
+    expect(events[1]).toMatchObject({
+      type: 'delivery',
+      dateYmd: '2026-10-21',
+      timeStart: '16:00',
+      orderId: 'ORD-777',
+    });
+  });
+
   it('handles leap years and February boundary calculations correctly', () => {
     // 2024 is a leap year (29 days in Feb)
     const gridLeap = getCalendarMonthGrid(2024, 1);
@@ -138,6 +216,10 @@ describe('Calendar Event Logic & Data Mapping', () => {
   it('formats month headers in standard localized formats', () => {
     const enLabel = formatMonthYear(2026, 9, 'en-US');
     expect(enLabel).toBe('October 2026');
+
+    const elLabel = formatMonthYear(2026, 9, toDateLocale('el'));
+    expect(elLabel.toLowerCase()).toContain('οκτώβριος');
+    expect(elLabel).toContain('2026');
   });
 
   it('formats day headers with day of week, day number, and month', () => {
@@ -145,5 +227,13 @@ describe('Calendar Event Logic & Data Mapping', () => {
     expect(dayLabel).toContain('October');
     expect(dayLabel).toContain('8');
     expect(dayLabel).toContain('2026');
+  });
+
+  it('returns Greek weekday labels for el locale', () => {
+    const labels = getWeekdayLabels(toDateLocale('el'));
+    expect(labels).toHaveLength(7);
+    // Monday-first Greek short names (locale casing may vary)
+    expect(labels[0].toLowerCase()).toContain('δευ');
+    expect(labels[6].toLowerCase()).toContain('κυρ');
   });
 });

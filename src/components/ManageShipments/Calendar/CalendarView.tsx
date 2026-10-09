@@ -13,6 +13,7 @@ import {
   getTodayYmd,
   groupEventsByDate,
   parseYmdDate,
+  toDateLocale,
   toYmd,
   type CalendarEvent,
 } from './calendarUtils';
@@ -20,16 +21,20 @@ import { CalendarToolbar } from './CalendarToolbar';
 import { MonthView } from './MonthView';
 import { DayView } from './DayView';
 import { EventDetailPopover } from './EventDetailPopover';
-import type { ShipmentsFilterState } from '../../../pages/ManageShipments/utils/listingUtils';
+import {
+  filtersToApiParams,
+  statusTabToApiStatus,
+  type ShipmentsFilterState,
+  type StatusTabKey,
+} from '../../../pages/ManageShipments/utils/listingUtils';
+import { useTranslation } from '../../../hooks/useTranslation';
 import '../../../styles/manage-calendar.css';
 
 interface CalendarViewProps {
   direction: 'outbound' | 'inbound';
-  activeTabStatus?: string;
+  activeTabStatus?: StatusTabKey;
   searchQuery: string;
   appliedFilters: ShipmentsFilterState;
-  viewMode: 'list' | 'calendar';
-  onViewModeChange: (mode: 'list' | 'calendar') => void;
   t: (key: string, defaultValue?: string) => string;
 }
 
@@ -38,12 +43,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   activeTabStatus,
   searchQuery,
   appliedFilters,
-  viewMode,
-  onViewModeChange,
   t,
 }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { lang } = useTranslation();
+  const dateLocale = toDateLocale(lang);
 
   // Initial state derived from search params or today's date
   const initialDateStr = searchParams.get('cal_date') || getTodayYmd();
@@ -98,15 +103,18 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setLoading(true);
     setError(null);
 
+    const apiStatus =
+      activeTabStatus && activeTabStatus !== 'all'
+        ? statusTabToApiStatus(activeTabStatus)
+        : undefined;
+
     const params: CalendarShipmentsParams = {
       from: dateRange.from,
       to: dateRange.to,
       direction,
-      ...(activeTabStatus && activeTabStatus !== 'all' ? { status: activeTabStatus } : {}),
+      ...filtersToApiParams(appliedFilters),
+      ...(apiStatus !== undefined ? { status: apiStatus } : {}),
       ...(searchQuery.trim() ? { search: searchQuery.trim() } : {}),
-      ...(appliedFilters.carrier_name ? { carrier_name: appliedFilters.carrier_name } : {}),
-      ...(appliedFilters.customer ? { customer: appliedFilters.customer } : {}),
-      ...(appliedFilters.product_type ? { product_type: appliedFilters.product_type } : {}),
     };
 
     shipmentsService
@@ -155,19 +163,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     [activeEvents]
   );
 
-  // Period label for toolbar
+  // Period label for toolbar (localized month / day heading)
   const periodLabel = useMemo(() => {
     if (viewPerspective === 'day') {
       const d = parseYmdDate(selectedDateYmd);
-      return d.toLocaleDateString(undefined, {
+      return d.toLocaleDateString(dateLocale, {
         weekday: 'short',
         day: 'numeric',
         month: 'short',
         year: 'numeric',
       });
     }
-    return formatMonthYear(currentYear, currentMonthIndex);
-  }, [viewPerspective, selectedDateYmd, currentYear, currentMonthIndex]);
+    return formatMonthYear(currentYear, currentMonthIndex, dateLocale);
+  }, [viewPerspective, selectedDateYmd, currentYear, currentMonthIndex, dateLocale]);
 
   // Navigation handlers
   const handlePrev = () => {
@@ -182,6 +190,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       const adj = getAdjacentMonth(currentYear, currentMonthIndex, -1);
       setCurrentYear(adj.year);
       setCurrentMonthIndex(adj.monthIndex);
+      const monthAnchor = `${adj.year}-${String(adj.monthIndex + 1).padStart(2, '0')}-01`;
+      setSelectedDateYmd(monthAnchor);
+      updateUrlParams('month', monthAnchor);
     }
   };
 
@@ -197,6 +208,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       const adj = getAdjacentMonth(currentYear, currentMonthIndex, 1);
       setCurrentYear(adj.year);
       setCurrentMonthIndex(adj.monthIndex);
+      const monthAnchor = `${adj.year}-${String(adj.monthIndex + 1).padStart(2, '0')}-01`;
+      setSelectedDateYmd(monthAnchor);
+      updateUrlParams('month', monthAnchor);
     }
   };
 
@@ -231,8 +245,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         onPrev={handlePrev}
         onNext={handleNext}
         onToday={handleToday}
-        viewMode={viewMode}
-        onViewModeChange={onViewModeChange}
         totalEvents={activeEvents.length}
         pickupCount={pickupCount}
         deliveryCount={deliveryCount}
@@ -255,6 +267,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           eventsByDate={eventsByDate}
           onSelectEvent={(ev) => setSelectedEvent(ev)}
           onSelectDate={handleSelectDateFromMonth}
+          lang={lang}
           t={t}
         />
       ) : (
@@ -264,6 +277,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           onSelectEvent={(ev) => setSelectedEvent(ev)}
           onNavigateToDetail={handleNavigateToDetail}
           onBackToMonth={() => handlePerspectiveChange('month')}
+          lang={lang}
           t={t}
         />
       )}

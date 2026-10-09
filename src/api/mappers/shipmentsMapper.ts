@@ -423,6 +423,10 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     pickupToday: Boolean(flags?.pickup_today ?? item.pickup_today),
     awaitingPod: Boolean(flags?.awaiting_pod ?? item.awaiting_pod),
     negotiable: item.negotiable ?? true,
+    // Calendar (and list expansions) need per-stop schedule + order/product details.
+    ...(Array.isArray(item.stops) && item.stops.length > 0
+      ? { stops: item.stops.map((stop, idx) => mapStop(stop, idx)) }
+      : {}),
   };
 }
 

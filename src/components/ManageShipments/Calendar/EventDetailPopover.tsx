@@ -1,6 +1,8 @@
 import React from 'react';
 import { ArrowDownRight, ArrowUpRight, ExternalLink, MapPin, Package, Truck, X } from 'lucide-react';
-import type { CalendarEvent } from './calendarUtils';
+import { translateCargoUnit } from '../../../constants/cargoUnits';
+import { parseYmdDate, toDateLocale, type CalendarEvent } from './calendarUtils';
+import { useTranslation } from '../../../hooks/useTranslation';
 
 interface EventDetailPopoverProps {
   event: CalendarEvent | null;
@@ -9,15 +11,38 @@ interface EventDetailPopoverProps {
   t: (key: string, defaultValue?: string) => string;
 }
 
+function formatEventCargoSpecs(
+  event: CalendarEvent,
+  t: (key: string, defaultValue?: string) => string
+): string {
+  const parts: string[] = [];
+  if (event.qty != null && event.qty !== '') {
+    const unit = translateCargoUnit(event.qtyUnit || 'EUR Pallets', t);
+    parts.push(`${event.qty} ${unit}`.trim());
+  }
+  if (event.weight != null && event.weight !== '') {
+    const unit = translateCargoUnit(event.weightUnit || 'Kgs', t);
+    parts.push(`${event.weight} ${unit}`.trim());
+  }
+  return parts.join(' · ');
+}
+
 export const EventDetailPopover: React.FC<EventDetailPopoverProps> = ({
   event,
   onClose,
   onNavigateToDetail,
   t,
 }) => {
+  const { lang } = useTranslation();
   if (!event) return null;
 
   const isPickup = event.type === 'pickup';
+  const cargoSpecs = formatEventCargoSpecs(event, t);
+  const dateLabel = parseYmdDate(event.dateYmd).toLocaleDateString(toDateLocale(lang), {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
 
   return (
     <div className="cal-popover-backdrop" onClick={onClose}>
@@ -54,8 +79,8 @@ export const EventDetailPopover: React.FC<EventDetailPopoverProps> = ({
           <div className="cal-popover-section">
             <div className="cal-popover-label">{t('scheduledTime', 'Scheduled Time')}</div>
             <div className="cal-popover-val cal-popover-val--time">
-              📅 {event.dateYmd}
-              {event.timeStart ? ` · ⏰ ${event.timeStart}${event.timeEnd ? ` – ${event.timeEnd}` : ''}` : ''}
+              {dateLabel}
+              {event.timeStart ? ` · ${event.timeStart}${event.timeEnd ? ` – ${event.timeEnd}` : ''}` : ''}
             </div>
           </div>
 
@@ -91,12 +116,9 @@ export const EventDetailPopover: React.FC<EventDetailPopoverProps> = ({
               {event.productName ? (
                 <div className="cal-popover-product">
                   <span className="cal-popover-product-name">{event.productName}</span>
-                  {(event.qty || event.weight) && (
-                    <span className="cal-popover-product-specs">
-                      {event.qty ? ` · ${event.qty} ${event.qtyUnit || ''}` : ''}
-                      {event.weight ? ` · ${event.weight} ${event.weightUnit || 'kg'}` : ''}
-                    </span>
-                  )}
+                  {cargoSpecs ? (
+                    <span className="cal-popover-product-specs"> · {cargoSpecs}</span>
+                  ) : null}
                 </div>
               ) : (
                 <div className="cal-popover-dim">{t('noProductDetails', 'Standard freight')}</div>

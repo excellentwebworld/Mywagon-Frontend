@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, LayoutGrid, List } from 'lucide-react';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
 
 interface CalendarToolbarProps {
   viewPerspective: 'month' | 'day';
@@ -8,8 +8,6 @@ interface CalendarToolbarProps {
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
-  viewMode: 'list' | 'calendar';
-  onViewModeChange: (m: 'list' | 'calendar') => void;
   totalEvents: number;
   pickupCount: number;
   deliveryCount: number;
@@ -24,8 +22,6 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
   onPrev,
   onNext,
   onToday,
-  viewMode,
-  onViewModeChange,
   totalEvents,
   pickupCount,
   deliveryCount,
@@ -72,11 +68,9 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           <span className="cal-counts-total">
             {totalEvents} {totalEvents === 1 ? t('event', 'Event') : t('events', 'Events')}
           </span>
-          <span className="cal-counts-sep">·</span>
           <span className="cal-count-item cal-count-item--pickup">
             ↑ {pickupCount} {t('pickups', 'Pickups')}
           </span>
-          <span className="cal-counts-sep">·</span>
           <span className="cal-count-item cal-count-item--dropoff">
             ↓ {deliveryCount} {t('dropoffs', 'Dropoffs')}
           </span>
@@ -84,7 +78,7 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
       </div>
 
       <div className="cal-toolbar-right">
-        {/* Month vs Day Perspective */}
+        {/* Month vs Day Perspective — Table/Calendar lives in ListToolbar only */}
         <div className="cal-segmented" role="tablist" aria-label={t('calendarPerspective', 'Calendar Perspective')}>
           <button
             type="button"
@@ -105,32 +99,6 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
           >
             <CalendarIcon size={14} />
             <span>{t('day', 'Day')}</span>
-          </button>
-        </div>
-
-        {/* View Mode Switcher: Table vs Calendar */}
-        <div className="cal-segmented" role="tablist" aria-label={t('viewMode', 'View Mode')}>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={viewMode === 'list'}
-            className={`cal-segmented-btn ${viewMode === 'list' ? 'active' : ''}`}
-            onClick={() => onViewModeChange('list')}
-            title={t('tableView', 'Table View')}
-          >
-            <List size={14} />
-            <span>{t('table', 'Table')}</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={viewMode === 'calendar'}
-            className={`cal-segmented-btn ${viewMode === 'calendar' ? 'active' : ''}`}
-            onClick={() => onViewModeChange('calendar')}
-            title={t('calendarView', 'Calendar View')}
-          >
-            <CalendarIcon size={14} />
-            <span>{t('calendar', 'Calendar')}</span>
           </button>
         </div>
       </div>

@@ -1,12 +1,19 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
-import { WEEKDAY_KEYS, type CalendarDayCell, type CalendarEvent } from './calendarUtils';
+import {
+  getWeekdayLabels,
+  toDateLocale,
+  type CalendarDayCell,
+  type CalendarEvent,
+} from './calendarUtils';
 
 interface MonthViewProps {
   cells: CalendarDayCell[];
   eventsByDate: Record<string, CalendarEvent[]>;
   onSelectEvent: (event: CalendarEvent) => void;
   onSelectDate: (dateYmd: string) => void;
+  /** App language code (`en` / `el`) for weekday headers. */
+  lang?: string;
   t: (key: string, defaultValue?: string) => string;
 }
 
@@ -17,15 +24,18 @@ export const MonthView: React.FC<MonthViewProps> = ({
   eventsByDate,
   onSelectEvent,
   onSelectDate,
+  lang = 'en',
   t,
 }) => {
+  const weekdayLabels = useMemo(() => getWeekdayLabels(toDateLocale(lang)), [lang]);
+
   return (
     <div className="cal-month">
       {/* Weekday headers */}
       <div className="cal-weekday-row">
-        {WEEKDAY_KEYS.map((k) => (
-          <div key={k} className="cal-weekday-cell">
-            {t(k, k.slice(0, 3).toUpperCase())}
+        {weekdayLabels.map((label, idx) => (
+          <div key={`${label}-${idx}`} className="cal-weekday-cell">
+            {label}
           </div>
         ))}
       </div>

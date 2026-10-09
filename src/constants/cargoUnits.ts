@@ -87,6 +87,8 @@ export function translateCargoUnit(
     'eur pallet': ['constants.eur_pallets', 'EUR Pallets'],
     'us pallets': ['constants.us_pallets', 'US Pallets'],
     'us pallet': ['constants.us_pallets', 'US Pallets'],
+    pallets: ['constants.eur_pallets', 'EUR Pallets'],
+    pallet: ['constants.eur_pallets', 'EUR Pallets'],
     boxes: ['constants.boxes', 'Boxes'],
     box: ['constants.boxes', 'Boxes'],
     units: ['constants.units', 'Units'],

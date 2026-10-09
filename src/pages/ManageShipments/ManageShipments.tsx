@@ -87,8 +87,6 @@ export const ManageShipments: React.FC = () => {
           activeTabStatus={m.activeTab}
           searchQuery={m.searchQuery}
           appliedFilters={m.appliedFilters}
-          viewMode={m.viewMode}
-          onViewModeChange={m.setViewMode}
           t={m.t}
         />
       ) : (

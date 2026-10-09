@@ -2,14 +2,28 @@ import React from 'react';
 import {
   ArrowDownRight,
   ArrowUpRight,
-  Calendar,
   Clock,
   ExternalLink,
   MapPin,
   Package,
   Truck,
 } from 'lucide-react';
-import { formatDayHeader, type CalendarEvent } from './calendarUtils';
+import { translateCargoUnit } from '../../../constants/cargoUnits';
+import { formatDayHeader, toDateLocale, type CalendarEvent } from './calendarUtils';
+
+function formatCargoSpecs(
+  ev: CalendarEvent,
+  t: (key: string, defaultValue?: string) => string
+): string {
+  const parts: string[] = [];
+  if (ev.qty != null && ev.qty !== '') {
+    parts.push(`${ev.qty} ${translateCargoUnit(ev.qtyUnit || 'EUR Pallets', t)}`.trim());
+  }
+  if (ev.weight != null && ev.weight !== '') {
+    parts.push(`${ev.weight} ${translateCargoUnit(ev.weightUnit || 'Kgs', t)}`.trim());
+  }
+  return parts.join(' · ');
+}
 
 interface DayViewProps {
   dateYmd: string;
@@ -17,6 +31,8 @@ interface DayViewProps {
   onSelectEvent: (event: CalendarEvent) => void;
   onNavigateToDetail: (shipmentId: number) => void;
   onBackToMonth: () => void;
+  /** App language code (`en` / `el`) for the day heading. */
+  lang?: string;
   t: (key: string, defaultValue?: string) => string;
 }
 
@@ -26,35 +42,15 @@ export const DayView: React.FC<DayViewProps> = ({
   onSelectEvent,
   onNavigateToDetail,
   onBackToMonth,
+  lang = 'en',
   t,
 }) => {
-  const pickupCount = events.filter((e) => e.type === 'pickup').length;
-  const deliveryCount = events.filter((e) => e.type === 'delivery').length;
-
   return (
     <div className="cal-day-view">
-      {/* Day summary header */}
+      {/* Day summary header — Month/Day toggle lives in CalendarToolbar only */}
       <div className="cal-day-header-card">
         <div className="cal-day-header-left">
-          <h3 className="cal-day-heading">{formatDayHeader(dateYmd)}</h3>
-          <div className="cal-day-stat-pills">
-            <span className="cal-stat-pill">
-              {events.length} {events.length === 1 ? t('event', 'Event') : t('events', 'Events')}
-            </span>
-            <span className="cal-stat-pill cal-stat-pill--pickup">
-              ↑ {pickupCount} {t('pickups', 'Pickups')}
-            </span>
-            <span className="cal-stat-pill cal-stat-pill--dropoff">
-              ↓ {deliveryCount} {t('dropoffs', 'Dropoffs')}
-            </span>
-          </div>
-        </div>
-
-        <div className="cal-day-header-right">
-          <button type="button" className="cal-btn cal-btn--subtle" onClick={onBackToMonth}>
-            <Calendar size={14} />
-            <span>{t('backToMonth', 'Month View')}</span>
-          </button>
+          <h3 className="cal-day-heading">{formatDayHeader(dateYmd, toDateLocale(lang))}</h3>
         </div>
       </div>
 
@@ -72,6 +68,7 @@ export const DayView: React.FC<DayViewProps> = ({
         <div className="cal-timeline">
           {events.map((ev) => {
             const isPickup = ev.type === 'pickup';
+            const cargoSpecs = formatCargoSpecs(ev, t);
 
             return (
               <div
@@ -142,8 +139,7 @@ export const DayView: React.FC<DayViewProps> = ({
                       {ev.productName ? (
                         <span className="cal-cargo-product">
                           {ev.productName}
-                          {ev.qty ? ` · ${ev.qty} ${ev.qtyUnit || ''}` : ''}
-                          {ev.weight ? ` · ${ev.weight} ${ev.weightUnit || 'kg'}` : ''}
+                          {cargoSpecs ? ` · ${cargoSpecs}` : ''}
                         </span>
                       ) : (
                         <span className="cal-cargo-dim">{t('standardFreight', 'Standard Freight')}</span>

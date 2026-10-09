@@ -126,22 +126,18 @@
   letter-spacing: -0.2px;
 }
 
-/* Counts summary chip */
+/* Counts summary — pickup/dropoff match load-details itinerary badges */
 .cal-counts-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: 9999px;
   font-size: 12px;
-  color: var(--text-secondary);
 }
 
 .cal-counts-total {
   font-weight: 600;
   color: var(--text-primary);
+  padding: 3px 8px;
 }
 
 .cal-counts-sep {
@@ -149,14 +145,29 @@
   opacity: 0.6;
 }
 
+.cal-count-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
 .cal-count-item--pickup {
-  color: #059669;
-  font-weight: 600;
+  background: #ffffff;
+  color: #000001;
+  border: 1px solid var(--app-border-strong, #c9c8cd);
 }
 
 .cal-count-item--dropoff {
-  color: #2563eb;
-  font-weight: 600;
+  background: #000001;
+  color: #ffffff;
+  border: 1px solid var(--app-black-contour, #000001);
 }
 
 /* Segmented tab control */
@@ -210,7 +221,7 @@
 
 .cal-weekday-row {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   background: var(--surface-alt);
   border-bottom: 1px solid var(--border);
 }
@@ -227,13 +238,14 @@
 
 .cal-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   background: var(--border);
   gap: 1px;
 }
 
 .cal-day-cell {
   min-height: 125px;
+  min-width: 0;
   background: var(--surface);
   padding: 6px 7px 8px;
   display: flex;
@@ -241,6 +253,7 @@
   gap: 4px;
   transition: background 0.12s ease;
   position: relative;
+  overflow: hidden;
 }
 
 .cal-day-cell:hover {
@@ -316,6 +329,8 @@
   flex-direction: column;
   gap: 3px;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .cal-event-chip {
@@ -330,29 +345,30 @@
   cursor: pointer;
   text-align: left;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  transition: box-shadow 0.1s ease, border-color 0.1s ease;
   font-family: inherit;
 }
 
 .cal-event-chip:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  z-index: 2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
+/* Match load-details itinerary: white PICKUP / black DROPOFF */
 .cal-event-chip--pickup {
-  background: #ecfdf5;
-  color: #065f46;
-  border-color: #a7f3d0;
+  background: #ffffff;
+  color: #000001;
+  border-color: var(--app-border-strong, #c9c8cd);
 }
 
 .cal-event-chip--delivery {
-  background: #eff6ff;
-  color: #1e40af;
-  border-color: #bfdbfe;
+  background: #000001;
+  color: #ffffff;
+  border-color: var(--app-black-contour, #000001);
 }
 
 .cal-event-chip-icon {
@@ -370,10 +386,15 @@
 
 .cal-event-chip-sid {
   font-weight: 600;
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cal-event-chip-prod {
+  flex: 1 1 0;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   opacity: 0.85;
@@ -441,16 +462,16 @@
 }
 
 .cal-stat-pill--pickup {
-  background: #ecfdf5;
-  color: #065f46;
-  border-color: #a7f3d0;
+  background: #ffffff;
+  color: #000001;
+  border-color: var(--app-border-strong, #c9c8cd);
   font-weight: 600;
 }
 
 .cal-stat-pill--dropoff {
-  background: #eff6ff;
-  color: #1e40af;
-  border-color: #bfdbfe;
+  background: #000001;
+  color: #ffffff;
+  border-color: var(--app-black-contour, #000001);
   font-weight: 600;
 }
 
@@ -483,11 +504,11 @@
 }
 
 .cal-timeline-card--pickup .cal-card-left-stripe {
-  background: #10b981;
+  background: var(--app-border-strong, #c9c8cd);
 }
 
 .cal-timeline-card--delivery .cal-card-left-stripe {
-  background: #3b82f6;
+  background: #000001;
 }
 
 .cal-card-content {
@@ -526,15 +547,15 @@
 }
 
 .cal-type-badge--pickup {
-  background: #ecfdf5;
-  color: #065f46;
-  border: 1px solid #a7f3d0;
+  background: #ffffff;
+  color: #000001;
+  border: 1px solid var(--app-border-strong, #c9c8cd);
 }
 
 .cal-type-badge--delivery {
-  background: #eff6ff;
-  color: #1e40af;
-  border: 1px solid #bfdbfe;
+  background: #000001;
+  color: #ffffff;
+  border: 1px solid var(--app-black-contour, #000001);
 }
 
 .cal-card-sid-btn {

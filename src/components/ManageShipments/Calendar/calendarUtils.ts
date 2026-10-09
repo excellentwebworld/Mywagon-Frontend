@@ -420,6 +420,27 @@ export function groupEventsByDate(events: CalendarEvent[]): Record<string, Calen
   return map;
 }
 
+/** Map app language code to a BCP-47 locale for date formatting. */
+export function toDateLocale(lang?: string | null): string {
+  const code = String(lang || 'en')
+    .toLowerCase()
+    .split(/[-_]/)[0];
+  return code === 'el' ? 'el-GR' : 'en-US';
+}
+
+/** Monday-first short weekday labels for the given locale (e.g. MON / Δευ). */
+export function getWeekdayLabels(locale = 'en-US', uppercase = true): string[] {
+  const baseDate = new Date(2026, 5, 1); // Monday
+  const labels: string[] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(baseDate);
+    d.setDate(baseDate.getDate() + i);
+    const label = d.toLocaleDateString(locale, { weekday: 'short' });
+    labels.push(uppercase ? label.toLocaleUpperCase(locale) : label);
+  }
+  return labels;
+}
+
 export function formatMonthYear(year: number, monthIndex: number, locale = 'en-US'): string {
   const d = new Date(year, monthIndex, 1);
   return d.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
