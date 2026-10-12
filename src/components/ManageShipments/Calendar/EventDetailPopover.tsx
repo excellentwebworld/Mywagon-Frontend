@@ -50,19 +50,6 @@ function formatEventCargoSpecs(
   return parts.join(' · ');
 }
 
-function progressIndex(status: string): number {
-  const s = String(status || '').toLowerCase();
-  if (s === 'draft') return -1;
-  if (s === 'pending' || s === 'canceled' || s === 'cancelled') return 0;
-  if (s === 'scheduled' || s === 'upcoming' || s === 'ready') return 1;
-  if (s === 'on_trip' || s === 'in_progress' || s === 'past_due') return 2;
-  if (s === 'partially_fullfilled' || s === 'not_fullfilled') return 3;
-  if (s === 'fullfilled' || s === 'delivered' || s === 'awarded') return 4;
-  return 0;
-}
-
-const STEPS = ['Created', 'Carrier accepted', 'Trip started', 'Delivered', 'POD & payment'];
-
 export const EventDetailPopover: React.FC<EventDetailPopoverProps> = ({
   event,
   relatedStops,
@@ -75,12 +62,13 @@ export const EventDetailPopover: React.FC<EventDetailPopoverProps> = ({
   const { lang } = useTranslation();
   const isPickup = event.type === 'pickup';
   const vs = event.visualStatus;
+  const hasBids = vs === 'bids' && event.bids > 0;
   const cargoSpecs = formatEventCargoSpecs(event, t);
   const timeLabel = event.allDay
     ? t('anyTime', 'Any time')
     : formatEventTimeRange(event.timeStart, event.timeEnd) || event.timeStart;
   const dateLabel = formatDayHeader(event.dateYmd, toDateLocale(lang));
-  const pi = progressIndex(event.status);
+  const placeLine = [event.address, event.city].filter(Boolean).join(', ');
 
   const alert = useMemo(() => {
     if (event.isOverdue && String(event.status).toLowerCase() === 'pending') {
@@ -101,198 +89,210 @@ export const EventDetailPopover: React.FC<EventDetailPopoverProps> = ({
     return null;
   }, [event, t]);
 
-  const statusLabel =
-    vs === 'bids'
-      ? `${t('pending', 'Pending')} · ${event.bids} ${event.bids === 1 ? t('bid', 'bid') : t('bids', 'bids')}`
-      : t(STATUS_LABELS[vs] ? `status_${vs}` : event.status, STATUS_LABELS[vs] || event.status);
+  const statusLabel = hasBids
+    ? `${t('pending', 'Pending')} · ${event.bids} ${
+        event.bids === 1 ? t('bid', 'bid') : t('bids', 'bids')
+      }`
+    : t(`legend_${vs}`, STATUS_LABELS[vs] || event.status);
+
+  const showPrice =
+    event.quotedPrice != null || event.agreedPrice != null || event.priceType;
 
   return (
     <FloatingPanel
       anchor={anchor}
       onClose={onClose}
+      width={420}
       label={`${event.sid} ${event.type}`}
     >
-      <div className={cls('cal-pop', `ev--st-${vs}`)}>
-        <div className="cal-pop-band" />
+      <div className="cal-pop">
         <header className="cal-pop-head">
           <div className="cal-pop-tags">
-            <span className={cls('cal-pill', 'cal-pill--sm', `cal-pill--${vs}`, vs === 'bids' && 'cal-pill--ink')}>
-              {statusLabel}
-            </span>
+            <span className="cal-pop-status">{statusLabel}</span>
             <span className={cls('cal-kindtag', event.type)}>
-              {isPickup ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+              {isPickup ? <ArrowUp size={12} strokeWidth={2.5} /> : <ArrowDown size={12} strokeWidth={2.5} />}
               {isPickup ? t('pickup', 'Pickup') : t('dropoff', 'Dropoff')}
               {event.stopCount > 2 && event.stopIndex != null
-                ? ` · ${t('stopOf', 'stop')} ${(event.stopIndex ?? 0) + 1} ${t('of', 'of')} ${event.stopCount}`
+                ? ` · ${(event.stopIndex ?? 0) + 1}/${event.stopCount}`
                 : ''}
             </span>
           </div>
-          <button type="button" className="cal-icon-btn sm" onClick={onClose} aria-label={t('close', 'Close')}>
-            <X size={16} />
+          <button
+            type="button"
+            className="cal-icon-btn sm"
+            onClick={onClose}
+            aria-label={t('close', 'Close')}
+          >
+            <X size={18} strokeWidth={2} />
           </button>
         </header>
 
-        <div className="cal-pop-title">
-          <h3>{event.sid}</h3>
-          {event.orderId && <span>{event.orderId}</span>}
-        </div>
+        <div className="cal-pop-scroll">
+          <div className="cal-pop-title">
+            <h3>{event.sid}</h3>
+            {event.orderId && <span>{event.orderId}</span>}
+          </div>
 
-        {alert && (
-          <p className="cal-pop-alert">
-            <AlertTriangle size={15} />
-            {alert}
-          </p>
-        )}
+          {alert && (
+            <p className="cal-pop-alert">
+              <AlertTriangle size={16} className="cal-pop-alert-ico" />
+              <span>{alert}</span>
+            </p>
+          )}
 
-        <dl className="cal-facts">
-          <div>
-            <dt>
-              <Clock size={16} />
-            </dt>
-            <dd>
-              <b>
-                {dateLabel} · {timeLabel || t('anyTime', 'Any time')}
-              </b>
-              <small>
-                {event.allDay
-                  ? t('noTimeWindow', 'No time window set by the shipper')
-                  : t('displayTimezoneNote', 'Shown in your saved timezone')}
-              </small>
-            </dd>
-          </div>
-          <div>
-            <dt>
-              <MapPin size={16} />
-            </dt>
-            <dd>
-              <b>{event.locationName || event.city || t('notSpecified', 'Not specified')}</b>
-              <small>{[event.address, event.city].filter(Boolean).join(', ')}</small>
-            </dd>
-          </div>
-          <div>
-            <dt>
-              <Building2 size={16} />
-            </dt>
-            <dd>
-              <span className="cal-chips">
-                <span className="cal-chip">{event.companyName || t('unknownCustomer', '—')}</span>
-              </span>
-            </dd>
-          </div>
-          <div>
-            <dt>
-              <Package size={16} />
-            </dt>
-            <dd>
-              {event.productName || t('standardFreight', 'Standard Freight')}
-              <small>
-                {[cargoSpecs, event.stopCount ? `${event.stopCount} ${t('stops', 'stops')}` : '']
-                  .filter(Boolean)
-                  .join(' · ')}
-              </small>
-            </dd>
-          </div>
-          <div>
-            <dt>
-              <Truck size={16} />
-            </dt>
-            <dd>
-              {event.carrierName ? (
-                <b>{event.carrierName}</b>
-              ) : String(event.status).toLowerCase() === 'draft' ? (
-                <>
-                  <b>{t('notPublishedYet', 'Not published yet')}</b>
-                  <small>{t('draftNoTransporters', 'Draft: no transporters invited')}</small>
-                </>
-              ) : (
-                <>
-                  <b className="cal-muted-b">{t('noCarrierYet', 'No carrier yet')}</b>
-                  <small>
-                    {event.invited > 0
-                      ? `${event.invited} ${t('invited', 'invited')}`
-                      : t('noInvites', 'no invites')}
-                    {' · '}
-                    {event.bids > 0
-                      ? `${event.bids} ${event.bids === 1 ? t('bid', 'bid') : t('bids', 'bids')}`
-                      : t('noBids', 'no bids')}
-                    {event.channel ? ` · ${event.channel === 'public' ? t('public', 'Public') : t('private', 'Private')}` : ''}
-                  </small>
-                </>
-              )}
-            </dd>
-          </div>
-          {(event.quotedPrice != null || event.agreedPrice != null || event.priceType) && (
+          <dl className="cal-facts">
             <div>
               <dt>
-                <Euro size={16} />
+                <Clock size={18} strokeWidth={1.75} />
               </dt>
-              <dd className="cal-price">
-                <span>
-                  {t('quoted', 'Quoted')} <b>{moneyEur(event.quotedPrice)}</b>{' '}
-                  {event.priceType && event.priceType !== 'bidding' && (
-                    <span className={cls('cal-tag', event.priceType)}>
-                      {event.priceType === 'spot' ? 'SPOT' : 'CONTRACT'}
-                    </span>
-                  )}
-                </span>
-                <span>
-                  {t('agreed', 'Agreed')} <b>{moneyEur(event.agreedPrice)}</b>
-                </span>
+              <dd>
+                <b>
+                  {dateLabel} · {timeLabel || t('anyTime', 'Any time')}
+                </b>
+                {event.allDay && (
+                  <small>{t('noTimeWindow', 'No time window set by the shipper')}</small>
+                )}
               </dd>
             </div>
+
+            <div>
+              <dt>
+                <MapPin size={18} strokeWidth={1.75} />
+              </dt>
+              <dd>
+                <b>{event.locationName || event.city || t('notSpecified', 'Not specified')}</b>
+                {placeLine ? <small>{placeLine}</small> : null}
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                <Building2 size={18} strokeWidth={1.75} />
+              </dt>
+              <dd>
+                <b>{event.companyName || t('unknownCustomer', '—')}</b>
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                <Package size={18} strokeWidth={1.75} />
+              </dt>
+              <dd>
+                <b className="cal-fact-primary">
+                  {event.productName || t('standardFreight', 'Standard Freight')}
+                </b>
+                <small>
+                  {[
+                    cargoSpecs,
+                    event.stopCount ? `${event.stopCount} ${t('stops', 'Stops')}` : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </small>
+              </dd>
+            </div>
+
+            <div>
+              <dt>
+                <Truck size={18} strokeWidth={1.75} />
+              </dt>
+              <dd>
+                {event.carrierName ? (
+                  <b>{event.carrierName}</b>
+                ) : String(event.status).toLowerCase() === 'draft' ? (
+                  <>
+                    <b>{t('notPublishedYet', 'Not published yet')}</b>
+                    <small>{t('draftNoTransporters', 'Draft: no transporters invited')}</small>
+                  </>
+                ) : (
+                  <>
+                    <b>{t('noCarrierYet', 'No carrier yet')}</b>
+                    <small>
+                      {event.invited > 0
+                        ? `${event.invited} ${t('invited', 'invited')}`
+                        : t('noInvites', 'no invites')}
+                      {' · '}
+                      {event.bids > 0
+                        ? `${event.bids} ${event.bids === 1 ? t('bid', 'bid') : t('bids', 'bids')}`
+                        : t('noBids', 'no bids')}
+                      {event.channel
+                        ? ` · ${
+                            event.channel === 'public' ? t('public', 'Public') : t('private', 'Private')
+                          }`
+                        : ''}
+                    </small>
+                  </>
+                )}
+              </dd>
+            </div>
+
+            {showPrice && (
+              <div>
+                <dt>
+                  <Euro size={18} strokeWidth={1.75} />
+                </dt>
+                <dd className="cal-price">
+                  <div className="cal-price-col">
+                    <span className="cal-price-label">{t('quoted', 'Quoted')}</span>
+                    <b>{moneyEur(event.quotedPrice)}</b>
+                    {event.priceType && event.priceType !== 'bidding' && (
+                      <span className={cls('cal-tag', event.priceType)}>
+                        {event.priceType === 'spot' ? 'SPOT' : 'CONTRACT'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="cal-price-col">
+                    <span className="cal-price-label">{t('agreed', 'Agreed')}</span>
+                    <b>{moneyEur(event.agreedPrice)}</b>
+                  </div>
+                </dd>
+              </div>
+            )}
+          </dl>
+
+          {relatedStops.length > 1 && (
+            <div className="cal-pop-route">
+              <div className="cal-mini-label">{t('itinerary', 'Itinerary')}</div>
+              <ol>
+                {relatedStops.map((st, idx) => (
+                  <li key={st.id}>
+                    <button
+                      type="button"
+                      className={cls(st.id === event.id && 'is-current')}
+                      disabled={st.id === event.id}
+                      onClick={() => onJumpStop(st)}
+                    >
+                      <span className={cls('cal-r-dot', st.type)}>
+                        {(st.stopIndex ?? idx) + 1}
+                      </span>
+                      <span className="cal-r-kind">
+                        {st.type === 'pickup' ? 'PU' : 'DL'}
+                      </span>
+                      <span className="cal-r-name">
+                        {st.locationName || st.city || '—'}
+                      </span>
+                      <span className="cal-r-time">
+                        {st.allDay
+                          ? `${formatDmy(st.dateYmd)} · ${t('anyTime', 'Any time')}`
+                          : `${formatDmy(st.dateYmd)} ${st.timeStart || ''}`.trim()}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </div>
           )}
-        </dl>
-
-        {relatedStops.length > 1 && (
-          <div className="cal-pop-route">
-            <div className="cal-mini-label">{t('itineraryJump', 'Itinerary · click a stop to jump to it')}</div>
-            <ol>
-              {relatedStops.map((st) => (
-                <li key={st.id}>
-                  <button
-                    type="button"
-                    className={cls(st.id === event.id && 'is-current')}
-                    disabled={st.id === event.id}
-                    onClick={() => onJumpStop(st)}
-                  >
-                    <span className={cls('cal-r-dot', st.type)}>{(st.stopIndex ?? 0) + 1}</span>
-                    <span className="cal-r-kind">{st.type === 'pickup' ? 'PU' : 'DL'}</span>
-                    <span className="cal-r-name">{st.locationName || st.city || '—'}</span>
-                    <span className="cal-r-time">
-                      {st.allDay
-                        ? `${formatDmy(st.dateYmd)} · ${t('anyTime', 'Any time')}`
-                        : `${formatDmy(st.dateYmd)} ${st.timeStart || ''}`}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
-
-        {vs !== 'canceled' && (
-          <div className="cal-progress-mini" aria-label={t('loadProgress', 'Load progress')}>
-            {STEPS.map((step, i) => (
-              <span
-                key={step}
-                className={cls(i <= pi && 'done', i === pi + 1 && 'next')}
-                title={step}
-              >
-                <i />
-                {t(`progress_${i}`, step)}
-              </span>
-            ))}
-          </div>
-        )}
+        </div>
 
         <footer className="cal-pop-actions">
           <button
             type="button"
-            className="cal-btn cal-btn--primary"
+            className="cal-pop-link"
             onClick={() => onNavigateToDetail(event.shipmentId)}
           >
-            {vs === 'bids' ? t('reviewBids', 'Review bids') : t('openLoad', 'Open load')}
-            <ExternalLink size={14} />
+            {hasBids ? t('reviewBids', 'Review bids') : t('openLoad', 'Open load')}
+            <ExternalLink size={14} strokeWidth={2.25} />
           </button>
         </footer>
       </div>

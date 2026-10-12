@@ -1,8 +1,8 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { cls } from './calendarUtils';
+import React, { useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 interface FloatingPanelProps {
-  anchor: DOMRect | null;
+  anchor?: DOMRect | null;
   onClose: () => void;
   width?: number;
   label: string;
@@ -10,85 +10,71 @@ interface FloatingPanelProps {
   recalc?: unknown;
 }
 
+/**
+ * Full-viewport modal shell portaled to document.body.
+ * Centering is done with flexbox (no transform on the dialog),
+ * so nothing inside the calendar can clip or overlap it.
+ */
 export const FloatingPanel: React.FC<FloatingPanelProps> = ({
-  anchor,
   onClose,
-  width = 392,
+  width = 420,
   label,
   children,
-  recalc,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
-  const mobile = typeof window !== 'undefined' && window.innerWidth < 640;
-
-  useLayoutEffect(() => {
-    if (mobile || !ref.current) return;
-    const el = ref.current;
-    const w = el.offsetWidth;
-    const h = el.offsetHeight;
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const m = 12;
-    let left: number;
-    let top: number;
-    if (anchor) {
-      left = anchor.right + 8;
-      if (left + w > vw - m) left = anchor.left - w - 8;
-      if (left < m) left = Math.min(Math.max(m, anchor.left), vw - w - m);
-      top = anchor.top - 6;
-      if (top + h > vh - m) top = Math.max(m, vh - h - m);
-      if (top < m) top = m;
-    } else {
-      left = Math.max(m, (vw - w) / 2);
-      top = Math.max(m, (vh - h) / 2);
-    }
-    setPos({ left, top });
-  }, [anchor, mobile, recalc]);
+  const titleId = useId();
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
 
   useEffect(() => {
-    ref.current?.focus({ preventScroll: true });
+    const t = window.setTimeout(() => ref.current?.focus({ preventScroll: true }), 0);
+    return () => window.clearTimeout(t);
   }, []);
 
   useEffect(() => {
-    const onScroll = (e: Event) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
-    };
+    const prevOverflow = document.body.style.overflow;
+    const prevPadding = document.body.style.paddingRight;
+    const scrollbar = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = 'hidden';
+    if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        onClose();
+      }
     };
-    window.addEventListener('resize', onClose);
-    window.addEventListener('scroll', onScroll, true);
-    window.addEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey, true);
     return () => {
-      window.removeEventListener('resize', onClose);
-      window.removeEventListener('scroll', onScroll, true);
-      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+      document.body.style.paddingRight = prevPadding;
+      window.removeEventListener('keydown', onKey, true);
     };
   }, [onClose]);
 
-  return (
-    <>
-      <div className={cls('cal-scrim', mobile && 'cal-scrim--dim')} onClick={onClose} />
+  if (typeof document === 'undefined') return null;
+
+  const dialogWidth = Math.min(width, Math.max(280, window.innerWidth - 32));
+
+  return createPortal(
+    <div className={`cal-modal-root${isMobile ? ' cal-modal-root--sheet' : ''}`} role="presentation">
+      <button type="button" className="cal-modal-backdrop" aria-label="Close" onClick={onClose} />
       <div
         ref={ref}
         role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
         aria-label={label}
         tabIndex={-1}
-        className={cls('cal-floating', mobile && 'cal-floating--sheet')}
-        style={
-          mobile
-            ? undefined
-            : {
-                width,
-                left: pos ? pos.left : -9999,
-                top: pos ? pos.top : 0,
-                visibility: pos ? 'visible' : 'hidden',
-              }
-        }
+        className={`cal-modal-dialog${isMobile ? ' cal-modal-dialog--sheet' : ''}`}
+        style={isMobile ? undefined : { width: dialogWidth }}
+        onClick={(e) => e.stopPropagation()}
       >
+        <span id={titleId} className="cal-sr-only">
+          {label}
+        </span>
         {children}
       </div>
-    </>
+    </div>,
+    document.body
   );
 };

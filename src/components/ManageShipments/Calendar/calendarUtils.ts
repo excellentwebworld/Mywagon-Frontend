@@ -1,4 +1,5 @@
 import type { Shipment } from '../../../context/AppContext';
+import { utcToLocalParts } from '../../../utils/timezone';
 
 /* ── Types ── */
 
@@ -69,23 +70,11 @@ export interface CalendarDayCell {
 export interface CalendarRailFilters {
   pickup: boolean;
   delivery: boolean;
-  customers: string[];
-  carriers: string[];
-  channel: 'all' | 'private' | 'public';
-  price: 'all' | 'spot' | 'contract';
-  showCanceled: boolean;
-  showDrafts: boolean;
 }
 
 export const DEFAULT_RAIL_FILTERS: CalendarRailFilters = {
   pickup: true,
   delivery: true,
-  customers: [],
-  carriers: [],
-  channel: 'all',
-  price: 'all',
-  showCanceled: false,
-  showDrafts: false,
 };
 
 export const CALENDAR_RANGES: Array<[CalendarRange, string]> = [
@@ -455,50 +444,82 @@ export function isEventOverdue(ev: Pick<CalendarEvent, 'status' | 'dateYmd' | 't
   return false;
 }
 
-/* ── Event extraction ── */
+/* ── Event extraction (UTC → browser/saved TZ via shared helpers) ── */
 
-function normalizeDatePart(val?: string | null): string | null {
-  if (!val) return null;
-  const trimmed = val.trim();
-  if (
-    trimmed === '0' ||
-    trimmed === '—' ||
-    trimmed === '-' ||
-    trimmed.startsWith('0000-00-00') ||
-    trimmed.startsWith('1970-01-01')
-  ) {
-    return null;
-  }
-  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
-    return trimmed.slice(0, 10);
-  }
-  const parsed = new Date(trimmed);
-  if (!Number.isNaN(parsed.getTime()) && parsed.getFullYear() > 1970) {
-    return toYmd(parsed);
-  }
-  return null;
+function isInvalidScheduleToken(val: string): boolean {
+  return (
+    !val ||
+    val === '0' ||
+    val === '—' ||
+    val === '-' ||
+    val === 'null' ||
+    val === 'undefined' ||
+    val.startsWith('0000-00-00') ||
+    val.startsWith('1970-01-01') ||
+    val.startsWith('31/12/1969') ||
+    val.startsWith('01/01/1970')
+  );
 }
 
-function normalizeTimePart(val?: string | null): string {
-  if (!val) return '';
-  const trimmed = val.trim();
-  if (trimmed === '0' || trimmed === '—' || trimmed === '-' || trimmed.startsWith('00:00:00')) {
-    return '';
+/**
+ * Resolve any schedule field to local calendar date + time.
+ * - Mapped stop fields are already local (YYYY-MM-DD / HH:mm / dd/MM/yyyy HH:mm).
+ * - Raw UTC/ISO strings are converted with `utcToLocalParts` (browser TZ).
+ */
+function toLocalSchedule(val?: string | null): { date: string; time: string } {
+  if (val == null) return { date: '', time: '' };
+  const trimmed = String(val).trim();
+  if (isInvalidScheduleToken(trimmed)) return { date: '', time: '' };
+
+  // Already-local panel label from shipmentsMapper.scheduleLabel: dd/MM/yyyy[ HH:mm]
+  const dmy = trimmed.match(
+    /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[\s·]+(\d{1,2}):(\d{2})(?::\d{2})?)?$/
+  );
+  if (dmy) {
+    const [, d, m, y, hh, mm] = dmy;
+    if (Number(y) <= 1970) return { date: '', time: '' };
+    return {
+      date: `${y}-${padZero(Number(m))}-${padZero(Number(d))}`,
+      time: hh != null && mm != null ? `${padZero(Number(hh))}:${padZero(Number(mm))}` : '',
+    };
   }
-  if (/^\d{1,2}:\d{2}/.test(trimmed)) {
-    return trimmed.slice(0, 5);
+
+  // Pure local date from mapped stop.date
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return { date: trimmed, time: '' };
   }
-  if (trimmed.includes('T') || trimmed.includes(' ')) {
-    const parsed = new Date(trimmed);
-    if (!Number.isNaN(parsed.getTime())) {
-      return `${padZero(parsed.getHours())}:${padZero(parsed.getMinutes())}`;
-    }
+
+  // Pure local time from mapped stop.timeStart
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+    return { date: '', time: trimmed.slice(0, 5) };
   }
-  return '';
+
+  // UTC/ISO (or ambiguous datetime) → convert with shared helper
+  const local = utcToLocalParts(trimmed);
+  if (local.date && !local.date.startsWith('1970-01-01')) {
+    return local;
+  }
+  return { date: '', time: '' };
+}
+
+/** Prefer ISO UTC when present so conversion is explicit; else use already-local fallback. */
+function resolveLocalParts(
+  iso?: string | null,
+  fallback?: string | null
+): { date: string; time: string } {
+  if (iso) {
+    const fromIso = toLocalSchedule(iso);
+    if (fromIso.date) return fromIso;
+  }
+  return toLocalSchedule(fallback);
 }
 
 function shipmentBids(s: any): number {
-  return Number(s.bidsReceived ?? s.bids ?? s.interestedCount ?? 0) || 0;
+  return Math.max(
+    Number(s.bidsReceived) || 0,
+    Number(s.bids) || 0,
+    Number(s.interestedCount) || 0
+  );
 }
 
 function shipmentInvited(s: any): number {
@@ -559,21 +580,20 @@ export function extractCalendarEvents(shipments: Shipment[]): CalendarEvent[] {
           stopAny.type === 'pickup' || String(stopAny.type).toLowerCase() === 'pickup';
         const type: 'pickup' | 'delivery' = isPickup ? 'pickup' : 'delivery';
 
-        const dateYmd =
-          normalizeDatePart(stopAny.date) ||
-          normalizeDatePart(stopAny.date_iso) ||
-          (isPickup
-            ? normalizeDatePart(sAny.pickDt || sAny.pickup_at_iso || sAny.pickup_at)
-            : normalizeDatePart(sAny.delDt || sAny.delivery_at_iso || sAny.delivery_at));
+        // Mapped stops already have local date/time (via mapStop → utcToLocalParts).
+        // ISO fields are converted explicitly; display fallbacks are treated as local.
+        const fromStopDate = toLocalSchedule(stopAny.date);
+        const fromStopStart = toLocalSchedule(stopAny.timeStart || stopAny.time_start);
+        const fromStopEnd = toLocalSchedule(stopAny.timeEnd || stopAny.time_end);
+        const fromIso = isPickup
+          ? resolveLocalParts(sAny.pickDtIso || sAny.pickup_at_iso, sAny.pickDt || sAny.pickup_at)
+          : resolveLocalParts(sAny.delDtIso || sAny.delivery_at_iso, sAny.delDt || sAny.delivery_at);
 
+        const dateYmd = fromStopDate.date || fromIso.date || null;
         if (!dateYmd) return;
 
-        const timeStart =
-          normalizeTimePart(stopAny.timeStart || stopAny.time_start) ||
-          (isPickup
-            ? normalizeTimePart(sAny.pickDt || sAny.pickup_at)
-            : normalizeTimePart(sAny.delDt || sAny.delivery_at));
-        const timeEnd = normalizeTimePart(stopAny.timeEnd || stopAny.time_end);
+        const timeStart = fromStopStart.time || fromIso.time || '';
+        const timeEnd = fromStopEnd.time || '';
         const allDay = !timeStart || !!stopAny.allDay || !!stopAny.all_day;
         const startMinutes = allDay ? 0 : minutesOfDayFromParts(timeStart);
         const durationMinutes = allDay
@@ -664,17 +684,24 @@ export function extractCalendarEvents(shipments: Shipment[]): CalendarEvent[] {
         });
       });
     } else {
-      const pickupDateYmd = normalizeDatePart(sAny.pickDt || sAny.pickup_at_iso || sAny.pickup_at);
-      if (pickupDateYmd) {
-        const timeStart = normalizeTimePart(sAny.pickDt || sAny.pickup_at);
-        const timeEnd = normalizeTimePart(sAny.pickDtTo || sAny.pickup_to);
+      const pickupLocal = resolveLocalParts(
+        sAny.pickDtIso || sAny.pickup_at_iso,
+        sAny.pickDt || sAny.pickup_at
+      );
+      const pickupEndLocal = resolveLocalParts(
+        sAny.pickDtToIso || sAny.pickup_to_iso,
+        sAny.pickDtTo || sAny.pickup_to
+      );
+      if (pickupLocal.date) {
+        const timeStart = pickupLocal.time;
+        const timeEnd = pickupEndLocal.time;
         const allDay = !timeStart;
         pushEvent({
           id: `${s.id}-pickup`,
           shipmentId: Number(s.id),
           sid,
           type: 'pickup',
-          dateYmd: pickupDateYmd,
+          dateYmd: pickupLocal.date,
           timeStart: allDay ? '' : timeStart,
           timeEnd: allDay ? '' : timeEnd,
           startMinutes: allDay ? 0 : minutesOfDayFromParts(timeStart),
@@ -706,19 +733,24 @@ export function extractCalendarEvents(shipments: Shipment[]): CalendarEvent[] {
         });
       }
 
-      const deliveryDateYmd = normalizeDatePart(
-        sAny.delDt || sAny.delivery_at_iso || sAny.delivery_at
+      const deliveryLocal = resolveLocalParts(
+        sAny.delDtIso || sAny.delivery_at_iso,
+        sAny.delDt || sAny.delivery_at
       );
-      if (deliveryDateYmd) {
-        const timeStart = normalizeTimePart(sAny.delDt || sAny.delivery_at);
-        const timeEnd = normalizeTimePart(sAny.delDtTo || sAny.delivery_to);
+      const deliveryEndLocal = resolveLocalParts(
+        sAny.delDtToIso || sAny.delivery_to_iso,
+        sAny.delDtTo || sAny.delivery_to
+      );
+      if (deliveryLocal.date) {
+        const timeStart = deliveryLocal.time;
+        const timeEnd = deliveryEndLocal.time;
         const allDay = !timeStart;
         pushEvent({
           id: `${s.id}-delivery`,
           shipmentId: Number(s.id),
           sid,
           type: 'delivery',
-          dateYmd: deliveryDateYmd,
+          dateYmd: deliveryLocal.date,
           timeStart: allDay ? '' : timeStart,
           timeEnd: allDay ? '' : timeEnd,
           startMinutes: allDay ? 0 : minutesOfDayFromParts(timeStart),
@@ -790,31 +822,25 @@ export function applyRailFilters(
   return events.filter((ev) => {
     if (ev.type === 'pickup' && !f.pickup) return false;
     if (ev.type === 'delivery' && !f.delivery) return false;
-
-    const status = String(ev.status || '').toLowerCase();
-    if ((status === 'canceled' || status === 'cancelled') && !f.showCanceled) return false;
-    if (status === 'draft' && !f.showDrafts) return false;
-
-    if (f.customers.length && !f.customers.includes(ev.companyName || '')) return false;
-    if (f.carriers.length) {
-      const key = ev.carrierName || '__none';
-      if (!f.carriers.includes(key)) return false;
-    }
-    if (f.channel !== 'all' && ev.channel && ev.channel !== f.channel) return false;
-    if (f.price !== 'all') {
-      const pt = ev.priceType === 'bidding' ? 'spot' : ev.priceType;
-      if (pt && pt !== f.price) return false;
-    }
     return true;
   });
 }
 
+/**
+ * Unique overdue loads from the given event set (typically the visible day/range).
+ * Prefer the pickup stop when both pickup and dropoff are present.
+ */
 export function collectOverdueEvents(events: CalendarEvent[]): CalendarEvent[] {
   const seen = new Set<number>();
   const out: CalendarEvent[] = [];
   events
-    .filter((e) => e.isOverdue && e.type === 'pickup')
-    .sort((a, b) => a.dateYmd.localeCompare(b.dateYmd))
+    .filter((e) => e.isOverdue)
+    .sort((a, b) => {
+      const byDate = a.dateYmd.localeCompare(b.dateYmd);
+      if (byDate !== 0) return byDate;
+      if (a.type !== b.type) return a.type === 'pickup' ? -1 : 1;
+      return a.sid.localeCompare(b.sid);
+    })
     .forEach((e) => {
       if (seen.has(e.shipmentId)) return;
       seen.add(e.shipmentId);
@@ -884,13 +910,17 @@ export function toDateLocale(lang?: string | null): string {
   return code === 'el' ? 'el-GR' : 'en-US';
 }
 
-export function getWeekdayLabels(locale = 'en-US', uppercase = true): string[] {
+export function getWeekdayLabels(
+  locale = 'en-US',
+  uppercase = true,
+  style: 'narrow' | 'short' | 'long' = 'short'
+): string[] {
   const baseDate = new Date(2026, 5, 1); // Monday
   const labels: string[] = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date(baseDate);
     d.setDate(baseDate.getDate() + i);
-    const label = d.toLocaleDateString(locale, { weekday: 'short' });
+    const label = d.toLocaleDateString(locale, { weekday: style });
     labels.push(uppercase ? label.toLocaleUpperCase(locale) : label);
   }
   return labels;

@@ -33,7 +33,7 @@ export const EventChip: React.FC<EventChipProps> = ({
     ? t('anyTime', 'Any time')
     : formatEventTimeRange(ev.timeStart, ev.timeEnd) || ev.timeStart;
   const vs = ev.visualStatus;
-  const label = `${ev.type === 'pickup' ? t('pickup', 'Pickup') : t('dropoff', 'Dropoff')} ${ev.sid}, ${timeLabel}, ${ev.companyName || ''}, ${ev.locationName || ''}, ${STATUS_LABELS[vs]}`;
+  const label = `${ev.type === 'pickup' ? t('pickup', 'Pickup') : t('dropoff', 'Dropoff')} ${ev.sid}, ${timeLabel}, ${ev.companyName || ''}, ${ev.locationName || ''}, ${t(`legend_${vs}`, STATUS_LABELS[vs])}`;
 
   return (
     <button
@@ -60,7 +60,12 @@ export const EventChip: React.FC<EventChipProps> = ({
         ) : (
           <ArrowDown size={12} className="ev__icon" aria-hidden />
         )}
-        <span className="ev__kind">
+        <span
+          className={cls(
+            'ev__kind',
+            ev.type === 'pickup' ? 'ev__kind--pickup' : 'ev__kind--delivery'
+          )}
+        >
           {ev.type === 'pickup' ? 'PU' : 'DL'}
           {multi}
         </span>

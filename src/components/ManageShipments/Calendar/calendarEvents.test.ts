@@ -236,4 +236,11 @@ describe('Calendar Event Logic & Data Mapping', () => {
     expect(labels[0].toLowerCase()).toContain('δευ');
     expect(labels[6].toLowerCase()).toContain('κυρ');
   });
+
+  it('returns Greek narrow weekday initials for mini-month', () => {
+    const labels = getWeekdayLabels(toDateLocale('el'), true, 'narrow');
+    expect(labels).toHaveLength(7);
+    expect(labels[0].length).toBeGreaterThanOrEqual(1);
+    expect(labels[0]).not.toBe('M');
+  });
 });

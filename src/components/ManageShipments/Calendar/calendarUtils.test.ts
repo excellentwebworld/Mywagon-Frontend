@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_RAIL_FILTERS,
   applyRailFilters,
+  collectOverdueEvents,
   extractCalendarEvents,
   formatEventTimeRange,
   getAdjacentDay,
@@ -17,6 +18,7 @@ import {
   visibleDays,
 } from './calendarUtils';
 import type { Shipment } from '../../../context/AppContext';
+import { utcToLocalParts } from '../../../utils/timezone';
 
 describe('calendarUtils', () => {
   describe('getCalendarMonthGrid', () => {
@@ -190,6 +192,31 @@ describe('calendarUtils', () => {
       expect(events[1].type).toBe('delivery');
       expect(events[1].dateYmd).toBe('2026-10-16');
     });
+
+    it('converts UTC ISO pickup/delivery to browser-local date and time', () => {
+      // 09:00 UTC → local wall clock via utcToLocalParts (browser TZ)
+      const utcShipment: Partial<Shipment> = {
+        id: '104',
+        auto_id: 'MYV-104',
+        status: 'scheduled',
+        pickup_at_iso: '2026-10-15T09:00:00Z',
+        delivery_at_iso: '2026-10-16T14:30:00Z',
+      };
+
+      const events = extractCalendarEvents([utcShipment as Shipment]);
+      expect(events).toHaveLength(2);
+
+      const pickup = events.find((e) => e.type === 'pickup')!;
+      const delivery = events.find((e) => e.type === 'delivery')!;
+
+      const pickLocal = utcToLocalParts('2026-10-15T09:00:00Z');
+      const delLocal = utcToLocalParts('2026-10-16T14:30:00Z');
+
+      expect(pickup.dateYmd).toBe(pickLocal.date);
+      expect(pickup.timeStart).toBe(pickLocal.time);
+      expect(delivery.dateYmd).toBe(delLocal.date);
+      expect(delivery.timeStart).toBe(delLocal.time);
+    });
   });
 
   describe('formatEventTimeRange', () => {
@@ -301,6 +328,32 @@ describe('calendarUtils', () => {
       expect(laid[0].cols).toBe(2);
       expect(laid[1].cols).toBe(2);
       expect(new Set(laid.map((x) => x.col)).size).toBe(2);
+    });
+
+    it('collectOverdueEvents counts only overdue loads in the given visible set', () => {
+      const dayEvents = extractCalendarEvents([
+        {
+          id: '1',
+          auto_id: 'SID-1',
+          status: 'past_due',
+          stops: [{ id: 1, type: 'delivery', date: '2026-10-07', time_start: '11:28' }],
+        } as Shipment,
+        {
+          id: '2',
+          auto_id: 'SID-2',
+          status: 'pending',
+          stops: [{ id: 1, type: 'delivery', date: '2026-10-07', time_start: '12:00' }],
+        } as Shipment,
+        {
+          id: '3',
+          auto_id: 'SID-3',
+          status: 'past_due',
+          stops: [{ id: 1, type: 'delivery', date: '2026-10-07', time_start: '16:42' }],
+        } as Shipment,
+      ]);
+      // Only past_due rows on this day count (pending dropoffs are not overdue themselves)
+      expect(collectOverdueEvents(dayEvents)).toHaveLength(2);
+      expect(collectOverdueEvents(dayEvents).map((e) => e.sid).sort()).toEqual(['SID-1', 'SID-3']);
     });
   });
 });

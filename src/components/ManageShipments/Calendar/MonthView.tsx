@@ -14,7 +14,8 @@ interface MonthViewProps {
   selectedId: string | null;
   onSelectEvent: (event: CalendarEvent, rect: DOMRect) => void;
   onSelectDate: (dateYmd: string) => void;
-  onMore: (dateYmd: string, rect: DOMRect) => void;
+  /** Opens day view for the cell date (e.g. "+N more"). */
+  onMore: (dateYmd: string) => void;
   lang?: string;
   t: (key: string, defaultValue?: string) => string;
 }
@@ -88,7 +89,7 @@ export const MonthView: React.FC<MonthViewProps> = ({
                 <button
                   type="button"
                   className="mg-more"
-                  onClick={(ev) => onMore(cell.dateYmd, ev.currentTarget.getBoundingClientRect())}
+                  onClick={() => onMore(cell.dateYmd)}
                 >
                   +{hidden} {t('more', 'more')}
                 </button>

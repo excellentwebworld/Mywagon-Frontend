@@ -34,7 +34,6 @@ import { TimeGrid } from './TimeGrid';
 import { AgendaList } from './AgendaList';
 import { EventDetailPopover } from './EventDetailPopover';
 import { FilterRail } from './FilterRail';
-import { DayMore } from './DayMore';
 import { OverdueList } from './OverdueList';
 import {
   filtersToApiParams,
@@ -88,7 +87,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const [pop, setPop] = useState<{ event: CalendarEvent; anchor: DOMRect | null } | null>(null);
-  const [more, setMore] = useState<{ dateYmd: string; anchor: DOMRect | null } | null>(null);
   const [overdueAnchor, setOverdueAnchor] = useState<DOMRect | null>(null);
 
   const updateUrlParams = useCallback(
@@ -158,35 +156,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     [calendarShipments]
   );
 
-  // Canceled toggle only meaningful on Active (API may still return mixed); drafts on Active/Drafts.
-  const statusTabAllowsCanceled =
-    !activeTabStatus || activeTabStatus === 'active' || activeTabStatus === 'cancelled';
-  const statusTabAllowsDrafts =
-    !activeTabStatus || activeTabStatus === 'active' || activeTabStatus === 'drafts';
-
-  const railFiltersEffective = useMemo(() => {
-    const f = { ...railFilters };
-    // Specific status tabs already scope the API — don't hide matching events client-side.
-    if (
-      activeTabStatus &&
-      activeTabStatus !== 'active' &&
-      activeTabStatus !== 'cancelled' &&
-      activeTabStatus !== 'drafts'
-    ) {
-      f.showCanceled = true;
-      f.showDrafts = true;
-      return f;
-    }
-    if (!statusTabAllowsCanceled) f.showCanceled = false;
-    if (!statusTabAllowsDrafts) f.showDrafts = false;
-    if (activeTabStatus === 'cancelled') f.showCanceled = true;
-    if (activeTabStatus === 'drafts') f.showDrafts = true;
-    return f;
-  }, [railFilters, statusTabAllowsCanceled, statusTabAllowsDrafts, activeTabStatus]);
-
   const filteredEvents = useMemo(
-    () => applyRailFilters(allEvents, railFiltersEffective),
-    [allEvents, railFiltersEffective]
+    () => applyRailFilters(allEvents, railFilters),
+    [allEvents, railFilters]
   );
   const eventsByDate = useMemo(() => groupEventsByDate(filteredEvents), [filteredEvents]);
   const days = useMemo(() => visibleDays(range, cursor), [range, cursor]);
@@ -203,19 +175,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     () => new Set(inRangeEvents.map((e) => e.shipmentId)).size,
     [inRangeEvents]
   );
-  const overdue = useMemo(() => collectOverdueEvents(allEvents), [allEvents]);
+  // Scope overdue badge to the visible day/range so it matches what the user sees
+  const overdue = useMemo(() => collectOverdueEvents(inRangeEvents), [inRangeEvents]);
 
   const filterCount = useMemo(() => {
     const f = railFilters;
-    return (
-      (f.customers.length ? 1 : 0) +
-      (f.carriers.length ? 1 : 0) +
-      (f.channel !== 'all' ? 1 : 0) +
-      (f.price !== 'all' ? 1 : 0) +
-      (!f.pickup || !f.delivery ? 1 : 0) +
-      (f.showCanceled ? 1 : 0) +
-      (f.showDrafts ? 1 : 0)
-    );
+    return !f.pickup || !f.delivery ? 1 : 0;
   }, [railFilters]);
 
   const periodLabelText = useMemo(
@@ -231,19 +196,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   }, [pop, allEvents]);
 
   const openEvent = useCallback((ev: CalendarEvent, rect: DOMRect) => {
-    setMore(null);
     setOverdueAnchor(null);
     setPop({ event: ev, anchor: rect });
   }, []);
 
   const closePop = useCallback(() => setPop(null), []);
-  const closeMore = useCallback(() => setMore(null), []);
   const closeOverdue = useCallback(() => setOverdueAnchor(null), []);
 
   const handleRangeChange = (r: CalendarRange) => {
     setRange(r);
     setPop(null);
-    setMore(null);
   };
 
   const handleLayoutChange = (l: CalendarLayout) => {
@@ -254,26 +216,23 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const handlePrev = () => {
     setCursor((c) => stepCursor(range, c, -1));
     setPop(null);
-    setMore(null);
   };
 
   const handleNext = () => {
     setCursor((c) => stepCursor(range, c, 1));
     setPop(null);
-    setMore(null);
   };
 
   const handleToday = () => {
     setCursor(new Date());
     setPop(null);
-    setMore(null);
   };
 
   const openDay = useCallback((dateYmd: string) => {
     setCursor(parseYmdDate(dateYmd));
     setRange('day');
     setPop(null);
-    setMore(null);
+    setOverdueAnchor(null);
   }, []);
 
   const pickDay = useCallback((d: Date) => {
@@ -283,7 +242,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   const jumpTo = useCallback((ev: CalendarEvent) => {
     setOverdueAnchor(null);
-    setMore(null);
     setCursor(parseYmdDate(ev.dateYmd));
     setPop({ event: ev, anchor: null });
   }, []);
@@ -299,7 +257,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key === 'Escape') {
         setPop(null);
-        setMore(null);
         setOverdueAnchor(null);
         if (typeof window !== 'undefined' && window.innerWidth < 900) setRailOpen(false);
         return;
@@ -317,7 +274,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       else return;
       e.preventDefault();
       setPop(null);
-      setMore(null);
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
@@ -343,10 +299,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         selectedId={selectedId}
         onSelectEvent={openEvent}
         onSelectDate={openDay}
-        onMore={(dateYmd, rect) => {
-          setPop(null);
-          setMore({ dateYmd, anchor: rect });
-        }}
+        onMore={openDay}
         lang={lang}
         t={t}
       />
@@ -381,7 +334,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         overdueCount={overdue.length}
         onOverdueClick={(rect) => {
           setPop(null);
-          setMore(null);
           setOverdueAnchor(rect);
         }}
         filterCount={filterCount}
@@ -407,11 +359,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               byDay={eventsByDate}
               filters={railFilters}
               setFilters={setRailFilters}
-              eventsForFacets={allEvents}
-              statusTabAllowsCanceled={statusTabAllowsCanceled}
-              statusTabAllowsDrafts={statusTabAllowsDrafts}
               onPickDate={pickDay}
               onClose={() => setRailOpen(false)}
+              lang={lang}
               t={t}
             />
             <div className="cal-rail-scrim" onClick={() => setRailOpen(false)} />
@@ -432,20 +382,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             setCursor(parseYmdDate(ev.dateYmd));
             setPop({ event: ev, anchor: null });
           }}
-          t={t}
-        />
-      )}
-
-      {more && (
-        <DayMore
-          key={more.dateYmd}
-          dateYmd={more.dateYmd}
-          anchor={more.anchor}
-          events={eventsByDate[more.dateYmd] || []}
-          onOpen={openEvent}
-          onClose={closeMore}
-          onDayOpen={openDay}
-          lang={lang}
           t={t}
         />
       )}

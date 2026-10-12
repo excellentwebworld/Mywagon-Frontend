@@ -6,7 +6,6 @@ export * from './AgendaList';
 export * from './EventDetailPopover';
 export * from './EventChip';
 export * from './FilterRail';
-export * from './DayMore';
 export * from './OverdueList';
 export * from './FloatingPanel';
 export * from './calendarUtils';

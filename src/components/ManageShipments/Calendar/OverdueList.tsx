@@ -30,19 +30,26 @@ export const OverdueList: React.FC<OverdueListProps> = ({
       width={420}
       label={t('overdueLoads', 'Overdue loads')}
     >
-      <div className="cal-daymore">
-        <header className="cal-pop-head">
-          <b>
-            {t('needsAttention', 'Needs attention')} · {events.length}
-          </b>
-          <button type="button" className="cal-icon-btn sm" onClick={onClose} aria-label={t('close', 'Close')}>
-            <X size={15} />
+      <div className="cal-od-panel">
+        <header className="cal-daymore-head">
+          <div className="cal-daymore-title">
+            <h3>
+              {t('needsAttention', 'Needs attention')} · {events.length}
+            </h3>
+          </div>
+          <button
+            type="button"
+            className="cal-icon-btn sm"
+            onClick={onClose}
+            aria-label={t('close', 'Close')}
+          >
+            <X size={18} strokeWidth={2} />
           </button>
         </header>
         <p className="cal-mini-note">
           {t(
             'overdueNote',
-            'Past Due loads and Pending loads whose pickup date has passed. Old records stay listed here even when they fall outside the visible dates.'
+            'Past Due loads and Pending loads whose pickup date has passed, in the dates you are viewing.'
           )}
         </p>
         <div className="cal-od-list">
@@ -62,7 +69,7 @@ export const OverdueList: React.FC<OverdueListProps> = ({
                 <small>{ev.companyName || ''}</small>
               </span>
               <span className={cls('cal-pill', 'cal-pill--sm', `cal-pill--${ev.visualStatus}`)}>
-                {STATUS_LABELS[ev.visualStatus]}
+                {t(`legend_${ev.visualStatus}`, STATUS_LABELS[ev.visualStatus])}
               </span>
             </button>
           ))}
