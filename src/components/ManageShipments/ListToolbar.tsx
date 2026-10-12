@@ -88,24 +88,34 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
       </button>
 
       {onViewModeChange ? (
-        <button
-          type="button"
-          className={`f-pill ${viewMode === 'calendar' ? 'has' : ''}`}
-          onClick={() => onViewModeChange(viewMode === 'calendar' ? 'list' : 'calendar')}
-          title={viewMode === 'calendar' ? t('switchToTableView', 'Switch to table view') : t('switchToCalendarView', 'Switch to calendar view')}
+        <div
+          className="view-mode-toggle"
+          role="tablist"
+          aria-label={t('viewMode', 'View Mode')}
         >
-          {viewMode === 'calendar' ? (
-            <>
-              <List size={12} />
-              {t('table', 'Table')}
-            </>
-          ) : (
-            <>
-              <CalendarIcon size={12} />
-              {t('calendar', 'Calendar')}
-            </>
-          )}
-        </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode !== 'calendar'}
+            className={`view-mode-toggle-btn ${viewMode !== 'calendar' ? 'active' : ''}`}
+            onClick={() => onViewModeChange('list')}
+            title={t('tableView', 'Table View')}
+          >
+            <List size={12} />
+            <span>{t('table', 'Table')}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === 'calendar'}
+            className={`view-mode-toggle-btn ${viewMode === 'calendar' ? 'active' : ''}`}
+            onClick={() => onViewModeChange('calendar')}
+            title={t('calendarView', 'Calendar View')}
+          >
+            <CalendarIcon size={12} />
+            <span>{t('calendar', 'Calendar')}</span>
+          </button>
+        </div>
       ) : null}
     </div>
   </div>
