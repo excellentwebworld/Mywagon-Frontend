@@ -38,6 +38,7 @@ import { OverdueList } from './OverdueList';
 import {
   filtersToApiParams,
   statusTabToApiStatus,
+  type KpiKey,
   type ShipmentsFilterState,
   type StatusTabKey,
 } from '../../../pages/ManageShipments/utils/listingUtils';
@@ -47,6 +48,8 @@ import '../../../styles/manage-calendar.css';
 interface CalendarViewProps {
   direction: 'outbound' | 'inbound';
   activeTabStatus?: StatusTabKey;
+  /** Top KPI strip filter (Needs Action, Awaiting POD, …) — same as list view. */
+  activeKpi?: KpiKey | null;
   searchQuery: string;
   appliedFilters: ShipmentsFilterState;
   t: (key: string, defaultValue?: string) => string;
@@ -55,6 +58,7 @@ interface CalendarViewProps {
 export const CalendarView: React.FC<CalendarViewProps> = ({
   direction,
   activeTabStatus,
+  activeKpi = null,
   searchQuery,
   appliedFilters,
   t,
@@ -129,6 +133,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       direction,
       ...filtersToApiParams(appliedFilters),
       ...(apiStatus !== undefined ? { status: apiStatus } : {}),
+      ...(activeKpi ? { kpi: activeKpi } : {}),
       ...(searchQuery.trim() ? { search: searchQuery.trim() } : {}),
     };
 
@@ -149,7 +154,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [dateRange.from, dateRange.to, direction, activeTabStatus, searchQuery, appliedFilters, t]);
+  }, [
+    dateRange.from,
+    dateRange.to,
+    direction,
+    activeTabStatus,
+    activeKpi,
+    searchQuery,
+    appliedFilters,
+    t,
+  ]);
 
   const allEvents = useMemo(
     () => extractCalendarEvents(calendarShipments),

@@ -85,7 +85,8 @@ export const ManageShipments: React.FC = () => {
         <CalendarView
           direction={m.direction}
           activeTabStatus={m.activeTab}
-          searchQuery={m.searchQuery}
+          activeKpi={m.activeKpi}
+          searchQuery={m.debouncedSearch}
           appliedFilters={m.appliedFilters}
           t={m.t}
         />
