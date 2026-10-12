@@ -432,29 +432,63 @@ html.dark .driver-popover-arrow-side-bottom {
   position: fixed;
   right: 24px;
   bottom: 24px;
-  z-index: 60;
+  z-index: 10050;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 12px 18px;
-  border: none;
+  border: none !important;
   border-radius: 9999px;
-  background: linear-gradient(135deg, var(--ah, #9B51E0) 0%, var(--ac, #9b51e0) 100%);
-  color: #fff;
+  background: linear-gradient(135deg, #4e5cdb 0%, #9b51e0 100%) !important;
+  background-color: #9b51e0 !important;
+  color: #ffffff !important;
   font-size: 14px;
   font-weight: 700;
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--ac, #9b51e0) 40%, transparent);
+  box-shadow: 0 8px 24px rgba(155, 81, 224, 0.4);
   cursor: pointer;
+  isolation: isolate;
+  opacity: 1 !important;
+  mix-blend-mode: normal !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.mv-help-tour-btn > * {
+  position: relative;
+  z-index: 1;
+  color: #ffffff !important;
 }
 
 .mv-help-tour-btn:hover {
   filter: brightness(1.06);
   transform: translateY(-2px);
+  background: linear-gradient(135deg, #9b51e0 0%, #4e5cdb 100%) !important;
+  color: #ffffff !important;
 }
 
 .mv-help-tour-btn:focus-visible {
-  outline: 2px solid var(--ac, #c4b5fd);
+  outline: 2px solid #c4b5fd;
   outline-offset: 2px;
+}
+
+html.dark .mv-help-tour-btn,
+[data-theme='dark'] .mv-help-tour-btn,
+html.light .mv-help-tour-btn,
+[data-theme='light'] .mv-help-tour-btn {
+  background: linear-gradient(135deg, #4e5cdb 0%, #9b51e0 100%) !important;
+  background-color: #9b51e0 !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+html.dark .mv-help-tour-btn,
+[data-theme='dark'] .mv-help-tour-btn {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45), 0 8px 24px rgba(155, 81, 224, 0.45);
+}
+
+html.light .mv-help-tour-btn,
+[data-theme='light'] .mv-help-tour-btn {
+  box-shadow: 0 8px 24px rgba(155, 81, 224, 0.4);
 }
 
 @media (max-width: 900px) {

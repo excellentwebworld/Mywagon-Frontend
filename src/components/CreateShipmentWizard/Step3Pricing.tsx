@@ -3,7 +3,13 @@ import { useFormikContext } from 'formik';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatVehicleSelectionSummary, findSpecLabel } from './vehicleTypes';
-import { scrollToValidationAnchor } from './validation';
+import {
+  clampTargetPriceInput,
+  isTargetPriceWithinDigitLimit,
+  MAX_TARGET_PRICE_DIGITS,
+  MAX_TARGET_PRICE_VALUE,
+  scrollToValidationAnchor,
+} from './validation';
 import { useVehicleTypes } from '../../hooks/useVehicleTypes';
 import {
   ArrowLeft,
@@ -180,6 +186,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   const [docDescription, setDocDescription] = useState('');
   const hydratedDocIdRef = useRef<string>('');
 
+  const DOC_NAME_MAX_LENGTH = 50;
+  const DOC_DESC_MAX_LENGTH = 250;
+  const DRIVER_NOTES_MAX_LENGTH = 250;
+  const clampDocName = (value: string) => value.slice(0, DOC_NAME_MAX_LENGTH);
+  const clampDocDescription = (value: string) => value.slice(0, DOC_DESC_MAX_LENGTH);
+
   // Create mode: hydrate the single-slot form from the attached document.
   useEffect(() => {
     if (isEditMode) return;
@@ -191,8 +203,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
       setDocDescription('');
       return;
     }
-    setDocName(attachedDoc.name || '');
-    setDocDescription(attachedDoc.description || '');
+    setDocName(clampDocName(attachedDoc.name || ''));
+    setDocDescription(clampDocDescription(attachedDoc.description || ''));
   }, [attachedDoc, isEditMode]);
 
   const isPersistedDocId = (id: string | number | undefined | null) =>
@@ -205,7 +217,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
       return;
     }
 
-    const defaultName = docName.trim() || file.name.replace(/\.[^/.]+$/, '');
+    const defaultName = clampDocName(docName.trim() || file.name.replace(/\.[^/.]+$/, ''));
     if (!docName.trim()) {
       setDocName(defaultName);
     }
@@ -222,7 +234,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     const newDoc = {
       id: `temp-${Date.now()}`,
       name: defaultName,
-      description: docDescription.trim(),
+      description: clampDocDescription(docDescription.trim()),
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type || 'application/octet-stream',
@@ -445,15 +457,15 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     const minutes =
       route.totalDriveMin > 0 ? route.totalDriveMin : values.routeSummary?.totalDriveMin || 0;
     if (!minutes) return '—';
-    return formatDurationMin(minutes);
-  }, [route.totalDriveMin, values.routeSummary?.totalDriveMin]);
+    return formatDurationMin(minutes, t);
+  }, [route.totalDriveMin, values.routeSummary?.totalDriveMin, t]);
 
   const formattedWeight = useMemo(
-    () => (totalWeightKg > 0 ? formatWeightKg(totalWeightKg) : '—'),
-    [totalWeightKg]
+    () => (totalWeightKg > 0 ? formatWeightKg(totalWeightKg, t) : '—'),
+    [totalWeightKg, t]
   );
 
-  const formattedQty = useMemo(() => formatTripQtySummary(stops), [stops]);
+  const formattedQty = useMemo(() => formatTripQtySummary(stops, t), [stops, t]);
 
   const totalKm = values.routeSummary?.totalDistKm || 0;
   const displayKm = route.totalDistKm > 0 ? route.totalDistKm : totalKm;
@@ -623,14 +635,24 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 <div className="flex gap-2">
                   <input
                     type="email"
-                    className="flex-1 p-2 border rounded-lg text-xs outline-none"
+                    className="wizard-tracking-email flex-1 p-2 border rounded-lg text-xs outline-none"
                     placeholder={t('createShipment.emailPlaceholder', 'email@example.com')}
                     value={em}
                     onChange={(e) => updateEmailField(o.orderId, emIdx, e.target.value)}
+                    style={{
+                      background: T.sa,
+                      borderColor: T.bd,
+                      color: T.t1,
+                    }}
                   />
                   <button
                     type="button"
-                    className="w-8 h-8 rounded-lg border flex items-center justify-center bg-white text-slate-400 hover:text-red-500"
+                    className="wizard-tracking-email-remove w-8 h-8 rounded-lg border flex items-center justify-center"
+                    style={{
+                      background: T.sf,
+                      borderColor: T.bd,
+                      color: T.t3,
+                    }}
                     onClick={() => removeEmailField(o.orderId, emIdx)}
                   >
                     ✕
@@ -643,7 +665,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
 
         <button
           type="button"
-          className="w-full py-1.5 border border-dashed rounded-lg text-[10px] font-bold text-indigo-700 bg-transparent cursor-pointer mt-2"
+          className="wizard-tracking-add-email w-full py-1.5 border border-dashed rounded-lg text-[10px] font-bold bg-transparent cursor-pointer mt-2"
+          style={{ borderColor: T.bd, color: T.ac }}
           onClick={() => addEmailField(o.orderId)}
         >
           {t('addEmail') || '+ Add email'}
@@ -716,11 +739,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
 
               {values.broadcastType === 'public' && publicQuota?.status === false && (
                 <div className="mt-4">
-                  <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs flex items-start justify-between gap-3">
+                  <div className="wizard-quota-banner p-3 rounded-lg text-xs flex items-start justify-between gap-3">
                     <span>{publicQuota.message || t('publicQuotaExceeded') || 'You have reached your Public Load limit for this billing cycle.'}</span>
                     <button
                       type="button"
-                      className="font-bold underline whitespace-nowrap"
+                      className="wizard-quota-upgrade font-bold underline whitespace-nowrap bg-transparent border-none cursor-pointer"
                       onClick={() =>
                         openUpgradeGate({
                           variant: 'limit',
@@ -736,7 +759,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
 
               {values.broadcastType === 'private' && privateQuota?.status === false && (
                 <div className="mt-4">
-                  <div className="bg-amber-50 text-amber-800 p-3 rounded-lg text-xs flex items-start justify-between gap-3">
+                  <div className="wizard-quota-banner p-3 rounded-lg text-xs flex items-start justify-between gap-3">
                     <span>
                       {privateQuota.message ||
                         t('privateQuotaExceeded') ||
@@ -744,7 +767,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                     </span>
                     <button
                       type="button"
-                      className="font-bold underline whitespace-nowrap"
+                      className="wizard-quota-upgrade font-bold underline whitespace-nowrap bg-transparent border-none cursor-pointer"
                       onClick={() =>
                         openUpgradeGate({
                           variant: 'limit',
@@ -764,6 +787,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   <input
                     type="text"
                     className="w-full px-3 py-2 border rounded-lg text-xs mb-3 outline-none"
+                    style={{ background: T.sf, borderColor: T.bd, color: T.t1 }}
                     placeholder={t('searchCarrier') || 'Search carrier...'}
                     value={carrierQuery}
                     onChange={(e) => setCarrierQuery(e.target.value)}
@@ -774,9 +798,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   )}
 
                   {/* CARRIER COMPANIES ACCORDION */}
-                  <div className="border rounded-lg overflow-hidden mb-2">
+                  <div className="border rounded-lg overflow-hidden mb-2" style={{ borderColor: T.bd }}>
                     <div
-                      className="flex items-center justify-between px-3 py-2 cursor-pointer bg-slate-50 text-xs font-bold"
+                      className="flex items-center justify-between px-3 py-2 cursor-pointer text-xs font-bold"
+                      style={{ background: T.sa, color: T.t1 }}
                       onClick={() => setCoOpen(!coOpen)}
                     >
                       <span className="flex items-center gap-1">
@@ -840,9 +865,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   </div>
 
                   {/* FREELANCER DRIVERS ACCORDION */}
-                  <div className="border rounded-lg overflow-hidden">
+                  <div className="border rounded-lg overflow-hidden" style={{ borderColor: T.bd }}>
                     <div
-                      className="flex items-center justify-between px-3 py-2 cursor-pointer bg-slate-50 text-xs font-bold"
+                      className="flex items-center justify-between px-3 py-2 cursor-pointer text-xs font-bold"
+                      style={{ background: T.sa, color: T.t1 }}
                       onClick={() => setFrOpen(!frOpen)}
                     >
                       <span className="flex items-center gap-1">
@@ -1100,7 +1126,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             <div className="cb p-3 space-y-3">
               {/* Compact price hint */}
               <div
-                className="price-hint price-hint--compact bg-sky-50 text-sky-700 px-2.5 py-1.5 rounded-md text-[11px]"
+                className="price-hint price-hint--compact px-2.5 py-1.5 rounded-md text-[11px]"
                 aria-busy={aiPriceLoading && aiInsightsRequested}
               >
                 {contract ? (
@@ -1160,6 +1186,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   <input
                     type="number"
                     min={0}
+                    max={MAX_TARGET_PRICE_VALUE}
                     step="0.01"
                     required={!values.negotiable}
                     aria-required={!values.negotiable}
@@ -1168,7 +1195,12 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                     style={{ color: T.t1 }}
                     placeholder={values.negotiable ? (t('optional') || 'Optional') : '0.00'}
                     value={values.targetPrice || ''}
-                    onChange={(e) => setFieldValue('targetPrice', e.target.value)}
+                    onChange={(e) => {
+                      const next = clampTargetPriceInput(e.target.value);
+                      if (next === null) return;
+                      setFieldValue('targetPrice', next);
+                    }}
+                    onBlur={() => void setFieldTouched('targetPrice', true, true)}
                   />
                 </div>
                 <button
@@ -1218,11 +1250,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               </div>
 
               {isOverride && (
-                <div className="flex items-center justify-between bg-amber-50 text-amber-800 px-2.5 py-1.5 rounded-md text-[11px]">
+                <div className="wizard-override-banner flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px]">
                   <span>{t('manualOverride') || 'Manual override'}</span>
                   <button
                     type="button"
-                    className="bg-transparent border-none cursor-pointer font-bold text-amber-900 underline"
+                    className="wizard-override-reset bg-transparent border-none cursor-pointer font-bold underline"
                     onClick={() => setFieldValue('targetPrice', String(calculatedPrice))}
                   >
                     {t('resetToPriceList') || 'Reset'}
@@ -1231,13 +1263,16 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               )}
 
               {aiExpanded && (
-                <div className="rounded-lg border border-violet-100 bg-violet-50/60 p-3">
+                <div
+                  className="rounded-lg border p-3"
+                  style={{ borderColor: T.bd, background: T.sa }}
+                >
                   {aiPriceLoading ? (
-                    <div className="text-[11px] text-indigo-900">
+                    <div className="text-[11px]" style={{ color: T.t2 }}>
                       {t('aiSuggestedPriceLoading') || 'Generating AI suggested prices...'}
                     </div>
                   ) : aiPriceDenied ? (
-                    <div className="text-[11px] text-indigo-900">
+                    <div className="text-[11px]" style={{ color: T.t2 }}>
                       {aiPriceDenied.message}
                       {aiPriceDenied.upgradeUrl && (
                         <>
@@ -1257,7 +1292,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                       )}
                     </div>
                   ) : aiPriceError ? (
-                    <div className="text-[11px] text-indigo-900">
+                    <div className="text-[11px]" style={{ color: T.t2 }}>
                       {t('aiSuggestedPriceFailed') || 'Unable to generate AI suggested prices.'}
                     </div>
                   ) : aiPriceData ? (
@@ -1271,7 +1306,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                         >
                           <Sparkles size={11} color="#fff" aria-hidden />
                         </span>
-                        <span className="text-xs font-semibold" style={{ color: '#2D1B69' }}>
+                        <span className="text-xs font-semibold" style={{ color: T.t1 }}>
                           {t('aiSuggestedPrices') || 'AI Suggested Prices'}
                         </span>
                       </div>
@@ -1317,12 +1352,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                             <button
                               key={opt.key}
                               type="button"
-                              className="relative flex flex-col items-start text-left rounded-[10px] px-2 pt-2.5 pb-2 cursor-pointer border-2 bg-white"
+                              className="relative flex flex-col items-start text-left rounded-[10px] px-2 pt-2.5 pb-2 cursor-pointer border-2"
                               style={{
-                                borderColor: selected ? '#9B51E0' : '#e5e7eb',
-                                background: selected
-                                  ? 'rgba(155,81,224,0.08)'
-                                  : '#fff',
+                                borderColor: selected ? T.ac : T.bd,
+                                background: selected ? T.al : T.sf,
+                                color: T.t1,
                                 fontFamily: 'inherit',
                               }}
                               onClick={() => applyAiSuggestedPrice(opt.price)}
@@ -1344,13 +1378,13 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                                   color={opt.iconColor}
                                   aria-hidden
                                 />
-                                <span className="text-[10px] font-medium text-slate-500">
+                                <span className="text-[10px] font-medium" style={{ color: T.t2 }}>
                                   {opt.label}
                                 </span>
                               </div>
                               <div
                                 className="text-xs font-bold tabular-nums"
-                                style={{ color: '#2D1B69' }}
+                                style={{ color: T.t1 }}
                               >
                                 {opt.formatted}
                               </div>
@@ -1360,7 +1394,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                       </div>
                     </>
                   ) : (
-                    <div className="text-[11px] text-indigo-900">
+                    <div className="text-[11px]" style={{ color: T.t2 }}>
                       {t('aiSuggestedPriceFailed') || 'Unable to generate AI suggested prices.'}
                     </div>
                   )}
@@ -1503,18 +1537,34 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   </p>
                 </div>
               ) : (
-                <div className="p-3 rounded-xl bg-[#F5F5F7] space-y-2.5 border border-[#E4E4E8]/60">
+                <div
+                  className="p-3 rounded-xl space-y-2.5 border"
+                  style={{ background: T.sa, borderColor: T.bd }}
+                >
                   <textarea
                     value={values.driverNotes || ''}
-                    onChange={(e) => setFieldValue('driverNotes', e.target.value)}
+                    onChange={(e) =>
+                      setFieldValue(
+                        'driverNotes',
+                        e.target.value.slice(0, DRIVER_NOTES_MAX_LENGTH)
+                      )
+                    }
                     placeholder={t('enterNotePlaceholder', 'Type note instructions…')}
                     rows={2}
-                    className="w-full text-xs p-2.5 rounded-lg bg-white border border-[#E4E4E8] outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/20 transition-all resize-y"
-                    maxLength={500}
+                    className="w-full text-xs p-2.5 rounded-lg outline-none transition-all resize-y"
+                    style={{
+                      background: T.sf,
+                      border: `1px solid ${T.bd}`,
+                      color: T.t1,
+                    }}
+                    maxLength={DRIVER_NOTES_MAX_LENGTH}
                   />
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex items-center gap-3">
-                      <label className="text-[11px] text-[#5E5E6E] flex items-center gap-1.5 cursor-pointer">
+                      <label
+                        className="text-[11px] flex items-center gap-1.5 cursor-pointer"
+                        style={{ color: T.t2 }}
+                      >
                         <input
                           type="radio"
                           name="wizard-note-vis"
@@ -1524,7 +1574,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                         />
                         <span>{t('internal', 'Internal')}</span>
                       </label>
-                      <label className="text-[11px] text-[#5E5E6E] flex items-center gap-1.5 cursor-pointer">
+                      <label
+                        className="text-[11px] flex items-center gap-1.5 cursor-pointer"
+                        style={{ color: T.t2 }}
+                      >
                         <input
                           type="radio"
                           name="wizard-note-vis"
@@ -1535,6 +1588,9 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                         <span>{t('carrierVisible', 'Carrier-visible')}</span>
                       </label>
                     </div>
+                    <span className="text-[11px] tabular-nums" style={{ color: T.t3 }}>
+                      {(values.driverNotes || '').length}/{DRIVER_NOTES_MAX_LENGTH}
+                    </span>
                   </div>
                 </div>
               )}
@@ -1636,53 +1692,89 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                     <input
                       type="text"
                       value={docName}
+                      maxLength={DOC_NAME_MAX_LENGTH}
                       onChange={(e) => {
-                        setDocName(e.target.value);
+                        const nextName = clampDocName(e.target.value);
+                        setDocName(nextName);
                         if (attachedDoc) {
-                          setFieldValue('documentsList', [{ ...attachedDoc, name: e.target.value }]);
+                          setFieldValue('documentsList', [{ ...attachedDoc, name: nextName }]);
                         }
                       }}
                       placeholder={t(
                         'docNamePlaceholder',
                         'e.g., CMR, Delivery Note, Invoice, Customs Declaration'
                       )}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-[#E4E4E8] text-xs text-[#18181B] bg-white outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/20 transition-all"
+                      title={t(
+                        'docNameMaxLength',
+                        'Document name must not exceed 50 characters'
+                      )}
+                      className="w-full px-3.5 py-2.5 rounded-xl border text-xs outline-none transition-all"
+                      style={{
+                        borderColor: T.bd,
+                        color: T.t1,
+                        background: T.sf,
+                      }}
                     />
+                    <div className="flex justify-end mt-1">
+                      <span className="text-[11px] tabular-nums" style={{ color: T.t3 }}>
+                        {docName.length}/{DOC_NAME_MAX_LENGTH}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-[10px] font-medium text-[#8E8E9A]">
+                    <span className="text-[10px] font-medium" style={{ color: T.t3 }}>
                       {t('quickFill', 'Quick fill:')}
                     </span>
-                    {['CMR', 'POD', 'Invoice', 'Delivery Note', 'Customs Doc'].map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => {
-                          setDocName(preset);
-                          if (attachedDoc) {
-                            setFieldValue('documentsList', [{ ...attachedDoc, name: preset }]);
-                          }
-                        }}
-                        className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#F0F0F3] hover:bg-[#E4E4E8] text-[#5E5E6E] transition-colors cursor-pointer border-0"
-                      >
-                        {preset}
-                      </button>
-                    ))}
+                    {(
+                      [
+                        { key: 'docPresetCmr', fallback: 'CMR' },
+                        { key: 'docPresetPod', fallback: 'POD' },
+                        { key: 'docPresetInvoice', fallback: 'Invoice' },
+                        { key: 'docPresetDeliveryNote', fallback: 'Delivery Note' },
+                        { key: 'docPresetCustomsDoc', fallback: 'Customs Doc' },
+                      ] as const
+                    ).map((preset) => {
+                      const label = t(preset.key, preset.fallback);
+                      return (
+                        <button
+                          key={preset.key}
+                          type="button"
+                          onClick={() => {
+                            setDocName(label);
+                            if (attachedDoc) {
+                              setFieldValue('documentsList', [{ ...attachedDoc, name: label }]);
+                            }
+                          }}
+                          className="px-2 py-0.5 rounded-md text-[10px] font-medium transition-colors cursor-pointer"
+                          style={{
+                            background: T.sa,
+                            color: T.t1,
+                            border: `1px solid ${T.bd}`,
+                          }}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-[#18181B] mb-1.5">
+                    <label className="block text-xs font-semibold mb-1.5" style={{ color: T.t1 }}>
                       {t('description', 'Description / Notes')}{' '}
-                      <span className="text-[#8E8E9A] font-normal">({t('optional', 'Optional')})</span>
+                      <span className="font-normal" style={{ color: T.t3 }}>
+                        ({t('optional', 'Optional')})
+                      </span>
                     </label>
                     <textarea
                       value={docDescription}
+                      maxLength={DOC_DESC_MAX_LENGTH}
                       onChange={(e) => {
-                        setDocDescription(e.target.value);
+                        const nextDescription = clampDocDescription(e.target.value);
+                        setDocDescription(nextDescription);
                         if (attachedDoc) {
                           setFieldValue('documentsList', [
-                            { ...attachedDoc, description: e.target.value },
+                            { ...attachedDoc, description: nextDescription },
                           ]);
                         }
                       }}
@@ -1690,9 +1782,23 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                         'docDescPlaceholder',
                         'Add extra details, reference numbers or notes about this document…'
                       )}
+                      title={t(
+                        'docDescMaxLength',
+                        'Document description must not exceed 250 characters'
+                      )}
                       rows={2}
-                      className="w-full px-3.5 py-2 rounded-xl border border-[#E4E4E8] text-xs text-[#18181B] bg-white outline-none focus:border-[#9B51E0] focus:ring-1 focus:ring-[#9B51E0]/20 transition-all resize-y"
+                      className="w-full px-3.5 py-2 rounded-xl border text-xs outline-none transition-all resize-y"
+                      style={{
+                        borderColor: T.bd,
+                        color: T.t1,
+                        background: T.sf,
+                      }}
                     />
+                    <div className="flex justify-end mt-1">
+                      <span className="text-[11px] tabular-nums" style={{ color: T.t3 }}>
+                        {docDescription.length}/{DOC_DESC_MAX_LENGTH}
+                      </span>
+                    </div>
                   </div>
 
                   <div>
@@ -1768,18 +1874,22 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                         onClick={() => fileInputRef.current?.click()}
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={handleFileDrop}
-                        className="flex flex-col items-center justify-center p-6 rounded-xl border border-dashed border-[#E4E4E8] bg-[#FAF9FD] hover:bg-[#F8F7FC] transition-all cursor-pointer text-center group"
+                        className="flex flex-col items-center justify-center p-6 rounded-xl border border-dashed transition-all cursor-pointer text-center group"
+                        style={{
+                          borderColor: T.bd,
+                          background: T.sa,
+                        }}
                       >
                         <div
                           className="w-10 h-10 rounded-full flex items-center justify-center mb-2 shadow-2xs group-hover:scale-110 transition-transform"
-                          style={{ background: '#FAF5FF', color: T.ac }}
+                          style={{ background: T.al, color: T.ac }}
                         >
                           <Upload size={18} />
                         </div>
-                        <p className="text-xs font-semibold text-[#18181B] m-0 mb-1">
+                        <p className="text-xs font-semibold m-0 mb-1" style={{ color: T.t1 }}>
                           {t('clickOrDragToUpload', 'Click or drag file here to upload')}
                         </p>
-                        <p className="text-[11px] text-[#8E8E9A] m-0">
+                        <p className="text-[11px] m-0" style={{ color: T.t3 }}>
                           PDF, JPG, PNG, WEBP, DOCX ({t('upTo', 'up to')} 20MB)
                         </p>
                       </div>
@@ -1797,7 +1907,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
           {/* MINI MAP & SUMMARY */}
           <div className="card" style={{ background: T.sf, border: `1px solid ${T.bd}`, borderRadius: 12, overflow: 'hidden' }}>
             <div className="relative">
-              <div className="absolute top-2 left-2 z-10 flex rounded-md overflow-hidden border bg-white shadow-sm" style={{ borderColor: T.bd }}>
+              <div
+                className="absolute top-2 left-2 z-10 flex rounded-md overflow-hidden border shadow-sm"
+                style={{ borderColor: T.bd, background: T.sf }}
+              >
                 <button
                   type="button"
                   className={`px-2.5 py-1 text-[10px] font-semibold ${mapType === 'roadmap' ? 'text-white' : ''}`}
@@ -1870,7 +1983,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               <span className="font-semibold text-sm">{t('summary') || 'Summary'}</span>
               <button
                 type="button"
-                className="ml-auto px-2.5 py-1 text-[11px] font-semibold border rounded bg-white hover:bg-slate-50 cursor-pointer"
+                className="ml-auto px-2.5 py-1 text-[11px] font-semibold border rounded cursor-pointer"
+                style={{ background: T.sf, color: T.t1, borderColor: T.bd }}
                 onClick={onBackStep}
               >
                 ✏ {t('edit') || 'Edit'}
@@ -2038,10 +2152,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                                     {formatQtyWithUnit(
                                       parseFloat(String(line.qty ?? '')) || 0,
                                       normalizeQtyUnit(line.unit) || line.unit,
+                                      t,
                                     )}
                                   </span>
                                   <span className="shrink-0 tabular-nums" style={{ color: T.t3 }}>
-                                    {formatWeightDisplay(line.weight, line.wtUnit)}
+                                    {formatWeightDisplay(line.weight, line.wtUnit, t)}
                                   </span>
                                 </div>
                               ))
@@ -2061,7 +2176,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 {
                   label: t('distance') || 'Distance',
                   value: displayKm > 0 ? String(Math.round(displayKm)) : '—',
-                  unit: displayKm > 0 ? 'km' : '',
+                  unit: displayKm > 0 ? t('unitKm', 'km') : '',
                   sub: '',
                 },
                 {
@@ -2095,20 +2210,20 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                   sub: '',
                 },
               ].map((st, sidx) => (
-                <div key={sidx} className="bg-white p-3">
-                  <div className="text-[9px] font-bold text-slate-400 uppercase">
+                <div key={sidx} className="p-3" style={{ background: T.sf }}>
+                  <div className="text-[9px] font-bold uppercase" style={{ color: T.t3 }}>
                     {st.label}
                   </div>
-                  <div className="text-base font-bold text-slate-800 mt-0.5">
+                  <div className="text-base font-bold mt-0.5" style={{ color: T.t1 }}>
                     {st.value}{' '}
                     {st.unit && (
-                      <span className="text-xs font-normal text-slate-400">
+                      <span className="text-xs font-normal" style={{ color: T.t3 }}>
                         {st.unit}
                       </span>
                     )}
                   </div>
                   {st.sub ? (
-                    <div className="text-[11px] font-semibold text-slate-500 mt-0.5 tabular-nums">
+                    <div className="text-[11px] font-semibold mt-0.5 tabular-nums" style={{ color: T.t2 }}>
                       {st.sub}
                     </div>
                   ) : null}
@@ -2138,7 +2253,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-xs font-semibold cursor-pointer"
+            style={{ background: T.sf, color: T.t1, borderColor: T.bd }}
             onClick={onBackStep}
             disabled={isSubmitting}
           >
@@ -2147,7 +2263,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
           
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 border rounded-lg text-xs font-semibold cursor-pointer"
+            style={{ background: T.sf, color: T.t1, borderColor: T.bd }}
             onClick={async () => {
               if (!requirePermission('draft_shipment')) {
                 return;
@@ -2193,6 +2310,27 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                 void setFieldTouched('targetPrice', true, true);
                 showToast(
                   t('targetPricePositive') || 'Target price must be greater than 0.',
+                  'error'
+                );
+                window.requestAnimationFrame(() => {
+                  scrollToValidationAnchor('target-price', {
+                    focus: true,
+                    highlightClass: 'wizard-validation-flash',
+                  });
+                });
+                return;
+              }
+              if (rawPrice !== '' && !Number.isNaN(price) && !isTargetPriceWithinDigitLimit(price)) {
+                void setFieldTouched('targetPrice', true, true);
+                showToast(
+                  t(
+                    'targetPriceMaxDigits',
+                    `Target price cannot exceed ${MAX_TARGET_PRICE_DIGITS} digits (max ${MAX_TARGET_PRICE_VALUE.toLocaleString('en-US')}).`,
+                    {
+                      max: MAX_TARGET_PRICE_DIGITS,
+                      maxValue: MAX_TARGET_PRICE_VALUE.toLocaleString('en-US'),
+                    }
+                  ),
                   'error'
                 );
                 window.requestAnimationFrame(() => {

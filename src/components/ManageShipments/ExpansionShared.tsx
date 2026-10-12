@@ -8,6 +8,7 @@ import {
   isShipmentEditable,
   itineraryStopCount,
 } from '../../pages/ManageShipments/utils/listingUtils';
+import { translateCargoUnit } from '../../constants/cargoUnits';
 import { ExpHeading } from './ExpHeading';
 
 export type ExpTranslate = (
@@ -237,9 +238,9 @@ function OrderProductGroup({
               {(line.qty || 0) > 0 || (line.weight || 0) > 0 ? (
                 <span className="sub">
                   {' '}
-                  ({(line.qty || 0) > 0 ? `${line.qty} ${line.qtyUnit}` : ''}
+                  ({(line.qty || 0) > 0 ? `${line.qty} ${translateCargoUnit(line.qtyUnit, t)}` : ''}
                   {(line.qty || 0) > 0 && (line.weight || 0) > 0 ? ', ' : ''}
-                  {(line.weight || 0) > 0 ? `${line.weight} ${line.weightUnit}` : ''})
+                  {(line.weight || 0) > 0 ? `${line.weight} ${translateCargoUnit(line.weightUnit, t)}` : ''})
                 </span>
               ) : null}
             </div>
@@ -384,11 +385,17 @@ export function ordersHeaderMeta(shipment: Shipment, t: ExpTranslate): {
 
 export function CompactLoadMeta({ shipment, t }: { shipment: Shipment; t: ExpTranslate }) {
   const stops = itineraryStopCount(shipment);
-  const weight = formatStatValue(shipment.totalWeight, shipment.weightUnit);
-  const qty = formatStatValue(shipment.totalQty, shipment.qtyUnit);
+  const weight = formatStatValue(
+    shipment.totalWeight,
+    translateCargoUnit(shipment.weightUnit, t) || shipment.weightUnit,
+  );
+  const qty = formatStatValue(
+    shipment.totalQty,
+    translateCargoUnit(shipment.qtyUnit, t) || shipment.qtyUnit,
+  );
   const tripKm =
     shipment.journeyDistanceKm != null && Number.isFinite(shipment.journeyDistanceKm)
-      ? `${shipment.journeyDistanceKm.toLocaleString()} km`
+      ? `${shipment.journeyDistanceKm.toLocaleString()} ${t('unitKm', 'km')}`
       : '—';
   const cargo =
     shipment.cargoValue != null && Number.isFinite(shipment.cargoValue)
@@ -408,11 +415,17 @@ export function CompactLoadMeta({ shipment, t }: { shipment: Shipment; t: ExpTra
 }
 
 export function StatusDetailGrid({ shipment, t }: { shipment: Shipment; t: ExpTranslate }) {
-  const weight = formatStatValue(shipment.totalWeight, shipment.weightUnit);
-  const qty = formatStatValue(shipment.totalQty, shipment.qtyUnit);
+  const weight = formatStatValue(
+    shipment.totalWeight,
+    translateCargoUnit(shipment.weightUnit, t) || shipment.weightUnit,
+  );
+  const qty = formatStatValue(
+    shipment.totalQty,
+    translateCargoUnit(shipment.qtyUnit, t) || shipment.qtyUnit,
+  );
   const tripKm =
     shipment.journeyDistanceKm != null && Number.isFinite(shipment.journeyDistanceKm)
-      ? `${shipment.journeyDistanceKm.toLocaleString()} km`
+      ? `${shipment.journeyDistanceKm.toLocaleString()} ${t('unitKm', 'km')}`
       : '—';
   const cargo =
     shipment.cargoValue != null && Number.isFinite(shipment.cargoValue)

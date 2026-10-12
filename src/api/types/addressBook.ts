@@ -42,6 +42,8 @@ export interface ApiLocationListItem {
   max_weight?: string | null;
   usage_history_count?: number;
   region?: string | null;
+  erp_source?: string | null;
+  erp_external_id?: string | null;
   created_at: string | null;
   deleted_at?: string | null;
 }
@@ -114,6 +116,8 @@ export interface ApiCompanyEntity {
   primary_contact?: string | null;
   source?: 'company_entity' | 'partner';
   partner_id?: number | null;
+  erp_source?: string | null;
+  erp_external_id?: string | null;
 }
 
 export interface ApiCompanyEntityPayload {

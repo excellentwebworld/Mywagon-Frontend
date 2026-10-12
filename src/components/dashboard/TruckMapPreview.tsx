@@ -263,7 +263,9 @@ export const TruckMapPreview: React.FC<TruckMapPreviewProps> = ({ trucks, onActi
         div.style.zIndex = isHovered ? '30' : isSelected ? '25' : '10';
 
         const showPrice = truck.price != null && !truck.priceBlurred;
-        const label = showPrice ? formatMoney(truck.price, truck.currency) : 'Offer';
+        const label = showPrice
+          ? formatMoney(truck.price, truck.currency)
+          : t('offer', 'Offer');
         const priceClass = showPrice ? '' : 'no-price';
         div.innerHTML = `<div class="sat-mm-pin"><div class="sat-mm-price ${priceClass}">${label}</div><div class="sat-mm-tail"></div></div>`;
 
@@ -298,7 +300,7 @@ export const TruckMapPreview: React.FC<TruckMapPreviewProps> = ({ trucks, onActi
       overlay.setMap(map);
       overlaysRef.current.push(overlay);
     });
-  }, [mapReady, resolvedTrucks, selectedTruck, hoveredId]);
+  }, [mapReady, resolvedTrucks, selectedTruck, hoveredId, t]);
 
   // Handle selected truck route polyline and camera fitting
   useEffect(() => {

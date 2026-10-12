@@ -231,3 +231,96 @@
     padding: 1rem 0.5rem;
   }
 }
+
+/* Dark mode — respects ThemeContext data-theme / .dark on <html> */
+[data-theme='dark'] .auth-page,
+.dark .auth-page {
+  background: linear-gradient(119deg, rgba(120, 50, 180, 1) 0%, rgba(18, 18, 38, 1) 76%);
+  color-scheme: dark;
+}
+
+[data-theme='dark'] .auth-card,
+.dark .auth-card {
+  background-color: #1f1f41;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme='dark'] .auth-logo img,
+.dark .auth-logo img {
+  filter: invert(1) brightness(1.08);
+}
+
+[data-theme='dark'] .auth-subtitle,
+.dark .auth-subtitle {
+  color: #a3a2b8;
+}
+
+[data-theme='dark'] .auth-alert-danger,
+.dark .auth-alert-danger {
+  color: #fca5a5;
+  background-color: rgba(224, 59, 74, 0.18);
+  border-color: rgba(224, 59, 74, 0.35);
+}
+
+[data-theme='dark'] .auth-alert-success,
+.dark .auth-alert-success {
+  color: #6ee7b7;
+  background-color: rgba(16, 185, 129, 0.18);
+  border-color: rgba(16, 185, 129, 0.35);
+}
+
+[data-theme='dark'] .auth-label,
+.dark .auth-label {
+  color: #c9c8d6;
+}
+
+[data-theme='dark'] .auth-input,
+.dark .auth-input {
+  color: #ffffff;
+  background-color: #26264d;
+  border-color: #2e2e58;
+}
+
+[data-theme='dark'] .auth-input::placeholder,
+.dark .auth-input::placeholder {
+  color: #7a7994;
+}
+
+[data-theme='dark'] .auth-input:hover,
+.dark .auth-input:hover,
+[data-theme='dark'] .auth-input:focus,
+.dark .auth-input:focus {
+  border-color: #9b51e0;
+}
+
+[data-theme='dark'] .auth-input:-webkit-autofill,
+.dark .auth-input:-webkit-autofill,
+[data-theme='dark'] .auth-input:-webkit-autofill:hover,
+.dark .auth-input:-webkit-autofill:hover,
+[data-theme='dark'] .auth-input:-webkit-autofill:focus,
+.dark .auth-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff;
+  -webkit-box-shadow: 0 0 0 1000px #26264d inset;
+  caret-color: #ffffff;
+  transition: background-color 99999s ease-in-out 0s;
+}
+
+[data-theme='dark'] .auth-password-toggle,
+.dark .auth-password-toggle {
+  color: #a3a2b8;
+}
+
+[data-theme='dark'] .auth-password-toggle:hover,
+.dark .auth-password-toggle:hover {
+  color: #ffffff;
+}
+
+[data-theme='dark'] .bk-login,
+.dark .bk-login {
+  color: #a5b4fc !important;
+}
+
+[data-theme='dark'] .bk-login:hover,
+.dark .bk-login:hover {
+  color: #c084fc !important;
+}

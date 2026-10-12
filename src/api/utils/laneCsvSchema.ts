@@ -363,8 +363,10 @@ export function parseMetricValue(
   const trimmed = String(value || '').trim();
 
   if (metric === 'weight') {
-    if (raw === 'kg' || raw.includes('kg')) return { metricValue: { unit: 'kg' } };
-    if (raw === 'ton' || raw.includes('ton')) return { metricValue: { unit: 'ton' } };
+    if (raw === 'kg' || raw.includes('kg') || raw.includes('κιλ')) return { metricValue: { unit: 'kg' } };
+    if (raw === 'ton' || raw.includes('ton') || raw.includes('τον') || raw.includes('τόν')) {
+      return { metricValue: { unit: 'ton' } };
+    }
     return {
       metricValue: {},
       error: {
@@ -380,10 +382,12 @@ export function parseMetricValue(
     const match = types.find((type) => raw === type || raw.includes(type.replace('_', ' ')));
     if (match) return { metricValue: { type: match } };
     if (raw.includes('us')) return { metricValue: { type: 'us_pallet' } };
-    if (raw.includes('box')) return { metricValue: { type: 'box' } };
-    if (raw.includes('unit')) return { metricValue: { type: 'unit' } };
+    if (raw.includes('box') || raw.includes('κιβωτ')) return { metricValue: { type: 'box' } };
+    if (raw.includes('unit') || raw.includes('τεμαχ') || raw.includes('τεμάχ')) return { metricValue: { type: 'unit' } };
     if (raw.includes('big')) return { metricValue: { type: 'big_bag' } };
-    if (raw.includes('eur') || raw.includes('pallet')) return { metricValue: { type: 'eur_pallet' } };
+    if (raw.includes('eur') || raw.includes('pallet') || raw.includes('παλετ') || raw.includes('παλέτ')) {
+      return { metricValue: { type: 'eur_pallet' } };
+    }
     return {
       metricValue: {},
       error: {
@@ -411,7 +415,13 @@ export function parseMetricValue(
     return { metricValue: { vehicle_type: trimmed, truck_type_ids: [] } };
   }
 
-  if (raw === 'per_load' || raw === '' || metric === 'load_any_size') {
+  if (
+    raw === 'per_load'
+    || raw === ''
+    || raw.includes('ανά φορτίο')
+    || raw.includes('ανα φορτιο')
+    || metric === 'load_any_size'
+  ) {
     return { metricValue: { type: 'per_load' } };
   }
 
@@ -425,18 +435,65 @@ export function parseMetricValue(
   };
 }
 
-export function formatMetricForCsv(metric: string): string {
-  return String(metric || '').replace(/_/g, ' ');
+export function formatMetricForCsv(metric: string, lang: 'en' | 'el' = 'en'): string {
+  const key = String(metric || '').trim();
+  if (lang !== 'el') return key.replace(/_/g, ' ');
+
+  const labels: Record<string, string> = {
+    weight: 'Βάρος',
+    unit_transport: 'Μονάδα μεταφοράς',
+    'unit transport': 'Μονάδα μεταφοράς',
+    ftl_truck_type: 'Τύπος φορτηγού FTL',
+    'ftl truck type': 'Τύπος φορτηγού FTL',
+    load_any_size: 'Φορτίο (οποιοδήποτε μέγεθος)',
+    'load any size': 'Φορτίο (οποιοδήποτε μέγεθος)',
+  };
+  return labels[key] || labels[key.replace(/\s+/g, '_')] || key.replace(/_/g, ' ');
 }
 
-export function metricValueToCsvCell(metric: string, metricValue?: Record<string, unknown>): string {
+export function formatMetricValueForCsv(value: string, lang: 'en' | 'el' = 'en'): string {
+  const key = String(value || '').trim().toLowerCase().replace(/_/g, ' ');
+  if (lang !== 'el') return String(value || '').replace(/_/g, ' ');
+
+  const labels: Record<string, string> = {
+    kg: 'kg',
+    ton: 'τόνος',
+    'eur pallet': 'Παλέτες EUR',
+    'us pallet': 'Παλέτες US',
+    box: 'Κιβώτια',
+    unit: 'Τεμάχια',
+    'big bag': 'Big Bags',
+    'per load': 'ανά φορτίο',
+  };
+  return labels[key] || String(value || '').replace(/_/g, ' ');
+}
+
+export function formatTripTypeForCsv(tripType: string, lang: 'en' | 'el' = 'en'): string {
+  const key = String(tripType || 'direct').toLowerCase();
+  if (lang !== 'el') return key === 'roundtrip' ? 'roundtrip' : 'direct';
+  return key === 'roundtrip' ? "Μετ' επιστροφής" : 'Απευθείας';
+}
+
+export function formatStatusForCsv(status: string, lang: 'en' | 'el' = 'en'): string {
+  const key = String(status || 'active').toLowerCase();
+  if (lang !== 'el') return key;
+  if (key === 'inactive') return 'Ανενεργή';
+  if (key === 'archived') return 'Αρχειοθετημένη';
+  return 'Ενεργή';
+}
+
+export function metricValueToCsvCell(
+  metric: string,
+  metricValue?: Record<string, unknown>,
+  lang: 'en' | 'el' = 'en',
+): string {
   let val = '';
   if (metric === 'weight') val = String(metricValue?.unit || 'kg');
   else if (metric === 'unit_transport') val = String(metricValue?.type || 'eur_pallet');
   else if (metric === 'ftl_truck_type') val = String(metricValue?.vehicle_type || '');
   else val = String(metricValue?.type || 'per_load');
 
-  return val.replace(/_/g, ' ');
+  return formatMetricValueForCsv(val, lang);
 }
 
 export function scopeToCsvLabel(scope?: string): string {
@@ -738,9 +795,47 @@ function mapHeaders(hdr: string[]): Record<string, number> {
 
 function parseStatus(raw: string): 'active' | 'inactive' | 'archived' {
   const normalized = normalizeText(raw);
-  if (normalized === 'inactive') return 'inactive';
-  if (normalized === 'archived') return 'archived';
+  if (
+    normalized === 'inactive'
+    || normalized === 'ανενεργη'
+    || normalized === 'ανενεργή'
+  ) return 'inactive';
+  if (
+    normalized === 'archived'
+    || normalized === 'αρχειοθετημενη'
+    || normalized === 'αρχειοθετημένη'
+  ) return 'archived';
   return 'active';
+}
+
+function parseTripType(raw: string): 'direct' | 'roundtrip' {
+  const normalized = normalizeText(raw);
+  if (
+    normalized === 'roundtrip'
+    || normalized.includes('επιστροφ')
+    || normalized.includes('μετ επιστροφ')
+  ) return 'roundtrip';
+  return 'direct';
+}
+
+function parseMetricKey(raw: string): string {
+  const normalized = normalizeText(raw)
+    .replace(/[()]/g, ' ')
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_|_$/g, '');
+
+  const aliases: Record<string, string> = {
+    βαρος: 'weight',
+    βάρος: 'weight',
+    μοναδα_μεταφορας: 'unit_transport',
+    μονάδα_μεταφοράς: 'unit_transport',
+    τυπος_φορτηγου_ftl: 'ftl_truck_type',
+    τύπος_φορτηγού_ftl: 'ftl_truck_type',
+    φορτιο_οποιοδηποτε_μεγεθος: 'load_any_size',
+    φορτίο_οποιοδήποτε_μέγεθος: 'load_any_size',
+  };
+  return aliases[normalized] || normalized;
 }
 
 function parseScopeDirection(raw: string): 'buy' | 'sell' | null {
@@ -888,7 +983,7 @@ export function parseCsvText(
     const rawMetricInput = colMap.metric >= 0
       ? vals[colMap.metric]
       : (colMap.unit >= 0 ? vals[colMap.unit] : '');
-    const metricRaw = normalizeText(rawMetricInput).replace(/\s+/g, '_');
+    const metricRaw = parseMetricKey(rawMetricInput);
 
     if (!VALID_METRICS.includes(metricRaw as PriceLaneMetric)) {
       errors.push({
@@ -908,7 +1003,7 @@ export function parseCsvText(
     const { metricValue, error: metricValueError } = parseMetricValue(metricRaw, metricValueRaw, t);
     if (metricValueError) errors.push(metricValueError);
 
-    const tripType = colMap.trip >= 0 && normalizeText(vals[colMap.trip]) === 'roundtrip' ? 'roundtrip' : 'direct';
+    const tripType = colMap.trip >= 0 ? parseTripType(String(vals[colMap.trip] || '')) : 'direct';
     const scopeLabel = colMap.scope >= 0 ? (vals[colMap.scope] || 'Default') : 'Default';
     const scopeApi = scopeFromCsvLabel(scopeLabel);
     const from = colMap.from >= 0 ? (vals[colMap.from] || new Date().toISOString().slice(0, 10)) : new Date().toISOString().slice(0, 10);
@@ -1032,13 +1127,13 @@ export function serializeLanesToCsv(
     return pricingRows.map((row) => [
       origin,
       destination,
-      tripType,
-      formatMetricForCsv(String(row.metric)),
-      metricValueToCsvCell(String(row.metric), row.metricValue),
+      formatTripTypeForCsv(tripType, lang),
+      formatMetricForCsv(String(row.metric), lang),
+      metricValueToCsvCell(String(row.metric), row.metricValue, lang),
       Number(row.priceEur || 0),
       lane.effectiveFrom || '',
       lane.effectiveTo || '',
-      lane.status || 'active',
+      formatStatusForCsv(lane.status || 'active', lang),
       scopeToCsvExportLabel(lane, lang, partnerNameById),
       lane.notes || '',
     ]);

@@ -16,6 +16,7 @@ export interface WizardVehicleType {
   name: string;
   nameEl: string;
   subtitle: string;
+  subtitleEl?: string;
   image?: string | null;
   categories: VehicleCategory[];
 }
@@ -68,17 +69,44 @@ export function hasVehicleSelection(vehicleSpecs: Record<string, string[]> | und
   return Object.values(vehicleSpecs).some((items) => items.length > 0);
 }
 
+/** Fallback Greek labels when API greek field is missing/copied EN. */
+const VEHICLE_LABEL_EL_FALLBACKS: Record<string, string> = {
+  'Dry Cargo': 'Ξηρό φορτίο',
+  'Refrigerated Cargo': 'Ψυκτικό φορτίο',
+  'Other Cargo': 'Άλλο φορτίο',
+  'Dry': 'Ξηρό',
+  'Refrigerated': 'Ψυκτικό',
+  'Other': 'Άλλο',
+};
+
 /** Pick EN/EL label from API bilingual truck type / feature / category data. */
 export function pickVehicleLabel(
   labelEn: string,
   labelEl: string | null | undefined,
   lang: 'en' | 'el'
 ): string {
-  if (lang === 'el') {
-    const el = String(labelEl || '').trim();
-    return el || String(labelEn || '').trim();
+  const en = String(labelEn || '').trim();
+  if (lang !== 'el') {
+    return en;
   }
-  return String(labelEn || '').trim();
+
+  const el = String(labelEl || '').trim();
+  if (el && el.toLowerCase() !== en.toLowerCase()) {
+    return el;
+  }
+
+  // Compound subtitle e.g. "Dry Cargo · Refrigerated Cargo"
+  if (en.includes('·')) {
+    return en
+      .split('·')
+      .map((part) => {
+        const trimmed = part.trim();
+        return VEHICLE_LABEL_EL_FALLBACKS[trimmed] || trimmed;
+      })
+      .join(' · ');
+  }
+
+  return VEHICLE_LABEL_EL_FALLBACKS[en] || el || en;
 }
 
 export function iconKeyFromVehicleName(name: string): string {

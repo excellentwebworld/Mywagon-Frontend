@@ -50,8 +50,14 @@ function parseFilenameFromDisposition(header: string | undefined, fallback: stri
 export function createWebViewBillingService(role: WebViewRole, userId: string): BillingApi {
   const axiosInstance = createWebViewApi(role, userId);
 
-  async function get<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<ApiResponse<T>> {
-    const res = await axiosInstance.get<ApiResponse<T>>(path, { params });
+  async function get<T>(
+    path: string,
+    params?: Record<string, string | number | boolean | undefined>,
+    forceEnglish = false,
+  ): Promise<ApiResponse<T>> {
+    const res = await axiosInstance.get<ApiResponse<T>>(path, {
+      params: forceEnglish ? { ...params, lang: 'en' } : params,
+    });
     if (res.data?.success === false) {
       throw new ApiError(res.data.message || 'Request failed', res.status, undefined, res.data.data);
     }

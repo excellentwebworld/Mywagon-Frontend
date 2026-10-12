@@ -21,7 +21,7 @@ import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplet
 import { validateCreateAll } from '../validation/locationCreateValidation';
 import { checkLocationDuplicate, DUPLICATE_LOCATION_KEY, DUPLICATE_LOCATION_MESSAGE } from '../validation/locationDuplicateValidation';
 import { applyTemplate, getDefaultCreateData } from '../utils/locationUtils';
-import type { ApiCompanyEntity, ApiCompanyLookup } from '../../../api/types/addressBook';
+import type { ApiCompanyEntity } from '../../../api/types/addressBook';
 import {
   syncCustomerDropdownCaches,
   syncLocationDropdownCaches,
@@ -114,7 +114,7 @@ export function useAddressBook() {
 
   const [companyQuery, setCompanyQuery] = useState('');
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
-  const [apiCompanies, setApiCompanies] = useState<ApiCompanyLookup[]>([]);
+  const [apiCompanies, setApiCompanies] = useState<ApiCompanyEntity[]>([]);
   const [potentialDuplicates, setPotentialDuplicates] = useState<LocationItem[]>([]);
   const [archiveConfirmLoc, setArchiveConfirmLoc] = useState<LocationItem | null>(null);
 
@@ -366,15 +366,14 @@ export function useAddressBook() {
   useEffect(() => {
     if (!isCreateOpen) return;
     const q = companyQuery.trim();
-    const companyType = createData.context === 'customer' ? 'customers' : 'my_locations';
     const timer = setTimeout(() => {
       addressBookService
-        .listCompanies(q || undefined, companyType)
+        .listCompanyEntities(q || undefined)
         .then(setApiCompanies)
         .catch(() => setApiCompanies([]));
     }, 200);
     return () => clearTimeout(timer);
-  }, [companyQuery, isCreateOpen, createData.context]);
+  }, [companyQuery, isCreateOpen]);
 
   useEffect(() => {
     if (createStep !== 4) {
@@ -536,8 +535,8 @@ export function useAddressBook() {
         email: created.email || prev.email,
       }));
       setApiCompanies((prev) => [
-        { company_name: created.name, company_vat: created.vat_number },
-        ...prev,
+        created,
+        ...prev.filter((c) => Number(c.id) !== Number(created.id)),
       ]);
       setIsCompanyOpen(false);
       setCompanyData(EMPTY_COMPANY_DATA);

@@ -62,3 +62,28 @@
     grid-template-columns: 1fr;
   }
 }
+
+[data-theme='dark'] .social-auth-divider,
+.dark .social-auth-divider {
+  color: #a3a2b8;
+}
+
+[data-theme='dark'] .social-auth-divider::before,
+.dark .social-auth-divider::before,
+[data-theme='dark'] .social-auth-divider::after,
+.dark .social-auth-divider::after {
+  background: #2e2e58;
+}
+
+[data-theme='dark'] .social-auth-btn,
+.dark .social-auth-btn {
+  border-color: #2e2e58;
+  background: #26264d;
+  color: #ffffff;
+}
+
+[data-theme='dark'] .social-auth-btn:hover:not(:disabled),
+.dark .social-auth-btn:hover:not(:disabled) {
+  background: #1a1a38;
+  border-color: #3d3d6e;
+}

@@ -484,15 +484,15 @@ export const SaasFeesTab: React.FC<SaasFeesTabProps> = ({
                       <td>
                         <RecordStatusBadge status={invoiceStatusLabel(inv, t)} tone={invoiceStatusTone(inv.status)} />
                       </td>
-                      <td className="text-gray-600 text-xs">{formatDate(inv.iDate, i18n.language)}</td>
-                      <td className={`text-xs ${isInvoiceOverdue(inv.status) ? 'text-red-600 font-bold' : 'text-gray-600'}`}>
+                      <td className="billing-date-cell">{formatDate(inv.iDate, i18n.language)}</td>
+                      <td className={`billing-date-cell${isInvoiceOverdue(inv.status) ? ' is-overdue' : ''}`}>
                         {formatDate(inv.dDate, i18n.language)}
                       </td>
-                      <td className="text-gray-400 text-xs">{formatDate(inv.pDate, i18n.language)}</td>
-                      <td className="billing-mono font-semibold text-xs text-gray-900">
+                      <td className="billing-date-cell billing-date-cell--muted">{formatDate(inv.pDate, i18n.language)}</td>
+                      <td className="billing-mono font-semibold text-xs billing-amount-cell">
                         <Money value={inv.tot} currency={inv.cur} />
                       </td>
-                      <td className="billing-mono font-semibold text-xs">
+                      <td className="billing-mono font-semibold text-xs billing-amount-cell">
                         <Money value={inv.rem} currency={inv.cur} overdue={inv.rem > 0 && isInvoiceOverdue(inv.status)} />
                       </td>
                       <td>

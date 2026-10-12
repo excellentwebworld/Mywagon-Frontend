@@ -24,6 +24,7 @@ import { getMessagingOrNull, vapidKey, isFirebaseConfigured } from '../config/fi
 import { notificationService } from '../api/services/notificationService';
 import { shouldSuppressChatForegroundNotification } from '../utils/chatNotificationGuard';
 import { parseChatMetaFromFcmData } from '../utils/chatPartnerUtils';
+import { navigateFromPushNotification } from '../utils/notificationNavigation';
 
 const SESSION_KEY = 'mv_fcm_token';
 
@@ -104,8 +105,11 @@ export interface FcmNotificationPayload {
   type?: string;
   type_id?: string;
   action_id?: string;
+  action_type?: string;
   external_url?: string;
   redirect_slug?: string;
+  load_ref?: string;
+  shipment_auto_id?: string;
   created_at?: string;
   chat_partner_id?: string;
   chat_partner_type?: string;
@@ -127,14 +131,34 @@ export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = 
 
     let cancelled = false;
 
-    // ── 0. Listen for navigation messages from Service Worker ─────────
+    // ── 0. Listen for navigation / badge-sync messages from Service Worker ─
     const handleSwMessage = (event: MessageEvent) => {
       if (event.data?.type === 'FCM_FORCE_LOGOUT') {
         window.dispatchEvent(new CustomEvent('shipper:force-logout'));
         return;
       }
+      // Background push: SW shows the system tray notification; page JS must
+      // still refresh the header unread badge (onMessage only runs in foreground).
+      // Do not apply chat toast suppression here — we are not showing a toast.
+      if (event.data?.type === 'FCM_BACKGROUND_RECEIVED') {
+        const detail = event.data.detail ?? {};
+        const title = String(detail.title ?? 'New Notification');
+        const body = String(detail.body ?? '');
+        const type = String(detail.type ?? '');
+        const type_id = String(detail.type_id ?? '');
+        const msgKey = `${title}_${body}_${type}_${type_id}`;
+        if (isDuplicateMessage(msgKey)) {
+          return;
+        }
+        window.dispatchEvent(
+          new CustomEvent('shipper:notification-received', { detail })
+        );
+        return;
+      }
       if (event.data && event.data.type === 'FCM_NAVIGATE' && event.data.url) {
-        navigate(event.data.url);
+        // Hard navigation — soft navigate() leaves React Query cache stale
+        // (refetchOnMount/refetchOnWindowFocus are disabled app-wide).
+        navigateFromPushNotification(event.data.url);
       }
     };
 
@@ -210,10 +234,13 @@ export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = 
         const title = payload.notification?.title ?? payload.data?.title ?? 'New Notification';
         const body  = payload.notification?.body  ?? payload.data?.body ?? payload.data?.notification_body ?? '';
         const type = payload.data?.type ?? '';
+        // Backend contract: type_id/action_id = shipments.id (PK). Never SID/auto_id.
         const type_id = payload.data?.type_id ?? payload.data?.shipment_id ?? payload.data?.id ?? payload.data?.action_id ?? '';
         const action_id = payload.data?.action_id ?? type_id ?? '';
+        const action_type = payload.data?.action_type ?? '';
         const external_url = payload.data?.external_url ?? '';
         const redirect_slug = payload.data?.redirect_slug ?? '';
+        const load_ref = payload.data?.load_ref ?? payload.data?.shipment_auto_id ?? '';
 
         // Deduplication check
         const msgKey = payload.messageId || `${title}_${body}_${type}_${type_id}`;
@@ -233,8 +260,11 @@ export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = 
           type,
           type_id,
           action_id,
+          action_type,
           external_url,
           redirect_slug,
+          load_ref,
+          shipment_auto_id: load_ref,
           chat_partner_id: chatMeta ? String(chatMeta.senderId) : undefined,
           chat_partner_type: chatMeta?.senderType,
         };

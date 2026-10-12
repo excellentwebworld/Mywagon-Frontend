@@ -265,6 +265,13 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
       : (stop as any).locationReferenceId != null
       ? Number((stop as any).locationReferenceId)
       : null,
+    // Delivery → linked pickup (Laravel tracking-email edit gate).
+    referenceId:
+      (stop as any).reference_id != null
+        ? Number((stop as any).reference_id)
+        : (stop as any).referenceId != null
+          ? Number((stop as any).referenceId)
+          : null,
   } as any;
 }
 
@@ -384,6 +391,7 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     carrierRatingCount: (item.carrier as any)?.rating_count ?? null,
     carrierTripsCount: item.carrier?.trips_count ?? null,
     carrierPhone: item.carrier?.phone ?? null,
+    carrierOnTimePickupPct: item.carrier?.on_time_pickup_pct ?? null,
     carrierOnTimeDeliveryPct: item.carrier?.on_time_delivery_pct ?? null,
     carrierCancellationRatePct: item.carrier?.cancellation_rate_pct ?? null,
     carrierAvgPickupDelayMinutes: item.carrier?.avg_pickup_delay_minutes ?? null,
@@ -415,6 +423,10 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     pickupToday: Boolean(flags?.pickup_today ?? item.pickup_today),
     awaitingPod: Boolean(flags?.awaiting_pod ?? item.awaiting_pod),
     negotiable: item.negotiable ?? true,
+    // Calendar (and list expansions) need per-stop schedule + order/product details.
+    ...(Array.isArray(item.stops) && item.stops.length > 0
+      ? { stops: item.stops.map((stop, idx) => mapStop(stop, idx)) }
+      : {}),
   };
 }
 
@@ -771,6 +783,8 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
       (detail.carrier as any)?.phone ??
       (base as any).carrierPhone ??
       null,
+    carrierOnTimePickupPct:
+      (detail.carrier as any)?.on_time_pickup_pct ?? base.carrierOnTimePickupPct ?? null,
     carrierOnTimeDeliveryPct:
       (detail.carrier as any)?.on_time_delivery_pct ?? base.carrierOnTimeDeliveryPct ?? null,
     carrierCancellationRatePct:

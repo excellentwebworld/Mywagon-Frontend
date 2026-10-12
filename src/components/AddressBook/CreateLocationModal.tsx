@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { LocationItem } from '../../context/AppContext';
-import { getDockTypeOptions, getQuickTemplateFacilityLabel, getQuickTemplateFacilityOptions } from '../../pages/AddressBook/constants';
+import { getDockTypeOptions, getQuickTemplateFacilityLabel, getQuickTemplateFacilityOptions, LOAD_TIME_MINUTES_MAX, LOAD_TIME_MINUTES_MIN, sanitizeLoadTimeMinutesInput } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { inferQuickTemplateFromType } from '../../pages/AddressBook/utils/locationUtils';
 import {
@@ -74,9 +74,9 @@ export const CreateLocationModal: React.FC<Props> = ({
   const companyOptions = useMemo(
     () =>
       filteredCompanies.map((c) => ({
-        value: c.company_vat,
-        label: c.company_name,
-        sublabel: c.company_vat ? `VAT: ${c.company_vat}` : undefined,
+        value: String(c.id),
+        label: c.name,
+        sublabel: c.vat_number ? `VAT: ${c.vat_number}` : undefined,
       })),
     [filteredCompanies]
   );
@@ -182,18 +182,18 @@ export const CreateLocationModal: React.FC<Props> = ({
             {t('abCompanyEntity')} <span className="req">*</span>
           </label>
           <SearchableSelect
-            value={createData.companyVat}
+            value={createData.companyEntityId ? String(createData.companyEntityId) : ''}
             options={companyOptions}
             placeholder={t('abSearchExistingCompanies')}
             searchPlaceholder={t('abTypeToSearch')}
             hasError={Boolean(fieldErrors.companyEntity)}
             onSearchChange={setCompanyQuery}
             onChange={(val, opt) => {
-              const entity = filteredCompanies.find((c) => c.company_vat === val);
+              const entity = filteredCompanies.find((c) => String(c.id) === String(val));
               update({
-                companyEntityId: null,
-                company: entity?.company_name ?? opt?.label ?? '',
-                companyVat: entity?.company_vat ?? val ?? '',
+                companyEntityId: entity?.id ?? (val ? Number(val) : null),
+                company: entity?.name ?? opt?.label ?? '',
+                companyVat: entity?.vat_number ?? '',
               });
             }}
             headerAction={{
@@ -415,13 +415,31 @@ export const CreateLocationModal: React.FC<Props> = ({
 
       <div className="mf-grid">
         <div className={`mf${fieldErrors.maxTruck ? ' has-error' : ''}`}>
-          <label>{t('abMaxTruckLength')}</label>
-          <input type="text" placeholder={t('abEgMaxTruck', 'e.g. 18.75m')} value={createData.maxTruck} onChange={(e) => update({ maxTruck: e.target.value })} />
+          <label htmlFor="create-max-truck">{t('abMaxTruckLength')}</label>
+          <input
+            id="create-max-truck"
+            type="number"
+            min="0.1"
+            step="any"
+            placeholder={t('abEgMaxTruck', 'e.g. 18.75')}
+            value={createData.maxTruck}
+            onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
+            onChange={(e) => update({ maxTruck: e.target.value })}
+          />
           <FormFieldError message={fieldErrors.maxTruck} />
         </div>
         <div className={`mf${fieldErrors.maxWeight ? ' has-error' : ''}`}>
-          <label>{t('abMaxWeight')}</label>
-          <input type="text" placeholder={t('abEgMaxWeight', 'e.g. 40T')} value={createData.maxWeight} onChange={(e) => update({ maxWeight: e.target.value })} />
+          <label htmlFor="create-max-weight">{t('abMaxWeight')}</label>
+          <input
+            id="create-max-weight"
+            type="number"
+            min="0.1"
+            step="any"
+            placeholder={t('abEgMaxWeight', 'e.g. 40')}
+            value={createData.maxWeight}
+            onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
+            onChange={(e) => update({ maxWeight: e.target.value })}
+          />
           <FormFieldError message={fieldErrors.maxWeight} />
         </div>
       </div>
@@ -432,10 +450,25 @@ export const CreateLocationModal: React.FC<Props> = ({
       </div>
 
       <div className={`mf${fieldErrors.loadTime ? ' has-error' : ''}`}>
-        <label>
+        <label htmlFor="create-load-time">
           {t('abEstLoadTime')} <span className="req">*</span>
         </label>
-        <input type="number" min={1} placeholder={t('abEgLoadTime', 'e.g. 45')} value={createData.loadTime} onChange={(e) => update({ loadTime: e.target.value })} />
+        <input
+          id="create-load-time"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={5}
+          placeholder={t('abEgLoadTime', 'e.g. 45')}
+          value={createData.loadTime}
+          aria-valuemin={LOAD_TIME_MINUTES_MIN}
+          aria-valuemax={LOAD_TIME_MINUTES_MAX}
+          onKeyDown={(e) => ['e', 'E', '+', '-', '.'].includes(e.key) && e.preventDefault()}
+          onChange={(e) => {
+            const next = sanitizeLoadTimeMinutesInput(e.target.value);
+            if (next !== null) update({ loadTime: next });
+          }}
+        />
         <FormFieldError message={fieldErrors.loadTime} />
       </div>
 

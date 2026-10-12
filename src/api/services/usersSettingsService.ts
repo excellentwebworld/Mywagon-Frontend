@@ -34,6 +34,8 @@ export type SettingsUser = {
   created_at?: string | null;
   avatar_url?: string | null;
   permission_names?: string[];
+  /** True when this user's role changed and sessions were revoked. */
+  forced_signout?: boolean;
 };
 
 export type UsersListPayload = {

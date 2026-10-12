@@ -3,6 +3,7 @@ import { Star } from 'lucide-react';
 import type { Shipment } from '../../context/AppContext';
 import { formatEuro } from '../../pages/ManageShipments/utils/listingUtils';
 import { formatUtcToDisplayDateTime } from '../../utils/timezone';
+import { useShipperPermission } from '../../hooks/useShipperPermission';
 import { ExpHeading } from './ExpHeading';
 import { ExpRefreshButton } from './ExpRefreshButton';
 import { ItineraryPreview } from './ItineraryPreview';
@@ -22,6 +23,13 @@ type ExpTranslate = (
   options?: Record<string, unknown>,
 ) => string;
 type Offer = NonNullable<Shipment['offers']>[number];
+
+/** Mirror BidsCard: interest rows + non-negotiable received responses use Interest RBAC. */
+function offerUsesInterestPermission(offer: Offer, negotiable: boolean): boolean {
+  if (offer.type === 'interest') return true;
+  const isAvailability = offer.kind === 'sent' || offer.availabilityId != null;
+  return !negotiable && !isAvailability;
+}
 
 interface RowExpansionPendingProps {
   shipment: Shipment;
@@ -95,6 +103,8 @@ function OfferCard({
   isAvailability,
   negotiable,
   quotePrice,
+  canApproveBid,
+  canApproveInterest,
   onAccept,
   onReject,
   onCounter,
@@ -106,6 +116,8 @@ function OfferCard({
   isAvailability: boolean;
   negotiable: boolean;
   quotePrice?: number | null;
+  canApproveBid: boolean;
+  canApproveInterest: boolean;
   onAccept: () => void | Promise<void>;
   onReject: () => void | Promise<void>;
   onCounter: (amount: number, notes?: string) => void | Promise<void>;
@@ -126,7 +138,11 @@ function OfferCard({
   const partnerClosed = isPartnerTerminal(offer.partnerStatus);
   const partnerLabel = partnerStatusLabel(offer.partnerStatus, t);
   const awaitingTransporter = offer.lastActionBy === 'shipper' && !partnerClosed;
-  const showAcceptReject = canShowAcceptReject(offer, isAvailability) && !awaitingTransporter;
+  const canActOnOffer = offerUsesInterestPermission(offer, negotiable)
+    ? canApproveInterest
+    : canApproveBid;
+  const showAcceptReject =
+    canActOnOffer && canShowAcceptReject(offer, isAvailability) && !awaitingTransporter;
   const canCounter =
     !partnerClosed &&
     (isAvailability || negotiable) &&
@@ -369,6 +385,8 @@ function OfferList({
   isAvailability,
   negotiable,
   quotePrice,
+  canApproveBid,
+  canApproveInterest,
   onAcceptOffer,
   onRejectOffer,
   onCounterOffer,
@@ -380,6 +398,8 @@ function OfferList({
   isAvailability: boolean;
   negotiable: boolean;
   quotePrice?: number | null;
+  canApproveBid: boolean;
+  canApproveInterest: boolean;
   onAcceptOffer: (offerId: string) => void | Promise<void>;
   onRejectOffer: (offerId: string) => void | Promise<void>;
   onCounterOffer: (offerId: string, amount: number, notes?: string) => void | Promise<void>;
@@ -396,6 +416,8 @@ function OfferList({
           isAvailability={isAvailability}
           negotiable={negotiable}
           quotePrice={quotePrice}
+          canApproveBid={canApproveBid}
+          canApproveInterest={canApproveInterest}
           onAccept={() => onAcceptOffer(offer.id)}
           onReject={() => onRejectOffer(offer.id)}
           onCounter={(amount, notes) => onCounterOffer(offer.id, amount, notes)}
@@ -423,6 +445,9 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
   onInviteMore,
   t,
 }) => {
+  const { canAction } = useShipperPermission();
+  const canApproveBid = canAction('approveRejectBid');
+  const canApproveInterest = canAction('approveRejectInterest');
   const [invOpen, setInvOpen] = useState(true);
   const [inviteBusy, setInviteBusy] = useState<string | null>(null);
   const [qaBusy, setQaBusy] = useState<'edit' | 'view' | 'cancel' | null>(null);
@@ -503,6 +528,8 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
               isAvailability
               negotiable={negotiable}
               quotePrice={quotePrice}
+              canApproveBid={canApproveBid}
+              canApproveInterest={canApproveInterest}
               onAcceptOffer={onAcceptOffer}
               onRejectOffer={onRejectOffer}
               onCounterOffer={onCounterOffer}
@@ -528,6 +555,8 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
               isAvailability={false}
               negotiable={negotiable}
               quotePrice={quotePrice}
+              canApproveBid={canApproveBid}
+              canApproveInterest={canApproveInterest}
               onAcceptOffer={onAcceptOffer}
               onRejectOffer={onRejectOffer}
               onCounterOffer={onCounterOffer}
@@ -557,6 +586,8 @@ export const RowExpansionPending: React.FC<RowExpansionPendingProps> = ({
               isAvailability={false}
               negotiable={negotiable}
               quotePrice={quotePrice}
+              canApproveBid={canApproveBid}
+              canApproveInterest={canApproveInterest}
               onAcceptOffer={onAcceptOffer}
               onRejectOffer={onRejectOffer}
               onCounterOffer={onCounterOffer}

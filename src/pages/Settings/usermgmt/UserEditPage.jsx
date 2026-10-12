@@ -20,7 +20,7 @@ import {
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
 import { signupService } from '../../../api/auth';
 import { ApiError } from '../../../api/client';
-import { expandPermissionDependencies } from '../../../utils/shipperAccessPresets';
+import { expandPermissionDependencies, localizeShipperRoleName } from '../../../utils/shipperAccessPresets';
 import { CountryCodeSelect } from '../../Register/components/CountryCodeSelect';
 import { validateCountryCode, validatePhone } from '../../Register/registerValidation';
 import '../../Register/RegisterPage.css';
@@ -181,6 +181,7 @@ export default function UserEditPage() {
     if (!validateProfile()) return;
     setSaving(true);
     try {
+      const previousRole = user.role;
       const updated = await usersSettingsService.update(user.id, {
         first_name: draft.firstName.trim(),
         last_name: draft.lastName.trim(),
@@ -191,7 +192,13 @@ export default function UserEditPage() {
       });
       applyServerUser(updated);
       setProfileErrors({});
-      toast.success(t('userMgmt.toast.userUpdated'));
+      if (updated?.forced_signout || (!isOwner && draft.role && draft.role !== previousRole)) {
+        toast.success(t('userMgmt.toast.userUpdatedWithSignout', {
+          defaultValue: 'User updated. They were signed out and must log in again.',
+        }));
+      } else {
+        toast.success(t('userMgmt.toast.userUpdated'));
+      }
     } catch (e) {
       if (e instanceof ApiError && e.fieldErrors) {
         const mapped = {};
@@ -218,7 +225,13 @@ export default function UserEditPage() {
       applyServerUser(updated);
       setEditingPerms(false);
       setEditedPerms(null);
-      toast.success(t('userMgmt.toast.resetToDefaults'));
+      if (updated?.forced_signout) {
+        toast.success(t('userMgmt.toast.userUpdatedWithSignout', {
+          defaultValue: 'User updated. They were signed out and must log in again.',
+        }));
+      } else {
+        toast.success(t('userMgmt.toast.resetToDefaults'));
+      }
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' }));
     } finally {
@@ -250,7 +263,13 @@ export default function UserEditPage() {
       applyServerUser(updated);
       setEditingPerms(false);
       setEditedPerms(null);
-      toast.success(t('userMgmt.toast.permissionsSaved'));
+      if (updated?.forced_signout) {
+        toast.success(t('userMgmt.toast.userUpdatedWithSignout', {
+          defaultValue: 'User updated. They were signed out and must log in again.',
+        }));
+      } else {
+        toast.success(t('userMgmt.toast.permissionsSaved'));
+      }
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : t('userMgmt.toast.saveFailed', { defaultValue: 'Save failed' }));
     } finally {
@@ -311,7 +330,7 @@ export default function UserEditPage() {
           <div style={{ fontSize: 13, color: T.t3 }}>{user.email}</div>
           <div className="flex flex-wrap gap-2 mt-2">
             <span className="inline-flex px-2 py-0.5 rounded-full" style={{ fontSize: 11, fontWeight: 600, background: `${roleMeta.color}18`, color: roleMeta.color }}>
-              {roleMeta.name}
+              {localizeShipperRoleName(roleMeta.name || roleMeta.key || draft.role, t)}
             </span>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ fontSize: 11, fontWeight: 600, background: sc.bg, color: sc.fg }}>
               {t(`userMgmt.status.${user.status}`)}
@@ -427,7 +446,7 @@ export default function UserEditPage() {
                     border: sel ? `2px solid ${T.ac}` : `1px solid ${T.bd}`,
                   }}
                 >
-                  <div className="font-semibold" style={{ fontSize: 13, color: T.t1 }}>{r.name}</div>
+                  <div className="font-semibold" style={{ fontSize: 13, color: T.t1 }}>{localizeShipperRoleName(r.name || r.key, t)}</div>
                   <div style={{ fontSize: 11, color: T.t3 }}>{r.description}</div>
                 </button>
               );
@@ -485,7 +504,7 @@ export default function UserEditPage() {
               <button type="button" onClick={handleForceSignOut} className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer border-none" style={{ background: T.sa, color: T.t1, fontSize: 12 }}>
                 <LogOut size={13} /> {t('userMgmt.actions.forceSignout')}
               </button>
-              <button type="button" onClick={handleDeactivate} className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer border-none" style={{ background: '#FEF2F2', color: '#EF4444', fontSize: 12 }}>
+              <button type="button" onClick={handleDeactivate} className="flex items-center gap-1.5 px-3 py-2 rounded-lg cursor-pointer border-none" style={{ background: 'var(--danger-bg, #FEF2F2)', color: 'var(--danger, #EF4444)', fontSize: 12 }}>
                 <XCircle size={13} /> {t('userMgmt.actions.deactivate')}
               </button>
             </>

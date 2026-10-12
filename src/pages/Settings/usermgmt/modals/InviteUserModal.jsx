@@ -14,7 +14,8 @@ import { useAuth } from '../../../../context/AuthContext';
 import { usersSettingsService } from '../../../../api/services/usersSettingsService';
 import { signupService } from '../../../../api/auth';
 import { ApiError } from '../../../../api/client';
-import { SHIPPER_ROLES } from '../../../../utils/shipperAccessPresets';
+import { SHIPPER_ROLES, localizeShipperRoleName } from '../../../../utils/shipperAccessPresets';
+import { isDispatcherSeatLimitReached, normalizeDispatcherSeats } from '../../../../utils/dispatcherSeats';
 import { CountryCodeSelect } from '../../../Register/components/CountryCodeSelect';
 import { validateCountryCode, validatePhone } from '../../../Register/registerValidation';
 import '../../../Register/RegisterPage.css';
@@ -46,12 +47,12 @@ function seatsFromErrorData(data) {
 
 export default function InviteUserModal({ open, onClose, onInvite, onSaved, user = null }) {
   const { t, i18n } = useTranslation();
-  const { T } = useTheme();
+  const { T, isDark } = useTheme();
   const navigate = useNavigate();
   const { roles, seats, setSeats } = useUserMgmt();
   const { user: authUser, refreshUser } = useAuth();
   const isEdit = !!user;
-  const atSeatLimit = !isEdit && seats && seats.can_invite === false;
+  const atSeatLimit = !isEdit && isDispatcherSeatLimitReached(seats);
 
   const [countryCodes, setCountryCodes] = useState([]);
 
@@ -143,7 +144,7 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
     if (!validate()) return;
 
     if (!isEdit) {
-      if (seats && seats.can_invite === false) {
+      if (atSeatLimit) {
         setErrors({ form: t('userMgmt.seats.limitReached') });
         return;
       }
@@ -163,7 +164,7 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
       } catch (e) {
         const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.inviteFailed', { defaultValue: 'Invite failed' });
         if (e instanceof ApiError && e.status === 403) {
-          const seatMeta = seatsFromErrorData(e.data);
+          const seatMeta = normalizeDispatcherSeats(seatsFromErrorData(e.data));
           if (seatMeta) {
             setSeats(seatMeta);
             setErrors({ form: msg || t('userMgmt.seats.limitReached') });
@@ -256,7 +257,12 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
           {(errors.form || atSeatLimit) && (
             <div
               className="rounded-lg px-3 py-2 flex flex-col sm:flex-row sm:items-center gap-2"
-              style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12 }}
+              style={{
+                background: isDark ? 'rgba(224,59,74,0.20)' : '#FBE6E8',
+                border: `1px solid ${isDark ? 'rgba(244,138,148,0.45)' : '#FECACA'}`,
+                color: isDark ? '#F48A94' : '#B91C1C',
+                fontSize: 12,
+              }}
             >
               <span className="flex-1">
                 {errors.form || t('userMgmt.seats.atLimitHint')}
@@ -379,7 +385,7 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
                   >
                     <div className="flex items-center gap-2 mb-1">
                       <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: role.color }} />
-                      <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{role.name}</span>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{localizeShipperRoleName(role.name || role.key, t)}</span>
                       {sel && <span style={{ fontSize: 11, color: T.ac }}>✓</span>}
                     </div>
                     <p style={{ fontSize: 10, color: T.t3, lineHeight: 1.4, minHeight: 28 }}>

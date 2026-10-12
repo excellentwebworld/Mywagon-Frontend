@@ -2,6 +2,37 @@
  * shipperAccessPresets.ts — Admin/Dispatcher helpers (Blade-parity Spatie values).
  */
 
+/** Unused / legacy — hide from Roles & User permission grids (React UI only). */
+export const HIDDEN_PERMISSION_CATALOG_NAMES = ['view_quotes'] as const;
+
+export function filterPermissionCatalogGroups<
+  T extends { permissions?: Array<{ name?: string }> },
+>(groups: T[] | null | undefined): T[] {
+  if (!groups?.length) return [];
+  const hidden = new Set<string>(HIDDEN_PERMISSION_CATALOG_NAMES);
+  return groups
+    .map((g) => ({
+      ...g,
+      permissions: (g.permissions || []).filter((p) => !hidden.has(String(p.name || ''))),
+    }))
+    .filter((g) => (g.permissions || []).length > 0);
+}
+
+/**
+ * Display label for system roles (Admin / Dispatcher). Custom roles pass through unchanged.
+ */
+export function localizeShipperRoleName(
+  nameOrKey: string | null | undefined,
+  t: (key: string, fallback?: string) => string,
+): string {
+  const raw = String(nameOrKey || '').trim();
+  if (!raw) return '';
+  const key = raw.toLowerCase().replace(/\s+/g, '_');
+  if (key === 'admin') return t('roles.admin', 'Admin');
+  if (key === 'dispatcher') return t('roles.dispatcher', 'Dispatcher');
+  return raw;
+}
+
 export type ShipperPresetKey = 'admin' | 'dispatcher';
 
 export const SHIPPER_PRESET_META: Record<
@@ -28,6 +59,12 @@ export const PERMISSION_DEPENDENCIES: Record<string, string[]> = {
   edit_company_account_information: ['view_company_account_information'],
   edit_all_existing_shipments: ['view_all_existing_shipments'],
   delete_all_existing_shipments: ['view_all_existing_shipments'],
+  create_orders: ['view_orders'],
+  edit_orders: ['view_orders'],
+  delete_orders: ['view_orders'],
+  create_price_lists: ['view_price_lists'],
+  edit_price_lists: ['view_price_lists'],
+  delete_price_lists: ['view_price_lists'],
 };
 
 /** @deprecated Prefer buildPermissionDependencyMaps(catalog).dependents */
@@ -44,7 +81,7 @@ export const PERMISSION_DEPENDENTS: Record<string, string[]> = (() => {
 
 /**
  * Build full dependency maps from the live permission catalog.
- * Rule: enabling edit_X or delete_X also requires view_X when present.
+ * Rule: enabling create_X / edit_X / delete_X also requires view_X when present.
  */
 export function buildPermissionDependencyMaps(catalogNames: string[]): {
   dependencies: Record<string, string[]>;
@@ -65,7 +102,9 @@ export function buildPermissionDependencyMaps(catalogNames: string[]): {
   }
 
   for (const name of catalog) {
-    if (name.startsWith('edit_')) {
+    if (name.startsWith('create_')) {
+      addDep(name, `view_${name.slice('create_'.length)}`);
+    } else if (name.startsWith('edit_')) {
       addDep(name, `view_${name.slice('edit_'.length)}`);
     } else if (name.startsWith('delete_')) {
       addDep(name, `view_${name.slice('delete_'.length)}`);

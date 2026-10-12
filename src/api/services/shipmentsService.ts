@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiDelete, AUTH_TOKEN_KEY, ApiError } from '../client';
+import { apiGet, apiPost, apiPut, apiDelete, AUTH_TOKEN_KEY, ApiError, getAcceptLanguage } from '../client';
 import { mapApiDetailToShipment, mapApiListItemToShipment } from '../mappers/shipmentsMapper';
 import type {
   ApiCancelReasonsPayload,
@@ -11,6 +11,7 @@ import type {
   ApiShipmentsSummary,
   ApiShipmentsFilterFacets,
   ListShipmentsParams,
+  CalendarShipmentsParams,
   PaginatedShipmentsResult,
 } from '../types/shipments';
 import type { Shipment } from '../../context/AppContext';
@@ -57,12 +58,20 @@ function toQuery(params: ListShipmentsParams): Record<string, string | number> {
   assign('dropoff_to', params.dropoff_to);
   assign('posted_from', params.posted_from);
   assign('posted_to', params.posted_to);
+  assign('completed_from', params.completed_from);
+  assign('completed_to', params.completed_to);
+  assign('pod', params.pod);
+  assign('co_owner_id', params.co_owner_id);
   assign('bid_state', params.bid_state);
   assign('customer', params.customer);
   assign('pickup_location_name', params.pickup_location_name);
   assign('dropoff_location_name', params.dropoff_location_name);
   assign('trip_mode', params.trip_mode);
   assign('direction', params.direction);
+  assign('from', params.from);
+  assign('to', params.to);
+  assign('start_date', params.start_date);
+  assign('end_date', params.end_date);
   if (params.ids?.length) {
     params.ids.forEach((id, i) => {
       query[`ids[${i}]`] = id;
@@ -91,6 +100,11 @@ export const shipmentsService = {
         last_page: res.meta?.last_page ?? 1,
       },
     };
+  },
+
+  async calendar(params: CalendarShipmentsParams = {}): Promise<Shipment[]> {
+    const res = await apiGet<ApiShipmentListItem[]>('/shipments/calendar', toQuery(params as ListShipmentsParams));
+    return (res.data ?? []).map(mapApiListItemToShipment);
   },
 
   async listMapped(params: ListShipmentsParams = {}): Promise<{ shipments: Shipment[]; meta: ApiListMeta }> {
@@ -138,6 +152,7 @@ export const shipmentsService = {
     const response = await fetch(`${API_BASE}/shipments/export?${query.toString()}`, {
       headers: {
         Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Accept-Language': getAcceptLanguage(),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });

@@ -626,13 +626,14 @@
   position: fixed;
   bottom: 24px;
   right: 24px;
-  background: var(--ref-t1);
+  background: var(--brand-navy, #1F1F41);
   color: #fff;
   padding: 10px 16px;
   border-radius: var(--ref-rs);
   font-size: 12.5px;
   font-weight: 500;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 10050;
   transform: translateY(60px);
   opacity: 0;
@@ -641,6 +642,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.dark .ref-toast,
+[data-theme='dark'] .ref-toast,
+html.dark .ref-toast {
+  background: var(--surface-alt, #1A1A38);
+  color: var(--text-primary, #fff);
+  border-color: var(--border, #2E2E58);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
 }
 
 .ref-toast.show {

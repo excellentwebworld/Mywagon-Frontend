@@ -19,6 +19,16 @@ export function clearStoredToken(): void {
   safeLocalRemove(AUTH_TOKEN_KEY);
 }
 
+/** Current UI locale for Accept-Language on API/export requests (`el` | `en`). */
+export function getAcceptLanguage(): 'el' | 'en' {
+  const currentLang =
+    safeLocalGet('shipment-lang') ||
+    safeLocalGet('app_locale') ||
+    safeLocalGet('i18nextLng') ||
+    'en';
+  return currentLang.toLowerCase().startsWith('el') ? 'el' : 'en';
+}
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
 export const axiosInstance = axios.create({
@@ -57,14 +67,17 @@ axiosInstance.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  const currentLang =
-    localStorage.getItem('shipment-lang') ||
-    localStorage.getItem('app_locale') ||
-    localStorage.getItem('i18nextLng') ||
-    'en';
-  const normLang = currentLang.toLowerCase().startsWith('el') ? 'el' : 'en';
-  // Always send current UI locale so API __('…') matches React language.
-  config.headers['Accept-Language'] = normLang;
+  const normLang = getAcceptLanguage();
+  // Allow per-request override (e.g. import templates / PDF print stay English).
+  const forceLocale = config.headers['X-Force-Locale'];
+  if (forceLocale) {
+    const forced = String(forceLocale).toLowerCase().startsWith('el') ? 'el' : 'en';
+    config.headers['Accept-Language'] = forced;
+    delete config.headers['X-Force-Locale'];
+  } else {
+    // Always send current UI locale so API __('…') matches React language.
+    config.headers['Accept-Language'] = normLang;
+  }
   config.headers['X-Client-Timezone'] = getBrowserTimezone();
   return config;
 });
@@ -210,14 +223,16 @@ export function apiRequest<T>(
   if (method !== 'GET') {
     return dispatchApiRequest<T>(path, options);
   }
-  return coalesceInflight(`api-get:${path}`, () => dispatchApiRequest<T>(path, options));
+  const forceLocale = options.headers?.['X-Force-Locale'] || '';
+  return coalesceInflight(`api-get:${path}:force=${forceLocale}`, () => dispatchApiRequest<T>(path, options));
 }
 
 export function apiGet<T>(
   path: string,
-  query?: Record<string, string | number | boolean | undefined>
+  query?: Record<string, string | number | boolean | undefined>,
+  headers?: Record<string, string>,
 ): Promise<ApiResponse<T>> {
-  return apiRequest<T>(`${path}${query ? buildQuery(query) : ''}`);
+  return apiRequest<T>(`${path}${query ? buildQuery(query) : ''}`, { headers });
 }
 
 export function apiPost<T>(path: string, body?: unknown): Promise<ApiResponse<T>> {

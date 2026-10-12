@@ -80,7 +80,7 @@ import type {
   CreateLocationData,
   CompanyFormData,
 } from "../../pages/AddressBook/types";
-import type { ApiCompanyLookup } from "../../api/types/addressBook";
+import type { ApiCompanyEntity } from "../../api/types/addressBook";
 import {
   QTY_UNIT_OPTIONS,
   WEIGHT_UNIT_OPTIONS,
@@ -89,6 +89,7 @@ import {
   formatWeightDisplay,
   formatWeightKgTotal,
   convertWeightValue,
+  translateCargoUnit,
 } from "../../constants/cargoUnits";
 import {
   computeLoadBalance,
@@ -150,6 +151,7 @@ import {
   translateResolution,
 } from "./validation";
 import { useSubscriptionPermission } from "../../hooks/useSubscriptionPermission";
+import { useShipperPermission } from "../../hooks/useShipperPermission";
 import { useUpgradeGate } from "../../context/UpgradeGateContext";
 
 const makeId = (prefix: string) =>
@@ -218,6 +220,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 }) => {
   const { t } = useTranslation();
   const { requirePermission, can } = useSubscriptionPermission();
+  const { canAction, requirePermission: requireRbac } = useShipperPermission();
+  const canCreateOrders = canAction('createOrders');
   const { openUpgradeGate } = useUpgradeGate();
   const { values, setFieldValue } = useFormikContext<any>();
   const stops = values.stops || [];
@@ -287,7 +291,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const [createData, setCreateData] =
     useState<CreateLocationData>(EMPTY_CREATE_DATA);
   const [companyQuery, setCompanyQuery] = useState("");
-  const [apiCompanies, setApiCompanies] = useState<ApiCompanyLookup[]>([]);
+  const [apiCompanies, setApiCompanies] = useState<ApiCompanyEntity[]>([]);
   const [potentialDuplicates, setPotentialDuplicates] = useState<
     LocationItem[]
   >([]);
@@ -372,7 +376,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     const q = companyQuery.trim();
     const timer = setTimeout(() => {
       addressBookService
-        .listCompanies(q || undefined, "my_locations")
+        .listCompanyEntities(q || undefined)
         .then(setApiCompanies)
         .catch(() => setApiCompanies([]));
     }, 200);
@@ -528,6 +532,10 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const dupStop = useCallback(
     (sid: string) => {
+      if (stopsRef.current.length >= 2 && !can('allow_multiple_stops')) {
+        openUpgradeGate();
+        return;
+      }
       setStops((prev) => {
         const src = prev.find((s: any) => s.id === sid);
         if (!src) return prev;
@@ -550,7 +558,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         return out;
       });
     },
-    [setStops],
+    [can, openUpgradeGate, setStops],
   );
 
   // Drag-to-reorder
@@ -616,12 +624,21 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   // ═══ LINE CRUD ═══
   const addLine = useCallback(
     (sid: string, action: "pickup" | "dropoff" = "pickup") => {
+      // Classic panel gated "Add Product" behind allow_multiple_stops — Essential
+      // may keep a single cargo line per stop (one product on the load).
+      if (!can("allow_multiple_stops")) {
+        const stop = stopsRef.current.find((s: any) => s.id === sid);
+        if ((stop?.lines?.length ?? 0) >= 1) {
+          openUpgradeGate();
+          return;
+        }
+      }
       uStop(sid, (s: any) => ({
         ...s,
         lines: [...s.lines, createNewCargoLine(action)],
       }));
     },
-    [uStop],
+    [can, openUpgradeGate, uStop],
   );
 
   const delLine = useCallback(
@@ -867,9 +884,19 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           : "pickup";
 
       // Build lines sequentially so each dropoff prefill sees prior remaining.
+      // Skip fully planned/fulfilled lines (remaining <= 0).
       let workingStops = latestStops;
       const newLines = mo.lines
-        .filter((ln) => ln.productActive !== false)
+        .filter((ln) => {
+          if (ln.productActive === false) return false;
+          const remaining =
+            ln.remainingQuantity != null
+              ? Number(ln.remainingQuantity)
+              : ln.quantity != null
+                ? Number(ln.quantity)
+                : null;
+          return remaining == null || remaining > 0;
+        })
         .map((ln) => {
           const lineId = makeId("l");
         const productId = ln.productSkuId ? String(ln.productSkuId) : "";
@@ -1036,11 +1063,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         });
 
         setApiCompanies((prev) => [
-          ...prev,
-          {
-            company_name: created.name,
-            company_vat: created.vat_number || "",
-          },
+          created,
+          ...prev.filter((c) => Number(c.id) !== Number(created.id)),
         ]);
         setCreateData((prev) => ({
           ...prev,
@@ -1234,6 +1258,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
   const handleCreateOrder = useCallback(
     async (values: ErpOrderFormState) => {
+      if (!requireRbac('create_orders')) return;
       try {
         setErpOrderSaving(true);
 
@@ -1299,7 +1324,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         setErpOrderSaving(false);
       }
     },
-    [addOrder, pCtx, setLF, showToast, t],
+    [addOrder, pCtx, requireRbac, setLF, showToast, t],
   );
 
   const selProdLine = useCallback(
@@ -1554,7 +1579,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   // ═══ LOAD BALANCE + VALIDATION ═══
   const bal = useMemo(() => computeLoadBalance(stops), [stops]);
 
-  const fmtW = (kg: number) => formatWeightKgTotal(kg);
+  const fmtW = (kg: number) => formatWeightKgTotal(kg, t);
 
   // ═══ CONFLICT CHECKING ═══
   const {
@@ -2223,11 +2248,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           setMSku(true);
                         }}
                         onNewOrd={(lid) => {
+                          if (!requireRbac('create_orders')) return;
                           setPCtx({ ordS: stop.id, ordL: lid });
                           setMOrd(true);
                         }}
                         onQuickFill={(oid) => quickFill(stop.id, oid)}
                         onQuickFillNew={() => {
+                          if (!requireRbac('create_orders')) return;
                           setPCtx({ ordS: stop.id, ordL: null });
                           setMOrd(true);
                         }}
@@ -2238,6 +2265,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         orderLoadingLineId={orderLoadingLineId}
                         ordersLoading={ordersLoading}
                         pmSkus={pmSkus}
+                        canCreateOrders={canCreateOrders}
                       />
                     </div>
 
@@ -2645,6 +2673,7 @@ interface CargoTableProps {
   orderLoadingLineId?: string | null;
   ordersLoading?: boolean;
   pmSkus?: any[];
+  canCreateOrders?: boolean;
 }
 
 const CargoTable: React.FC<CargoTableProps> = ({
@@ -2674,6 +2703,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
   orderLoadingLineId = null,
   ordersLoading = false,
   pmSkus = [],
+  canCreateOrders = true,
 }) => {
   const thS: React.CSSProperties = {
     fontSize: 10,
@@ -2837,6 +2867,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       onSelOrd={(v) => onSelOrd(ln.id, v)}
                       onClearOrder={() => onClearOrder(ln.id)}
                       onNewOrd={() => onNewOrd(ln.id)}
+                      canCreateOrders={canCreateOrders}
                     />
                     <FieldValidationHint
                       conflicts={getBlockersForAnchor(
@@ -2948,16 +2979,16 @@ const CargoTable: React.FC<CargoTableProps> = ({
                   </td>
                   <td style={{ ...tdS, textAlign: "center" }}>
                     <div
-                      className="inline-flex overflow-hidden rounded"
+                      className="wiz-line-action inline-flex overflow-hidden rounded"
                       style={{ border: `1px solid ${T.bd}` }}
                     >
                       <button
                         type="button"
-                        className="py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none"
+                        className={`wiz-line-action__btn py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none${ln.action === "pickup" ? " is-on" : ""}`}
                         style={{
                           background:
-                            ln.action === "pickup" ? "#000001" : T.sf,
-                          color: ln.action === "pickup" ? "#fff" : T.t3,
+                            ln.action === "pickup" ? undefined : T.sf,
+                          color: ln.action === "pickup" ? undefined : T.t3,
                           fontFamily: "inherit",
                         }}
                         onClick={() => onSetField(ln.id, "action", "pickup")}
@@ -2966,11 +2997,11 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       </button>
                       <button
                         type="button"
-                        className="py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none"
+                        className={`wiz-line-action__btn py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none${ln.action === "dropoff" ? " is-on" : ""}`}
                         style={{
                           background:
-                            ln.action === "dropoff" ? "#000001" : T.sf,
-                          color: ln.action === "dropoff" ? "#fff" : T.t3,
+                            ln.action === "dropoff" ? undefined : T.sf,
+                          color: ln.action === "dropoff" ? undefined : T.t3,
                           fontFamily: "inherit",
                         }}
                         onClick={() => onSetField(ln.id, "action", "dropoff")}
@@ -3049,7 +3080,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                             {orderQty > 0 ? (
                               <div
                                 className="text-[9px] mt-0.5"
-                                title={`${formatQtyWithUnit(allocated, displayUnit)} / ${formatQtyWithUnit(orderQty, displayUnit)}`}
+                                title={`${formatQtyWithUnit(allocated, displayUnit, t)} / ${formatQtyWithUnit(orderQty, displayUnit, t)}`}
                                 style={{
                                   whiteSpace: "nowrap",
                                   color:
@@ -3060,8 +3091,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
                                         : T.t3,
                                 }}
                               >
-                                {formatQtyWithUnit(allocated)} /{" "}
-                                {formatQtyWithUnit(orderQty)}
+                                {formatQtyWithUnit(allocated, displayUnit, t)} /{" "}
+                                {formatQtyWithUnit(orderQty, displayUnit, t)}
                               </div>
                             ) : null}
                           </>
@@ -3104,7 +3135,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                           {availableQty > 0 ? (
                             <div
                               className="text-[9px] mt-0.5"
-                              title={`${formatQtyWithUnit(allocated, displayUnit)} / ${formatQtyWithUnit(availableQty, displayUnit)}`}
+                              title={`${formatQtyWithUnit(allocated, displayUnit, t)} / ${formatQtyWithUnit(availableQty, displayUnit, t)}`}
                               style={{
                                 whiteSpace: "nowrap",
                                 color:
@@ -3115,8 +3146,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
                                       : T.t3,
                               }}
                             >
-                              {formatQtyWithUnit(allocated)} /{" "}
-                              {formatQtyWithUnit(availableQty)}
+                              {formatQtyWithUnit(allocated, displayUnit, t)} /{" "}
+                              {formatQtyWithUnit(availableQty, displayUnit, t)}
                             </div>
                           ) : null}
                         </>
@@ -3148,7 +3179,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                     >
                       {QTY_UNIT_OPTIONS.map((u) => (
                         <option key={u} value={u}>
-                          {u}
+                          {translateCargoUnit(u, t)}
                         </option>
                       ))}
                     </select>
@@ -3219,10 +3250,11 @@ const CargoTable: React.FC<CargoTableProps> = ({
                                     : T.t3,
                             }}
                           >
-                            {formatWeightDisplay(allocated, displayWtUnit)} /{" "}
+                            {formatWeightDisplay(allocated, displayWtUnit, t)} /{" "}
                             {formatWeightDisplay(
                               orderWeightDisplay,
                               displayWtUnit,
+                              t,
                             )}
                           </div>
                         );
@@ -3254,8 +3286,8 @@ const CargoTable: React.FC<CargoTableProps> = ({
                                   : T.t3,
                           }}
                         >
-                          {formatWeightDisplay(allocated, displayWtUnit)} /{" "}
-                          {formatWeightDisplay(availableWeight, displayWtUnit)}
+                          {formatWeightDisplay(allocated, displayWtUnit, t)} /{" "}
+                          {formatWeightDisplay(availableWeight, displayWtUnit, t)}
                         </div>
                       );
                     })()}
@@ -3279,7 +3311,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                     >
                       {WEIGHT_UNIT_OPTIONS.map((u) => (
                         <option key={u} value={u}>
-                          {u}
+                          {translateCargoUnit(u, t)}
                         </option>
                       ))}
                     </select>
@@ -3334,13 +3366,17 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         }}
                         options={ordOpts}
                         placeholder={t("createShipment.searchErpOrders", "Search ERP orders...")}
-                        footerAction={{
-                          label: t("createShipment.createOrderPlus", "+ Create Order"),
-                          onClick: () => {
-                            setQfOpen(false);
-                            onQuickFillNew();
-                          },
-                        }}
+                        footerAction={
+                          canCreateOrders
+                            ? {
+                                label: t("createShipment.createOrderPlus", "+ Create Order"),
+                                onClick: () => {
+                                  setQfOpen(false);
+                                  onQuickFillNew();
+                                },
+                              }
+                            : undefined
+                        }
                         menuFixed={true}
                       />
                     ) : (
@@ -3398,6 +3434,7 @@ interface OrderCellProps {
   onSelOrd: (val: string) => void;
   onClearOrder: () => void;
   onNewOrd: () => void;
+  canCreateOrders?: boolean;
 }
 
 const OrderCell: React.FC<OrderCellProps> = ({
@@ -3411,6 +3448,7 @@ const OrderCell: React.FC<OrderCellProps> = ({
   onSelOrd,
   onClearOrder,
   onNewOrd,
+  canCreateOrders = true,
 }) => {
   const chipLabel = String(
     displayOrderRef || ln.orderRef || ln.orderId || "",
@@ -3454,10 +3492,14 @@ const OrderCell: React.FC<OrderCellProps> = ({
       options={ordOpts}
       placeholder="—"
       hasError={hasError}
-      footerAction={{
-        label: t("createShipment.createOrderPlus", "+ Create Order"),
-        onClick: onNewOrd,
-      }}
+      footerAction={
+        canCreateOrders
+          ? {
+              label: t("createShipment.createOrderPlus", "+ Create Order"),
+              onClick: onNewOrd,
+            }
+          : undefined
+      }
       menuFixed={true}
       hideSublabelInTrigger={true}
       minMenuWidth={240}
@@ -3542,23 +3584,14 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
             )}
           </div>
         </div>
-        <span
-          className="text-[11px] font-bold px-2 py-0.5 rounded"
-          style={{ background: "#FFFFFF", color: "#000001", border: "1px solid var(--app-border-strong, #C9C8CD)" }}
-        >
+        <span className="wiz-bal-chip wiz-bal-chip--pk">
           ↑ {bal.pkU} · {fmtW(bal.pkW)}
         </span>
-        <span
-          className="text-[11px] font-bold px-2 py-0.5 rounded"
-          style={{ background: "#000001", color: "#FFFFFF", border: "1px solid var(--app-black-contour, #000001)" }}
-        >
+        <span className="wiz-bal-chip wiz-bal-chip--do">
           ↓ {bal.doU} · {fmtW(bal.doW)}
         </span>
         {bal.balanced && hasData && (
-          <span
-            className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-            style={{ background: "#D1FAE5", color: "#059669" }}
-          >
+          <span className="wiz-bal-chip wiz-bal-chip--ok">
             ✓ {t("createShipment.balanced", "Balanced")}
           </span>
         )}
@@ -3576,8 +3609,7 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
           <div className="mt-3 grid grid-cols-2 gap-4">
             <div>
               <div
-                className="flex items-center gap-1.5 mb-1 text-xs font-bold"
-                style={{ color: "#1F1F41" }}
+                className="flex items-center gap-1.5 mb-1 text-xs font-bold wiz-bal-stat--pk"
               >
                 <ArrowUp size={13} />
                 {t("createShipment.totalPickup", "Total Pickup")}
@@ -3594,8 +3626,7 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
             </div>
             <div>
               <div
-                className="flex items-center gap-1.5 mb-1 text-xs font-bold"
-                style={{ color: "#000001" }}
+                className="flex items-center gap-1.5 mb-1 text-xs font-bold wiz-bal-stat--do"
               >
                 <ArrowDown size={13} />
                 {t("createShipment.totalDropoff", "Total Dropoff")}
@@ -3643,25 +3674,19 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
                     ) : null}
                   </span>
                   <div className="flex items-center gap-3 shrink-0">
-                    <span style={{ color: "#1F1F41" }}>
+                    <span className="wiz-bal-stat--pk">
                       ↑ {v.pk} {v.unit}
                     </span>
-                    <span style={{ color: "#000001" }}>
+                    <span className="wiz-bal-stat--do">
                       ↓ {v.do} {v.unit}
                     </span>
                     {v.pk > 0 && v.pk !== v.do && (
-                      <span
-                        className="text-[10px] font-bold px-1 rounded"
-                        style={{ background: "#FEF3C7", color: "#D97706" }}
-                      >
+                      <span className="wiz-bal-delta">
                         {v.pk - v.do > 0 ? `+${v.pk - v.do}` : v.pk - v.do}
                       </span>
                     )}
                     {v.pk > 0 && v.pk === v.do && (
-                      <span
-                        className="text-[10px]"
-                        style={{ color: "#059669" }}
-                      >
+                      <span className="text-[10px] text-[#059669] dark:text-[#34d399]">
                         ✓
                       </span>
                     )}

@@ -93,6 +93,7 @@ export interface ApiPartnerPerformance {
   partially_fulfilled_pct: number;
   canceled_pct: number;
   unfulfilled_pct: number;
+  on_time_pickup_pct?: number | null;
   on_time_delivery_pct?: number | null;
   cancellation_rate_pct?: number | null;
   avg_pickup_delay_minutes?: number | null;

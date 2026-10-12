@@ -73,7 +73,7 @@
   padding: 16px;
   border: 1px solid var(--border, #f5edfc);
   border-radius: 12px;
-  background: var(--surface-muted, #faf6fd);
+  background: var(--surface-alt, #faf6fd);
   margin-bottom: 16px;
 }
 
@@ -92,8 +92,8 @@
   justify-content: center;
   font-size: 20px;
   font-weight: 700;
-  background: #F3E8FF;
-  color: #9B51E0;
+  background: var(--accent-pale, #F3E8FF);
+  color: var(--accent, #9B51E0);
 }
 
 .tp-avatar img {
@@ -108,6 +108,7 @@
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 6px;
+  color: var(--text-primary, #121217);
 }
 
 .tp-rating-row {
@@ -129,6 +130,10 @@
 
 .tp-star--on {
   opacity: 1;
+}
+
+.tp-rating-avg {
+  color: var(--text-secondary, #64748b);
 }
 
 .tp-rating-count {
@@ -153,6 +158,7 @@
   padding: 8px 0 12px;
   border-bottom: 1px solid var(--border, #f5edfc);
   margin-bottom: 12px;
+  color: var(--text-primary, #121217);
 }
 
 .tp-distribution {
@@ -166,11 +172,12 @@
   gap: 8px;
   margin-bottom: 6px;
   font-size: 13px;
+  color: var(--text-primary, #121217);
 }
 
 .tp-dist-bar-wrap {
   height: 8px;
-  background: #f1f5f9;
+  background: var(--surface-alt, #f1f5f9);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -204,6 +211,7 @@
 .tp-review-rater {
   font-weight: 600;
   font-size: 13px;
+  color: var(--text-primary, #121217);
 }
 
 .tp-review-date {
@@ -222,6 +230,7 @@
   margin: 0;
   font-size: 14px;
   line-height: 1.5;
+  color: var(--text-primary, #121217);
 }
 
 .tp-review-empty {
@@ -240,7 +249,8 @@
 
 .tp-page-btn {
   border: 1px solid var(--border, #e5e7eb);
-  background: #fff;
+  background: var(--surface, #fff);
+  color: var(--text-primary, #121217);
   border-radius: 8px;
   padding: 6px 12px;
   cursor: pointer;
@@ -285,4 +295,101 @@
 .ld-cr-card .tp-name-link {
   font-weight: 600;
   font-size: inherit;
+}
+
+/* ── Dark mode ── */
+html.dark .tp-modal__panel,
+.dark .tp-modal__panel,
+[data-theme='dark'] .tp-modal__panel {
+  background: var(--surface, #1F1F41);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+  color: var(--text-primary, #fff);
+}
+
+html.dark .tp-modal__header,
+.dark .tp-modal__header,
+[data-theme='dark'] .tp-modal__header {
+  border-bottom-color: var(--border, #2E2E58);
+}
+
+html.dark .tp-modal__close,
+.dark .tp-modal__close,
+[data-theme='dark'] .tp-modal__close {
+  color: var(--text-secondary, #C9C8D6);
+}
+
+html.dark .tp-header-card,
+.dark .tp-header-card,
+[data-theme='dark'] .tp-header-card {
+  background: var(--surface-alt, #1A1A38);
+  border-color: var(--border, #2E2E58);
+}
+
+html.dark .tp-name,
+.dark .tp-name,
+[data-theme='dark'] .tp-name,
+html.dark .tp-section-title,
+.dark .tp-section-title,
+[data-theme='dark'] .tp-section-title,
+html.dark .tp-dist-row,
+.dark .tp-dist-row,
+[data-theme='dark'] .tp-dist-row,
+html.dark .tp-review-rater,
+.dark .tp-review-rater,
+[data-theme='dark'] .tp-review-rater,
+html.dark .tp-review-text,
+.dark .tp-review-text,
+[data-theme='dark'] .tp-review-text {
+  color: var(--text-primary, #ffffff);
+}
+
+html.dark .tp-rating-avg,
+.dark .tp-rating-avg,
+[data-theme='dark'] .tp-rating-avg {
+  color: var(--text-secondary, #C9C8D6);
+}
+
+html.dark .tp-avatar,
+.dark .tp-avatar,
+[data-theme='dark'] .tp-avatar {
+  background: rgba(155, 81, 224, 0.22);
+  color: var(--accent, #C89BEE);
+}
+
+html.dark .tp-rating-count,
+.dark .tp-rating-count,
+[data-theme='dark'] .tp-rating-count,
+html.dark .tp-kpi-row,
+.dark .tp-kpi-row,
+[data-theme='dark'] .tp-kpi-row {
+  color: #C89BEE;
+}
+
+html.dark .tp-dist-bar-wrap,
+.dark .tp-dist-bar-wrap,
+[data-theme='dark'] .tp-dist-bar-wrap {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+html.dark .tp-section-title,
+.dark .tp-section-title,
+[data-theme='dark'] .tp-section-title,
+html.dark .tp-review,
+.dark .tp-review,
+[data-theme='dark'] .tp-review {
+  border-bottom-color: var(--border, #2E2E58);
+}
+
+html.dark .tp-page-btn,
+.dark .tp-page-btn,
+[data-theme='dark'] .tp-page-btn {
+  background: var(--surface-alt, #1A1A38);
+  border-color: var(--border, #2E2E58);
+  color: var(--text-primary, #fff);
+}
+
+html.dark .tp-error,
+.dark .tp-error,
+[data-theme='dark'] .tp-error {
+  color: var(--danger, #F48A94);
 }

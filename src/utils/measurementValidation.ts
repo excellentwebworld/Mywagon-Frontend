@@ -12,5 +12,5 @@ export function isPositiveMeasurement(
   if (str.startsWith('-')) return false;
   const cleaned = str.replace(/,/g, '.').replace(suffixRegex, '').trim();
   const n = parseFloat(cleaned);
-  return Number.isFinite(n) && n > 0;
+  return Number.isFinite(n) && n > 0 && /^\d+(?:\.\d+)?$/.test(cleaned);
 }

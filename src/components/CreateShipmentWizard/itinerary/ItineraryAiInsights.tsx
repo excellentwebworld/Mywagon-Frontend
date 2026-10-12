@@ -17,7 +17,7 @@ interface ItineraryAiInsightsProps {
   totalWeightKg: number;
   totalPallets: number;
   enrichedStops: EnrichedStop[];
-  t: (key: string, params?: Record<string, unknown>) => string;
+  t: (key: string, fallbackOrOptions?: string | Record<string, unknown>) => string;
 }
 
 export const ItineraryAiInsights: React.FC<ItineraryAiInsightsProps> = ({
@@ -176,7 +176,7 @@ export const ItineraryAiInsights: React.FC<ItineraryAiInsightsProps> = ({
             ))}
           </div>
           <div className="text-[10px] mt-2" style={{ color: T.t3 }}>
-            {t('step2TotalCargo')}: {formatWeightKg(totalWeightKg)}
+            {t('step2TotalCargo')}: {formatWeightKg(totalWeightKg, t)}
           </div>
         </div>
       </div>

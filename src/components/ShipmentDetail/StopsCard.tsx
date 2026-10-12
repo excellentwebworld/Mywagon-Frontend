@@ -126,17 +126,28 @@ export function computeStopsDiff(
     }
 
     if (!matchedOldStop) {
-      // Brand-new stop: NEW badge only — same as edit Step2 (no red field paints).
+      // Brand-new stop: NEW badge + red on all stop/line fields (load change).
       const orderHighlights: Record<number, OrderDiffHighlight> = {};
       upStop.orders.forEach((ord, oIdx) => {
         const prodHighlights: Record<number, ProductDiffHighlight> = {};
         ord.products.forEach((_, pIdx) => {
-          prodHighlights[pIdx] = { isNew: true };
+          prodHighlights[pIdx] = { isNew: true, name: true, qty: true, weight: true };
         });
-        orderHighlights[oIdx] = { isNew: true, products: prodHighlights };
+        orderHighlights[oIdx] = {
+          isNew: true,
+          orderId: true,
+          customerName: true,
+          products: prodHighlights,
+        };
       });
       highlights[upIdx] = {
         isNew: true,
+        schedule: true,
+        date: true,
+        time: true,
+        timeEnd: Boolean(normalizeDiffTime(upStop.timeEnd)),
+        location: true,
+        address: true,
         orders: orderHighlights,
       };
       return;
@@ -165,12 +176,17 @@ export function computeStopsDiff(
       }
 
       if (!matchedOldOrd) {
-        // New order line on an existing stop: NEW badge only (matches Step2).
+        // New order on an existing stop: NEW badge + red field paints.
         const prodHighlights: Record<number, ProductDiffHighlight> = {};
         upOrd.products.forEach((_, pIdx) => {
-          prodHighlights[pIdx] = { isNew: true };
+          prodHighlights[pIdx] = { isNew: true, name: true, qty: true, weight: true };
         });
-        orderHighlights[oIdx] = { isNew: true, products: prodHighlights };
+        orderHighlights[oIdx] = {
+          isNew: true,
+          orderId: true,
+          customerName: true,
+          products: prodHighlights,
+        };
         return;
       }
 
@@ -185,7 +201,7 @@ export function computeStopsDiff(
         }
 
         if (!matchedOldProd) {
-          prodHighlights[pIdx] = { isNew: true };
+          prodHighlights[pIdx] = { isNew: true, name: true, qty: true, weight: true };
           return;
         }
 
@@ -696,10 +712,11 @@ export const StopsCard: React.FC<StopsCardProps> = ({
 
                       <StopTag type={isPickup ? 'pickup' : 'dropoff'} />
 
-                      {/* NEW Tag for new stop (matching Step 2) */}
+                      {/* NEW Tag for new stop (matching Step 2 — red like change diffs) */}
                       {stopHl?.isNew && (
                         <span
-                          className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider bg-[var(--mv-success)] text-white shadow-xs"
+                          className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold tracking-wider text-white shadow-xs"
+                          style={{ background: DIFF_RED }}
                         >
                           {t('newTag', 'NEW')}
                         </span>
@@ -839,7 +856,10 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                   {t('orderLabelPrefix', 'Order:')} {order.orderId}
                                 </span>
                                 {ordHl?.isNew && !stopHl?.isNew && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider bg-[var(--mv-success)] text-white shadow-xs">
+                                  <span
+                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider text-white shadow-xs"
+                                    style={{ background: DIFF_RED }}
+                                  >
                                     {t('newTag', 'NEW')}
                                   </span>
                                 )}
@@ -912,7 +932,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
 
                           {order.customerName && (
                             <div
-                              className="mt-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px] font-semibold flex items-center gap-1.5 text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]"
+                              className="mt-1.5 pt-1.5 border-t border-slate-200/60 dark:border-slate-700/60 text-[11px] font-semibold flex items-center gap-1.5 text-[var(--text-primary)]"
                               style={{ color: diffColor(ordHl?.customerName) }}
                             >
                               <span>🏪</span>
@@ -952,33 +972,21 @@ export const StopsCard: React.FC<StopsCardProps> = ({
 
                   {/* POD section on Dropoff stop directly inside the rectangle */}
                   {!isPickup && (
-                    <div
-                      className={`mt-2.5 p-2.5 rounded-xl border flex items-center justify-between gap-2 flex-wrap ${
-                        stop.pod === '1' || (stop.podImages && stop.podImages.length > 0)
-                          ? 'bg-[var(--mv-success-bg)] dark:bg-emerald-950/40 border-[var(--mv-success-bg)] dark:border-[var(--st-success-bg)]/70 text-emerald-800 dark:text-emerald-200'
-                          : 'bg-[var(--surface-alt)] border-[var(--border)] text-[var(--text-secondary)]'
-                      }`}
-                    >
+                    <div className="mt-2.5 p-2.5 rounded-xl border flex items-center justify-between gap-2 flex-wrap bg-[var(--surface-alt)] border-[var(--border)] text-[var(--text-secondary)]">
                       <div className="flex items-center gap-2">
                         <FileText
                           size={15}
-                          className={stop.pod === '1' || (stop.podImages && stop.podImages.length > 0) ? 'text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]' : 'text-[var(--text-tertiary)]'}
+                          className="text-[var(--text-tertiary)]"
                         />
-                        <span
-                          className={`text-[12px] font-bold ${
-                            stop.pod === '1' || (stop.podImages && stop.podImages.length > 0)
-                              ? 'text-emerald-800 dark:text-emerald-200'
-                              : 'text-[var(--text-secondary)]'
-                          }`}
-                        >
+                        <span className="text-[12px] font-bold text-[var(--text-secondary)]">
                           {t('podProofOfDelivery', 'POD (Proof of Delivery)')}
                         </span>
                         {stop.pod === '1' || (stop.podImages && stop.podImages.length > 0) ? (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 dark:bg-emerald-900/60 text-[var(--mv-success-ink)] dark:text-[var(--st-success-fg)]">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[#000001] text-white border border-[var(--app-black-contour,#000001)]">
                             {t('uploaded', 'Uploaded')}
                           </span>
                         ) : (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[var(--surface-alt)] text-[var(--text-secondary)] border border-[var(--border)]">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)]">
                             {t('notUploaded', 'Not uploaded')}
                           </span>
                         )}

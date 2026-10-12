@@ -10,7 +10,8 @@ import { useUserMgmt } from '../../../context/UserMgmtContext';
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
 import { signupService } from '../../../api/auth';
 import { ApiError } from '../../../api/client';
-import { SHIPPER_ROLES } from '../../../utils/shipperAccessPresets';
+import { SHIPPER_ROLES, localizeShipperRoleName } from '../../../utils/shipperAccessPresets';
+import { isDispatcherSeatLimitReached, normalizeDispatcherSeats } from '../../../utils/dispatcherSeats';
 import { CountryCodeSelect } from '../../Register/components/CountryCodeSelect';
 import { validateCountryCode, validatePhone } from '../../Register/registerValidation';
 import '../../Register/RegisterPage.css';
@@ -135,7 +136,7 @@ export default function UserDetailPanel({
     if (!validate()) return;
 
     if (!isEdit) {
-      if (seats && seats.can_invite === false) {
+      if (isDispatcherSeatLimitReached(seats)) {
         setErrors({ email: t('userMgmt.seats.limitReached', { defaultValue: 'Seat limit reached' }) });
         return;
       }
@@ -153,12 +154,14 @@ export default function UserDetailPanel({
         setForm({ ...EMPTY_FORM });
         setErrors({});
         if (seats) {
-          setSeats({
+          const used = (seats.used || 0) + 1;
+          const remaining = Math.max(0, (seats.remaining || 0) - 1);
+          setSeats(normalizeDispatcherSeats({
             ...seats,
-            used: (seats.used || 0) + 1,
-            remaining: Math.max(0, (seats.remaining || 0) - 1),
-            can_invite: (seats.remaining || 0) - 1 > 0,
-          });
+            used,
+            remaining,
+            can_invite: remaining > 0,
+          }));
         }
       } catch (e) {
         const msg = e instanceof ApiError ? e.message : t('userMgmt.toast.inviteFailed', { defaultValue: 'Invite failed' });
@@ -341,7 +344,7 @@ export default function UserDetailPanel({
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0" style={{ background: role.color }} />
-                    <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{role.name}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{localizeShipperRoleName(role.name || role.key, t)}</span>
                     {sel && <span style={{ fontSize: 11, color: T.ac }}>✓</span>}
                   </div>
                   {role.description && (

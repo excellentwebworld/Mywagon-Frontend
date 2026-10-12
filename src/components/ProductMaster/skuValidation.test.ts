@@ -60,6 +60,20 @@ describe('ProductMaster SKU Validation', () => {
     ).rejects.toThrow('Must be greater than 0');
   });
 
+  it('rejects alphabetic and non-numeric weight inputs', async () => {
+    await expect(
+      skuValidationSchema.validateAt('weight', { weight: 'wewewewewewewewewewew' })
+    ).rejects.toThrow('Must be greater than 0');
+
+    await expect(
+      skuValidationSchema.validateAt('weight', { weight: 'abc' })
+    ).rejects.toThrow('Must be greater than 0');
+
+    await expect(
+      skuValidationSchema.validateAt('weight', { weight: '12kgabc' })
+    ).rejects.toThrow('Must be greater than 0');
+  });
+
   it('requires category, product type, SKU name, and SKU number', async () => {
     await expect(
       skuValidationSchema.validateAt('catId', { catId: '' })

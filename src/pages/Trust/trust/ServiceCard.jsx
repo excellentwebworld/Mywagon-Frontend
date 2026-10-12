@@ -22,12 +22,52 @@ const STATUS_DOT = {
   maintenance: '#3B82F6',
 };
 
+/** Localize short probe metric tokens (OK / Check / …); pass through complex metrics. */
+function localizeMetric(metric, t) {
+  const raw = String(metric ?? '').trim();
+  if (!raw || raw === '—') return raw || '—';
+
+  const exact = {
+    OK: t('trust.status.metricOk', 'OK'),
+    'S3 OK': t('trust.status.metricS3Ok', 'S3 OK'),
+    Unavailable: t('trust.status.metricUnavailable', 'Unavailable'),
+    Down: t('trust.status.metricDown', 'Down'),
+    Check: t('trust.status.metricCheck', 'Check'),
+    'N/A': t('trust.status.metricNa', 'N/A'),
+    Fixed: t('trust.status.metricFixed', 'Fixed'),
+    Missing: t('trust.status.metricMissing', 'Missing'),
+    EC2: 'EC2',
+  };
+  if (exact[raw]) return exact[raw];
+
+  // e.g. "12 queued", "3/5 in service"
+  if (/\bqueued\b/i.test(raw)) {
+    return raw.replace(/queued/i, t('trust.status.metricQueued', 'queued'));
+  }
+  if (/\bin service\b/i.test(raw)) {
+    return raw.replace(/in service/i, t('trust.status.metricInService', 'in service'));
+  }
+  if (/\bavg\b/i.test(raw)) {
+    return raw.replace(/avg/i, t('trust.status.metricAvg', 'avg'));
+  }
+
+  return raw;
+}
+
 export default function ServiceCard({ service, lang }) {
   const { t } = useTranslation();
   const { T } = useTheme();
   const Icon = ICONS[service.id] || Server;
   const dot = STATUS_DOT[service.status];
   const statusKey = `trust.status.${service.status}`;
+  const name =
+    (typeof service.name === 'object'
+      ? (service.name?.[lang] || service.name?.en)
+      : service.name) || service.id;
+  const metricLabel =
+    (service.metric_label || service.metricLabel)?.[lang]
+    || (service.metric_label || service.metricLabel)?.en
+    || t('trust.status.metricStatus', 'Status');
 
   return (
     <div
@@ -42,7 +82,7 @@ export default function ServiceCard({ service, lang }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-semibold truncate" style={{ fontSize: 13, color: T.t1 }}>
-            {service.name[lang] || service.name.en}
+            {name}
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -54,11 +94,10 @@ export default function ServiceCard({ service, lang }) {
       {/* Metric */}
       <div className="flex items-baseline gap-1.5 mb-3">
         <span style={{ fontSize: 11, color: T.t3 }}>
-          {(service.metric_label || service.metricLabel)?.[lang]
-            || (service.metric_label || service.metricLabel)?.en}:
+          {metricLabel}:
         </span>
         <span style={{ fontSize: 13, fontWeight: 600, color: T.t1, fontVariantNumeric: 'tabular-nums' }}>
-          {service.metric}
+          {localizeMetric(service.metric, t)}
         </span>
       </div>
 

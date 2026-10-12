@@ -144,7 +144,10 @@ export const billingService = {
   },
 
   async getStatement(month: string, extra?: StatementExportExtra): Promise<StatementPayload> {
-    const res = await apiGet<StatementPayload>('/billing/statements', { month, ...extra });
+    const res = await apiGet<StatementPayload>(
+      '/billing/statements',
+      { month, ...extra },
+    );
     return res.data;
   },
 

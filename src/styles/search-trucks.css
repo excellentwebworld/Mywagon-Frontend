@@ -546,6 +546,28 @@
   color: #92400E;
   padding: 1px 5px;
   border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+
+html.dark .sat-chip-prem,
+[data-theme='dark'] .sat-chip-prem {
+  background: rgba(251, 191, 36, 0.22);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+html.dark .sat-chip.has,
+[data-theme='dark'] .sat-chip.has {
+  border-color: var(--accent, #9b51e0);
+  background: rgba(155, 81, 224, 0.28);
+  color: #fff;
+}
+
+html.dark .sat-chip.has .sat-chip-prem,
+[data-theme='dark'] .sat-chip.has .sat-chip-prem {
+  background: rgba(251, 191, 36, 0.28);
+  color: #fde68a;
+  border-color: rgba(251, 191, 36, 0.5);
 }
 
 .sat-f-clear {
@@ -920,6 +942,12 @@
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
 }
 .sat-bg-pub { background: var(--success-bg, #ECFDF5); color: #065F46; }
+html.dark .sat-bg-ok,
+html.dark .sat-bg-pub,
+[data-theme='dark'] .sat-bg-ok,
+[data-theme='dark'] .sat-bg-pub {
+  color: var(--success, #6FD49B);
+}
 
 .sat-bdot {
   width: 6px;
@@ -1857,8 +1885,10 @@
 }
 .sat-map-endpoint--pickup .sat-map-endpoint__chip { border-color: var(--app-border-strong, #C9C8CD); background: #FFFFFF; }
 .sat-map-endpoint--pickup .sat-map-endpoint__kind { color: #000001; }
+.sat-map-endpoint--pickup .sat-map-endpoint__place { color: #000001; }
 .sat-map-endpoint--dropoff .sat-map-endpoint__chip { border-color: var(--app-black-contour, #000001); background: #000001; }
 .sat-map-endpoint--dropoff .sat-map-endpoint__kind { color: #FFFFFF; }
+.sat-map-endpoint--dropoff .sat-map-endpoint__place { color: #FFFFFF; }
 
 .sat-map-marker.private .sat-mm-tail {
   border-top-color: #9B51E0;
@@ -2123,13 +2153,81 @@
   z-index: 2;
 }
 .sat-bid-table tbody tr {
-  transition: background 0.08s;
+  transition: background 0.12s ease, box-shadow 0.12s ease;
 }
 .sat-bid-table tbody tr:hover {
   background: var(--surface-alt);
 }
 .sat-bid-table tbody tr.sel {
   background: var(--accent-light, #F5F3FF) !important;
+}
+/* Exact match highlight — parity with old shipper match_load green rows (permission-gated via API exact_match) */
+.sat-bid-table tbody tr.is-exact-match {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--success, #2FA968) 14%, #fff) 0%,
+    var(--success-bg, #E4F5EC) 45%,
+    color-mix(in srgb, var(--success, #2FA968) 14%, #fff) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--success, #2FA968) 45%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--success, #2FA968) 45%, transparent),
+    inset 3px 0 0 var(--success, #2FA968);
+}
+.sat-bid-table tbody tr.is-exact-match:hover {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--success, #2FA968) 22%, #fff) 0%,
+    color-mix(in srgb, var(--success, #2FA968) 16%, #fff) 50%,
+    color-mix(in srgb, var(--success, #2FA968) 22%, #fff) 100%
+  );
+}
+.sat-bid-table tbody tr.is-exact-match.sel {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--success, #2FA968) 18%, #fff) 0%,
+    var(--accent-light, #F5F3FF) 55%,
+    color-mix(in srgb, var(--accent, #9B51E0) 10%, #fff) 100%
+  ) !important;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--success, #2FA968) 40%, transparent),
+    inset 0 -1px 0 color-mix(in srgb, var(--success, #2FA968) 40%, transparent),
+    inset 3px 0 0 var(--success, #2FA968);
+}
+html.dark .sat-bid-table tbody tr.is-exact-match,
+[data-theme='dark'] .sat-bid-table tbody tr.is-exact-match {
+  background: linear-gradient(
+    90deg,
+    rgba(47, 169, 104, 0.22) 0%,
+    rgba(47, 169, 104, 0.12) 50%,
+    rgba(47, 169, 104, 0.22) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 rgba(111, 212, 155, 0.35),
+    inset 0 -1px 0 rgba(111, 212, 155, 0.35),
+    inset 3px 0 0 var(--success, #6FD49B);
+}
+html.dark .sat-bid-table tbody tr.is-exact-match:hover,
+[data-theme='dark'] .sat-bid-table tbody tr.is-exact-match:hover {
+  background: linear-gradient(
+    90deg,
+    rgba(47, 169, 104, 0.3) 0%,
+    rgba(47, 169, 104, 0.18) 50%,
+    rgba(47, 169, 104, 0.3) 100%
+  );
+}
+html.dark .sat-bid-table tbody tr.is-exact-match.sel,
+[data-theme='dark'] .sat-bid-table tbody tr.is-exact-match.sel {
+  background: linear-gradient(
+    90deg,
+    rgba(47, 169, 104, 0.26) 0%,
+    color-mix(in srgb, var(--accent, #9B51E0) 22%, transparent) 55%,
+    rgba(155, 81, 224, 0.16) 100%
+  ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(111, 212, 155, 0.35),
+    inset 0 -1px 0 rgba(111, 212, 155, 0.35),
+    inset 3px 0 0 var(--success, #6FD49B);
 }
 .sat-bid-table tbody td {
   padding: 12px;
@@ -2200,6 +2298,11 @@
   color: #065f46;
   text-transform: uppercase;
 }
+html.dark .sat-bid-table .chip-cont,
+[data-theme='dark'] .sat-bid-table .chip-cont {
+  color: #34d399;
+  background: rgba(16, 185, 129, 0.18);
+}
 .sat-bid-table .cust-pills {
   display: flex;
   gap: 3px;
@@ -2252,6 +2355,13 @@
   background: var(--warning-bg, #FEF3C7);
   color: #92400e;
   text-transform: uppercase;
+}
+html.dark .sat-bid-table .chip-spot,
+html.dark .sat-bid-snapshot .chip-spot,
+[data-theme='dark'] .sat-bid-table .chip-spot,
+[data-theme='dark'] .sat-bid-snapshot .chip-spot {
+  color: #fbbf24;
+  background: rgba(233, 162, 28, 0.22);
 }
 .sat-bid-chip-row {
   display: flex;
@@ -2346,6 +2456,27 @@
 }
 .sat-bid-table tbody tr.sel .sat-bid-col-choose {
   background: var(--accent-light, #F5F3FF);
+}
+.sat-bid-table tbody tr.is-exact-match .sat-bid-col-choose {
+  background: color-mix(in srgb, var(--success, #2FA968) 12%, var(--surface, #fff));
+}
+.sat-bid-table tbody tr.is-exact-match:hover .sat-bid-col-choose {
+  background: color-mix(in srgb, var(--success, #2FA968) 18%, var(--surface, #fff));
+}
+.sat-bid-table tbody tr.is-exact-match.sel .sat-bid-col-choose {
+  background: color-mix(in srgb, var(--success, #2FA968) 14%, var(--accent-light, #F5F3FF));
+}
+html.dark .sat-bid-table tbody tr.is-exact-match .sat-bid-col-choose,
+[data-theme='dark'] .sat-bid-table tbody tr.is-exact-match .sat-bid-col-choose {
+  background: rgba(47, 169, 104, 0.16);
+}
+html.dark .sat-bid-table tbody tr.is-exact-match:hover .sat-bid-col-choose,
+[data-theme='dark'] .sat-bid-table tbody tr.is-exact-match:hover .sat-bid-col-choose {
+  background: rgba(47, 169, 104, 0.24);
+}
+html.dark .sat-bid-table tbody tr.is-exact-match.sel .sat-bid-col-choose,
+[data-theme='dark'] .sat-bid-table tbody tr.is-exact-match.sel .sat-bid-col-choose {
+  background: color-mix(in srgb, rgba(47, 169, 104, 0.22) 60%, var(--accent-light, #3b2a55));
 }
 .sat-bid-choose-btn {
   font-size: 11px;
@@ -3730,6 +3861,32 @@ a.sat-btn {
   border-color: var(--accent);
   background: var(--accent-light, #EDE9FE);
   box-shadow: 0 0 0 3px rgba(155, 81, 224, 0.12);
+}
+
+html.dark .sat-veh-card.is-selected,
+.dark .sat-veh-card.is-selected,
+[data-theme='dark'] .sat-veh-card.is-selected {
+  background: rgba(155, 81, 224, 0.22);
+  box-shadow: 0 0 0 3px rgba(155, 81, 224, 0.18);
+}
+
+html.dark .sat-veh-card.is-selected .sat-veh-name,
+.dark .sat-veh-card.is-selected .sat-veh-name,
+[data-theme='dark'] .sat-veh-card.is-selected .sat-veh-name {
+  color: var(--text-primary, #ffffff);
+}
+
+html.dark .sat-veh-card.is-selected .sat-veh-sub,
+.dark .sat-veh-card.is-selected .sat-veh-sub,
+[data-theme='dark'] .sat-veh-card.is-selected .sat-veh-sub {
+  color: var(--text-tertiary, #a3a2b8);
+}
+
+html.dark .sat-veh-card.is-selected .sat-veh-icon,
+.dark .sat-veh-card.is-selected .sat-veh-icon,
+[data-theme='dark'] .sat-veh-card.is-selected .sat-veh-icon {
+  background: rgba(155, 81, 224, 0.28);
+  color: var(--accent, #9B51E0);
 }
 
 .sat-veh-check {

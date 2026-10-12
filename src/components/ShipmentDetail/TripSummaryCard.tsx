@@ -30,7 +30,7 @@ export const TripSummaryCard: React.FC<TripSummaryCardProps> = ({
           <div className="text-[18px] font-bold tabular-nums text-slate-900 dark:text-white">
             {trip.distanceKm}{' '}
             <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
-              km
+              {t('unitKm', 'km')}
             </span>
           </div>
           <div className="text-[10px] font-semibold uppercase mt-0.5 text-slate-500 dark:text-slate-400">
@@ -40,7 +40,15 @@ export const TripSummaryCard: React.FC<TripSummaryCardProps> = ({
 
         <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/80 dark:border-slate-700/60">
           <div className="text-[18px] font-bold tabular-nums text-slate-900 dark:text-white">
-            {trip.duration}
+            {(() => {
+              const raw = String(trip.duration || '').trim();
+              if (!raw || raw === '—') return '—';
+              // "4m" / "1h 32m" / "4min" → localized unit suffixes
+              return raw
+                .replace(/(\d+)\s*mins?\b/gi, (_, n) => `${n}${translateCargoUnit('min', t)}`)
+                .replace(/(\d+)\s*m\b/gi, (_, n) => `${n}${translateCargoUnit('min', t)}`)
+                .replace(/(\d+)\s*h(?:rs?)?\b/gi, (_, n) => `${n}${translateCargoUnit('h', t)}`);
+            })()}
           </div>
           <div className="text-[10px] font-semibold uppercase mt-0.5 text-slate-500 dark:text-slate-400">
             {t('estDuration', 'Est. duration')}

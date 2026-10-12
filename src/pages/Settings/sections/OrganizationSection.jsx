@@ -168,14 +168,95 @@ function isMandatoryField(field) {
 
 function isOpsValueFilled(field, value) {
   if (field.type === 'multi') {
-    return Array.isArray(value) && value.length > 0;
+    if (!Array.isArray(value) || value.length === 0) return false;
+    if (isOtherSelectedWithoutSpecify(field, value)) return false;
+    return true;
   }
-  return value != null && String(value).trim() !== '';
+  if (value == null || String(value).trim() === '') return false;
+  if (isOtherSelectedWithoutSpecify(field, value)) return false;
+  return true;
+}
+
+function findFieldOtherOption(options = []) {
+  return (options || []).find((o) => isOtherLike(o.value) || isOtherLike(o.label)) || null;
+}
+
+function findFieldOption(options, v) {
+  const s = String(v);
+  const opts = options || [];
+  return (
+    opts.find((o) => String(o.value) === s) ||
+    opts.find((o) => slugify(o.label) === s) ||
+    opts.find((o) => slugify(o.value) === s) ||
+    null
+  );
+}
+
+/** True when the free-text Other option is selected but "Please specify" is empty. */
+function isOtherSelectedWithoutSpecify(field, value) {
+  const otherOpt = findFieldOtherOption(field?.options);
+  if (!otherOpt) return false;
+
+  if (field.type === 'multi') {
+    if (!Array.isArray(value) || value.length === 0) return false;
+    const vals = value.map(String);
+    const hasCustom = vals.some((v) => !findFieldOption(field.options, v) && !isOtherLike(v));
+    if (hasCustom) return false;
+    return vals.some(
+      (v) => isOtherLike(v) || String(v) === String(otherOpt.value)
+    );
+  }
+
+  const current = value == null ? '' : String(value).trim();
+  if (!current) return false;
+  if (!findFieldOption(field.options, current) && !isOtherLike(current)) {
+    // Custom specify text is the value
+    return false;
+  }
+  return isOtherLike(current) || current === String(otherOpt.value);
+}
+
+/** Count multi-select choices treating Other + its custom text as one selection. */
+function countMultiOpsSelections(values, options = []) {
+  if (!Array.isArray(values) || values.length === 0) return 0;
+  const opts = Array.isArray(options) ? options : [];
+  const findOpt = (v) => {
+    const s = String(v);
+    return (
+      opts.find((o) => String(o.value) === s) ||
+      opts.find((o) => slugify(o.label) === s) ||
+      opts.find((o) => slugify(o.value) === s) ||
+      null
+    );
+  };
+  const hasOtherOption = opts.some(
+    (o) => isOtherLike(o.value) || isOtherLike(o.label)
+  );
+  let count = 0;
+  let otherGroup = false;
+  for (const v of values) {
+    const opt = findOpt(v);
+    if (opt) {
+      if (isOtherLike(opt.value) || isOtherLike(opt.label) || isOtherLike(v)) {
+        otherGroup = true;
+      } else {
+        count += 1;
+      }
+    } else if (isOtherLike(v)) {
+      otherGroup = true;
+    } else if (hasOtherOption) {
+      // Free-text "Please specify" value for Other — same selection as Other
+      otherGroup = true;
+    } else {
+      count += 1;
+    }
+  }
+  return count + (otherGroup ? 1 : 0);
 }
 
 export default function OrganizationSection() {
   const { t } = useTranslation();
-  const { T } = useTheme();
+  const { T, isDark } = useTheme();
   const { toast } = useToast();
   const navigate = useNavigate();
   const { refreshUser, user } = useAuth();
@@ -416,24 +497,36 @@ export default function OrganizationSection() {
     return !!data?.legal?.kyc_locked && (data.legal.kyc_locked_fields || []).includes(apiKey) && isFilled;
   };
 
+  const buildInvoiceEmails = (currentList, pendingInput) => {
+    const emails = [...(currentList || [])];
+    const pending = String(pendingInput || '').trim().toLowerCase();
+    if (!pending) {
+      return { emails, error: null, clearedInput: true };
+    }
+    if (!EMAIL_RE.test(pending)) {
+      return { emails, error: t('settings.orgSection.legal.invalidEmail'), clearedInput: false };
+    }
+    if (emails.includes(pending)) {
+      return { emails, error: null, clearedInput: true };
+    }
+    if (emails.length >= MAX_INVOICE_EMAILS) {
+      return {
+        emails,
+        error: t('settings.orgSection.legal.maxEmails', { max: MAX_INVOICE_EMAILS }),
+        clearedInput: false,
+      };
+    }
+    return { emails: [...emails, pending], error: null, clearedInput: true };
+  };
+
   const addInvoiceEmail = () => {
-    const email = emailInput.trim().toLowerCase();
-    if (!email) return;
-    if (!EMAIL_RE.test(email)) {
-      toast.error(t('settings.orgSection.legal.invalidEmail'));
+    const { emails, error, clearedInput } = buildInvoiceEmails(legalDraft.invoice_emails, emailInput);
+    if (error) {
+      toast.error(error);
       return;
     }
-    const list = legalDraft.invoice_emails || [];
-    if (list.includes(email)) {
-      setEmailInput('');
-      return;
-    }
-    if (list.length >= MAX_INVOICE_EMAILS) {
-      toast.error(t('settings.orgSection.legal.maxEmails', { max: MAX_INVOICE_EMAILS }));
-      return;
-    }
-    setLegalDraft((p) => ({ ...p, invoice_emails: [...(p.invoice_emails || []), email] }));
-    setEmailInput('');
+    setLegalDraft((p) => ({ ...p, invoice_emails: emails }));
+    if (clearedInput) setEmailInput('');
   };
 
   const removeInvoiceEmail = (email) => {
@@ -463,12 +556,26 @@ export default function OrganizationSection() {
         }
       }
     }
+
+    // Commit typed-but-not-added email so Save does not drop it.
+    const { emails: invoiceEmails, error: emailError, clearedInput } = buildInvoiceEmails(
+      legalDraft.invoice_emails,
+      emailInput,
+    );
+    if (emailError) {
+      toast.error(emailError);
+      return;
+    }
+    if (clearedInput && emailInput) setEmailInput('');
+    setLegalDraft((p) => ({ ...p, invoice_emails: invoiceEmails }));
+
     setSavingLegal(true);
     try {
       const toCoord = (v) => (v == null || v === '' ? null : String(v));
       const payload = await organizationSettingsService.update({
         legal: {
           ...legalDraft,
+          invoice_emails: invoiceEmails,
           lat: toCoord(legalDraft.lat),
           lng: toCoord(legalDraft.lng),
         },
@@ -516,11 +623,40 @@ export default function OrganizationSection() {
       return;
     }
 
-    // Validate max selection limits on multi-select fields (e.g. product_types max 5)
+    // Other selected → "Please specify" text is required
+    const missingOtherSpecify = opsFields.find((field) =>
+      isOtherSelectedWithoutSpecify(field, opsDraft[field.key])
+    );
+    if (missingOtherSpecify) {
+      toast.error(
+        t(
+          'settings.orgSection.operational.otherSpecifyRequired',
+          'Please specify a value for "Other" before saving.'
+        )
+      );
+      const parentSection = groupedOpsSections.find((s) =>
+        s.fields.some((f) => f.key === missingOtherSpecify.key)
+      );
+      if (parentSection) {
+        setOpenOpsSections((prev) => ({ ...prev, [parentSection.id]: true }));
+      }
+      const el = document.getElementById(`ops-field-${missingOtherSpecify.key}`);
+      if (el) {
+        scrollWithinSettings(el, { behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
+    // Validate max selection limits on multi-select fields (e.g. product_types max 5).
+    // Other + its custom "Please specify" text count as one selection.
     for (const field of opsFields) {
       const maxAllowed = field.max_selection || field.max || OPS_FIELD_MAX_SELECTIONS[field.key];
       const val = opsDraft[field.key];
-      if (maxAllowed && Array.isArray(val) && val.length > maxAllowed) {
+      if (
+        maxAllowed &&
+        Array.isArray(val) &&
+        countMultiOpsSelections(val, field.options) > maxAllowed
+      ) {
         toast.error(
           t('settings.orgSection.operational.maxSelectionsField', {
             field: field.label,
@@ -685,10 +821,13 @@ export default function OrganizationSection() {
       {fromCompanyInfo && (
         <div
           className="rounded-xl px-4 py-3 flex items-start gap-3"
-          style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}
+          style={{
+            background: isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB',
+            border: isDark ? '1px solid rgba(245, 158, 11, 0.45)' : '1px solid #FDE68A',
+          }}
         >
-          <AlertTriangle size={18} style={{ color: '#B45309', marginTop: 2, flexShrink: 0 }} />
-          <div style={{ fontSize: 13, color: '#92400E', lineHeight: 1.45 }}>
+          <AlertTriangle size={18} style={{ color: isDark ? '#FBBF24' : '#B45309', marginTop: 2, flexShrink: 0 }} />
+          <div style={{ fontSize: 13, color: isDark ? '#FDE68A' : '#92400E', lineHeight: 1.45 }}>
             {t(
               'settings.orgSection.companyInfoGateBanner',
               'Complete your company address (street, city, and postal code) to continue using the panel.'
@@ -700,10 +839,13 @@ export default function OrganizationSection() {
       {fromInfoForm && !fromCompanyInfo && (
         <div
           className="rounded-xl px-4 py-3 flex items-start gap-3"
-          style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}
+          style={{
+            background: isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFBEB',
+            border: isDark ? '1px solid rgba(245, 158, 11, 0.45)' : '1px solid #FDE68A',
+          }}
         >
-          <AlertTriangle size={18} style={{ color: '#B45309', marginTop: 2, flexShrink: 0 }} />
-          <div style={{ fontSize: 13, color: '#92400E', lineHeight: 1.45 }}>
+          <AlertTriangle size={18} style={{ color: isDark ? '#FBBF24' : '#B45309', marginTop: 2, flexShrink: 0 }} />
+          <div style={{ fontSize: 13, color: isDark ? '#FDE68A' : '#92400E', lineHeight: 1.45 }}>
             {t(
               'settings.orgSection.infoFormGateBanner',
               'Complete your company operations information to continue using the panel.'
@@ -1238,6 +1380,7 @@ export default function OrganizationSection() {
 function OpsField({ field, value, editing, onChange, T }) {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { isDark } = useTheme();
   const [expanded, setExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const options = field.options || [];
@@ -1258,7 +1401,9 @@ function OpsField({ field, value, editing, onChange, T }) {
 
   const mandatory = isMandatoryField(field);
   const filled = isOpsValueFilled(field, value);
-  const showUnansweredWarning = editing && mandatory && !filled;
+  const otherSpecifyMissing = isOtherSelectedWithoutSpecify(field, value);
+  // Specify-field has its own inline hint when Other is selected without text
+  const showUnansweredWarning = editing && mandatory && !filled && !otherSpecifyMissing;
 
   const CHIP_PREVIEW = 12;
 
@@ -1350,6 +1495,17 @@ function OpsField({ field, value, editing, onChange, T }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, isMulti]);
 
+  /** Collapse bare Other + custom specify text into a single stored value. */
+  const collapseMultiOtherDupes = (list) => {
+    if (!otherOption || !Array.isArray(list)) return list;
+    const predefined = list.filter((v) => findOption(v) && !isOtherSelectedValue(v));
+    const customs = list.filter((v) => !findOption(v) && !isOtherSelectedValue(v));
+    const hasOther = list.some((v) => isOtherSelectedValue(v));
+    if (customs.length > 0) return [...predefined, customs.join(', ')];
+    if (hasOther) return [...predefined, String(otherOption.value)];
+    return predefined;
+  };
+
   const clearMultiOther = () => {
     const without = multiSelected.filter((v) => findOption(v) && !isOtherSelectedValue(v));
     setMultiOtherText('');
@@ -1361,11 +1517,9 @@ function OpsField({ field, value, editing, onChange, T }) {
     const predefined = multiSelected.filter((v) => findOption(v));
     const canonical = otherOption ? String(otherOption.value) : 'other';
     const withoutOther = predefined.filter((v) => !isOtherSelectedValue(v));
-    const next = [...withoutOther, canonical];
-    if (text.trim()) {
-      next.push(text.trim());
-    }
-    onChange(next);
+    const trimmed = text.trim();
+    // Store custom text OR the Other option — never both (one selection)
+    onChange(trimmed ? [...withoutOther, trimmed] : [...withoutOther, canonical]);
   };
 
   // Single-choice state for "Other" custom specify text
@@ -1411,11 +1565,13 @@ function OpsField({ field, value, editing, onChange, T }) {
   const containerStyle = editing
     ? showUnansweredWarning
       ? {
-          background: '#FFFDF5',
-          border: '1.5px solid #F59E0B',
+          background: isDark ? 'rgba(245, 158, 11, 0.12)' : '#FFFDF5',
+          border: isDark ? '1.5px solid rgba(245, 158, 11, 0.55)' : '1.5px solid #F59E0B',
           borderRadius: 12,
           padding: '14px 16px',
-          boxShadow: '0 1px 4px rgba(245, 158, 11, 0.12)',
+          boxShadow: isDark
+            ? '0 1px 4px rgba(245, 158, 11, 0.18)'
+            : '0 1px 4px rgba(245, 158, 11, 0.12)',
           transition: 'all 0.2s ease',
         }
       : {
@@ -1568,6 +1724,8 @@ function OpsField({ field, value, editing, onChange, T }) {
 
   if (isMulti && options.length > 0) {
     const selected = multiSelected;
+    // Chips already merge Other + specify text into one entry
+    const selectionCount = multiDisplayChips.length;
 
     const collapsedOptions = (() => {
       if (!editing || expanded || options.length <= CHIP_PREVIEW) return options;
@@ -1625,13 +1783,13 @@ function OpsField({ field, value, editing, onChange, T }) {
                 <span style={{ fontSize: 11, fontWeight: 700, color: T.ac, marginRight: 2 }}>
                   {maxSelection
                     ? t('settings.orgSection.operational.selectedCountWithMax', {
-                        count: selected.length,
+                        count: selectionCount,
                         max: maxSelection,
-                        defaultValue: `Selected (${selected.length}/${maxSelection}):`,
+                        defaultValue: `Selected (${selectionCount}/${maxSelection}):`,
                       })
                     : t('settings.orgSection.operational.selectedCount', {
-                        count: selected.length,
-                        defaultValue: `Selected (${selected.length}):`,
+                        count: selectionCount,
+                        defaultValue: `Selected (${selectionCount}):`,
                       })}
                 </span>
                 {multiDisplayChips.map((chip) => (
@@ -1660,7 +1818,11 @@ function OpsField({ field, value, editing, onChange, T }) {
                           slugify(chip.key),
                           slugify(chip.label),
                         ]);
-                        onChange(selected.filter((v) => !aliases.has(String(v))));
+                        onChange(
+                          collapseMultiOtherDupes(
+                            selected.filter((v) => !aliases.has(String(v)))
+                          )
+                        );
                       }}
                       className="border-none bg-transparent cursor-pointer p-0 ml-0.5 flex items-center"
                       style={{ color: T.ac }}
@@ -1726,10 +1888,10 @@ function OpsField({ field, value, editing, onChange, T }) {
                 }}
               >
                 {displayOptions.map((opt) => {
-                  const isThisOther = otherOption && (
-                    String(opt.value) === String(otherOption.value) ||
-                    isOtherLike(opt.value) ||
-                    isOtherLike(opt.label)
+                  // Only the exact free-text "Other" option shares the specify UI —
+                  // not labels like "Other Miscellaneous (...)"
+                  const isThisOther = Boolean(
+                    otherOption && String(opt.value) === String(otherOption.value)
                   );
                   const active = isThisOther ? isMultiOtherActive : isSelected(opt, selected);
 
@@ -1742,7 +1904,7 @@ function OpsField({ field, value, editing, onChange, T }) {
                           if (isMultiOtherActive) {
                             clearMultiOther();
                           } else {
-                            if (maxSelection && selected.length >= maxSelection) {
+                            if (maxSelection && selectionCount >= maxSelection) {
                               toast.warning(
                                 t('settings.orgSection.operational.maxReached', {
                                   max: maxSelection,
@@ -1752,11 +1914,12 @@ function OpsField({ field, value, editing, onChange, T }) {
                               return;
                             }
                             const canonical = String(opt.value);
-                            const next = [...selected, canonical];
-                            if (multiOtherText.trim()) {
-                              next.push(multiOtherText.trim());
-                            }
-                            onChange(next);
+                            const without = selected.filter(
+                              (v) => findOption(v) && !isOtherSelectedValue(v)
+                            );
+                            const trimmed = multiOtherText.trim();
+                            // Other + specify text = one selection
+                            onChange(trimmed ? [...without, trimmed] : [...without, canonical]);
                           }
                         } else {
                           const canonical = String(opt.value);
@@ -1767,9 +1930,9 @@ function OpsField({ field, value, editing, onChange, T }) {
                           ]);
                           const without = selected.filter((v) => !aliases.has(v));
                           if (active) {
-                            onChange(without);
+                            onChange(collapseMultiOtherDupes(without));
                           } else {
-                            if (maxSelection && selected.length >= maxSelection) {
+                            if (maxSelection && selectionCount >= maxSelection) {
                               toast.warning(
                                 t('settings.orgSection.operational.maxReached', {
                                   max: maxSelection,
@@ -1778,7 +1941,7 @@ function OpsField({ field, value, editing, onChange, T }) {
                               );
                               return;
                             }
-                            onChange([...without, canonical]);
+                            onChange(collapseMultiOtherDupes([...without, canonical]));
                           }
                         }
                       }}
@@ -1844,20 +2007,36 @@ function OpsField({ field, value, editing, onChange, T }) {
               <div className="mt-3 pt-2.5" style={{ borderTop: `1px dashed ${T.bd}` }}>
                 <label className="block mb-1.5 font-semibold" style={{ fontSize: 12, color: T.t2 }}>
                   {t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
+                  <span style={{ color: '#DC2626', fontWeight: 700, marginLeft: 3 }}>*</span>
                 </label>
                 <input
                   type="text"
                   value={multiOtherText}
                   onChange={(e) => handleMultiOtherTextChange(e.target.value)}
                   placeholder={t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
+                  required
+                  aria-required="true"
                   className="w-full px-3 py-2 rounded-lg outline-none"
                   style={{
-                    border: `1px solid ${T.bd}`,
+                    border: `1.5px solid ${!multiOtherText.trim() ? '#F59E0B' : T.bd}`,
                     background: T.sf,
                     color: T.t1,
                     fontSize: 13,
                   }}
                 />
+                {!multiOtherText.trim() && (
+                  <div
+                    className="flex items-center gap-1.5 mt-1.5"
+                    style={{ fontSize: 11.5, color: '#B45309', fontWeight: 500 }}
+                  >
+                    <AlertTriangle size={12} style={{ color: '#D97706', flexShrink: 0 }} />
+                    <span>
+                      {t('settings.orgSection.operational.otherSpecifyRequiredHint', {
+                        defaultValue: 'Please specify is required when Other is selected',
+                      })}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -1951,10 +2130,8 @@ function OpsField({ field, value, editing, onChange, T }) {
                 }}
               >
                 {displayOptions.map((opt) => {
-                  const isThisOther = otherOption && (
-                    String(opt.value) === String(otherOption.value) ||
-                    isOtherLike(opt.value) ||
-                    isOtherLike(opt.label)
+                  const isThisOther = Boolean(
+                    otherOption && String(opt.value) === String(otherOption.value)
                   );
                   const active = isThisOther ? isSingleOtherActive : selectValue === String(opt.value);
 
@@ -1997,20 +2174,36 @@ function OpsField({ field, value, editing, onChange, T }) {
               <div className="mt-3 pt-2.5" style={{ borderTop: `1px dashed ${T.bd}` }}>
                 <label className="block mb-1.5 font-semibold" style={{ fontSize: 12, color: T.t2 }}>
                   {t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
+                  <span style={{ color: '#DC2626', fontWeight: 700, marginLeft: 3 }}>*</span>
                 </label>
                 <input
                   type="text"
                   value={singleOtherText}
                   onChange={(e) => handleSingleOtherTextChange(e.target.value)}
                   placeholder={t('common.pleaseSpecify', { defaultValue: 'Please specify' })}
+                  required
+                  aria-required="true"
                   className="w-full px-3 py-2 rounded-lg outline-none"
                   style={{
-                    border: `1px solid ${T.bd}`,
+                    border: `1.5px solid ${!singleOtherText.trim() ? '#F59E0B' : T.bd}`,
                     background: T.sf,
                     color: T.t1,
                     fontSize: 13,
                   }}
                 />
+                {!singleOtherText.trim() && (
+                  <div
+                    className="flex items-center gap-1.5 mt-1.5"
+                    style={{ fontSize: 11.5, color: '#B45309', fontWeight: 500 }}
+                  >
+                    <AlertTriangle size={12} style={{ color: '#D97706', flexShrink: 0 }} />
+                    <span>
+                      {t('settings.orgSection.operational.otherSpecifyRequiredHint', {
+                        defaultValue: 'Please specify is required when Other is selected',
+                      })}
+                    </span>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -2350,16 +2543,19 @@ function slugify(text) {
     .replace(/_+/g, '_');
 }
 
-/** Detect "Other" / "Other please specify" / Greek Άλλο option labels & values. */
+/** Detect free-text "Other" option only — not labels like "Other Miscellaneous". */
 function isOtherLike(text) {
   const raw = String(text || '').trim();
   if (!raw) return false;
   const lower = raw.toLowerCase();
+  // Exact Other / Άλλο
   if (lower === 'other' || lower === 'άλλο' || lower === 'αλλo') return true;
   const slug = slugify(raw);
-  if (slug === 'other' || slug.startsWith('other_')) return true;
-  if (lower.startsWith('other ') || lower.startsWith('other,')) return true;
-  if (lower.includes('please specify') && lower.includes('other')) return true;
+  if (slug === 'other' || slug === 'allo') return true;
+  // "Other please specify", "Other (please specify)", other_please_specify
+  if (slug === 'other_please_specify' || slug.startsWith('other_please_specify_')) return true;
+  if (/^other\s*[(,]?\s*please\s+specify\b/.test(lower)) return true;
+  if (lower === 'other please specify' || lower.startsWith('other please specify')) return true;
   return false;
 }
 

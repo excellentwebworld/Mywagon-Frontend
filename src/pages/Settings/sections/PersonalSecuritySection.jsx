@@ -12,11 +12,20 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../../../hooks/useTheme';
 import { useToast } from '../../../hooks/useToast';
+import { useAuth } from '../../../context/AuthContext';
 import { SECURITY_POLICIES } from '../../../mocks/userMgmtData';
 import { securitySettingsService } from '../../../api/services/securitySettingsService';
 import { ApiError } from '../../../api/client';
 import TwoFactorSetupModal from '../components/TwoFactorSetupModal';
 import ConfirmTwoFactorModal from '../components/ConfirmTwoFactorModal';
+
+function socialProviderLabel(provider) {
+  if (!provider) return '';
+  const key = String(provider).toLowerCase();
+  if (key === 'google') return 'Google';
+  if (key === 'microsoft') return 'Microsoft';
+  return String(provider).charAt(0).toUpperCase() + String(provider).slice(1);
+}
 
 function downloadRecoveryCodes(codes) {
   const blob = new Blob([codes.join('\n') + '\n'], { type: 'text/plain;charset=utf-8' });
@@ -34,6 +43,9 @@ export default function PersonalSecuritySection() {
   const { t } = useTranslation();
   const { T } = useTheme();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const isSocialAccount = Boolean(user?.social_provider);
+  const providerLabel = socialProviderLabel(user?.social_provider);
   const [showPwModal, setShowPwModal] = useState(false);
   const [showSetup, setShowSetup] = useState(false);
   const [confirmMode, setConfirmMode] = useState(null); // disable | view-codes | regenerate
@@ -69,18 +81,39 @@ export default function PersonalSecuritySection() {
   return (
     <div className="space-y-4">
       <SCard title={t('settings.securitySection.password.title')} icon={<KeyRound size={16} style={{ color: T.ac }} />} T={T}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-          <InfoBox
-            label={t('settings.securitySection.password.policy')}
-            value={`${t('settings.securitySection.password.min')} ${policy.minLength} ${t('settings.securitySection.password.chars')}`}
-            T={T}
-          />
-          <InfoBox
-            label={t('settings.securitySection.password.hint', { defaultValue: 'Security' })}
-            value={t('settings.securitySection.password.useStrong', { defaultValue: 'Use a strong unique password' })}
-            T={T}
-          />
-        </div>
+        {isSocialAccount ? (
+          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg mb-4" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
+            <AlertTriangle size={14} style={{ color: '#2563EB', marginTop: 2, flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#1E40AF' }}>
+                {t('settings.securitySection.password.socialTitle', {
+                  defaultValue: 'Signed in with {{provider}}',
+                  provider: providerLabel,
+                })}
+              </div>
+              <p style={{ fontSize: 12, color: '#1E3A8A', marginTop: 4, lineHeight: 1.45, marginBottom: 0 }}>
+                {t('settings.securitySection.password.socialMessage', {
+                  defaultValue:
+                    'This account was created with {{provider}}, so there is no password you can change here. Keep signing in with {{provider}}. To use email login later, set a password from the Forgot Password page on login.',
+                  provider: providerLabel,
+                })}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            <InfoBox
+              label={t('settings.securitySection.password.policy')}
+              value={`${t('settings.securitySection.password.min')} ${policy.minLength} ${t('settings.securitySection.password.chars')}`}
+              T={T}
+            />
+            <InfoBox
+              label={t('settings.securitySection.password.hint', { defaultValue: 'Security' })}
+              value={t('settings.securitySection.password.useStrong', { defaultValue: 'Use a strong unique password' })}
+              T={T}
+            />
+          </div>
+        )}
         <button
           type="button"
           onClick={() => setShowPwModal(true)}
@@ -200,6 +233,8 @@ export default function PersonalSecuritySection() {
           t={t}
           toast={toast}
           policy={policy}
+          isSocialAccount={isSocialAccount}
+          providerLabel={providerLabel}
         />
       )}
 
@@ -235,7 +270,7 @@ export default function PersonalSecuritySection() {
   );
 }
 
-function ChangePasswordModal({ onClose, T, t, toast, policy }) {
+function ChangePasswordModal({ onClose, T, t, toast, policy, isSocialAccount, providerLabel }) {
   const [current, setCurrent] = useState('');
   const [newPw, setNewPw] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -286,73 +321,112 @@ function ChangePasswordModal({ onClose, T, t, toast, policy }) {
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative w-full max-w-md rounded-2xl shadow-2xl overflow-hidden" style={{ background: T.sf, border: `1px solid ${T.bd}` }}>
         <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${T.bd}` }}>
-          <h3 className="font-bold" style={{ fontSize: 16, color: T.t1 }}>{t('settings.securitySection.password.changeTitle')}</h3>
+          <h3 className="font-bold" style={{ fontSize: 16, color: T.t1 }}>
+            {isSocialAccount
+              ? t('settings.securitySection.password.socialPopupTitle', { defaultValue: 'Password not available' })
+              : t('settings.securitySection.password.changeTitle')}
+          </h3>
           <button type="button" onClick={onClose} className="cursor-pointer border-none bg-transparent" style={{ color: T.t3, fontSize: 20 }}>×</button>
         </div>
         <div className="px-5 py-4 space-y-3">
-          {error && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: '#FEF2F2', color: '#EF4444', fontSize: 12 }}>
-              <AlertTriangle size={14} /> {error}
-            </div>
+          {isSocialAccount ? (
+            <>
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}>
+                <AlertTriangle size={14} style={{ color: '#2563EB', marginTop: 2, flexShrink: 0 }} />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#1E40AF' }}>
+                    {t('settings.securitySection.password.socialTitle', {
+                      defaultValue: 'Signed in with {{provider}}',
+                      provider: providerLabel,
+                    })}
+                  </div>
+                  <p style={{ fontSize: 12, color: '#1E3A8A', marginTop: 6, lineHeight: 1.5, marginBottom: 0 }}>
+                    {t('settings.securitySection.password.socialMessage', {
+                      defaultValue:
+                        'This account was created with {{provider}}, so there is no password you can change here. Keep signing in with {{provider}}. To use email login later, set a password from the Forgot Password page on login.',
+                      provider: providerLabel,
+                    })}
+                  </p>
+                </div>
+              </div>
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 rounded-lg cursor-pointer border-none font-semibold"
+                  style={{ background: T.ac, color: '#fff', fontSize: 13 }}
+                >
+                  {t('settings.securitySection.password.socialGotIt', { defaultValue: 'Got it' })}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              {error && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: '#FEF2F2', color: '#EF4444', fontSize: 12 }}>
+                  <AlertTriangle size={14} /> {error}
+                </div>
+              )}
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void handleSave();
+                }}
+                className="space-y-3"
+              >
+                <div>
+                  <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>{t('settings.securitySection.password.currentPw')}</label>
+                  <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg outline-none"
+                    style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+                    autoComplete="current-password"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>{t('settings.securitySection.password.newPw')}</label>
+                  <div className="relative">
+                    <input type={showNew ? 'text' : 'password'} value={newPw} onChange={(e) => setNewPw(e.target.value)}
+                      className="w-full px-3 py-2 pr-10 rounded-lg outline-none"
+                      style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+                      autoComplete="new-password"
+                    />
+                    <button type="button" onClick={() => setShowNew((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer border-none bg-transparent" style={{ color: T.t3 }}>
+                      {showNew ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                  <ul className="mt-2 space-y-1">
+                    {checks.map((c) => (
+                      <li key={c.label} style={{ fontSize: 11, color: c.ok ? '#10B981' : T.t3 }}>{c.ok ? '✓' : '○'} {c.label}</li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>{t('settings.securitySection.password.confirmPw')}</label>
+                  <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg outline-none"
+                    style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+                    autoComplete="new-password"
+                  />
+                  {confirm && newPw !== confirm && (
+                    <p style={{ fontSize: 11, color: '#EF4444', marginTop: 3 }}>{t('settings.securitySection.password.noMatch')}</p>
+                  )}
+                </div>
+                <div className="flex justify-end gap-2 pt-1">
+                  <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg cursor-pointer border-none" style={{ background: T.sa, color: T.t2, fontSize: 13 }}>
+                    {t('common.cancel')}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!canSave || saving}
+                    className="px-4 py-2 rounded-lg cursor-pointer border-none font-semibold"
+                    style={{ background: canSave ? T.ac : T.sa, color: canSave ? '#fff' : T.t3, fontSize: 13, opacity: saving ? 0.7 : 1 }}
+                  >
+                    {saving ? t('common.saving', { defaultValue: 'Saving…' }) : t('settings.securitySection.password.change')}
+                  </button>
+                </div>
+              </form>
+            </>
           )}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void handleSave();
-            }}
-            className="space-y-3"
-          >
-          <div>
-            <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>{t('settings.securitySection.password.currentPw')}</label>
-            <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg outline-none"
-              style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
-              autoComplete="current-password"
-            />
-          </div>
-          <div>
-            <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>{t('settings.securitySection.password.newPw')}</label>
-            <div className="relative">
-              <input type={showNew ? 'text' : 'password'} value={newPw} onChange={(e) => setNewPw(e.target.value)}
-                className="w-full px-3 py-2 pr-10 rounded-lg outline-none"
-                style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
-                autoComplete="new-password"
-              />
-              <button type="button" onClick={() => setShowNew((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer border-none bg-transparent" style={{ color: T.t3 }}>
-                {showNew ? <EyeOff size={14} /> : <Eye size={14} />}
-              </button>
-            </div>
-            <ul className="mt-2 space-y-1">
-              {checks.map((c) => (
-                <li key={c.label} style={{ fontSize: 11, color: c.ok ? '#10B981' : T.t3 }}>{c.ok ? '✓' : '○'} {c.label}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>{t('settings.securitySection.password.confirmPw')}</label>
-            <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg outline-none"
-              style={{ border: `1px solid ${T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
-              autoComplete="new-password"
-            />
-            {confirm && newPw !== confirm && (
-              <p style={{ fontSize: 11, color: '#EF4444', marginTop: 3 }}>{t('settings.securitySection.password.noMatch')}</p>
-            )}
-          </div>
-          <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg cursor-pointer border-none" style={{ background: T.sa, color: T.t2, fontSize: 13 }}>
-              {t('common.cancel')}
-            </button>
-            <button
-              type="submit"
-              disabled={!canSave || saving}
-              className="px-4 py-2 rounded-lg cursor-pointer border-none font-semibold"
-              style={{ background: canSave ? T.ac : T.sa, color: canSave ? '#fff' : T.t3, fontSize: 13, opacity: saving ? 0.7 : 1 }}
-            >
-              {saving ? t('common.saving', { defaultValue: 'Saving…' }) : t('settings.securitySection.password.change')}
-            </button>
-          </div>
-          </form>
         </div>
       </div>
     </div>

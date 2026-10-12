@@ -46,10 +46,13 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  const renderDelta = (delta: number) => {
+  // `lowerIsBetter` flips the colours for metrics where an increase is bad (e.g. canceled loads).
+  const renderDelta = (delta: number, lowerIsBetter = false) => {
+    const upClass = lowerIsBetter ? 'wr-delta-down' : 'wr-delta-up';
+    const downClass = lowerIsBetter ? 'wr-delta-up' : 'wr-delta-down';
     if (delta > 0) {
       return (
-        <span className="wr-tbl-delta wr-delta-up">
+        <span className={`wr-tbl-delta ${upClass}`}>
           <ArrowUpRight size={12} />
           <span>+{delta}</span>
         </span>
@@ -57,7 +60,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
     }
     if (delta < 0) {
       return (
-        <span className="wr-tbl-delta wr-delta-down">
+        <span className={`wr-tbl-delta ${downClass}`}>
           <ArrowDownRight size={12} />
           <span>{delta}</span>
         </span>
@@ -77,11 +80,10 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
           <thead>
             <tr>
               <th className="wr-th-period">{t('weeklyReports.period', 'Week Period')}</th>
-              <th className="wr-th-delivery">{t('weeklyReports.deliveryDate', 'Delivered On')}</th>
+              <th className="wr-th-delivery">{t('weeklyReports.reportDate', 'Report Date')}</th>
               <th className="wr-th-fulfilled">{t('weeklyReports.loadsFulfilled', 'Fulfilled')}</th>
               <th className="wr-th-created">{t('weeklyReports.loadsCreated', 'Created')}</th>
-              <th className="wr-th-active">{t('weeklyReports.onTrip', 'In Progress')}</th>
-              <th className="wr-th-pending">{t('weeklyReports.pending', 'Loads Currently Pending')}</th>
+              <th className="wr-th-canceled">{t('weeklyReports.canceled', 'Loads Canceled')}</th>
               <th className="wr-th-partners">{t('weeklyReports.newPartners', 'Partners')}</th>
               <th className="wr-th-actions">
                 {t('analytics.weeklyReports.actions', 'Actions')}
@@ -101,7 +103,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                       </div>
                     </div>
                   </td>
-                  {/* Delivery date */}
+                  {/* Report date */}
                   <td className="wr-td-delivery">
                     <div className="wr-delivery-cell">
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '90px', height: '13px', marginBottom: '5px' }} />
@@ -122,23 +124,19 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                       <div className="wr-sk-line wr-sk-shimmer" style={{ width: '32px', height: '14px', borderRadius: '4px' }} />
                     </div>
                   </td>
-                  {/* In Progress */}
-                  <td className="wr-td-progress">
-                    <div className="wr-progress-chips">
-                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '50px', height: '20px', borderRadius: '6px' }} />
-                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '58px', height: '20px', borderRadius: '6px' }} />
-                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '52px', height: '20px', borderRadius: '6px' }} />
-                    </div>
-                  </td>
-                  {/* Pending */}
-                  <td className="wr-td-pending">
-                    <div className="wr-pending-cell">
-                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '76px', height: '20px', borderRadius: '6px' }} />
+                  {/* Canceled */}
+                  <td className="wr-td-metric">
+                    <div className="wr-metric-cell">
+                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '36px', height: '16px', marginBottom: '4px' }} />
+                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '32px', height: '14px', borderRadius: '4px' }} />
                     </div>
                   </td>
                   {/* Partners */}
-                  <td className="wr-td-partners">
-                    <div className="wr-sk-line wr-sk-shimmer" style={{ width: '28px', height: '16px', margin: '0 auto' }} />
+                  <td className="wr-td-metric">
+                    <div className="wr-metric-cell">
+                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '36px', height: '16px', marginBottom: '4px' }} />
+                      <div className="wr-sk-line wr-sk-shimmer" style={{ width: '32px', height: '14px', borderRadius: '4px' }} />
+                    </div>
                   </td>
                   {/* Actions */}
                   <td className="wr-td-actions">
@@ -151,7 +149,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
               ))
             ) : reports.length === 0 ? (
               <tr>
-                <td colSpan={8} className="wr-empty-td">
+                <td colSpan={7} className="wr-empty-td">
                   <div className="wr-empty-state">
                     <Inbox size={42} className="wr-empty-icon" />
                     <h3 className="wr-empty-title">
@@ -170,11 +168,8 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
               reports.map((r) => {
                 const fulfilled = r.metrics.fulfilled;
                 const created = r.metrics.created;
-                const onTrip = r.metrics.on_trip?.value ?? 0;
-                const scheduled = r.metrics.scheduled?.value ?? 0;
-                const ready = r.metrics.ready?.value ?? 0;
-                const pending = r.metrics.pending?.value ?? 0;
-                const newPartners = r.metrics.new_partners?.value ?? 0;
+                const canceled = r.metrics.canceled;
+                const newPartners = r.metrics.new_partners;
 
                 const isExportingThis = exportingReportId === r.id;
 
@@ -202,7 +197,7 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                       </div>
                     </td>
 
-                    {/* Delivery Date / Sent Status */}
+                    {/* Report Date / Sent Status */}
                     <td className="wr-td-delivery">
                       <div className="wr-delivery-cell">
                         <span className="wr-delivery-date">
@@ -239,47 +234,24 @@ export const WeeklyReportsTable: React.FC<WeeklyReportsTableProps> = ({
                       </div>
                     </td>
 
-                    {/* In-Progress (On Trip, Scheduled, Ready) */}
-                    <td className="wr-td-progress">
-                      <div className="wr-progress-chips">
-                        <span
-                          className="wr-sub-chip wr-chip-ontrip"
-                          title={t('analytics.weeklyReports.loadsOnTrip', 'Loads on trip')}
-                        >
-                          <strong>{onTrip}</strong>{' '}
-                          {t('analytics.weeklyReports.chipTrip', 'trip')}
+                    {/* Canceled Metric */}
+                    <td className="wr-td-metric">
+                      <div className="wr-metric-cell">
+                        <span className="wr-metric-main-val font-semibold">
+                          {canceled?.value ?? 0}
                         </span>
-                        <span
-                          className="wr-sub-chip wr-chip-scheduled"
-                          title={t('analytics.weeklyReports.loadsScheduled', 'Loads scheduled')}
-                        >
-                          <strong>{scheduled}</strong>{' '}
-                          {t('analytics.weeklyReports.chipSched', 'sched')}
-                        </span>
-                        <span
-                          className="wr-sub-chip wr-chip-ready"
-                          title={t('analytics.weeklyReports.loadsReady', 'Loads ready')}
-                        >
-                          <strong>{ready}</strong>{' '}
-                          {t('analytics.weeklyReports.chipReady', 'ready')}
-                        </span>
+                        {renderDelta(canceled?.delta ?? 0, true)}
                       </div>
                     </td>
 
-                    {/* Pending */}
-                    <td className="wr-td-pending">
-                      <div className="wr-pending-cell">
-                        <span className="wr-sub-chip wr-chip-pending">
-                          {pending} {t('analytics.weeklyReports.chipPending', 'pending')}
+                    {/* New Partners Metric */}
+                    <td className="wr-td-metric">
+                      <div className="wr-metric-cell">
+                        <span className="wr-metric-main-val font-semibold">
+                          {newPartners?.value ?? 0}
                         </span>
+                        {renderDelta(newPartners?.delta ?? 0)}
                       </div>
-                    </td>
-
-                    {/* New Partners */}
-                    <td className="wr-td-partners">
-                      <span className="wr-partner-badge">
-                        {newPartners > 0 ? `+${newPartners}` : '0'}
-                      </span>
                     </td>
 
                     {/* Row Actions */}

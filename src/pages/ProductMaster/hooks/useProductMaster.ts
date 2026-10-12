@@ -278,9 +278,9 @@ export function useProductMaster() {
   const inactiveCount = summary?.inactive ?? 0;
   const archivedCount = summary?.archived ?? 0;
   const unmappedCount = summary?.unmapped ?? 0;
-  const erpSyncedCount = 0;
-  const manualCount = totalSkusCount;
-  const syncIssuesCount = 0;
+  const erpSyncedCount = summary?.erp_synced ?? skus.filter((s) => s.source === 'erp').length;
+  const manualCount = Math.max(0, totalSkusCount - erpSyncedCount);
+  const syncIssuesCount = skus.filter((s) => s.erp?.status === 'error' || s.erp?.status === 'conflict').length;
 
   const catName = useCallback((c: Category) => getCategoryName(c, lang), [lang]);
 
@@ -633,24 +633,34 @@ export function useProductMaster() {
 
   const downloadCategoryIndex = useCallback(async () => {
     try {
-      const data = await productMasterService.getAllReferenceCategories();
-      const lines = ['Category Name,Type Name'];
+      const data = await productMasterService.getAllReferenceCategories({ forceEnglish: true });
+      const lines = ['Category Name,Type Name,Status'];
       data.forEach((c) => {
+        const categoryName = (c.name ?? '').trim();
+        if (!categoryName) return;
         (c.types ?? []).forEach((tp) => {
-          lines.push(`"${c.name.replace(/"/g, '""')}","${tp.name.replace(/"/g, '""')}"`);
+          const typeName = (tp.name ?? '').trim();
+          if (!typeName) return;
+          lines.push(
+            `"${categoryName.replace(/"/g, '""')}","${typeName.replace(/"/g, '""')}","Active"`
+          );
         });
       });
+      if (lines.length === 1) {
+        showToast(t('downloadCategoryIndexEmpty', 'No active categories/product types found.'), 'warning');
+        return;
+      }
       const blob = new Blob(['\uFEFF' + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'category_product_type_index.csv';
+      a.download = 'category_product_type_index_active.csv';
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
       handleApiError(err, 'Failed to download category index');
     }
-  }, [handleApiError]);
+  }, [handleApiError, showToast, t]);
 
   const openAiWizard = useCallback(() => {
     if (!requireSignupComplete()) return;

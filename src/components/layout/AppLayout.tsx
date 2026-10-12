@@ -18,6 +18,8 @@ import { InfoFormReminderModal } from './InfoFormReminderModal';
 import { RouterLocationSync } from './RouterLocationSync';
 import { OnboardingTourHost } from '../../onboarding';
 import { SignupIncompleteGateHost } from '../auth/SignupIncompleteGateHost';
+import { PreferredUiRedirectHost } from './PreferredUiRedirectHost';
+import { WhatsNewGuideHost } from '../../whatsNew';
 import { UpgradeGateProvider } from '../../context/UpgradeGateContext';
 
 const SIDEBAR_COLLAPSED_KEY = 'shipper-sidebar-collapsed';
@@ -162,14 +164,18 @@ export const AppLayout: React.FC = () => {
         {!isSideMode && <TopNav />}
 
         <main className="page-body">
-          <Outlet key={`${location.pathname}${location.search}`} />
+          {/* Key by pathname only — including search remounts the page on every
+              query update (e.g. Price Lists debounced search) and steals input focus. */}
+          <Outlet key={location.pathname} />
         </main>
       </div>
 
       <RouterLocationSync />
       <InfoFormReminderModal />
       <SignupIncompleteGateHost />
+      <PreferredUiRedirectHost />
       <OnboardingTourHost expandSidebar={expandSidebar} />
+      <WhatsNewGuideHost />
 
       {toast.show && (
         <div className="toast-container" role="status" aria-live="polite">

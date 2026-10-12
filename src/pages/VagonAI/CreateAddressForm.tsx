@@ -31,6 +31,11 @@
 import { useMemo, useState } from 'react';
 import { MapPin, Save, CircleCheck, ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { GoogleMapAddressField } from '../../components/AddressBook/GoogleMapAddressField';
+import {
+  LOAD_TIME_MINUTES_MAX,
+  LOAD_TIME_MINUTES_MIN,
+  sanitizeLoadTimeMinutesInput,
+} from '../AddressBook/constants';
 import type { FlowContextEvent, LocationFlowBundle } from '../../hooks/useChat';
 import type { ThemeTokens } from '../../utils/themes';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -456,12 +461,21 @@ export default function CreateAddressForm({ event, T, onSubmit, onSaved, onCance
             </Field>
             <Field T={T} label={t('vagonai.addressForm.fields.loadTime', 'Loading time (min)')}>
               <input
-                type="number"
-                min={1}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={5}
                 value={draft.loadTimeMinutes ?? ''}
                 disabled={locked}
                 placeholder={String(bundle.defaults.loadTimeMinutes)}
-                onChange={(e) => patch({ loadTimeMinutes: e.target.value === '' ? null : Number(e.target.value) })}
+                aria-valuemin={LOAD_TIME_MINUTES_MIN}
+                aria-valuemax={LOAD_TIME_MINUTES_MAX}
+                onKeyDown={(e) => ['e', 'E', '+', '-', '.'].includes(e.key) && e.preventDefault()}
+                onChange={(e) => {
+                  const next = sanitizeLoadTimeMinutesInput(e.target.value);
+                  if (next === null) return;
+                  patch({ loadTimeMinutes: next === '' ? null : Number(next) });
+                }}
                 style={inputStyle(T)}
               />
             </Field>

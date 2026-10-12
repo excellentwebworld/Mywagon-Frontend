@@ -33,6 +33,7 @@ export const ModuleCard: React.FC<ModuleCardProps> = ({
     <article
       className={`tut-mod-card${comingSoon ? ' tut-mod-card--soon' : ''}`}
       style={{ '--tut-mod-accent': config.color } as React.CSSProperties}
+      aria-disabled={comingSoon || undefined}
     >
       <div className="tut-mod-card-accent" aria-hidden />
       <div className="tut-mod-card-head">

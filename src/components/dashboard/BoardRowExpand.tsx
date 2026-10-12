@@ -9,6 +9,7 @@ import {
   formatStatValue,
   isShipmentEditable,
 } from '../../pages/ManageShipments/utils/listingUtils';
+import { translateCargoUnit } from '../../constants/cargoUnits';
 import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 import { translateDashMessage, formatDashError } from './dashErrorUtils';
 import { DashExpandSkeleton } from './DashboardSkeletons';
@@ -236,7 +237,11 @@ export const BoardRowExpand: React.FC<BoardRowExpandProps> = ({
     rateInfo.value != null && distanceKm != null && distanceKm > 0
       ? formatEuro(rateInfo.value / distanceKm)
       : null;
-  const weightLabel = formatStatValue(shipment.totalWeight, shipment.weightUnit) || '—';
+  const weightLabel =
+    formatStatValue(
+      shipment.totalWeight,
+      translateCargoUnit(shipment.weightUnit, t) || shipment.weightUnit,
+    ) || '—';
   const transporter = shipment.carrier?.trim() || shipment.assignedDriverName?.trim() || '—';
   const canEdit = isShipmentEditable(shipment.status);
 

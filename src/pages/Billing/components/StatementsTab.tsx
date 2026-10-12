@@ -81,29 +81,29 @@ export const StatementsTab: React.FC<StatementsTabProps> = ({
       label: t('billingPage.agingCurrent', 'Current (0–7d)'),
       val: formatCurrency(aging?.current?.amount ?? 0),
       count: aging?.current?.count ?? 0,
-      clr: '#10b981',
-      bg: '#ecfdf5',
+      clr: 'var(--success, #10b981)',
+      bg: 'var(--success-bg, #ecfdf5)',
     },
     {
       label: t('billingPage.aging8', '8–30 days'),
       val: formatCurrency(aging?.d8_30?.amount ?? 0),
       count: aging?.d8_30?.count ?? 0,
-      clr: '#f59e0b',
-      bg: '#fffbeb',
+      clr: 'var(--warning, #f59e0b)',
+      bg: 'var(--warning-bg, #fffbeb)',
     },
     {
       label: t('billingPage.aging31', '31–60 days'),
       val: formatCurrency(aging?.d31_60?.amount ?? 0),
       count: aging?.d31_60?.count ?? 0,
       clr: '#f97316',
-      bg: '#fff7ed',
+      bg: 'var(--warning-bg, #fff7ed)',
     },
     {
       label: t('billingPage.aging60', '60+ days'),
       val: formatCurrency(aging?.d60?.amount ?? 0),
       count: aging?.d60?.count ?? 0,
-      clr: '#ef4444',
-      bg: '#fef2f2',
+      clr: 'var(--danger, #ef4444)',
+      bg: 'var(--danger-bg, #fef2f2)',
     },
   ];
 
@@ -184,7 +184,7 @@ export const StatementsTab: React.FC<StatementsTabProps> = ({
                   style={{ borderLeftColor: bucket.clr, background: compact ? bucket.bg : undefined }}
                 >
                   <div className="aging-l">{bucket.label}</div>
-                  <div className="aging-v billing-mono text-gray-900">{bucket.val}</div>
+                  <div className="aging-v billing-mono">{bucket.val}</div>
                   <div className="aging-c">
                     {bucket.count} {t('billingPage.invoices', 'invoices')}
                   </div>

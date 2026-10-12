@@ -49,6 +49,9 @@ export function useManageShipments() {
   } = useCreateShipmentPartners();
 
   const [direction, setDirectionState] = useState<LoadsDirection>('outbound');
+  const [viewMode, setViewModeState] = useState<'list' | 'calendar'>(() => {
+    return searchParams.get('view') === 'calendar' ? 'calendar' : 'list';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeKpi, setActiveKpiState] = useState<KpiKey | null>(() => {
@@ -72,6 +75,27 @@ export function useManageShipments() {
   const [page, setPage] = useState(1);
   const [appliedFilters, setAppliedFilters] = useState<ShipmentsFilterState>(DEFAULT_FILTERS);
   const [productTypeNames, setProductTypeNames] = useState<Record<string, string>>({});
+
+  const setViewMode = useCallback(
+    (mode: 'list' | 'calendar') => {
+      setViewModeState(mode);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (mode === 'calendar') {
+            next.set('view', 'calendar');
+          } else {
+            next.delete('view');
+            next.delete('cal_view');
+            next.delete('cal_date');
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
 
   /**
    * MS3-338 — ids of this shipper's AI drafts, for the "AI" marker on a row.
@@ -105,6 +129,9 @@ export function useManageShipments() {
   const [filterCustomerOptions, setFilterCustomerOptions] = useState<string[]>([]);
   const [filterPickupLocationOptions, setFilterPickupLocationOptions] = useState<string[]>([]);
   const [filterDropoffLocationOptions, setFilterDropoffLocationOptions] = useState<string[]>([]);
+  const [filterCoOwnerOptions, setFilterCoOwnerOptions] = useState<
+    Array<{ id: number; name: string }>
+  >([]);
 
   const isOutbound = direction === 'outbound';
 
@@ -220,6 +247,7 @@ export function useManageShipments() {
       setFilterCustomerOptions([]);
       setFilterPickupLocationOptions([]);
       setFilterDropoffLocationOptions([]);
+      setFilterCoOwnerOptions([]);
       return;
     }
 
@@ -233,6 +261,7 @@ export function useManageShipments() {
         setFilterCustomerOptions(facets.customers);
         setFilterPickupLocationOptions(facets.pickup_locations);
         setFilterDropoffLocationOptions(facets.dropoff_locations);
+        setFilterCoOwnerOptions(facets.co_owners ?? []);
       })
       .catch(() => {
         if (cancelled) return;
@@ -240,6 +269,7 @@ export function useManageShipments() {
         setFilterCustomerOptions([]);
         setFilterPickupLocationOptions([]);
         setFilterDropoffLocationOptions([]);
+        setFilterCoOwnerOptions([]);
       });
 
     return () => {
@@ -247,9 +277,17 @@ export function useManageShipments() {
     };
   }, [filterFacetParams, tabSupported, isOutbound, refreshKey]);
 
+  const coOwnerNames = useMemo(() => {
+    const map: Record<string, string> = {};
+    filterCoOwnerOptions.forEach((o) => {
+      map[String(o.id)] = o.name;
+    });
+    return map;
+  }, [filterCoOwnerOptions]);
+
   const filterChips = useMemo(
-    () => buildFilterChips(appliedFilters, t, productTypeNames),
-    [appliedFilters, t, productTypeNames]
+    () => buildFilterChips(appliedFilters, t, productTypeNames, coOwnerNames),
+    [appliedFilters, t, productTypeNames, coOwnerNames]
   );
 
   const kpiChip = useMemo(
@@ -941,9 +979,12 @@ export function useManageShipments() {
     filterCustomerOptions,
     filterPickupLocationOptions,
     filterDropoffLocationOptions,
+    filterCoOwnerOptions,
     handleClearFilterChip,
     handleClearAllFilters,
     kpiChip,
     filtersActive: filterChips.length > 0 || Boolean(activeKpi),
+    viewMode,
+    setViewMode,
   };
 }

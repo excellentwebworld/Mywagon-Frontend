@@ -26,8 +26,10 @@ import type {
   BillingCycle as ApiCycle,
   PurchasedAddon,
   SubscriptionAddonOffer,
+  SubscriptionCurrent,
   SubscriptionOverview,
   SubscriptionPermissionItem,
+  SubscriptionPlanItem,
   SubscriptionQuote,
 } from '../../api/types/subscription';
 import { formatDate, formatMoney } from './mockData';
@@ -104,6 +106,34 @@ function toApiCycle(cycle: UiCycle): ApiCycle {
   return cycle === 'yearly' ? 'year' : 'month';
 }
 
+/**
+ * Plan CTA availability — trust API flags, with the same no-downgrade guard
+ * Laravel uses for monthly→yearly (target monthly list price must be ≥ current).
+ * Prevents monthly Pro from offering yearly Plus (lower tier).
+ */
+function planUpgradeAvailable(
+  plan: SubscriptionPlanItem,
+  cycle: UiCycle,
+  current: SubscriptionCurrent | null | undefined,
+  subscribedCycle: UiCycle,
+): boolean {
+  const apiAllows =
+    cycle === 'yearly' ? plan.upgrade_available_yearly : plan.upgrade_available_monthly;
+  if (!apiAllows) return false;
+
+  if (
+    cycle === 'yearly' &&
+    subscribedCycle === 'monthly' &&
+    current &&
+    !current.is_free &&
+    plan.price_monthly < current.list_monthly
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
 function currentIntervalToUi(
   interval?: string | null,
   startDate?: string | null,
@@ -153,11 +183,21 @@ function CycleToggle({
   saveLabel: string;
 }) {
   return (
-    <div className="cycle-toggle">
-      <button type="button" className={`cycle-btn${cycle === 'monthly' ? ' active' : ''}`} onClick={() => onChange('monthly')}>
+    <div className="cycle-toggle" role="group" aria-label="Billing cycle">
+      <button
+        type="button"
+        className={`cycle-btn${cycle === 'monthly' ? ' active' : ''}`}
+        onClick={() => onChange('monthly')}
+        aria-pressed={cycle === 'monthly'}
+      >
         {monthlyLabel}
       </button>
-      <button type="button" className={`cycle-btn${cycle === 'yearly' ? ' active' : ''}`} onClick={() => onChange('yearly')}>
+      <button
+        type="button"
+        className={`cycle-btn${cycle === 'yearly' ? ' active' : ''}`}
+        onClick={() => onChange('yearly')}
+        aria-pressed={cycle === 'yearly'}
+      >
         {yearlyLabel}
         {saveLabel ? <span className="save-tag">{saveLabel}</span> : null}
       </button>
@@ -1110,20 +1150,6 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
           </div>
         </div>
         <div className="usage-grid">
-          {!isWebView ? (
-            <>
-              <UsageMeter
-                label={tf('activeUsers', 'Active Users')}
-                used={data?.seats?.active_users ?? 0}
-                limit={null}
-              />
-              <UsageMeter
-                label={tf('paidUsers', 'Paid Users')}
-                used={data?.seats?.paid_users ?? 0}
-                limit={null}
-              />
-            </>
-          ) : null}
           {(data?.usage ?? []).map((u) => {
             const unlimited = u.unlimited || u.limit == null;
             return (
@@ -1158,8 +1184,7 @@ export const SubscriptionPage: React.FC<SubscriptionPageProps> = ({
           {plans.map((p) => {
             const pr = cycle === 'yearly' ? p.price_yearly_monthly_rate : p.price_monthly;
             const isCurrentCard = p.id === current?.plan_id && cycle === subscribedCycle;
-            const canUpgrade =
-              cycle === 'yearly' ? p.upgrade_available_yearly : p.upgrade_available_monthly;
+            const canUpgrade = planUpgradeAvailable(p, cycle, current, subscribedCycle);
             const planPermissions = resolvePlanPermissions(
               p.permissions,
               isCurrentCard,

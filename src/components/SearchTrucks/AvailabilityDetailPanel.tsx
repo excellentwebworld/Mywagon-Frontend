@@ -231,7 +231,24 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
               aria-live="polite"
             >
               <div className="sat-exp-stat">
-                <span>{t('satOnTimeDelivery') || t('satOnTimePickup')}</span>
+                <span>{t('satOnTimePickup')}</span>
+                {statsLoading ? (
+                  <span className="sat-exp-stat-skel" aria-hidden />
+                ) : (
+                  <span
+                    style={{
+                      color:
+                        detailTruck.onTimePickupPct != null
+                          ? 'var(--success)'
+                          : 'var(--text-tertiary)',
+                    }}
+                  >
+                    {formatStatPct(detailTruck.onTimePickupPct)}
+                  </span>
+                )}
+              </div>
+              <div className="sat-exp-stat">
+                <span>{t('satOnTimeDelivery')}</span>
                 {statsLoading ? (
                   <span className="sat-exp-stat-skel" aria-hidden />
                 ) : (
@@ -310,7 +327,24 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
               aria-live="polite"
             >
               <div className="sat-exp-stat">
-                <span>{t('satOnTimeDelivery') || t('satOnTimePickup')}</span>
+                <span>{t('satOnTimePickup')}</span>
+                {statsLoading ? (
+                  <span className="sat-exp-stat-skel" aria-hidden />
+                ) : (
+                  <span
+                    style={{
+                      color:
+                        detailTruck.onTimePickupPct != null
+                          ? 'var(--success)'
+                          : 'var(--text-tertiary)',
+                    }}
+                  >
+                    {formatStatPct(detailTruck.onTimePickupPct)}
+                  </span>
+                )}
+              </div>
+              <div className="sat-exp-stat">
+                <span>{t('satOnTimeDelivery')}</span>
                 {statsLoading ? (
                   <span className="sat-exp-stat-skel" aria-hidden />
                 ) : (
@@ -448,13 +482,17 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
             </div>
             <div className="sat-exp-stat">
               <span>{t('satRadiusFromPickup')}</span>
-              <span>{detailTruck.radius} km</span>
+              <span>
+                {detailTruck.radius} {t('unitKm') || 'km'}
+              </span>
             </div>
             {(detailTruck.destAddress || detailTruck.dest) !== 'Any' &&
             detailTruck.destRadius != null ? (
               <div className="sat-exp-stat">
                 <span>{t('satDropoffRadius') || 'Dropoff radius'}</span>
-                <span>{detailTruck.destRadius} km</span>
+                <span>
+                  {detailTruck.destRadius} {t('unitKm') || 'km'}
+                </span>
               </div>
             ) : null}
           </div>

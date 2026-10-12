@@ -1,6 +1,7 @@
 import type { LocationItem } from '../../../context/AppContext';
 import type { LocationFormValues } from './locationFormSchema';
 import { coerceFormString } from './locationFormCoerce';
+import { LOAD_TIME_MINUTES_MAX, LOAD_TIME_MINUTES_MIN } from '../constants';
 
 /** Coerce form/API values to strings so `.trim()` and Yup string rules never throw. */
 export { coerceFormString } from './locationFormCoerce';
@@ -24,6 +25,13 @@ export function normalizeLocationFormValues(values: LocationFormValues): Locatio
   };
 }
 
+export function cleanNumericMeasurement(val: string | number | undefined | null): string {
+  if (val === undefined || val === null) return '';
+  const str = String(val).trim();
+  if (!str) return '';
+  return str.replace(/(?:m|t|tons?|kg|g|lbs?|oz)$/i, '').trim();
+}
+
 export function locationToFormValues(loc: LocationItem): LocationFormValues {
   return normalizeLocationFormValues({
     name: loc.name,
@@ -45,11 +53,12 @@ export function locationToFormValues(loc: LocationItem): LocationFormValues {
     appt: loc.appt,
     dock: loc.dock ?? '',
     hours: loc.hours ?? '',
-    maxTruck: loc.maxTruck ?? '',
-    maxWeight: loc.maxWeight ?? '',
+    maxTruck: cleanNumericMeasurement(loc.maxTruck),
+    maxWeight: cleanNumericMeasurement(loc.maxWeight),
     adr: loc.adr,
     palletExchange: loc.palletExchange,
-    loadTime: loc.loadTime && loc.loadTime >= 1 ? String(loc.loadTime) : '',
+    loadTime:
+      loc.loadTime && loc.loadTime >= LOAD_TIME_MINUTES_MIN ? String(loc.loadTime) : '',
     noteInternal: loc.noteInternal ?? '',
     noteCarrier: loc.noteCarrier ?? '',
     equipment: loc.equipment ?? [],
@@ -62,6 +71,12 @@ export function locationToFormValues(loc: LocationItem): LocationFormValues {
 export function formValuesToLocationItem(values: LocationFormValues, existing: LocationItem): LocationItem {
   const normalized = normalizeLocationFormValues(values);
   const loadTime = parseInt(normalized.loadTime, 10);
+  const safeLoadTime =
+    Number.isFinite(loadTime) &&
+    loadTime >= LOAD_TIME_MINUTES_MIN &&
+    loadTime <= LOAD_TIME_MINUTES_MAX
+      ? loadTime
+      : LOAD_TIME_MINUTES_MIN;
 
   return {
     ...existing,
@@ -91,7 +106,7 @@ export function formValuesToLocationItem(values: LocationFormValues, existing: L
     maxWeight: normalized.maxWeight.trim(),
     adr: normalized.adr ?? false,
     palletExchange: normalized.palletExchange ?? false,
-    loadTime: Number.isFinite(loadTime) && loadTime >= 1 ? loadTime : 1,
+    loadTime: safeLoadTime,
     noteInternal: normalized.noteInternal ?? '',
     noteCarrier: normalized.noteCarrier ?? '',
     equipment: normalized.equipment ?? [],

@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS, normalizeQtyUnit, normalizeWeightUnit } from '../../constants/cargoUnits';
+import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS, normalizeQtyUnit, normalizeWeightUnit, translateCargoUnit } from '../../constants/cargoUnits';
+import { useSubscriptionPermission } from '../../hooks/useSubscriptionPermission';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import type { SKU } from '../../context/AppContext';
 import type { ErpOrderLine, ErpOrderFormState } from '../../pages/ErpOrders/types';
@@ -35,6 +36,7 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
   allowEmptySelects = false,
   skusLoading = false,
 }) => {
+  const { requirePermission } = useSubscriptionPermission();
   const selectedSkuCount = useMemo(
     () => lines.filter((line) => line.productSkuId != null).length,
     [lines]
@@ -90,6 +92,10 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
 
   const addLine = () => {
     if (!canAddLine) return;
+    // Essential: one product line per order (same allow_multiple_stops gate as Create Load).
+    if (lines.length >= 1 && !requirePermission('allow_multiple_stops')) {
+      return;
+    }
     onChange([...lines, { ...EMPTY_ORDER_LINE }]);
   };
 
@@ -129,13 +135,17 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
           />
           <select
             className="inp"
-            value={normalizeQtyUnit(line.unit) || line.unit}
+            value={
+              allowEmptySelects
+                ? normalizeQtyUnit(line.unit) || line.unit || ''
+                : normalizeQtyUnit(line.unit) || line.unit || 'EUR Pallets'
+            }
             onChange={(e) => updateLine(index, { unit: e.target.value })}
           >
             {allowEmptySelects && <option value="">—</option>}
             {QTY_UNIT_OPTIONS.map((u) => (
               <option key={u} value={u}>
-                {u}
+                {translateCargoUnit(u, t)}
               </option>
             ))}
           </select>
@@ -148,13 +158,17 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
           />
           <select
             className="inp"
-            value={normalizeWeightUnit(line.weightUnit)}
+            value={
+              allowEmptySelects && !String(line.weightUnit || '').trim()
+                ? ''
+                : normalizeWeightUnit(line.weightUnit || 'Kgs')
+            }
             onChange={(e) => updateLine(index, { weightUnit: e.target.value })}
           >
             {allowEmptySelects && <option value="">—</option>}
             {WEIGHT_UNIT_OPTIONS.map((u) => (
               <option key={u} value={u}>
-                {u}
+                {translateCargoUnit(u, t)}
               </option>
             ))}
           </select>

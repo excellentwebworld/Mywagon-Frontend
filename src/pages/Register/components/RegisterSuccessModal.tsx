@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useTranslation } from '../../../hooks/useTranslation';
+import { SuccessTruckIcon } from './SuccessTruckIcon';
 
 type RegisterSuccessModalProps = {
   messageHtml?: string | null;
@@ -38,11 +39,7 @@ export const RegisterSuccessModal: React.FC<RegisterSuccessModalProps> = ({
         </button>
         <div className="reg-success-body">
           <div className="reg-success-inner text-center">
-            <img
-              src="/created-success-truck.svg"
-              alt="created-success-truck"
-              className="reg-success-truck-img mx-auto"
-            />
+            <SuccessTruckIcon className="reg-success-truck-img mx-auto" />
             {messageHtml ? (
               <div
                 className="register-success register-success-message"

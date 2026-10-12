@@ -520,7 +520,17 @@ export default function VagonAIPage() {
   }, [lang]);
 
   useEffect(() => {
-    bodyRef.current?.scrollTo({ top: 1e6, behavior: 'smooth' });
+    const el = bodyRef.current;
+    if (!el) return;
+    // The welcome screen (greeting, action cards, question chips) is taller
+    // than the pane. Following the bottom on mount hides the greeting and
+    // opens the page on the chips. Stick to the latest message only once a
+    // conversation is actually on screen; a new chat returns to the top.
+    if (thread.length === 0) {
+      el.scrollTop = 0;
+      return;
+    }
+    el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
   }, [thread, answer]);
 
   useEffect(() => () => cancel(), [cancel]);

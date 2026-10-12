@@ -334,8 +334,10 @@ function ConnectorCard({ connector: c, T, t, toast, expanded, onToggle, onCatalo
         <div className="px-4 pb-4" style={{ borderTop: `1px solid ${T.bd}` }}>
           <div className="pt-3">
             {/* Description */}
-            {c.description && (
-              <p className="mb-3" style={{ fontSize: 12, color: T.t2, lineHeight: 1.6 }}>{c.description}</p>
+            {(isBc || c.description) && (
+              <p className="mb-3" style={{ fontSize: 12, color: T.t2, lineHeight: 1.6 }}>
+                {isBc ? t('integrations.bc.catalogDescription') : c.description}
+              </p>
             )}
 
             {/* Data types */}
@@ -345,7 +347,7 @@ function ConnectorCard({ connector: c, T, t, toast, expanded, onToggle, onCatalo
                 <div className="flex flex-wrap gap-1.5">
                   {c.dataTypes.map(dt => (
                     <span key={dt} className="px-2 py-0.5 rounded-full" style={{ fontSize: 10, fontWeight: 500, background: T.al, color: T.ac, border: `1px solid ${T.ac}25` }}>
-                      {t(`integrations.dtype.${dt}`)}
+                      {t(`integrations.dtype.${dt}`, dt)}
                     </span>
                   ))}
                 </div>

@@ -6,10 +6,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Sun, Moon, ChevronDown, LogOut, Settings, Users, ShieldCheck,
+  Sun, Moon, ChevronDown, LogOut, Settings, Users, ShieldCheck, ArrowLeftRight,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuth } from '../../hooks/useAuth';
+import { useAuth as useShipperAuth } from '../../context/AuthContext';
 import { useTranslation } from '../../hooks/useTranslation';
 import { usePastDueLock } from '../../hooks/usePastDueLock';
 import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
@@ -21,6 +22,7 @@ import { ConfirmationModal } from '../ui/ConfirmationModal';
 import { ReferralModal } from '../referral';
 import { LANGUAGES } from '../../constants/panel';
 import { assetUrl } from '../../utils/assetUrl';
+import { uiSwitchService } from '../../api/services/uiSwitchService';
 
 /** Inline icons matching Sidebar footer / Refer button. */
 function SubscriptionIcon({ size = 15, color }: { size?: number; color?: string }) {
@@ -56,6 +58,7 @@ export function ProfileDropdown() {
   const { setLang, showToast } = useApp();
   const { T, isDark, toggleDark } = useTheme();
   const { user, logout } = useAuth();
+  const { user: shipperUser } = useShipperAuth();
   const pastDueLocked = usePastDueLock();
   const { requireSignupComplete, signupIncomplete } = useRequireSignupComplete();
   const { canNav } = useShipperPermission();
@@ -67,7 +70,10 @@ export function ProfileDropdown() {
   const [referralOpen, setReferralOpen] = useState(false);
 
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isSwitchingUi, setIsSwitchingUi] = useState(false);
   const [imgError, setImgError] = useState(false);
+
+  const showClassicSwitch = shipperUser?.ui_switch_enabled !== false;
 
   useEffect(() => {
     setImgError(false);
@@ -101,6 +107,24 @@ export function ProfileDropdown() {
       showToast(t('failedToLogout') || 'Failed to logout', 'error');
     } finally {
       setIsSigningOut(false);
+    }
+  };
+
+  const switchToClassicUi = async () => {
+    if (isSwitchingUi) return;
+    setIsSwitchingUi(true);
+    setOpen(false);
+    try {
+      const { redirect_url } = await uiSwitchService.switchTo('classic');
+      window.location.assign(redirect_url);
+    } catch (err) {
+      showToast(
+        err instanceof Error
+          ? err.message
+          : t('uiSwitch.switchFailed', { defaultValue: 'Could not switch to Classic UI.' }),
+        'error',
+      );
+      setIsSwitchingUi(false);
     }
   };
 
@@ -382,6 +406,34 @@ export function ProfileDropdown() {
                   </div>
                 )}
               </div>
+
+              {showClassicSwitch && (
+                <button
+                  type="button"
+                  onClick={() => void switchToClassicUi()}
+                  disabled={isSwitchingUi}
+                  role="menuitem"
+                  className="flex items-center gap-2 w-full px-4 py-3 cursor-pointer border-none transition-all duration-200"
+                  style={{
+                    background: 'transparent',
+                    color: T.t1,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    opacity: isSwitchingUi ? 0.6 : 1,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = T.sa;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                  }}
+                >
+                  <ArrowLeftRight size={15} style={{ color: T.t2 }} />
+                  {isSwitchingUi
+                    ? t('uiSwitch.switching', { defaultValue: 'Switching…' })
+                    : t('uiSwitch.switchToClassic', { defaultValue: 'Switch to Classic UI' })}
+                </button>
+              )}
 
               <button
                 type="button"

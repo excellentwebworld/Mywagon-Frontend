@@ -1,14 +1,14 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import type { StatementPayload } from '../../../api/types/billing';
-import { formatCurrency, formatDate, walletReasonLabel } from '../mockData';
+import { formatCurrency, formatDate, invoiceStatusLabel, invoiceTypeLabel, walletReasonLabel } from '../mockData';
+import { useTranslation } from 'react-i18next';
 
 interface StatementDocumentProps {
   statement: StatementPayload;
 }
 
 export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const currency = statement.currency || 'EUR';
   const issuer = statement.issuer;
   const billTo = statement.bill_to;
@@ -22,6 +22,8 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
     : billTo?.address
       ? [billTo.address]
       : [];
+  const moneyLocale = (i18n.language || 'en').toLowerCase().startsWith('el') ? 'el' : 'en';
+  const money = (val: number) => formatCurrency(val, currency, moneyLocale);
 
   return (
     <article className="mv-doc" data-document="statement">
@@ -69,7 +71,7 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
       <div className="mv-doc-kpi">
         <div className="mv-doc-kpi-card">
           <div className="mv-doc-label">{t('billingPage.statement.invoicesBilled', 'Invoices billed')}</div>
-          <div className="mv-doc-kpi-value">{formatCurrency(billed, currency)}</div>
+          <div className="mv-doc-kpi-value">{money(billed)}</div>
           <div className="mv-doc-muted">
             {t('billingPage.statement.invoiceCount', {
               count: invoices.length,
@@ -79,15 +81,15 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
         </div>
         <div className="mv-doc-kpi-card">
           <div className="mv-doc-label">{t('billingPage.statement.paid', 'Paid')}</div>
-          <div className="mv-doc-kpi-value">{formatCurrency(paid, currency)}</div>
+          <div className="mv-doc-kpi-value">{money(paid)}</div>
         </div>
         <div className="mv-doc-kpi-card">
           <div className="mv-doc-label">{t('billingPage.statement.outstanding', 'Outstanding')}</div>
-          <div className="mv-doc-kpi-value">{formatCurrency(outstanding, currency)}</div>
+          <div className="mv-doc-kpi-value">{money(outstanding)}</div>
         </div>
         <div className="mv-doc-kpi-card">
           <div className="mv-doc-label">{t('billingPage.statement.walletBalance', 'Wallet balance')}</div>
-          <div className="mv-doc-kpi-value">{formatCurrency(statement.wallet_balance, currency)}</div>
+          <div className="mv-doc-kpi-value">{money(statement.wallet_balance)}</div>
         </div>
       </div>
 
@@ -116,12 +118,12 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
               invoices.map((invoice) => (
                 <tr key={invoice.raw_id ?? invoice.id}>
                   <td>{invoice.id}</td>
-                  <td>{invoice.type}</td>
-                  <td>{invoice.status}</td>
+                  <td>{invoiceTypeLabel(invoice, t)}</td>
+                  <td>{invoiceStatusLabel(invoice, t)}</td>
                   <td>{formatDate(invoice.iDate)}</td>
                   <td>{formatDate(invoice.dDate)}</td>
-                  <td className="num">{formatCurrency(invoice.tot, currency)}</td>
-                  <td className="num">{formatCurrency(invoice.rem, currency)}</td>
+                  <td className="num">{money(invoice.tot)}</td>
+                  <td className="num">{money(invoice.rem)}</td>
                 </tr>
               ))
             )}
@@ -153,7 +155,7 @@ export const StatementDocument: React.FC<StatementDocumentProps> = ({ statement 
                 <tr key={row.id}>
                   <td>{formatDate(row.date)}</td>
                   <td>{walletReasonLabel(row.reason, t)}</td>
-                  <td className="num">{formatCurrency(row.amt, currency)}</td>
+                  <td className="num">{money(row.amt)}</td>
                   <td>{row.type || '—'}</td>
                   <td>{row.applied || '—'}</td>
                 </tr>

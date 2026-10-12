@@ -14,7 +14,9 @@ import {
   ONBOARDING_TOUR_FINISHED_EVENT,
 } from '../../onboarding';
 import {
+  safeLocalGet,
   safeLocalRemove,
+  safeLocalSet,
   safeSessionGet,
   safeSessionRemove,
   safeSessionSet,
@@ -23,31 +25,47 @@ import {
 /**
  * Laravel session keys parity:
  * - `info_form_reminder_shown` — set when soft modal is shown/acked; cleared on login/logout
+ *
+ * Use localStorage (per user) so Skip/Yes in one tab is shared across tabs.
+ * sessionStorage is tab-isolated and was causing the modal to reappear in new tabs.
  */
 const SESSION_SHOWN_KEY = 'shipper_info_form_reminder_shown';
+const LOCAL_SHOWN_PREFIX = 'shipper_info_form_reminder_shown_';
 const LEGACY_LOCAL_SKIP_PREFIX = 'shipper_info_form_reminder_skipped_';
 const LEGACY_SESSION_SKIP_KEY = 'shipper_info_form_reminder_skipped';
 
 const INFO_FORM_TARGET = '/settings/organization?from=info_form';
+
+function localShownKey(userId: string | number): string {
+  return `${LOCAL_SHOWN_PREFIX}${userId}`;
+}
 
 /** Call on login / logout — matches Blade forgetting `info_form_reminder_shown`. */
 export function clearInfoFormReminderSkip(userId?: string | number | null): void {
   safeSessionRemove(SESSION_SHOWN_KEY);
   safeSessionRemove(LEGACY_SESSION_SKIP_KEY);
   if (userId != null && userId !== '') {
+    safeLocalRemove(localShownKey(userId));
     safeLocalRemove(`${LEGACY_LOCAL_SKIP_PREFIX}${userId}`);
   }
 }
 
-function hasReminderBeenShownThisLogin(): boolean {
+function hasReminderBeenShownThisLogin(userId?: string | number | null): boolean {
+  if (userId != null && userId !== '') {
+    if (safeLocalGet(localShownKey(userId)) === '1') return true;
+    if (safeLocalGet(`${LEGACY_LOCAL_SKIP_PREFIX}${userId}`) === '1') return true;
+  }
   return (
     safeSessionGet(SESSION_SHOWN_KEY) === '1' ||
     safeSessionGet(LEGACY_SESSION_SKIP_KEY) === '1'
   );
 }
 
-function markReminderShownThisLogin(): void {
+function markReminderShownThisLogin(userId?: string | number | null): void {
   safeSessionSet(SESSION_SHOWN_KEY, '1');
+  if (userId != null && userId !== '') {
+    safeLocalSet(localShownKey(userId), '1');
+  }
 }
 
 /** Blade skips reminder on profile/info-form screens. */
@@ -105,9 +123,9 @@ export const InfoFormReminderModal: React.FC = () => {
       setOpen(false);
       return;
     }
-    // Already shown/acked this login — do not reopen, and do not force-close
+    // Already shown/acked this login (any tab) — do not reopen, and do not force-close
     // (marking shown on open used to immediately close on the next effect run).
-    if (hasReminderBeenShownThisLogin()) {
+    if (hasReminderBeenShownThisLogin(user.id)) {
       return;
     }
     // Soft modal only — hard gate uses ProtectedRoute redirect (Laravel enforce mode).
@@ -120,25 +138,43 @@ export const InfoFormReminderModal: React.FC = () => {
       return;
     }
     // Blade puts `info_form_reminder_shown` when flashing the soft modal.
-    markReminderShownThisLogin();
+    markReminderShownThisLogin(user.id);
     setOpen(true);
   }, [user, location.pathname, location.search, tourEpoch]);
 
+  // Close if another tab already marked the reminder as shown/skipped.
+  useEffect(() => {
+    if (!user?.id) return;
+    const key = localShownKey(user.id);
+    const legacyKey = `${LEGACY_LOCAL_SKIP_PREFIX}${user.id}`;
+    const onStorage = (e: StorageEvent) => {
+      if (e.storageArea !== localStorage) return;
+      if (e.key !== key && e.key !== legacyKey) return;
+      if (e.newValue === '1') {
+        dismissedRef.current = true;
+        setOpen(false);
+        document.body.style.overflow = '';
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [user?.id]);
+
   const dismiss = useCallback(() => {
     dismissedRef.current = true;
-    markReminderShownThisLogin();
+    markReminderShownThisLogin(user?.id);
     setOpen(false);
     document.body.style.overflow = '';
-  }, []);
+  }, [user?.id]);
 
   const goComplete = useCallback(() => {
     dismissedRef.current = true;
-    markReminderShownThisLogin();
+    markReminderShownThisLogin(user?.id);
     setOpen(false);
     document.body.style.overflow = '';
     // Client-side only (no full reload). flushSync is defaulted on router.navigate.
     navigate(INFO_FORM_TARGET, { flushSync: true });
-  }, [navigate]);
+  }, [navigate, user?.id]);
 
   return (
     <Modal

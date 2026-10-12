@@ -13,7 +13,14 @@ import {
 import type { WizardFormValues } from '../../../api/mappers/createShipmentMapper';
 import { buildDefaultWizardValues, createNewStop } from '../../../components/CreateShipmentWizard/types';
 import { hasVehicleSelection } from '../../../components/CreateShipmentWizard/vehicleTypes';
+import {
+  isTargetPriceWithinDigitLimit,
+  MAX_TARGET_PRICE_DIGITS,
+  MAX_TARGET_PRICE_VALUE,
+} from '../../../components/CreateShipmentWizard/validation';
 import { useApp, type LocationItem } from '../../../context/AppContext';
+import { useUpgradeGate } from '../../../context/UpgradeGateContext';
+import { useSubscriptionPermission } from '../../../hooks/useSubscriptionPermission';
 import { useVehicleTypes } from '../../../hooks/useVehicleTypes';
 import type { ErpOrder } from '../../ErpOrders/types';
 import type { CompareView } from '../editDiff';
@@ -24,6 +31,7 @@ import {
 import {
   ERP_ORDERS_PREFILL_KEY,
   buildStopsFromErpOrders,
+  getErpCreateLoadPermissionBlock,
   isOrderEligibleForCreateLoad,
   type ErpOrdersPrefillPayload,
 } from './erpOrdersPrefill';
@@ -205,6 +213,12 @@ export function useCreateShipmentWizard(
   const { locations, refreshLocationsFromApi } = useApp();
   const { vehicleTypes } = useVehicleTypes();
   const queryClient = useQueryClient();
+  const { can } = useSubscriptionPermission();
+  const { openUpgradeGate } = useUpgradeGate();
+  const canRef = useRef(can);
+  const openUpgradeGateRef = useRef(openUpgradeGate);
+  canRef.current = can;
+  openUpgradeGateRef.current = openUpgradeGate;
 
   const draftUrlId = searchParams.get('id');
   const editUrlId = searchParams.get('editId');
@@ -483,6 +497,18 @@ export function useCreateShipmentWizard(
         });
 
         const stops = buildStopsFromErpOrders(orders, locations);
+        if (
+          getErpCreateLoadPermissionBlock(
+            orders,
+            canRef.current('allow_multiple_stops'),
+            locations
+          )
+        ) {
+          openUpgradeGateRef.current();
+          sessionStorage.removeItem(ERP_ORDERS_PREFILL_KEY);
+          navigate('/erp-orders');
+          return;
+        }
         setLoadedValues({
           ...defaultValues,
           stops,
@@ -912,6 +938,20 @@ export function useCreateShipmentWizard(
           showToast(t('targetPricePositive') || 'Target price must be greater than 0.', 'error');
           throw new Error('Invalid price');
         }
+        if (rawPrice !== '' && !Number.isNaN(price) && !isTargetPriceWithinDigitLimit(price)) {
+          showToast(
+            t(
+              'targetPriceMaxDigits',
+              `Target price cannot exceed ${MAX_TARGET_PRICE_DIGITS} digits (max ${MAX_TARGET_PRICE_VALUE.toLocaleString('en-US')}).`,
+              {
+                max: MAX_TARGET_PRICE_DIGITS,
+                maxValue: MAX_TARGET_PRICE_VALUE.toLocaleString('en-US'),
+              }
+            ),
+            'error'
+          );
+          throw new Error('Invalid price');
+        }
         if (values.broadcastType === 'private' && (values.selectedCarriers || []).length < 1) {
           showToast(t('selectCarrierRequired') || 'Please select at least one carrier.', 'error');
           throw new Error('No carriers selected');
@@ -989,6 +1029,20 @@ export function useCreateShipmentWizard(
       }
       if (rawPrice !== '' && !Number.isNaN(price) && price <= 0) {
         showToast(t('targetPricePositive') || 'Target price must be greater than 0.', 'error');
+        throw new Error('Invalid price');
+      }
+      if (rawPrice !== '' && !Number.isNaN(price) && !isTargetPriceWithinDigitLimit(price)) {
+        showToast(
+          t(
+            'targetPriceMaxDigits',
+            `Target price cannot exceed ${MAX_TARGET_PRICE_DIGITS} digits (max ${MAX_TARGET_PRICE_VALUE.toLocaleString('en-US')}).`,
+            {
+              max: MAX_TARGET_PRICE_DIGITS,
+              maxValue: MAX_TARGET_PRICE_VALUE.toLocaleString('en-US'),
+            }
+          ),
+          'error'
+        );
         throw new Error('Invalid price');
       }
       if (

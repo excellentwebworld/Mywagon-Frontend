@@ -1,12 +1,16 @@
 import type { ApiStop } from '../../../api/types/createShipment';
 import {
   convertWeightValue,
+  formatDurationMin,
+  formatQuantityWithTranslatedUnit,
   formatWeightDisplay,
   formatWeightKgTotal,
   kgToWeightUnit,
   normalizeQtyUnit,
   normalizeWeightUnit,
+  translateCargoUnit,
   weightToKg,
+  type CargoUnitTranslate,
 } from '../../../constants/cargoUnits';
 import type { CargoFlow, LoadBalance, TripTotals } from './types';
 
@@ -14,21 +18,24 @@ export const TRUCK_WEIGHT_CAP_KG = 28000;
 
 export {
   convertWeightValue,
+  formatDurationMin,
+  formatQuantityWithTranslatedUnit,
   formatWeightDisplay,
   kgToWeightUnit,
   normalizeQtyUnit,
   normalizeWeightUnit,
+  translateCargoUnit,
   weightToKg,
 } from '../../../constants/cargoUnits';
 
-export function formatWeightKg(kg: number): string {
-  return formatWeightKgTotal(kg);
+export function formatWeightKg(kg: number, t?: CargoUnitTranslate): string {
+  return formatWeightKgTotal(kg, t);
 }
 
-export function formatQtyWithUnit(qty: number, unit?: string): string {
+export function formatQtyWithUnit(qty: number, unit?: string, t?: CargoUnitTranslate): string {
   if (qty <= 0) return '—';
   const u = normalizeQtyUnit(unit);
-  return u ? `${qty} ${u}` : String(qty);
+  return u ? formatQuantityWithTranslatedUnit(qty, u, t) : String(qty);
 }
 
 export function summarizeStopLines(stop: ApiStop): { qty: number; weightKg: number; unit: string } {
@@ -43,14 +50,6 @@ export function summarizeStopLines(stop: ApiStop): { qty: number; weightKg: numb
   });
 
   return { qty, weightKg, unit };
-}
-
-export function formatDurationMin(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = Math.round(minutes % 60);
-  if (h <= 0) return `${m}min`;
-  if (m <= 0) return `${h}h`;
-  return `${h}h ${m}min`;
 }
 
 export function computeLoadBalance(stops: ApiStop[]): LoadBalance {
@@ -475,7 +474,7 @@ export function computeTripTotals(stops: ApiStop[]): TripTotals {
  * Summarize pickup qty by canonical unit for trip summary tiles
  * (e.g. "60 EUR Pallets" or "50 EUR Pallets · 10 Boxes").
  */
-export function formatTripQtySummary(stops: ApiStop[]): string {
+export function formatTripQtySummary(stops: ApiStop[], t?: CargoUnitTranslate): string {
   const byUnit: Record<string, number> = {};
   stops.forEach((s) =>
     (s.lines || []).forEach((ln) => {
@@ -488,19 +487,73 @@ export function formatTripQtySummary(stops: ApiStop[]): string {
   );
   const parts = Object.entries(byUnit)
     .filter(([, qty]) => qty > 0)
-    .map(([unit, qty]) => formatQtyWithUnit(qty, unit === '—' ? '' : unit));
+    .map(([unit, qty]) => formatQtyWithUnit(qty, unit === '—' ? '' : unit, t));
   return parts.length > 0 ? parts.join(' · ') : '—';
 }
 
-export function computeRunningWeights(stops: ApiStop[]): number[] {
-  let w = 0;
+/** Per-stop running load in kg (unload-then-load dock sequence). */
+export interface StopRunningWeight {
+  /** Weight on truck when arriving (previous stop's departure; 0 at first stop). */
+  arrivalKg: number;
+  /** Sum of pickup line weights at this stop. */
+  pickupKg: number;
+  /** Sum of dropoff line weights at this stop. */
+  dropoffKg: number;
+  /** Weight after unload then load: arrival − dropoff + pickup. */
+  departureKg: number;
+  /**
+   * "On Truck" display: cargo left after this stop (departure).
+   * If a dropoff empties the truck (departure ≤ 0), show arrival instead so the
+   * final unload is not a misleading 0 — it still shows what was on truck to deliver.
+   */
+  onTruckKg: number;
+}
+
+/**
+ * Compute arrival / departure running weights along the route.
+ *
+ * General logistics rules:
+ * 1. Start empty (arrival at stop 0 = 0).
+ * 2. At each stop, unload first then load (frees capacity before new cargo).
+ * 3. Only explicit `pickup` / `dropoff` lines affect the truck (unknown actions ignored).
+ * 4. Departure of stop i becomes arrival of stop i+1.
+ * 5. "On Truck" = remaining after the stop (departure). After a full unload,
+ *    show arrival so split/final dropoffs are not displayed as 0.
+ */
+export function computeStopRunningWeights(stops: ApiStop[]): StopRunningWeight[] {
+  let prevDepartureKg = 0;
+
   return stops.map((s) => {
+    const arrivalKg = prevDepartureKg;
+    let pickupKg = 0;
+    let dropoffKg = 0;
+
     (s.lines || []).forEach((ln) => {
       const wk = weightToKg(ln.weight, ln.wtUnit);
-      w += ln.action === 'pickup' ? wk : -wk;
+      if (ln.action === 'pickup') pickupKg += wk;
+      else if (ln.action === 'dropoff') dropoffKg += wk;
     });
-    return w;
+
+    const departureKg = arrivalKg - dropoffKg + pickupKg;
+    prevDepartureKg = departureKg;
+
+    // Remaining after stop; if unload emptied the truck, show what arrived to deliver.
+    const onTruckKg =
+      departureKg > 0 ? departureKg : dropoffKg > 0 ? arrivalKg : Math.max(0, departureKg);
+
+    return {
+      arrivalKg,
+      pickupKg,
+      dropoffKg,
+      departureKg,
+      onTruckKg,
+    };
   });
+}
+
+/** On-truck kg per stop (remaining after stop). See {@link computeStopRunningWeights}. */
+export function computeRunningWeights(stops: ApiStop[]): number[] {
+  return computeStopRunningWeights(stops).map((r) => r.onTruckKg);
 }
 
 export function buildCargoFlows(stops: ApiStop[]): CargoFlow[] {

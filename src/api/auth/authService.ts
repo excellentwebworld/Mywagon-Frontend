@@ -58,7 +58,7 @@ export const authService = {
   async login(payload: LoginPayload): Promise<LoginResult> {
     const res = await authRequest<LoginResponse>('/auth/login', {
       method: 'POST',
-      body: payload,
+      body: { ...payload, panel: 'react' },
     }, null);
 
     if (res.two_factor_required) {
@@ -160,6 +160,25 @@ export const authService = {
   async me(): Promise<ShipperUser> {
     const res = await authRequest<MeResponse>('/auth/me');
     return res.data;
+  },
+
+  /** Persist shipper panel language (`en` | `el`) on the user `locale` column. */
+  async updateLocale(locale: 'en' | 'el'): Promise<'en' | 'el'> {
+    const res = await authRequest<{
+      status: boolean;
+      message: string;
+      data?: { locale?: string };
+    }>('/auth/locale', {
+      method: 'PUT',
+      body: { locale },
+    });
+
+    if (!res.status) {
+      throw new Error(res.message || 'Failed to update locale');
+    }
+
+    const saved = res.data?.locale === 'el' ? 'el' : 'en';
+    return saved;
   },
 
   async forgotPassword(email: string): Promise<{ status: boolean; message: string }> {
@@ -342,8 +361,16 @@ export const authService = {
       /\/$/,
       '',
     );
+    const currentLang =
+      localStorage.getItem('app_locale') ||
+      localStorage.getItem('shipment-lang') ||
+      localStorage.getItem('i18nextLng') ||
+      'en';
+    const lang = currentLang.toLowerCase().startsWith('el') ? 'el' : 'en';
+
     return `${apiBase}/auth/social/${provider}/redirect?${new URLSearchParams({
       return_url: returnUrl,
+      lang,
     }).toString()}`;
   },
 };

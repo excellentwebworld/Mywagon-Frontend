@@ -5,10 +5,12 @@ import { useSyncGlobalLoader } from '../../../hooks/useSyncGlobalLoader';
 import { useApp } from '../../../context/AppContext';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { erpOrdersService, ApiError, getApiErrorMessage, addressBookService, productMasterService } from '../../../api';
+import { erpIntegrationService } from '../../../api/services/erpIntegrationService';
 import { statusLabel as statusLabelEn, statusLabelKey, buildExportParams } from '../../../api/mappers/erpOrdersMapper';
 import type { ErpOrderStatus } from '../../../api/types/erpOrders';
 import {
   ERP_ORDERS_PREFILL_KEY,
+  getErpCreateLoadPermissionBlock,
   isOrderEligibleForCreateLoad,
 } from '../../CreateShipmentWizard/hooks/erpOrdersPrefill';
 import { wizardQueryKeys } from '../../CreateShipmentWizard/hooks/wizardQueryKeys';
@@ -27,7 +29,10 @@ import type {
 } from '../types';
 import { EMPTY_ORDER_FORM as EMPTY_FORM, EMPTY_ORDER_LINE } from '../types';
 import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
+import { useSubscriptionPermission } from '../../../hooks/useSubscriptionPermission';
+import { useUpgradeGate } from '../../../context/UpgradeGateContext';
 import type { SKU } from '../../../context/AppContext';
+import { normalizeQtyUnit, normalizeWeightUnit } from '../../../constants/cargoUnits';
 
 const DEFAULT_FILTERS: ErpOrdersFilterState = {
   highPriority: false,
@@ -43,6 +48,8 @@ export function useErpOrdersList() {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { requireSignupComplete } = useRequireSignupComplete();
+  const { can } = useSubscriptionPermission();
+  const { openUpgradeGate } = useUpgradeGate();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const setSearchParamsRef = useRef(setSearchParams);
@@ -405,36 +412,38 @@ export function useErpOrdersList() {
         return false;
       }
 
-      const byId = new Map(orders.map((o) => [o.id, o]));
-      const resolved: ErpOrder[] = [];
-      const missing: string[] = [];
-
-      for (const id of ids) {
-        const found = byId.get(id);
-        if (found) resolved.push(found);
-        else missing.push(id);
+      // Fast path: multi-select already needs allow_multiple_stops (Add New Order).
+      if (ids.length > 1 && !can('allow_multiple_stops')) {
+        openUpgradeGate();
+        return false;
       }
 
-      if (missing.length) {
-        const fetched = await Promise.all(
-          missing.map(async (id) => {
-            try {
-              return await erpOrdersService.getOrder(id);
-            } catch {
-              return null;
-            }
-          })
-        );
-        for (const order of fetched) {
-          if (order) resolved.push(order);
-        }
-      }
+      // Always fetch details — list stubs omit lines / location ids, so product
+      // and stop projection would be wrong for Essential gating.
+      const fetched = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            return await erpOrdersService.getOrder(id);
+          } catch {
+            return null;
+          }
+        })
+      );
+      const resolved = fetched.filter((order): order is ErpOrder => !!order);
 
       if (
         resolved.length !== ids.length ||
         resolved.some((order) => !isOrderEligibleForCreateLoad(order))
       ) {
         showToast(t('erpOrdersCreateLoadOnlyUnplanned'), 'warning');
+        return false;
+      }
+
+      // Essential: block multi-order, multi-product (one order), and multi-stop.
+      if (
+        getErpCreateLoadPermissionBlock(resolved, can('allow_multiple_stops'))
+      ) {
+        openUpgradeGate();
         return false;
       }
 
@@ -456,7 +465,7 @@ export function useErpOrdersList() {
       navigate('/shipments/create/step/1?erp_orders=1');
       return true;
     },
-    [selectedIds, orders, showToast, t, navigate, requireSignupComplete]
+    [selectedIds, showToast, t, navigate, requireSignupComplete, can, openUpgradeGate]
   );
 
   const handleExport = useCallback(async () => {
@@ -488,10 +497,25 @@ export function useErpOrdersList() {
   ]);
 
   const handleResync = useCallback(
-    (order: ErpOrder) => {
-      showToast(t('erpOrdersResyncTriggered', { id: order.orderReference }), 'info');
+    async (order: ErpOrder) => {
+      try {
+        showToast(t('erpOrdersResyncTriggered', { id: order.orderReference }), 'info');
+        const result = await erpIntegrationService.syncBusinessCentral(['orders']);
+        await queryClient.invalidateQueries({ queryKey: ['erp-orders'] });
+        showToast(
+          t('integrations.bc.syncOk', {
+            created: result.run.created,
+            updated: result.run.updated,
+            skipped: result.run.skipped,
+            failed: result.run.failed,
+          }),
+          result.run.failed > 0 && result.run.created + result.run.updated === 0 ? 'error' : 'success'
+        );
+      } catch (err) {
+        showToast(err instanceof ApiError ? err.message : t('integrations.bc.syncError'), 'error');
+      }
     },
-    [showToast, t]
+    [showToast, t, queryClient]
   );
 
   const clearFilters = useCallback(() => {
@@ -542,7 +566,14 @@ export function useErpOrdersList() {
       notes: order.notes,
       highPriority: order.highPriority,
       orderValue: order.orderValue,
-      lines: order.lines.length ? order.lines : [],
+      // Normalize units so empty API values match select options (avoids false validation errors).
+      lines: order.lines.length
+        ? order.lines.map((line) => ({
+            ...line,
+            unit: normalizeQtyUnit(line.unit) || line.unit || 'EUR Pallets',
+            weightUnit: normalizeWeightUnit(line.weightUnit || 'Kgs'),
+          }))
+        : [],
     });
     setIsFormOpen(true);
   }, [requireSignupComplete]);
@@ -632,6 +663,7 @@ export function useErpOrdersList() {
     submitForm,
     formSaving: createMutation.isPending || updateMutation.isPending,
     deleteOrder: (id: string) => deleteMutation.mutate(id),
+    deletingOrder: deleteMutation.isPending,
     isAiWizardOpen,
     openAiWizard,
     closeAiWizard,

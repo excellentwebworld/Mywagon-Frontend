@@ -98,3 +98,20 @@ describe('shipment auto_id display helpers', () => {
     });
   });
 });
+
+describe('chat badge type helpers', () => {
+  it('labels company drivers as driver and freelancers as freelancer', async () => {
+    const { resolveChatBadgeType, resolveChatAvatarClass } = await import('./chatPartnerUtils');
+
+    expect(resolveChatBadgeType('driver', 'driver')).toBe('driver');
+    expect(resolveChatBadgeType('driver', 'company_driver')).toBe('driver');
+    expect(resolveChatBadgeType('driver', 'freelancer')).toBe('freelancer');
+    // Without displayType, driver stays freelancer (legacy navigation)
+    expect(resolveChatBadgeType('driver')).toBe('freelancer');
+    expect(resolveChatBadgeType('carrier')).toBe('company');
+
+    expect(resolveChatAvatarClass('driver')).toBe('driver');
+    expect(resolveChatAvatarClass('freelancer')).toBe('freelancer');
+    expect(resolveChatAvatarClass('company')).toBe('carrier');
+  });
+});

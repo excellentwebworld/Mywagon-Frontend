@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, ApiError, AUTH_TOKEN_KEY } from '../client';
+import { apiGet, apiPost, apiPut, ApiError, AUTH_TOKEN_KEY, getAcceptLanguage } from '../client';
 import {
   facetToListParams,
   mapApiSkuToSku,
@@ -127,8 +127,12 @@ export const productMasterService = {
     return res.data ?? [];
   },
 
-  async getAllReferenceCategories(): Promise<ApiReferenceCategory[]> {
-    const res = await apiGet<ApiReferenceCategory[]>('/product-master/reference/categories/get/all');
+  async getAllReferenceCategories(opts?: { forceEnglish?: boolean }): Promise<ApiReferenceCategory[]> {
+    const res = await apiGet<ApiReferenceCategory[]>(
+      '/product-master/reference/categories/get/all',
+      undefined,
+      opts?.forceEnglish ? { 'X-Force-Locale': 'en' } : undefined,
+    );
     return res.data ?? [];
   },
 
@@ -156,7 +160,10 @@ export const productMasterService = {
   async downloadExport(): Promise<void> {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     const response = await fetch(`${API_BASE}/product-master/export`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: {
+        'Accept-Language': getAcceptLanguage(),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
     });
     if (!response.ok) throw new ApiError('Export failed', response.status);
     const blob = await response.blob();

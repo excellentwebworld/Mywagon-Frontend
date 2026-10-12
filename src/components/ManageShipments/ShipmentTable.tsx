@@ -11,6 +11,7 @@ import {
   laneMidLabel,
   shipmentIdSublabel,
 } from '../../pages/ManageShipments/utils/listingUtils';
+import { formatScheduleWindow } from '../../utils/dateDisplay';
 import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 import { ListSkeleton } from '../skeletons/ListSkeleton';
 import { RowExpansionSkeleton } from '../skeletons/ManageShipmentsSkeleton';
@@ -76,24 +77,30 @@ function LaneCell({
     options?: Record<string, unknown>,
   ) => string;
 }) {
-  const pickLabel = s.pickDt || '';
-  const delLabel = s.delDt || '';
+  const pickLabel = formatScheduleWindow(s.pickDt, s.pickDtTo);
+  const delLabel = formatScheduleWindow(s.delDt, s.delDtTo);
   const at = t('laneAt');
   const origin = (s.origin || '').trim();
   const dest = (s.dest || '').trim();
 
-  const formatLaneLine = (place: string, when?: string | null) => {
-    if (place && when) return `${place} ${at} ${when}`;
-    if (place) return place;
-    if (when) return when;
-    return '—';
+  const renderLaneLine = (place: string, when?: string | null) => {
+    if (!place && !when) {
+      return <div className="lane-line">—</div>;
+    }
+    return (
+      <div className="lane-line">
+        {place ? <span className="lane-place">{place}</span> : null}
+        {place && when ? <span className="lane-at"> {at} </span> : null}
+        {when ? <span className="lane-when">{when}</span> : null}
+      </div>
+    );
   };
 
   return (
-    <div className="lane-cell">
-      <div className="lane">{formatLaneLine(origin, pickLabel)}</div>
+    <div className="lane-cell lane-stack">
+      {renderLaneLine(origin, pickLabel)}
       <div className="lane-mid">{laneMidLabel(s, t)}</div>
-      <div className="lane">{formatLaneLine(dest, delLabel)}</div>
+      {renderLaneLine(dest, delLabel)}
     </div>
   );
 }

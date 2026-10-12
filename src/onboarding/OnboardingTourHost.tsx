@@ -14,6 +14,10 @@ import {
   startOnboardingTour,
 } from './startOnboardingTour';
 import { canStartOnboardingTour } from '../hooks/postAuthDestination';
+import {
+  isWhatsNewPending,
+  WHATS_NEW_DISMISSED_EVENT,
+} from '../whatsNew/whatsNewVisibility';
 import { needsSignupComplete } from '../hooks/useSignupCompleteGate';
 import { needsInfoFormHardGate } from '../hooks/useInfoFormGate';
 import { needsCompanyInfoGate, needsKycGate } from '../hooks/useKycGate';
@@ -87,6 +91,21 @@ export const OnboardingTourHost: React.FC<OnboardingTourHostProps> = ({ expandSi
   // Never stack over the social “Get Started” welcome modal.
   useEffect(() => {
     if (!user || !isDashboard) return;
+
+    // What's New is the first popup on a new UI login. Start the product tour after it closes.
+    if (isWhatsNewPending(user)) {
+      const onDismissed = () => {
+        autoStartedRef.current = false;
+        startedRef.current = false;
+        if (!canStartOnboardingTour(user) && safeSessionGet(FORCE_TOUR_SESSION_KEY) !== '1') return;
+        window.setTimeout(() => {
+          if (isOnboardingTourRunning()) return;
+          runTour();
+        }, AUTO_START_DELAY_MS);
+      };
+      window.addEventListener(WHATS_NEW_DISMISSED_EVENT, onDismissed);
+      return () => window.removeEventListener(WHATS_NEW_DISMISSED_EVENT, onDismissed);
+    }
 
     // Incomplete social → welcome modal only; clear any stale force flag.
     if (needsSignupComplete(user)) {

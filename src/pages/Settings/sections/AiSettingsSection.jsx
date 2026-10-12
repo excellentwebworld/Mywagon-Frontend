@@ -14,7 +14,7 @@
  * Used by roles: Shipper, Forwarder (org admins only)
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Bot, Shield, Brain, Sliders, Clock, Cpu, Server, BarChart3,
@@ -42,6 +42,14 @@ const AI_TABS = [
   { id: 'usage', icon: BarChart3, labelKey: 'ai.tabs.usage' },
 ];
 
+function isSampleInstructions(value, i18n) {
+  const current = String(value || '');
+  if (!current.trim()) return true;
+  const en = String(i18n.getResource('en', 'translation', 'ai.knowledge.instructionsSample') || '');
+  const el = String(i18n.getResource('el', 'translation', 'ai.knowledge.instructionsSample') || '');
+  return current === en || current === el;
+}
+
 export default function AiSettingsSection() {
   const { t, i18n } = useTranslation();
   const { T } = useTheme();
@@ -51,12 +59,24 @@ export default function AiSettingsSection() {
   const [activeTab, setActiveTab] = useState('assistant');
   const [config, setConfig] = useState({ ...AI_CONFIG });
   const [caps, setCaps] = useState([...AI_CAPABILITIES]);
-  const [knowledge, setKnowledge] = useState({ ...AI_KNOWLEDGE });
+  const [knowledge, setKnowledge] = useState(() => ({
+    ...AI_KNOWLEDGE,
+    customInstructions: t('ai.knowledge.instructionsSample'),
+  }));
   const [behavior, setBehavior] = useState({ ...AI_BEHAVIOR });
   const [history, setHistory] = useState({ ...AI_HISTORY });
   const [provider, setProvider] = useState({ ...AI_PROVIDER });
   const [mcp, setMcp] = useState({ ...MCP_CONFIG, capabilities: MCP_CONFIG.capabilities.map(c => ({ ...c })) });
   const [usage, setUsage] = useState({ ...AI_USAGE, extra: { ...AI_USAGE.extra } });
+
+  useEffect(() => {
+    const sample = t('ai.knowledge.instructionsSample');
+    setKnowledge((prev) => {
+      if (!isSampleInstructions(prev.customInstructions, i18n)) return prev;
+      if (prev.customInstructions === sample) return prev;
+      return { ...prev, customInstructions: sample };
+    });
+  }, [t, i18n, i18n.language]);
 
   const tUp = (key) => isGreek ? toUpperGreek(t(key)) : t(key);
 

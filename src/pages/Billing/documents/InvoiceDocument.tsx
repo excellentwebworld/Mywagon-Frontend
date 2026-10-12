@@ -1,7 +1,13 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { BillingIssuer, BillingParty, Invoice } from '../../../api/types/billing';
-import { formatCurrency, formatDate, isInvoicePaid } from '../mockData';
+import {
+  formatCurrency,
+  formatDate,
+  invoiceStatusLabel,
+  invoiceTypeLabel,
+  isInvoicePaid,
+} from '../mockData';
 
 function statusClass(status: string): string {
   const value = status.toLowerCase();
@@ -23,7 +29,7 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
   billTo,
   currency = invoice.cur || 'EUR',
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const lines = invoice.line_items ?? [];
   const issuerName = issuer?.name || 'MYVAGON';
   const paid = isInvoicePaid(invoice.status);
@@ -32,6 +38,8 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
     : billTo?.address
       ? [billTo.address]
       : [];
+  const moneyLocale = (i18n.language || 'en').toLowerCase().startsWith('el') ? 'el' : 'en';
+  const money = (val: number) => formatCurrency(val, currency, moneyLocale);
 
   return (
     <article className="mv-doc" data-document="invoice">
@@ -89,7 +97,7 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
         <div className="mv-doc-meta-cell">
           <div className="mv-doc-label">{t('billingPage.invoiceDoc.status', 'Status')}</div>
           <div className="mv-doc-meta-value">
-            <span className={statusClass(invoice.status)}>{invoice.status}</span>
+            <span className={statusClass(invoice.status)}>{invoiceStatusLabel(invoice, t)}</span>
           </div>
         </div>
         <div className="mv-doc-meta-cell">
@@ -99,7 +107,7 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
               : t('billingPage.invoiceDoc.type', 'Type')}
           </div>
           <div className="mv-doc-meta-value">
-            {paid ? formatDate(invoice.pDate) : invoice.type}
+            {paid ? formatDate(invoice.pDate) : invoiceTypeLabel(invoice, t)}
           </div>
         </div>
       </div>
@@ -130,9 +138,9 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
                     {line.sid ? <div className="mv-doc-muted">{line.sid}</div> : null}
                   </td>
                   <td className="num">{line.qty || 1}</td>
-                  <td className="num">{formatCurrency(line.unit ?? 0, currency)}</td>
-                  <td className="num">{formatCurrency(line.vat ?? 0, currency)}</td>
-                  <td className="num">{formatCurrency(line.amt ?? 0, currency)}</td>
+                  <td className="num">{money(line.unit ?? 0)}</td>
+                  <td className="num">{money(line.vat ?? 0)}</td>
+                  <td className="num">{money(line.amt ?? 0)}</td>
                 </tr>
               ))
             )}
@@ -144,23 +152,23 @@ export const InvoiceDocument: React.FC<InvoiceDocumentProps> = ({
         <div className="mv-doc-totals-box">
           <div className="mv-doc-total-row">
             <span className="mv-doc-muted">{t('billingPage.invoiceDoc.subtotal', 'Subtotal')}</span>
-            <span>{formatCurrency(invoice.subt, currency)}</span>
+            <span>{money(invoice.subt)}</span>
           </div>
           <div className="mv-doc-total-row">
             <span className="mv-doc-muted">{t('billingPage.invoiceDoc.vat', 'VAT')}</span>
-            <span>{formatCurrency(invoice.tax, currency)}</span>
+            <span>{money(invoice.tax)}</span>
           </div>
           {(invoice.cred ?? 0) > 0 ? (
             <div className="mv-doc-total-row">
               <span className="mv-doc-muted">
                 {t('billingPage.invoiceDoc.walletCredit', 'Wallet credit')}
               </span>
-              <span>−{formatCurrency(invoice.cred, currency)}</span>
+              <span>−{money(invoice.cred ?? 0)}</span>
             </div>
           ) : null}
           <div className="mv-doc-total-row mv-doc-total-grand">
             <span>{t('billingPage.invoiceDoc.total', 'Total')}</span>
-            <span>{formatCurrency(invoice.tot, currency)}</span>
+            <span>{money(invoice.tot)}</span>
           </div>
         </div>
       </div>

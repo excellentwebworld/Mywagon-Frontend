@@ -9,6 +9,16 @@
   overflow: hidden;
 }
 
+/* Match Address Book / Partners: constrain height so panes + table scroll internally */
+.pm-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--topbar-h));
+  height: calc(100dvh - var(--topbar-h));
+  overflow: hidden;
+  min-height: 0;
+}
+
 /* ─── CSS Variables ─── */
 :root {
   --bg:  #F7F7F8;
@@ -199,7 +209,7 @@
 .add-cat-btn:hover { background: var(--al); }
 
 /* ─── List Pane ─── */
-.list-pane { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.list-pane { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
 .list-toolbar { padding: 8px 16px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--bd); background: var(--se); flex-shrink: 0; }
 .list-toolbar .sort-sel { padding: 5px 8px; border: 1px solid var(--bd); border-radius: 6px; font-size: 11px; font-family: inherit; background: var(--sf); color: var(--t2); cursor: pointer; }
 .list-info { font-size: 11px; color: var(--t3); margin-left: auto; }
@@ -207,7 +217,7 @@
 .pm-container .bulk-bar .bulk-ct { background: var(--ac); color: #fff; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
 
 /* ─── Table ─── */
-.tbl-scroll { flex: 1; overflow-y: auto; }
+.tbl-scroll { flex: 1; min-height: 0; overflow-y: auto; overflow-x: auto; }
 table.t { width: 100%; border-collapse: collapse; }
 .t thead th { padding: 9px 12px; text-align: left; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: var(--t3); background: var(--sa); border-bottom: 1px solid var(--bd); white-space: nowrap; position: sticky; top: 0; z-index: 2; }
 .th-sort-btn { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: none; background: none; font: inherit; font-weight: 600; color: inherit; cursor: pointer; text-transform: uppercase; letter-spacing: .5px; }

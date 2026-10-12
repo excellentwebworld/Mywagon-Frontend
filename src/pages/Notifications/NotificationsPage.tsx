@@ -35,6 +35,7 @@ import type {
   NotificationAction,
   NotificationCategory,
 } from '../../api/services/notificationService';
+import { openNotificationTarget } from '../../utils/notificationNavigation';
 import NotificationsSection from '../Settings/sections/NotificationsSection';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -285,6 +286,9 @@ function mapApiItem(n: ApiNotification): NotificationItem {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+/** Must stay within API `per_page` max (NotificationsController: max:100). */
+const PER_PAGE_OPTIONS = [10, 20, 50, 100] as const;
+
 type NotificationsPageProps = {
   /** When true, render inside Settings chrome (no full-page padding). */
   embedded?: boolean;
@@ -345,6 +349,15 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
     scrollToTop();
   };
 
+  const handlePerPageChange = (size: number) => {
+    if (!(PER_PAGE_OPTIONS as readonly number[]).includes(size)) return;
+    // Batch page reset with per-page change so the fetch effect never runs
+    // with a stale page against the new page size (empty list / broken pager).
+    setPerPage(size);
+    setCurrentPage(1);
+    scrollToTop();
+  };
+
   // ── i18n ───────────────────────────────────────────────────────────────
   const currentLang = (lang === 'el' ? 'el' : 'en') as 'en' | 'el';
   const loc = (key: string): string => {
@@ -401,12 +414,19 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
       const items = res.data.map(mapApiItem);
       setNotifications(items);
       setMeta(res.meta);
+      // Keep local page in sync if API clamped an out-of-range page.
+      if (res.meta.current_page && res.meta.current_page !== page) {
+        setCurrentPage(res.meta.current_page);
+      }
     } catch {
-      // Handled
+      showToast(
+        tHook('Notifications.failed_to_load', 'Failed to load notifications'),
+        'error',
+      );
     } finally {
       setLoading(false);
     }
-  }, [lang]);
+  }, [lang, showToast, tHook]);
 
   // ── Reset page to 1 when filters change ────────────────────────────────
   useEffect(() => {
@@ -516,110 +536,42 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
     }
   };
 
-  const handleActionNavigate = (itemOrAction: NotificationAction | NotificationItem, chip?: string) => {
-    let action: NotificationAction = null;
-    let actionId: string | undefined;
-    let externalUrl: string | undefined | null;
-    let redirectSlug: string | undefined | null;
-
-    if (typeof itemOrAction === 'object' && itemOrAction !== null) {
-      if (!itemOrAction.read) {
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === itemOrAction.id ? { ...n, read: true } : n))
-        );
-        setMeta((prev) => ({ ...prev, unread_count: Math.max(0, prev.unread_count - 1) }));
-        void notificationService.markRead(itemOrAction.id).catch(() => {});
-      }
-      action = itemOrAction.action;
-      actionId = itemOrAction.action_id;
-      externalUrl = itemOrAction.external_url;
-      redirectSlug = itemOrAction.redirect_slug;
-
-      if (!actionId && itemOrAction.chips && itemOrAction.chips.length > 0 && (itemOrAction as any).action_type !== 'viewBids') {
-        const sidChip = itemOrAction.chips.find(c => c.startsWith('SID-'));
-        if (sidChip) {
-          actionId = sidChip.replace('SID-', '');
-        }
-      }
-    } else {
-      action = itemOrAction;
-    }
-
-    if (externalUrl) {
-      window.open(externalUrl, '_blank', 'noopener,noreferrer');
+  const handleActionNavigate = (itemOrAction: NotificationAction | NotificationItem) => {
+    if (typeof itemOrAction !== 'object' || itemOrAction === null) {
       return;
     }
 
-    // Extract ID from chip if passed (e.g. "SID-10263" -> "10263")
-    if (chip) {
-      const cleaned = chip.replace(/^SID-|^ORD-|^INV-|^AVL-/, '');
-      if (cleaned) {
-        actionId = cleaned;
-      }
+    if (!itemOrAction.read) {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === itemOrAction.id ? { ...n, read: true } : n))
+      );
+      setMeta((prev) => ({ ...prev, unread_count: Math.max(0, prev.unread_count - 1) }));
+      void notificationService.markRead(itemOrAction.id).catch(() => {});
     }
 
-    let target = redirectSlug ? (redirectSlug.startsWith('/') ? redirectSlug : `/${redirectSlug}`) : '/settings/notifications';
-
-    if (action === 'manageShipments') {
-      target = '/shipments';
-    } else if (action === 'viewDashboard') {
-      target = '/dashboard';
-    } else if (action === 'createShipment') {
-      if (!requireSignupComplete()) return;
-      target = '/shipments/create';
-    } else if (action === 'searchTrucks') {
-      target = '/search-trucks';
-    } else if (action === 'viewPartners') {
-      target = '/partners';
-    } else if (action === 'viewLoad' || action === 'viewBids' || action === 'viewDocs') {
-      const base = actionId ? `/shipments/${actionId}` : '/shipments';
-      if (action === 'viewBids') {
-        target = `${base}?focus=bids`;
-      } else if (action === 'viewDocs') {
-        target = `${base}?focus=docs`;
-      } else {
-        target = base;
-      }
-    } else if (action === 'viewInvoice') {
-      target = actionId ? `/billing?invoice=${actionId}` : '/billing';
-    } else if (action === 'viewOrder') {
-      target = actionId ? `/erp-orders?id=${actionId}` : '/erp-orders';
-    } else if (action === 'viewSubscription') {
-      target = '/subscription';
-    } else if (action === 'openSupport') {
-      target = '/support';
-    } else if (action === 'viewProfile' || action === 'viewCompliance') {
-      target = '/settings/compliance';
-    } else if (action === 'viewOrganization') {
-      target = '/settings/organization';
-    } else if (action === 'viewUsers') {
-      target = '/settings/users';
-    } else if (action === 'viewPrivacy') {
-      target = '/settings/privacy';
-    } else if (action === 'viewTerms') {
-      target = '/settings/terms';
-    } else if (action === 'viewAddressBook') {
-      target = '/address-book';
-    } else if (action === 'viewProducts') {
-      target = '/products';
-    } else if (action === 'viewTutorials') {
-      target = '/tutorials';
-    } else if (action === 'openChat') {
-      target = actionId
-        ? `/messages?userId=${encodeURIComponent(actionId)}`
-        : '/messages';
-    } else if (action === 'viewNotifications') {
-      target = '/settings/notifications';
+    // Gate create-shipment CTA the same as other create entry points.
+    if (itemOrAction.action === 'createShipment' && !requireSignupComplete()) {
+      return;
     }
 
     setSelectedNotif(null);
-    navigate(target);
+    openNotificationTarget(
+      {
+        action_type: itemOrAction.action,
+        action_id: itemOrAction.action_id,
+        chips: itemOrAction.chips,
+        redirect_slug: itemOrAction.redirect_slug,
+        external_url: itemOrAction.external_url,
+      },
+      navigate
+    );
   };
 
   const total = meta.total ?? 0;
   const lastPage = Math.max(meta.last_page ?? 1, 1);
-  const start = total === 0 ? 0 : (currentPage - 1) * perPage + 1;
-  const end = Math.min(currentPage * perPage, total);
+  const effectivePerPage = meta.per_page || perPage;
+  const start = total === 0 ? 0 : (currentPage - 1) * effectivePerPage + 1;
+  const end = Math.min(currentPage * effectivePerPage, total);
   const pageList = useMemo(() => buildPageList(currentPage, lastPage), [currentPage, lastPage]);
 
   // ──────────────────────────────────────────────────────────────────────
@@ -948,7 +900,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                   {n.action && (
                     <button
                       type="button"
-                      onClick={() => handleActionNavigate(n, n.chips[0])}
+                      onClick={() => handleActionNavigate(n)}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white shadow-xs hover:shadow-md active:scale-[0.98] transition-all cursor-pointer whitespace-nowrap border-none"
                       style={{
                         background: 'var(--mv-purple)',
@@ -1031,10 +983,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
               </span>
               <select
                 value={perPage}
-                onChange={(e) => {
-                  setPerPage(Number(e.target.value));
-                  handlePageChange(1);
-                }}
+                onChange={(e) => handlePerPageChange(Number(e.target.value))}
                 disabled={loading}
                 aria-label={loc('perPage')}
                 className="px-2.5 py-1 rounded-lg text-xs font-semibold outline-none cursor-pointer transition-all"
@@ -1044,7 +993,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                   color: T.t1,
                 }}
               >
-                {[10, 20, 50, 100].map((n) => (
+                {PER_PAGE_OPTIONS.map((n) => (
                   <option key={n} value={n}>
                     {n} / {loc('perPage')}
                   </option>
@@ -1227,7 +1176,7 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                             key={chip}
                             onClick={() => {
                               setSelectedNotif(null);
-                              handleActionNavigate(selectedNotif, chip);
+                              handleActionNavigate(selectedNotif);
                             }}
                             className="flex items-center justify-between p-3 rounded-xl transition-all cursor-pointer group"
                             style={{
@@ -1273,9 +1222,8 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({ embedded =
                     <button
                       type="button"
                       onClick={() => {
-                        const chip = selectedNotif.chips[0];
                         setSelectedNotif(null);
-                        handleActionNavigate(selectedNotif, chip);
+                        handleActionNavigate(selectedNotif);
                       }}
                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white shadow-xs cursor-pointer border-none"
                       style={{

@@ -91,6 +91,34 @@ export function normalizePartnerType(userType?: string | null): 'carrier' | 'dri
   return t;
 }
 
+/**
+ * UI badge role for chat list/header.
+ * `userType` is API/socket shape (carrier|driver); `displayType` distinguishes
+ * company driver vs freelancer when both use userType=driver.
+ */
+export function resolveChatBadgeType(
+  userType?: string | null,
+  displayType?: string | null
+): 'company' | 'freelancer' | 'driver' | 'admin' {
+  const d = String(displayType || '').toLowerCase();
+  if (d === 'company' || d === 'freelancer' || d === 'driver' || d === 'admin') {
+    return d;
+  }
+  if (d === 'company_driver') return 'driver';
+  const t = String(userType || '').toLowerCase();
+  if (t === 'admin') return 'admin';
+  if (t === 'driver' || t === 'freelancer' || t === 'company_driver') return 'freelancer';
+  return 'company';
+}
+
+export function resolveChatAvatarClass(
+  badgeType: 'company' | 'freelancer' | 'driver' | 'admin' | string
+): 'carrier' | 'freelancer' | 'driver' {
+  if (badgeType === 'driver') return 'driver';
+  if (badgeType === 'freelancer') return 'freelancer';
+  return 'carrier';
+}
+
 /** Socket room type — must be carrier, driver, or admin (never freelancer/company). */
 export function normalizeSocketUserType(userType?: string | null): 'carrier' | 'driver' | 'admin' {
   return normalizePartnerType(userType) as 'carrier' | 'driver' | 'admin';

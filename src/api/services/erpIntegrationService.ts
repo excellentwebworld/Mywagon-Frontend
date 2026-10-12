@@ -17,15 +17,25 @@ export type ErpProviderCatalogItem = {
 export type ErpSyncRun = {
   id: number;
   status: string;
+  entity_types?: string[];
   fetched: number;
   created: number;
   updated: number;
   skipped: number;
   failed: number;
+  details?: Record<string, {
+    fetched: number;
+    created: number;
+    updated: number;
+    skipped: number;
+    failed: number;
+  }> | null;
   error_message: string | null;
   started_at: string | null;
   finished_at: string | null;
 };
+
+export type ErpSyncType = 'items' | 'customers' | 'locations' | 'orders';
 
 export type BusinessCentralConnection = {
   id?: number;
@@ -119,14 +129,14 @@ export const erpIntegrationService = {
     return res.data;
   },
 
-  async syncBusinessCentral(): Promise<{
+  async syncBusinessCentral(types?: ErpSyncType[]): Promise<{
     connection: BusinessCentralConnection;
     run: ErpSyncRun;
   }> {
     const res = await apiPost<{
       connection: BusinessCentralConnection;
       run: ErpSyncRun;
-    }>(`${BASE}/business_central/sync`);
+    }>(`${BASE}/business_central/sync`, types?.length ? { types } : {});
     return res.data;
   },
 

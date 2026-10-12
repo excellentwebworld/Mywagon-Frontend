@@ -1,0 +1,68 @@
+.auth-theme-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 50px;
+  height: 25px;
+  padding: 0;
+  border: none;
+  border-radius: 34px;
+  background: #ccc;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.3s ease;
+}
+
+.auth-theme-toggle.is-dark {
+  background: linear-gradient(135deg, #9b51e0, #4e5cdb);
+}
+
+.auth-theme-toggle-knob {
+  position: absolute;
+  top: 3.5px;
+  left: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  transition: left 0.3s ease, color 0.2s ease;
+}
+
+.auth-theme-toggle.is-dark .auth-theme-toggle-knob {
+  left: 28px;
+  color: #9b51e0;
+}
+
+.auth-theme-toggle:hover .auth-theme-toggle-knob {
+  color: #4e5cdb;
+}
+
+.auth-theme-toggle.is-dark:hover .auth-theme-toggle-knob {
+  color: #7c3aed;
+}
+
+.auth-theme-toggle:focus-visible {
+  outline: 2px solid #9b51e0;
+  outline-offset: 2px;
+}
+
+/* Shared top bar for theme + language on auth forms */
+.shipper-login-topbar,
+.reg-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-bottom: 0.15rem;
+  clear: both;
+}
+
+.shipper-login-topbar .shipper-login-lang-switch,
+.reg-topbar .reg-lang-switch {
+  float: none;
+}

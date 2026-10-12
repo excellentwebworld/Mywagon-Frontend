@@ -314,10 +314,12 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
     const emptyOption = <option value="">—</option>;
 
     if (field === 'category') {
+      const current = effectiveFieldValue(row, 'category');
+      const hasMatch = referenceCategories.some((c) => c.name === current);
       return (
         <select
           {...common}
-          value={effectiveFieldValue(row, 'category')}
+          value={current}
           onChange={(e) => {
             const name = e.target.value;
             const types = typesForCategory(name);
@@ -328,6 +330,9 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
           }}
         >
           {emptyOption}
+          {!hasMatch && current !== '' && (
+            <option value={current}>{current}</option>
+          )}
           {referenceCategories.map((c) => (
             <option key={c.id} value={c.name}>
               {c.name}
@@ -339,13 +344,19 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
 
     if (field === 'product_type') {
       const types = typesForCategory(row.product.category);
+      const current = effectiveFieldValue(row, 'product_type');
+      const hasMatch = types.some((tp) => tp.name === current);
       return (
         <select
           {...common}
-          value={effectiveFieldValue(row, 'product_type')}
+          value={current}
           onChange={(e) => updateProduct(row.id, { product_type: e.target.value })}
         >
           {emptyOption}
+          {/* Keep unmatched imported value as an option so the select stays controlled and doesn't glitch */}
+          {!hasMatch && current !== '' && (
+            <option value={current}>{current}</option>
+          )}
           {types.map((tp) => (
             <option key={tp.id} value={tp.name}>
               {tp.name}
@@ -356,9 +367,11 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
     }
 
     if (field === 'unit') {
+      const hasMatch = !val || UOM_OPTIONS.includes(val as (typeof UOM_OPTIONS)[number]);
       return (
         <select {...common} value={val} onChange={(e) => updateProduct(row.id, { unit: e.target.value })}>
           {emptyOption}
+          {!hasMatch && <option value={val}>{val}</option>}
           {UOM_OPTIONS.map((u) => (
             <option key={u} value={u}>
               {optionLabel('uom', u, labelT)}
@@ -369,9 +382,11 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
     }
 
     if (field === 'temperature') {
+      const hasMatch = !val || TEMP_OPTIONS.includes(val as (typeof TEMP_OPTIONS)[number]);
       return (
         <select {...common} value={val} onChange={(e) => updateProduct(row.id, { temperature: e.target.value })}>
           {emptyOption}
+          {!hasMatch && <option value={val}>{val}</option>}
           {TEMP_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>
               {optionLabel('temp', opt, labelT)}
@@ -382,9 +397,11 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
     }
 
     if (field === 'pallet_type') {
+      const hasMatch = !val || PALLET_OPTIONS.includes(val as (typeof PALLET_OPTIONS)[number]);
       return (
         <select {...common} value={val} onChange={(e) => updateProduct(row.id, { pallet_type: e.target.value })}>
           {emptyOption}
+          {!hasMatch && <option value={val}>{val}</option>}
           {PALLET_OPTIONS.map((opt) => (
             <option key={opt} value={opt}>
               {optionLabel('pallet', opt, labelT)}
@@ -395,9 +412,11 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
     }
 
     if (field === 'hazardous' || field === 'stackable') {
+      const hasMatch = !val || val === 'Yes' || val === 'No';
       return (
         <select {...common} value={val} onChange={(e) => updateProduct(row.id, { [field]: e.target.value })}>
           {emptyOption}
+          {!hasMatch && <option value={val}>{val}</option>}
           <option value="Yes">{t('yes')}</option>
           <option value="No">{t('no')}</option>
         </select>
@@ -405,9 +424,11 @@ export const AiWizardPreviewPanel: React.FC<Props> = ({
     }
 
     if (field === 'status') {
+      const hasMatch = !val || val === 'Active' || val === 'Inactive';
       return (
         <select {...common} value={val} onChange={(e) => updateProduct(row.id, { status: e.target.value })}>
           {emptyOption}
+          {!hasMatch && <option value={val}>{val}</option>}
           <option value="Active">{t('productMaster.active', { defaultValue: 'Active' })}</option>
           <option value="Inactive">{t('productMaster.inactive', { defaultValue: 'Inactive' })}</option>
         </select>

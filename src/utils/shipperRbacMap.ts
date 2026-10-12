@@ -25,6 +25,15 @@ export const SHIPPER_RBAC = {
   manageSubscriptions: 'manage_subscriptions',
   viewCompanyInfo: 'view_company_account_information',
   editCompanyInfo: 'edit_company_account_information',
+  viewOrders: 'view_orders',
+  createOrders: 'create_orders',
+  editOrders: 'edit_orders',
+  deleteOrders: 'delete_orders',
+  viewPriceLists: 'view_price_lists',
+  createPriceLists: 'create_price_lists',
+  editPriceLists: 'edit_price_lists',
+  deletePriceLists: 'delete_price_lists',
+  accessVagonAi: 'access_vagon_ai',
 } as const;
 
 export type ShipperRbacPermission =
@@ -38,7 +47,10 @@ export type ShipperRbacNavKey =
   | 'messages'
   | 'subscription'
   | 'users'
-  | 'organization';
+  | 'organization'
+  | 'orders'
+  | 'priceLists'
+  | 'vagonAi';
 
 /** Nav item → Spatie permission(s). Any-of when array. */
 export const NAV_RBAC: Record<ShipperRbacNavKey, string | string[]> = {
@@ -50,6 +62,9 @@ export const NAV_RBAC: Record<ShipperRbacNavKey, string | string[]> = {
   subscription: SHIPPER_RBAC.manageSubscriptions,
   users: SHIPPER_RBAC.managePermissions,
   organization: SHIPPER_RBAC.viewCompanyInfo,
+  orders: SHIPPER_RBAC.viewOrders,
+  priceLists: SHIPPER_RBAC.viewPriceLists,
+  vagonAi: SHIPPER_RBAC.accessVagonAi,
 };
 
 /**
@@ -66,6 +81,9 @@ export const ROUTE_RBAC: Array<{ prefix: string; permission: string | string[] }
   { prefix: '/subscription', permission: SHIPPER_RBAC.manageSubscriptions },
   { prefix: '/settings/organization', permission: SHIPPER_RBAC.viewCompanyInfo },
   { prefix: '/settings/compliance', permission: SHIPPER_RBAC.viewCompanyInfo },
+  { prefix: '/erp-orders', permission: SHIPPER_RBAC.viewOrders },
+  { prefix: '/pricing', permission: SHIPPER_RBAC.viewPriceLists },
+  { prefix: '/vagonai', permission: SHIPPER_RBAC.accessVagonAi },
 ];
 
 export function resolveRouteRbac(pathname: string): string | string[] | null {
@@ -96,7 +114,13 @@ export type ShipperRbacActionKey =
   | 'acceptDeclinePartner'
   | 'viewQuotes'
   | 'editCompanyInfo'
-  | 'manageSubscriptions';
+  | 'manageSubscriptions'
+  | 'createOrders'
+  | 'editOrders'
+  | 'deleteOrders'
+  | 'createPriceLists'
+  | 'editPriceLists'
+  | 'deletePriceLists';
 
 export const ACTION_RBAC: Record<ShipperRbacActionKey, string> = {
   publishPrivate: SHIPPER_RBAC.publishPrivate,
@@ -113,4 +137,10 @@ export const ACTION_RBAC: Record<ShipperRbacActionKey, string> = {
   viewQuotes: SHIPPER_RBAC.viewQuotes,
   editCompanyInfo: SHIPPER_RBAC.editCompanyInfo,
   manageSubscriptions: SHIPPER_RBAC.manageSubscriptions,
+  createOrders: SHIPPER_RBAC.createOrders,
+  editOrders: SHIPPER_RBAC.editOrders,
+  deleteOrders: SHIPPER_RBAC.deleteOrders,
+  createPriceLists: SHIPPER_RBAC.createPriceLists,
+  editPriceLists: SHIPPER_RBAC.editPriceLists,
+  deletePriceLists: SHIPPER_RBAC.deletePriceLists,
 };

@@ -15,13 +15,24 @@ interface AssignCoOwnerModalProps {
   t: (key: string, fallback?: string) => string;
 }
 
-const formatRoleLabel = (user: ApiShipmentCoOwner): string => {
+const formatRoleLabel = (
+  user: ApiShipmentCoOwner,
+  t: (key: string, fallback?: string) => string,
+): string => {
+  const roleKey = String(user.role || '')
+    .replace(/^custom_\d+_/, '')
+    .toLowerCase()
+    .trim();
+  if (roleKey === 'admin') return t('roles.admin', 'Admin');
+  if (roleKey === 'dispatcher') return t('roles.dispatcher', 'Dispatcher');
+
   const raw = user.role_label || user.role || '';
   if (!raw) return '';
   // Clean raw Spatie key if present e.g. custom_365_team_lead -> Team Lead
   const clean = raw.replace(/^custom_\d+_/, '');
-  if (clean.toLowerCase() === 'admin') return 'Admin';
-  if (clean.toLowerCase() === 'dispatcher') return 'Dispatcher';
+  const key = clean.toLowerCase();
+  if (key === 'admin') return t('roles.admin', 'Admin');
+  if (key === 'dispatcher') return t('roles.dispatcher', 'Dispatcher');
   return clean
     .split('_')
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -255,6 +266,7 @@ export const AssignCoOwnerModal: React.FC<AssignCoOwnerModalProps> = ({
                 ) : (
                   filteredUsers.map((user) => {
                     const isSelected = selectedUserIds.has(user.id);
+                    const roleLabel = formatRoleLabel(user, t);
                     const initials = (user.name || 'User')
                       .split(' ')
                       .map((p) => p[0])
@@ -289,9 +301,9 @@ export const AssignCoOwnerModal: React.FC<AssignCoOwnerModalProps> = ({
                               <span className="text-xs font-semibold text-slate-900 dark:text-white truncate">
                                 {user.name}
                               </span>
-                              {formatRoleLabel(user) && (
+                              {roleLabel && (
                                 <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                                  {formatRoleLabel(user)}
+                                  {roleLabel}
                                 </span>
                               )}
                             </div>

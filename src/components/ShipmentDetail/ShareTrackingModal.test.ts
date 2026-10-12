@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { buildTrackingDeliveryGroupKey } from './ShareTrackingModal';
+import {
+  buildTrackingDeliveryGroupKey,
+  isPickupOpenForTrackingEdit,
+} from './ShareTrackingModal';
 
 describe('buildTrackingDeliveryGroupKey', () => {
   it('keeps same address separate when appointment times differ', () => {
@@ -32,5 +35,21 @@ describe('buildTrackingDeliveryGroupKey', () => {
     });
 
     expect(a).toBe(b);
+  });
+});
+
+describe('isPickupOpenForTrackingEdit', () => {
+  it('allows edit while pickup is pending / start trip (0 or 1)', () => {
+    expect(isPickupOpenForTrackingEdit('0')).toBe(true);
+    expect(isPickupOpenForTrackingEdit('1')).toBe(true);
+    expect(isPickupOpenForTrackingEdit(null)).toBe(true);
+    expect(isPickupOpenForTrackingEdit('')).toBe(true);
+  });
+
+  it('locks edit once pickup has progressed or completed', () => {
+    expect(isPickupOpenForTrackingEdit('3')).toBe(false); // arrived
+    expect(isPickupOpenForTrackingEdit('5')).toBe(false); // complete pickup
+    expect(isPickupOpenForTrackingEdit('6')).toBe(false); // unable
+    expect(isPickupOpenForTrackingEdit('7')).toBe(false); // complete shipment
   });
 });

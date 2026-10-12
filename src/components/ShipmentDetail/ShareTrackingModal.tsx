@@ -25,10 +25,14 @@ function splitEmails(value?: string | null): string[] {
   return parts.length > 0 ? parts : [''];
 }
 
-/** Location status codes that mean the stop can no longer receive new tracking emails. */
-function isLocationComplete(status?: string | number | null): boolean {
-  const code = String(status ?? '').trim();
-  return code === '5' || code === '6' || code === '7';
+/**
+ * Laravel manage-tab rule: tracking emails stay editable while the linked pickup
+ * status is still 0 or 1 (pending / start trip). Once the pickup progresses
+ * (arrived, completed, unable, …), that delivery row becomes read-only.
+ */
+export function isPickupOpenForTrackingEdit(status?: string | number | null): boolean {
+  const code = String(status ?? '1').trim();
+  return code === '' || code === '0' || code === '1';
 }
 
 function physicalDeliveryKey(stop: ShipmentStop): string {
@@ -85,7 +89,6 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
   t,
 }) => {
   const normStatus = (status || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
-  const isPendingOrDraft = normStatus === 'pending' || normStatus === 'draft' || normStatus === '';
   const isFulfilledOrPartial =
     normStatus === 'fullfilled' ||
     normStatus === 'fulfilled' ||
@@ -96,19 +99,56 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
     normStatus === 'delivered' ||
     normStatus === 'not_fullfilled';
 
-  // Emails editable only while load is pending/draft. Scheduled / ready / on_trip = view + copy only.
-  // Completed locations are always read-only regardless of shipment status.
-  const shipmentEmailsReadOnly =
-    explicitReadOnly ?? (!isPendingOrDraft || isFulfilledOrPartial);
+  // Shipment-level lock only for terminal fulfillment states (Laravel panel parity).
+  // Per-delivery rows stay editable until that row's linked pickup leaves status 0/1.
+  const shipmentEmailsReadOnly = explicitReadOnly ?? isFulfilledOrPartial;
 
   const deliveryRows = useMemo(() => {
     if (stops && stops.length > 0) {
+      const pickupStatusById = new Map<string, string>();
+      const pickupStatusByOrderId = new Map<string, string>();
+      stops.forEach((s) => {
+        if (s.type !== 'pickup') return;
+        const st = String(
+          (s as any).locationStatus ??
+            (s as any).location_status ??
+            (s as any).status ??
+            '1'
+        );
+        if (s.id != null) pickupStatusById.set(String(s.id), st);
+        collectOrderIds(s).forEach((oid) => {
+          const prev = pickupStatusByOrderId.get(oid);
+          // If multiple pickups share an order, keep the most progressed status.
+          if (prev == null || Number(st) > Number(prev)) {
+            pickupStatusByOrderId.set(oid, st);
+          }
+        });
+      });
+
+      const resolvePickupStatus = (delivery: ShipmentStop): string => {
+        const refId =
+          (delivery as any).referenceId ??
+          (delivery as any).reference_id ??
+          null;
+        if (refId != null && pickupStatusById.has(String(refId))) {
+          return pickupStatusById.get(String(refId))!;
+        }
+        for (const oid of collectOrderIds(delivery)) {
+          if (pickupStatusByOrderId.has(oid)) {
+            return pickupStatusByOrderId.get(oid)!;
+          }
+        }
+        // No linked pickup found → still open (Laravel empty status → editable).
+        return '1';
+      };
+
       const deliveries = stops.filter((s) => s.type === 'delivery');
       const grouped = new Map<
         string,
         {
           id: string | number;
           locationIds: Array<string | number>;
+          editableLocationIds: Array<string | number>;
           locationName: string;
           address: string;
           date: string;
@@ -144,19 +184,17 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
           (s as any).tracking_url ||
           (s as any).trackingUrl ||
           null;
-        const locationStatus =
-          (s as any).locationStatus ??
-          (s as any).location_status ??
-          (s as any).status ??
-          null;
-        const rowComplete = isLocationComplete(locationStatus);
         const locationId = s.id || `delivery-${idx}`;
+        const pickupOpen = isPickupOpenForTrackingEdit(resolvePickupStatus(s));
+        const rowComplete = !pickupOpen;
+        const lineReadOnly = shipmentEmailsReadOnly || rowComplete;
 
         const existing = grouped.get(key);
         if (!existing) {
           grouped.set(key, {
             id: locationId,
             locationIds: [locationId],
+            editableLocationIds: lineReadOnly ? [] : [locationId],
             locationName: s.location || '',
             address: s.address && s.address !== s.location ? s.address : '',
             date,
@@ -165,13 +203,16 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
             defaultEmails: splitEmails(initialEmail),
             trackingUrl: trackingUrl ? String(trackingUrl) : null,
             locationComplete: rowComplete,
-            rowReadOnly: shipmentEmailsReadOnly || rowComplete,
+            rowReadOnly: lineReadOnly,
           });
           return;
         }
 
         if (!existing.locationIds.includes(locationId)) {
           existing.locationIds.push(locationId);
+        }
+        if (!lineReadOnly && !existing.editableLocationIds.includes(locationId)) {
+          existing.editableLocationIds.push(locationId);
         }
         orderIds.forEach((oid) => {
           if (!existing.orderIds.includes(oid)) existing.orderIds.push(oid);
@@ -186,15 +227,16 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
         if (!existing.trackingUrl && trackingUrl) {
           existing.trackingUrl = String(trackingUrl);
         }
-        // Row is complete only when every product line at this stop is complete.
+        // Group locked only when every product line's pickup is past 0/1 (or shipment locked).
         existing.locationComplete = existing.locationComplete && rowComplete;
         existing.rowReadOnly =
-          shipmentEmailsReadOnly || existing.locationComplete;
+          shipmentEmailsReadOnly || existing.editableLocationIds.length === 0;
       });
 
       return Array.from(grouped.values()).map((row) => ({
         id: row.id,
         locationIds: row.locationIds,
+        editableLocationIds: row.editableLocationIds,
         locationName: row.locationName,
         address: row.address,
         date: row.date,
@@ -212,6 +254,9 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
         g.rows.map((r, idx) => ({
           id: `${r.location}-${r.orderRef}-${idx}`,
           locationIds: [`${r.location}-${r.orderRef}-${idx}`],
+          editableLocationIds: shipmentEmailsReadOnly
+            ? []
+            : [`${r.location}-${r.orderRef}-${idx}`],
           locationName: r.location,
           address: '',
           date: '',
@@ -312,13 +357,17 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
 
   const handleSubmit = () => {
     if (!onSend) return;
-    // Only submit editable rows (completed locations stay as-is on the server).
-    // Apply the same emails to every product location row at this physical dropoff.
+    // Only submit locations whose linked pickup is still open (Laravel parity).
+    // Apply the same emails to every still-editable product line at this dropoff.
     const editable: Record<string | number, string[]> = {};
     deliveryRows.forEach((row) => {
       if (row.rowReadOnly) return;
       const list = emails[row.id] || [''];
-      (row.locationIds || [row.id]).forEach((locationId) => {
+      const targets =
+        row.editableLocationIds && row.editableLocationIds.length > 0
+          ? row.editableLocationIds
+          : row.locationIds || [row.id];
+      targets.forEach((locationId) => {
         editable[locationId] = list;
       });
     });
@@ -415,7 +464,10 @@ export const ShareTrackingModal: React.FC<ShareTrackingModalProps> = ({
                           )}
                           {row.locationComplete && (
                             <div className="text-[10px] font-semibold text-slate-400 mt-1">
-                              {t('locationCompletedReadOnly', 'Completed — emails are read-only')}
+                              {t(
+                                'locationCompletedReadOnly',
+                                'Pickup completed — emails are read-only'
+                              )}
                             </div>
                           )}
                         </td>

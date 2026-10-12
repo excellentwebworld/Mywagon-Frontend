@@ -27,7 +27,8 @@ import {
   getInviteStatus,
 } from '../../../mocks/userMgmtData';
 import UserAvatar from './UserAvatar';
-import { canManageShipperUsers, hasCustomDirectPermissions, SHIPPER_ROLES } from '../../../utils/shipperAccessPresets';
+import { canManageShipperUsers, hasCustomDirectPermissions, localizeShipperRoleName, SHIPPER_ROLES } from '../../../utils/shipperAccessPresets';
+import { isDispatcherSeatLimitReached } from '../../../utils/dispatcherSeats';
 import { usersSettingsService } from '../../../api/services/usersSettingsService';
 import { ApiError } from '../../../api/client';
 import { parseUtcInstant } from '../../../utils/timezone';
@@ -52,7 +53,9 @@ export default function UsersTab() {
   const { remaining } = useSubscriptionPermission();
   const dispatcherRemaining = remaining('dispatcher_users');
   const canManageUsers = canManageShipperUsers(authUser);
-  const canInvite = canManageUsers && seats?.can_invite !== false;
+  // Seats count dispatcher sub-users only (Main Shipper excluded). Prefer live seats meta.
+  const seatLimitReached = isDispatcherSeatLimitReached(seats, dispatcherRemaining);
+  const canInvite = canManageUsers && !seatLimitReached;
   const roleFilterOptions = roles.length ? roles : SHIPPER_ROLES;
   const rolesByKey = useMemo(() => {
     const map = {};
@@ -88,7 +91,8 @@ export default function UsersTab() {
   }, [actionMenu, showRoleFilter, showStatusFilter]);
 
   const filtered = useMemo(() => {
-    let list = [...users];
+    // User Management shows dispatcher sub-users only (Main Shipper / owner excluded).
+    let list = users.filter((u) => !(u.isOwner || u.is_owner));
     const q = search.toLowerCase();
     if (q) {
       list = list.filter((u) =>
@@ -154,10 +158,7 @@ export default function UsersTab() {
       return;
     }
     if (!requireSignupComplete()) return;
-    if (
-      (seats && seats.can_invite === false) ||
-      (dispatcherRemaining !== null && dispatcherRemaining <= 0)
-    ) {
+    if (seatLimitReached) {
       openUpgradeGate({ variant: 'limit' });
       return;
     }
@@ -284,7 +285,16 @@ export default function UsersTab() {
 
     setExporting(true);
     try {
-      const header = ['first_name', 'last_name', 'email', 'role', 'status', 'last_active', 'created', 'phone'];
+      const header = [
+        t('userMgmt.exportCsv.firstName', 'First Name'),
+        t('userMgmt.exportCsv.lastName', 'Last Name'),
+        t('userMgmt.exportCsv.email', 'Email'),
+        t('userMgmt.table.col_role', 'Role'),
+        t('userMgmt.table.col_status', 'Status'),
+        t('userMgmt.table.col_lastActive', 'Last Active'),
+        t('userMgmt.table.col_created', 'Created'),
+        t('userMgmt.exportCsv.phone', 'Phone'),
+      ];
       const rows = filtered.map((u) => [
         u.firstName || u.first_name || '',
         u.lastName || u.last_name || '',
@@ -322,7 +332,7 @@ export default function UsersTab() {
   return (
     <div className="flex flex-col min-h-0">
       {error && (
-        <div className="mx-4 md:mx-6 mt-3 px-3 py-2 rounded-lg" style={{ background: '#FEF2F2', color: '#EF4444', fontSize: 12 }}>
+        <div className="mx-4 md:mx-6 mt-3 px-3 py-2 rounded-lg" style={{ background: 'var(--danger-bg, #FEF2F2)', color: 'var(--danger, #EF4444)', fontSize: 12 }}>
           {error}
         </div>
       )}
@@ -351,7 +361,7 @@ export default function UsersTab() {
                     setRoleFilter((prev) => (prev.includes(r.key) ? prev.filter((x) => x !== r.key) : [...prev, r.key]));
                   }} />
                   <span className="inline-block w-2 h-2 rounded-full shrink-0" style={{ background: r.color }} />
-                  {r.name}
+                  {localizeShipperRoleName(r.name || r.key, t)}
                 </label>
               ))}
             </div>
@@ -625,7 +635,7 @@ function UserRow({
       <td className="px-3 py-3">
         <div className="flex items-center gap-1.5">
           <span className="inline-flex px-2 py-0.5 rounded-full" style={{ fontSize: 11, fontWeight: 600, background: `${role?.color || '#3B82F6'}18`, color: role?.color || '#3B82F6', border: `1px solid ${role?.color || '#3B82F6'}30` }}>
-            {role?.name || u.role}
+            {localizeShipperRoleName(role?.name || u.role, t)}
           </span>
           {custom && (
             <span className="inline-flex px-1.5 py-0.5 rounded" style={{ fontSize: 9, fontWeight: 700, background: '#F59E0B18', color: '#D97706', border: '1px solid #F59E0B30' }}>
@@ -754,7 +764,7 @@ function MobileUserCard({ user: u, T, t, onClick, formatDateTime, relTime }) {
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
           <span className="inline-flex px-2 py-0.5 rounded-full" style={{ fontSize: 10, fontWeight: 600, background: `${role?.color || '#3B82F6'}18`, color: role?.color || '#3B82F6' }}>
-            {role?.name || u.role}
+            {localizeShipperRoleName(role?.name || u.role, t)}
           </span>
           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full" style={{ fontSize: 10, fontWeight: 600, background: sc.bg, color: sc.fg }}>
             {t(`userMgmt.status.${u.status}`)}

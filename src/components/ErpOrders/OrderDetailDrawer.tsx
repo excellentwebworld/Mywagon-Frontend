@@ -11,6 +11,8 @@ import {
   getOrderListTotals,
   getShipUrgency,
 } from '../../pages/ErpOrders/erpOrderUiUtils';
+import { shipmentStatusLabel } from '../ShipmentDetail/StatusBadge';
+import { translateCargoUnit } from '../../constants/cargoUnits';
 
 const ST_CLS: Record<string, string> = {
   unplanned: 'st-new',
@@ -28,9 +30,13 @@ type Props = {
   open: boolean;
   onClose: () => void;
   onEdit: (order: ErpOrder) => void;
+  onDelete?: (order: ErpOrder) => void;
   onCreateLoad: (orderId: string) => void;
   onResync: (order: ErpOrder) => void;
   statusLabel: (status: ErpOrder['status']) => string;
+  canEditOrders?: boolean;
+  canDeleteOrders?: boolean;
+  deleting?: boolean;
 };
 
 export const OrderDetailDrawer: React.FC<Props> = ({
@@ -40,9 +46,13 @@ export const OrderDetailDrawer: React.FC<Props> = ({
   open,
   onClose,
   onEdit,
+  onDelete,
   onCreateLoad: _onCreateLoad,
   onResync,
   statusLabel,
+  canEditOrders = true,
+  canDeleteOrders = true,
+  deleting = false,
 }) => {
   const lineTotals = useMemo(
     () => (order ? getOrderListTotals(order) : { lineCount: 0, pallets: 0, weightTons: '0.0' }),
@@ -166,10 +176,12 @@ export const OrderDetailDrawer: React.FC<Props> = ({
                               <td style={{ fontWeight: 500 }}>{line.productName}</td>
                               <td className="sku">{line.sku || '—'}</td>
                               <td style={{ textAlign: 'right', fontFamily: "var(--font-app), Poppins, sans-serif", fontWeight: 600 }}>
-                                {line.quantity ?? '—'} {line.unit || ''}
+                                {line.quantity ?? '—'} {translateCargoUnit(line.unit, t)}
                               </td>
                               <td style={{ textAlign: 'right', fontFamily: "var(--font-app), Poppins, sans-serif" }}>
-                                {line.weight != null ? `${line.weight} ${line.weightUnit}` : '—'}
+                                {line.weight != null
+                                  ? `${line.weight} ${translateCargoUnit(line.weightUnit, t)}`
+                                  : '—'}
                               </td>
                             </tr>
                           ))}
@@ -199,7 +211,11 @@ export const OrderDetailDrawer: React.FC<Props> = ({
                         <Link to={`/shipments/${order.linkedLoadId || order.linkedLoadSid}`} className="load-sid">
                           {order.linkedLoadSid}
                         </Link>
-                        {order.linkedLoadStatus && <span className="load-meta">{order.linkedLoadStatus}</span>}
+                        {order.linkedLoadStatus && (
+                          <span className="load-meta">
+                            {shipmentStatusLabel(order.linkedLoadStatus, t)}
+                          </span>
+                        )}
                       </div>
                     ) : (
                       <div className="erp-order-drawer-muted">{t('erpOrdersNotYetPlanned')}</div>
@@ -209,7 +225,7 @@ export const OrderDetailDrawer: React.FC<Props> = ({
               )}
             </div>
 
-            {order && (
+            {order && (order.canEdit && (canEditOrders || canDeleteOrders)) && (
               <div className="erp-order-drawer-foot">
                 {/* Create Load — temporarily hidden
             {!order.linkedLoadSid && (
@@ -219,11 +235,20 @@ export const OrderDetailDrawer: React.FC<Props> = ({
               </button>
             )}
             */}
-                <div className="
-                ">
-                  {order.canEdit && (
+                <div className="erp-order-drawer-actions">
+                  {order.canEdit && canEditOrders && (
                     <button type="button" className="btn btn-md erp-order-drawer-action" onClick={() => onEdit(order)}>
                       {t('edit')}
+                    </button>
+                  )}
+                  {order.canEdit && canDeleteOrders && onDelete && (
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-md erp-order-drawer-action"
+                      onClick={() => onDelete(order)}
+                      disabled={deleting}
+                    >
+                      {deleting ? t('erpOrdersDeleting') : t('erpOrdersDelete')}
                     </button>
                   )}
                   {/* <button type="button" className="btn btn-sm erp-order-drawer-action" onClick={() => onResync(order)}>

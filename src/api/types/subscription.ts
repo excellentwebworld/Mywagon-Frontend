@@ -112,10 +112,6 @@ export interface SubscriptionOverview {
   };
   purchased_addons: PurchasedAddon[];
   billing: SubscriptionBillingDetails;
-  seats?: {
-    active_users: number;
-    paid_users: number;
-  };
   contact?: {
     name: string | null;
     email: string | null;

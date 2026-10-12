@@ -102,6 +102,13 @@ export const SearchVehicleCargoPicker: React.FC<SearchVehicleCargoPickerProps> =
           const checked =
             truckTypeIds.includes(id) || (vehicleSpecs[vt.formKey]?.length ?? 0) > 0;
           const label = pickVehicleLabel(vt.name, vt.nameEl, lang);
+          const subtitle = pickVehicleLabel(vt.subtitle, vt.subtitleEl, lang);
+          // Prefer category labels (locale-aware) when present.
+          const categorySubtitle = vt.categories
+            .map((c) => pickVehicleLabel(c.label, c.labelEl, lang))
+            .filter(Boolean)
+            .join(' · ');
+          const sub = categorySubtitle || subtitle;
           const expanded = openType === vt.formKey && checked;
           const specCount = vehicleSpecs[vt.formKey]?.length ?? 0;
 
@@ -122,7 +129,7 @@ export const SearchVehicleCargoPicker: React.FC<SearchVehicleCargoPickerProps> =
                   <Truck size={22} strokeWidth={2} />
                 </span>
                 <span className="sat-veh-name">{label}</span>
-                {vt.subtitle ? <span className="sat-veh-sub">{vt.subtitle}</span> : null}
+                {sub ? <span className="sat-veh-sub">{sub}</span> : null}
               </button>
 
               {checked && vt.categories.length > 0 && (

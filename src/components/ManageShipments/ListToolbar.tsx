@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ShipmentKpiKey } from '../../api/types/shipments';
-import { X } from 'lucide-react';
+import { Calendar as CalendarIcon, List, X } from 'lucide-react';
 
 interface ListToolbarProps {
   searchQuery: string;
@@ -12,7 +12,9 @@ interface ListToolbarProps {
   filterActive?: boolean;
   exporting?: boolean;
   kpiSlot?: React.ReactNode;
-  t: (key: string) => string;
+  viewMode?: 'list' | 'calendar';
+  onViewModeChange?: (mode: 'list' | 'calendar') => void;
+  t: (key: string, defaultValue?: string) => string;
 }
 
 export const ListToolbar: React.FC<ListToolbarProps> = ({
@@ -25,6 +27,8 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
   filterActive = false,
   exporting = false,
   kpiSlot,
+  viewMode,
+  onViewModeChange,
   t,
 }) => (
   <div className="fbar list-toolbar list-toolbar--with-kpis a d2">
@@ -82,6 +86,37 @@ export const ListToolbar: React.FC<ListToolbarProps> = ({
         </svg>
         {exporting ? t('exporting') : t('export')}
       </button>
+
+      {onViewModeChange ? (
+        <div
+          className="view-mode-toggle"
+          role="tablist"
+          aria-label={t('viewMode', 'View Mode')}
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode !== 'calendar'}
+            className={`view-mode-toggle-btn ${viewMode !== 'calendar' ? 'active' : ''}`}
+            onClick={() => onViewModeChange('list')}
+            title={t('tableView', 'Table View')}
+          >
+            <List size={12} />
+            <span>{t('table', 'Table')}</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={viewMode === 'calendar'}
+            className={`view-mode-toggle-btn ${viewMode === 'calendar' ? 'active' : ''}`}
+            onClick={() => onViewModeChange('calendar')}
+            title={t('calendarView', 'Calendar View')}
+          >
+            <CalendarIcon size={12} />
+            <span>{t('calendar', 'Calendar')}</span>
+          </button>
+        </div>
+      ) : null}
     </div>
   </div>
 );

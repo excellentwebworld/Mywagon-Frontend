@@ -16,7 +16,7 @@ import {
   Truck,
 } from 'lucide-react';
 import { publicTrackingService } from '../../api/services/publicTrackingService';
-import { StatusBadge } from '../../components/ShipmentDetail/StatusBadge';
+import { StatusBadge, normalizeStatusKey } from '../../components/ShipmentDetail/StatusBadge';
 import { RouteMap } from '../../components/CreateShipmentWizard/itinerary/RouteMap';
 import { useRouteLegs } from '../../components/CreateShipmentWizard/itinerary/useRouteLegs';
 import type { EnrichedStop } from '../../components/CreateShipmentWizard/itinerary/types';
@@ -1348,10 +1348,20 @@ export const PublicTrackingPage: React.FC = () => {
     }
   };
 
+  const etaHiddenByStatus = (() => {
+    const key = normalizeStatusKey(data?.shipment.status);
+    return (
+      key === 'fullfilled' ||
+      key === 'partially_fullfilled' ||
+      key === 'canceled'
+    );
+  })();
+
   const etaBlocked = Boolean(
     data &&
-      !data.shipment.tracking_required_by_shipper &&
-      (data.shipment.started_by || '') === 'carrier'
+      (etaHiddenByStatus ||
+        (!data.shipment.tracking_required_by_shipper &&
+          (data.shipment.started_by || '') === 'carrier'))
   );
 
   const etaOrigin = useMemo(() => {
@@ -1527,24 +1537,26 @@ export const PublicTrackingPage: React.FC = () => {
                 </div>
               ) : null}
             </div>
-            <div className="pt-cmd-chips">
-              {showEtaUnavailable ? (
-                <span className="pt-chip pt-chip-muted">{t(lang, 'etaNotAvailable')}</span>
-              ) : shownEtaDisplay ? (
-                <>
-                  <span className="pt-chip pt-chip-in">
-                    {t(lang, 'eta')}: {shownEtaDisplay}
-                  </span>
-                  <span className={`pt-chip ${isOnTime ? 'pt-chip-ok' : 'pt-chip-wr'}`}>
-                    {isOnTime ? t(lang, 'onTime') : t(lang, 'delayed')}
-                  </span>
-                </>
-              ) : liveEta.status === 'loading' ? (
-                <span className="pt-chip pt-chip-muted">{t(lang, 'eta')}: …</span>
-              ) : (
-                <span className="pt-chip pt-chip-muted">{t(lang, 'etaNotAvailable')}</span>
-              )}
-            </div>
+            {!etaHiddenByStatus ? (
+              <div className="pt-cmd-chips">
+                {showEtaUnavailable ? (
+                  <span className="pt-chip pt-chip-muted">{t(lang, 'etaNotAvailable')}</span>
+                ) : shownEtaDisplay ? (
+                  <>
+                    <span className="pt-chip pt-chip-in">
+                      {t(lang, 'eta')}: {shownEtaDisplay}
+                    </span>
+                    <span className={`pt-chip ${isOnTime ? 'pt-chip-ok' : 'pt-chip-wr'}`}>
+                      {isOnTime ? t(lang, 'onTime') : t(lang, 'delayed')}
+                    </span>
+                  </>
+                ) : liveEta.status === 'loading' ? (
+                  <span className="pt-chip pt-chip-muted">{t(lang, 'eta')}: …</span>
+                ) : (
+                  <span className="pt-chip pt-chip-muted">{t(lang, 'etaNotAvailable')}</span>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

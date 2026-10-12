@@ -17,12 +17,60 @@ export interface PartnerBidItem {
   tripsCount?: number;
   isPartner?: boolean;
   bidAmount?: number | null;
+  /** shipment_partners.status: 0 pending, 1 interested, 2 declined, 3 accepted, 4 rejected */
+  status?: string | null;
   statusText?: string;
   time?: string;
   hasBid?: boolean;
   isInterested?: boolean;
+  /** Offer kind from API — drives Accept/Reject Spatie permission. */
+  type?: 'bid' | 'interest' | string | null;
+  /** 'sent' = shipper bid on posted truck availability (Search Trucks). */
+  kind?: 'sent' | 'received' | string | null;
+  availabilityId?: number | null;
   lastActionBy?: 'shipper' | 'transporter' | string | null;
   canCounter?: boolean;
+}
+
+/** True for partner interest rows (vs priced bids). */
+export function isInterestOffer(item: Pick<PartnerBidItem, 'type' | 'id' | 'isInterested'>): boolean {
+  if (item.type === 'interest' || item.isInterested === true) return true;
+  return String(item.id || '').toLowerCase().startsWith('interest-');
+}
+
+/** Invite already declined/rejected/accepted — cancel invite no longer applies. */
+function isInviteTerminal(item: Pick<PartnerBidItem, 'status'>): boolean {
+  const s = String(item.status ?? '');
+  return s === '2' || s === '3' || s === '4';
+}
+
+/**
+ * Which Spatie permission gates Accept/Decline for this offer.
+ * - Partner interest rows → approve/Reject_carrier_interest
+ * - Non-negotiable received responses (API may still send type=bid) → interest
+ * - Negotiable / availability bids → approve/Reject_carrier_bid
+ */
+export function offerUsesInterestPermission(
+  item: Pick<PartnerBidItem, 'type' | 'id' | 'isInterested' | 'kind'>,
+  negotiable: boolean,
+): boolean {
+  if (isInterestOffer(item)) return true;
+  const isAvailability = item.kind === 'sent';
+  return !negotiable && !isAvailability;
+}
+
+/** Match Laravel / RowExpansionPending: no Accept while shipper awaits transporter. */
+function canShowAccept(item: PartnerBidItem): boolean {
+  const lastBy = String(item.lastActionBy || '').toLowerCase();
+  if (lastBy === 'shipper') return false;
+
+  const isAvailabilityBid = item.kind === 'sent' || item.availabilityId != null;
+  if (isAvailabilityBid) {
+    // Availability: Accept only after carrier/driver has responded.
+    return lastBy === 'carrier' || lastBy === 'driver' || lastBy === 'transporter';
+  }
+
+  return true;
 }
 
 interface BidsCardProps {
@@ -37,6 +85,10 @@ interface BidsCardProps {
   acceptingBidId?: string | null;
   onRejectBid?: (bid: PartnerBidItem) => void;
   decliningBidId?: string | null;
+  /** When false, hide Accept/Decline on priced / negotiable bids. */
+  canApproveBid?: boolean;
+  /** When false, hide Accept/Decline on interest / non-negotiable responses. */
+  canApproveInterest?: boolean;
   onCounterBid?: (bid: PartnerBidItem) => void;
   onCancelInvite?: (partner: PartnerBidItem) => void;
   cancellingInviteId?: number | null;
@@ -58,6 +110,8 @@ export const BidsCard: React.FC<BidsCardProps> = ({
   acceptingBidId = null,
   onRejectBid,
   decliningBidId = null,
+  canApproveBid = true,
+  canApproveInterest = true,
   onCounterBid,
   onCancelInvite,
   cancellingInviteId = null,
@@ -122,7 +176,12 @@ export const BidsCard: React.FC<BidsCardProps> = ({
         <div className="space-y-1">
           {sortedPartners.map((item, idx) => {
           const isFreelancer = item.transporterType === 'freelancer' || item.userType === 'driver';
-          const isShipperWaiting = item.lastActionBy === 'shipper';
+          const lastBy = String(item.lastActionBy || '').toLowerCase();
+          const isShipperWaiting = lastBy === 'shipper';
+          const showAccept = canShowAccept(item);
+          const canActOnOffer = offerUsesInterestPermission(item, isNegotiable)
+            ? canApproveInterest
+            : canApproveBid;
           const canCounter = item.hasBid && !isShipperWaiting && item.canCounter !== false;
           const ratingNum =
             item.rating != null && !isNaN(Number(item.rating))
@@ -189,7 +248,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                         </span>
                       </div>
                     ) : (
-                      onCancelInvite && (
+                      onCancelInvite && !item.hasBid && !isInterestOffer(item) && !isInviteTerminal(item) && (
                         <button
                           type="button"
                           disabled={cancellingInviteId === item.userId}
@@ -218,7 +277,8 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                   {/* Actions when bid is received: Accept, Reject, Counter, History */}
                   {item.hasBid && (
                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      {onAcceptBid && (
+                      {/* Match Laravel: hide Accept while shipper awaits transporter response */}
+                      {onAcceptBid && showAccept && canActOnOffer && (
                         <button
                           type="button"
                           disabled={acceptingBidId === item.id || decliningBidId === item.id}
@@ -246,7 +306,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                         </button>
                       )}
 
-                      {onRejectBid && (
+                      {onRejectBid && canActOnOffer && (
                         <button
                           type="button"
                           disabled={acceptingBidId === item.id || decliningBidId === item.id}

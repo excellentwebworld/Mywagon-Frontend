@@ -302,25 +302,28 @@
 .pt-ms-row {
   display: flex;
   align-items: flex-start;
-  width: 100%;
-  min-width: max-content;
+  width: max-content;
+  min-width: 100%;
 }
 
 .pt-ms-step {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  flex: 1 1 0;
-  min-width: 140px;
-  max-width: 240px;
+  flex: 0 0 auto;
+  width: 152px;
   position: relative;
-  padding-right: 8px;
+  padding-right: 12px;
 }
 
 .pt-ms-step:last-child {
-  min-width: 130px;
-  max-width: none;
   padding-right: 0;
+}
+
+@media (min-width: 640px) {
+  .pt-ms-step {
+    width: 168px;
+  }
 }
 
 .pt-ms-track {

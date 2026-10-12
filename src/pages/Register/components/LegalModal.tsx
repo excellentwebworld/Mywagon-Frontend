@@ -85,42 +85,14 @@ export const LegalModal: React.FC<LegalModalProps> = ({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div
-        className="reg-success-modal"
-        style={{
-          maxWidth: '720px',
-          maxHeight: '85vh',
-          display: 'flex',
-          flexDirection: 'column',
-          textAlign: 'left',
-          padding: '2rem 2rem 1.5rem',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderBottom: '1px solid #e5e7eb',
-            paddingBottom: '1rem',
-            marginBottom: '1rem',
-          }}
-        >
-          <h3
-            id="legal-modal-title"
-            style={{
-              fontSize: '1.25rem',
-              fontWeight: 700,
-              color: '#1f1f41',
-              margin: 0,
-            }}
-          >
+      <div className="reg-success-modal reg-legal-modal">
+        <div className="reg-legal-modal-head">
+          <h3 id="legal-modal-title" className="reg-legal-modal-title">
             {title}
           </h3>
           <button
             type="button"
-            className="reg-success-close"
-            style={{ position: 'static' }}
+            className="reg-success-close reg-legal-modal-close"
             onClick={onClose}
             aria-label={t('registerClose', 'Close')}
           >
@@ -128,18 +100,9 @@ export const LegalModal: React.FC<LegalModalProps> = ({
           </button>
         </div>
 
-        <div
-          style={{
-            flex: 1,
-            overflowY: 'auto',
-            paddingRight: '0.5rem',
-            color: '#374151',
-            fontSize: '0.95rem',
-            lineHeight: 1.6,
-          }}
-        >
+        <div className="reg-legal-modal-body">
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '3rem 0', color: '#6b7280' }}>
+            <div className="reg-legal-modal-loading">
               {t('common.loading', 'Loading…')}
             </div>
           ) : content ? (

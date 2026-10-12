@@ -103,6 +103,31 @@ export function formatDisplayDateTime(ymd?: string, hm?: string): string {
 }
 
 /**
+ * Combine from/to schedule labels for listing cells.
+ * Same calendar day → `dd/MM/yyyy · HH:mm – HH:mm`; otherwise `from – to`.
+ */
+export function formatScheduleWindow(
+  from?: string | null,
+  to?: string | null,
+): string {
+  const start = (from || '').trim();
+  const end = (to || '').trim();
+  if (!start) return end;
+  if (!end || end === start) return start;
+
+  const startMatch = start.match(/^(\d{1,2}\/\d{1,2}\/\d{4})(?:\s+(\d{1,2}:\d{2}))?/);
+  const endMatch = end.match(/^(\d{1,2}\/\d{1,2}\/\d{4})(?:\s+(\d{1,2}:\d{2}))?/);
+  if (startMatch?.[1] && startMatch[2] && endMatch?.[2]) {
+    if (startMatch[1] === endMatch[1]) {
+      // Keep times joined so CSS wrap cannot split "15:03 –" from "18:02".
+      return `${startMatch[1]} · ${startMatch[2]}\u00A0–\u00A0${endMatch[2]}`;
+    }
+    return `${startMatch[1]} ${startMatch[2]}\u00A0–\u00A0${endMatch[1]} ${endMatch[2]}`;
+  }
+  return `${start}\u00A0–\u00A0${end}`;
+}
+
+/**
  * Format an ISO / Date-parseable timestamp as `dd/MM/yyyy HH:mm` (en-GB, 24h).
  */
 export function formatIsoDisplayDateTime(iso?: string | null): string {

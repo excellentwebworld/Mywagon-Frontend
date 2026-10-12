@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Form, Formik, type FormikHelpers } from 'formik';
 import type { LocationItem } from '../../context/AppContext';
 import { ApiError } from '../../api';
-import { getDockTypeOptions, getQuickTemplateFacilityLabel, getQuickTemplateFacilityOptions, TEMPLATE_ID_TO_FACILITY_TYPE } from '../../pages/AddressBook/constants';
+import { getDockTypeOptions, getQuickTemplateFacilityLabel, getQuickTemplateFacilityOptions, LOAD_TIME_MINUTES_MAX, LOAD_TIME_MINUTES_MIN, TEMPLATE_ID_TO_FACILITY_TYPE, sanitizeLoadTimeMinutesInput } from '../../pages/AddressBook/constants';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import { applyTemplate, inferQuickTemplateFromType } from '../../pages/AddressBook/utils/locationUtils';
 import { EMPTY_CREATE_DATA } from '../../pages/AddressBook/types';
@@ -540,9 +540,12 @@ export const EditLocationModal: React.FC<Props> = ({
                 <input
                   id="edit-max-truck"
                   name="maxTruck"
-                  type="text"
-                  placeholder={t('abEgMaxTruck', 'e.g. 18.75m')}
+                  type="number"
+                  min="0.1"
+                  step="any"
+                  placeholder={t('abEgMaxTruck', 'e.g. 18.75')}
                   value={values.maxTruck}
+                  onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
                   onChange={(e) => {
                     handleChange(e);
                     clearStepErrors();
@@ -556,9 +559,12 @@ export const EditLocationModal: React.FC<Props> = ({
                 <input
                   id="edit-max-weight"
                   name="maxWeight"
-                  type="text"
-                  placeholder={t('abEgMaxWeight', 'e.g. 40T')}
+                  type="number"
+                  min="0.1"
+                  step="any"
+                  placeholder={t('abEgMaxWeight', 'e.g. 40')}
                   value={values.maxWeight}
+                  onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
                   onChange={(e) => {
                     handleChange(e);
                     clearStepErrors();
@@ -589,13 +595,21 @@ export const EditLocationModal: React.FC<Props> = ({
               <input
                 id="edit-load-time"
                 name="loadTime"
-                type="number"
-                min={1}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={5}
                 placeholder={t('abEgLoadTime', 'e.g. 45')}
                 value={values.loadTime}
+                aria-valuemin={LOAD_TIME_MINUTES_MIN}
+                aria-valuemax={LOAD_TIME_MINUTES_MAX}
+                onKeyDown={(e) => ['e', 'E', '+', '-', '.'].includes(e.key) && e.preventDefault()}
                 onChange={(e) => {
-                  setFieldValue('loadTime', e.target.value);
-                  clearStepErrors();
+                  const next = sanitizeLoadTimeMinutesInput(e.target.value);
+                  if (next !== null) {
+                    setFieldValue('loadTime', next);
+                    clearStepErrors();
+                  }
                 }}
                 onBlur={handleBlur}
               />

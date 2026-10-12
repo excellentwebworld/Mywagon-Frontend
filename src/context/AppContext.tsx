@@ -1,9 +1,19 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { addressBookService, productMasterService } from '../api';
+import { authService } from '../api/auth';
 import { formatUtcToDisplayDateTime } from '../utils/timezone';
 import { toastRbacAccessDenied } from '../utils/rbacToast';
 import i18n from '../utils/i18n';
 import { useAuth } from './AuthContext';
+
+function normalizeShipperLocale(value: string | null | undefined): 'en' | 'el' | null {
+  const raw = String(value || '')
+    .toLowerCase()
+    .split(/[-_]/)[0];
+  if (raw === 'el') return 'el';
+  if (raw === 'en') return 'en';
+  return null;
+}
 
 function toastT(lang: 'en' | 'el', key: string, fallback: string, vars?: Record<string, string | number>): string {
   let msg = String(i18n.t(key, { lng: lang, defaultValue: fallback }));
@@ -179,6 +189,8 @@ export interface ShipmentStop {
   tracking_url?: string | null;
   trackingUrl?: string | null;
   locationReferenceId?: number | null;
+  /** Delivery → linked pickup location id (tracking-email edit gate). */
+  referenceId?: number | null;
 }
 
 export interface Shipment {
@@ -223,6 +235,7 @@ export interface Shipment {
   carrierRatingCount?: number | null;
   carrierTripsCount?: number | null;
   carrierPhone?: string | null;
+  carrierOnTimePickupPct?: number | null;
   carrierOnTimeDeliveryPct?: number | null;
   carrierCancellationRatePct?: number | null;
   carrierAvgPickupDelayMinutes?: number | null;
@@ -637,7 +650,7 @@ interface AppContextType {
   hideToast: () => void;
 }
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+export const AppContext = createContext<AppContextType | undefined>(undefined);
 
 type MasterDataFetchState = {
   loaded: boolean;
@@ -648,25 +661,27 @@ const locationsFetchState: MasterDataFetchState = { loaded: false, inflight: nul
 const skusFetchState: MasterDataFetchState = { loaded: false, inflight: null };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, patchUser } = useAuth();
   /** Parent shipper for sub-users; otherwise the logged-in shipper user id. */
   const authScopeKey = user
     ? String(user.parent_shipper_id ?? user.id)
     : null;
   const prevAuthScopeKeyRef = useRef<string | null | undefined>(undefined);
+  const lastLocaleSyncedUserIdRef = useRef<number | null>(null);
+  const localePersistSeqRef = useRef(0);
 
   // Locale State
   const [lang, setLangState] = useState<'en' | 'el'>(() => {
     try {
       const stored = (localStorage.getItem('shipment-lang') as 'en' | 'el') || 'en';
       localStorage.setItem('app_locale', stored);
-      return stored;
+      return stored === 'el' ? 'el' : 'en';
     } catch {
       return 'en';
     }
   });
 
-  const setLang = (l: 'en' | 'el') => {
+  const setLang = useCallback((l: 'en' | 'el') => {
     setLangState(l);
     try {
       localStorage.setItem('shipment-lang', l);
@@ -675,7 +690,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     } catch {
       /* ignore */
     }
-  };
+
+    // Persist preferred language on the shipper user row (`locale`: en | el).
+    if (!isAuthenticated) return;
+
+    const seq = ++localePersistSeqRef.current;
+    void authService
+      .updateLocale(l)
+      .then((saved) => {
+        if (seq !== localePersistSeqRef.current) return;
+        patchUser({ locale: saved });
+      })
+      .catch(() => {
+        /* UI already switched; next language change can retry persistence. */
+      });
+  }, [isAuthenticated, patchUser]);
+
+  // On login / session restore, prefer the locale stored in the database.
+  useEffect(() => {
+    if (!user?.id) {
+      lastLocaleSyncedUserIdRef.current = null;
+      return;
+    }
+    if (lastLocaleSyncedUserIdRef.current === user.id) return;
+    lastLocaleSyncedUserIdRef.current = user.id;
+
+    const fromDb = normalizeShipperLocale(user.locale);
+    if (!fromDb) return;
+
+    setLangState(fromDb);
+    try {
+      localStorage.setItem('shipment-lang', fromDb);
+      localStorage.setItem('app_locale', fromDb);
+    } catch {
+      /* ignore */
+    }
+    void i18n.changeLanguage(fromDb);
+  }, [user?.id, user?.locale]);
 
   // Toast State
   const [toast, setToast] = useState<ToastState & { key: number }>({

@@ -208,11 +208,23 @@ export const Header: React.FC<HeaderProps> = ({
       }
     };
 
+    // Safety net: browsers may freeze background tabs; re-sync when user returns.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadUnreadCount();
+        if (notifOpen) {
+          loadHeaderNotificationList();
+        }
+      }
+    };
+
     window.addEventListener('shipper:notification-received', handlePushReceived);
     window.addEventListener('shipper:notifications-updated', handleNotifsUpdated);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
       window.removeEventListener('shipper:notification-received', handlePushReceived);
       window.removeEventListener('shipper:notifications-updated', handleNotifsUpdated);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [notifOpen]);
 
@@ -239,6 +251,7 @@ export const Header: React.FC<HeaderProps> = ({
     !pastDueLocked &&
     canNav('createShipment');
   const showMessages = canNav('messages');
+  const showVagonAi = canNav('vagonAi');
   const pageTitle = getHeaderPageTitle(location.pathname, t);
 
   return (
@@ -351,19 +364,21 @@ export const Header: React.FC<HeaderProps> = ({
       <div style={{ flex: 1 }} />
 
       {/* Vagon AI */}
-      <button
-        type="button"
-        onClick={() => goFeature('/vagonai')}
-        aria-label={t('vagonai.title') || 'Vagon AI'}
-        className="mv-topbar-ai"
-        style={{
-          background: 'var(--mv-grad-purple-blue)',
-          boxShadow: 'var(--sh-purple)',
-        }}
-      >
-        <Sparkles size={14} />
-        <span className="mv-topbar-ai-label">{t('vagonai.title') || 'Vagon AI'}</span>
-      </button>
+      {showVagonAi && (
+        <button
+          type="button"
+          onClick={() => goFeature('/vagonai')}
+          aria-label={t('vagonai.title') || 'Vagon AI'}
+          className="mv-topbar-ai"
+          style={{
+            background: 'var(--mv-grad-purple-blue)',
+            boxShadow: 'var(--sh-purple)',
+          }}
+        >
+          <Sparkles size={14} />
+          <span className="mv-topbar-ai-label">{t('vagonai.title') || 'Vagon AI'}</span>
+        </button>
+      )}
 
       {/* Tutorials — matches Laravel shipper panel ic_youtube.png */}
       <button

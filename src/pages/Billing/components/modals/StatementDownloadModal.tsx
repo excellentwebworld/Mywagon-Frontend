@@ -42,7 +42,7 @@ export const StatementDownloadModal: React.FC<StatementDownloadModalProps> = ({
       <div className="billing-modal" style={{ width: 480 }} onClick={(e) => e.stopPropagation()}>
         <div className="billing-modal-h">
           <div className="flex items-center gap-2">
-            <FileText size={18} className="text-purple-600" />
+            <FileText size={18} style={{ color: 'var(--accent, #9B51E0)' }} />
             <h3>{t('billingPage.modalStatementDL', 'Generate Statement')}</h3>
           </div>
           <button type="button" className="b-btn-ghost" onClick={onClose}>
@@ -77,7 +77,7 @@ export const StatementDownloadModal: React.FC<StatementDownloadModalProps> = ({
               </select>
             </div>
 
-            <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-600 leading-normal">
+            <div className="billing-statement-hint">
               {t(
                 'billingPage.statementIncludes',
                 'Includes opening balance, invoices issued, adjustments, credit notes applied, payments recorded, and closing balance for the selected period.',

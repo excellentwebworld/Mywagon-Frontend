@@ -9,6 +9,7 @@ import { ForgotPasswordPage } from './pages/Auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/Auth/ResetPasswordPage';
 import { PasswordChangeSuccessPage } from './pages/Auth/PasswordChangeSuccessPage';
 import { SocialCallbackPage } from './pages/Auth/SocialCallbackPage';
+import { UiHandoffPage } from './pages/Auth/UiHandoffPage';
 import { RootRedirect } from './pages/Auth/RootRedirect';
 import { Dashboard } from './pages/Dashboard';
 import { ManageShipments } from './pages/ManageShipments';
@@ -51,6 +52,9 @@ const authRoutes = [
   { path: '/login', element: <LoginPage /> },
   { path: '/shipper/register', element: <RegisterPage /> },
   { path: '/auth/social/callback', element: <SocialCallbackPage /> },
+  { path: '/auth/handoff', element: <UiHandoffPage /> },
+  // Amplify / hosts often normalize a trailing slash
+  { path: '/auth/handoff/', element: <UiHandoffPage /> },
   { path: '/complete-signup', element: <Navigate to="/settings/personal" replace /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/any/reset/email/:userType', element: <ForgotPasswordPage /> },
@@ -69,7 +73,7 @@ const legalRoutes = [
 ];
 
 const appRoutes = [
-  { path: '/vagonai', element: <VagonAIPage /> },
+  { path: '/vagonai', element: withRbac(SHIPPER_RBAC.accessVagonAi, <VagonAIPage />) },
   { path: '/dashboard', element: <Dashboard /> },
   { path: '/notifications', element: <Navigate to="/settings/notifications" replace /> },
   { path: '/messages', element: withRbac(SHIPPER_RBAC.chatWithCarrier, <MessagesPage />) },
@@ -96,8 +100,8 @@ const appRoutes = [
       <Partners />,
     ),
   },
-  { path: '/pricing', element: <PriceListsPage /> },
-  { path: '/erp-orders', element: <ErpOrders /> },
+  { path: '/pricing', element: withRbac(SHIPPER_RBAC.viewPriceLists, <PriceListsPage />) },
+  { path: '/erp-orders', element: withRbac(SHIPPER_RBAC.viewOrders, <ErpOrders />) },
   { path: '/settings', element: <Navigate to="/settings/personal" replace /> },
   { path: '/settings/subscription', element: <Navigate to="/subscription" replace /> },
   { path: '/settings/billing', element: <Navigate to="/billing" replace /> },
@@ -106,6 +110,7 @@ const appRoutes = [
   { path: '/analytics', element: <Navigate to="/analytics/weekly-reports" replace /> },
   { path: '/analytics/weekly-reports', element: <WeeklyReportsPage /> },
   { path: '/billing', element: <BillingPage /> },
+  { path: '/billing/', element: <BillingPage /> },
   { path: '/subscription', element: withRbac(SHIPPER_RBAC.manageSubscriptions, <SubscriptionPage />) },
   { path: '/support', element: <SupportPage /> },
   { path: '/tutorials', element: <TutorialsPage /> },

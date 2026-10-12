@@ -388,3 +388,114 @@
     margin-left: 5px;
   }
 }
+
+/* Dark mode — respects ThemeContext data-theme / .dark on <html> */
+[data-theme='dark'] .shipper-login-page,
+.dark .shipper-login-page {
+  background: linear-gradient(119deg, rgba(120, 50, 180, 1) 0%, rgba(18, 18, 38, 1) 76%);
+  color-scheme: dark;
+}
+
+[data-theme='dark'] .shipper-login-card,
+.dark .shipper-login-card,
+[data-theme='dark'] .shipper-login-box,
+.dark .shipper-login-box {
+  background-color: #1f1f41;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme='dark'] .shipper-login-logo,
+.dark .shipper-login-logo,
+[data-theme='dark'] .shipper-login-logo-link img,
+.dark .shipper-login-logo-link img {
+  filter: invert(1) brightness(1.08);
+}
+
+[data-theme='dark'] .shipper-login-para,
+.dark .shipper-login-para {
+  color: #a3a2b8;
+}
+
+[data-theme='dark'] .shipper-login-alert,
+.dark .shipper-login-alert {
+  background: rgba(224, 59, 74, 0.18);
+  color: #fca5a5;
+  border-color: rgba(224, 59, 74, 0.35);
+}
+
+[data-theme='dark'] .shipper-login-tab,
+.dark .shipper-login-tab {
+  background: transparent;
+  color: #c084fc;
+}
+
+[data-theme='dark'] .shipper-login-field label,
+.dark .shipper-login-field label {
+  color: #ffffff;
+}
+
+[data-theme='dark'] .shipper-login-control,
+.dark .shipper-login-control {
+  color: #ffffff;
+  background-color: #26264d;
+  border-color: #2e2e58;
+}
+
+[data-theme='dark'] .shipper-login-control::placeholder,
+.dark .shipper-login-control::placeholder {
+  color: #7a7994;
+}
+
+[data-theme='dark'] .shipper-login-control:hover,
+.dark .shipper-login-control:hover {
+  border-color: #9b51e0;
+}
+
+[data-theme='dark'] .shipper-login-control:focus,
+.dark .shipper-login-control:focus {
+  border-color: #9b51e0;
+  background-color: #1a1a38;
+}
+
+[data-theme='dark'] .shipper-login-control:-webkit-autofill,
+.dark .shipper-login-control:-webkit-autofill,
+[data-theme='dark'] .shipper-login-control:-webkit-autofill:hover,
+.dark .shipper-login-control:-webkit-autofill:hover,
+[data-theme='dark'] .shipper-login-control:-webkit-autofill:focus,
+.dark .shipper-login-control:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff;
+  -webkit-box-shadow: 0 0 0 1000px #26264d inset;
+  caret-color: #ffffff;
+  transition: background-color 99999s ease-in-out 0s;
+}
+
+[data-theme='dark'] .shipper-login-password-toggle,
+.dark .shipper-login-password-toggle {
+  color: #a3a2b8;
+}
+
+[data-theme='dark'] .shipper-login-password-toggle:hover,
+.dark .shipper-login-password-toggle:hover {
+  color: #ffffff;
+}
+
+[data-theme='dark'] .shipper-login-pw-link,
+.dark .shipper-login-pw-link {
+  color: #a5b4fc;
+}
+
+[data-theme='dark'] .shipper-login-pw-link:hover,
+.dark .shipper-login-pw-link:hover {
+  color: #c084fc;
+}
+
+[data-theme='dark'] .shipper-login-join,
+.dark .shipper-login-join {
+  background-color: transparent;
+  color: #ffffff;
+}
+
+[data-theme='dark'] .shipper-login-join:hover,
+.dark .shipper-login-join:hover {
+  color: #c084fc;
+}
