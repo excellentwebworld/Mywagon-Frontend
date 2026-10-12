@@ -3,25 +3,36 @@
    Tokens align with the wireframe prototype; fall back to portal vars.
    ═══════════════════════════════════════════════════════════════ */
 
-.cal-container {
+.cal-container,
+.cal-modal-dialog {
   --cal-h: clamp(480px, 74vh, 840px);
   --gutter: 72px;
-  --cal-line: var(--border, var(--line, #e8e7f0));
-  --cal-line-soft: var(--surface-alt, var(--line-soft, #f2f1f7));
-  --cal-line-strong: var(--border-hover, var(--line-strong, #d9d7e6));
+  --cal-line: var(--border, #e8e7f0);
+  --cal-line-soft: var(--surface-alt, #f2f1f7);
+  --cal-line-strong: var(--border-focus, var(--border, #d9d7e6));
   --cal-surface: var(--surface, #ffffff);
   --cal-surface-2: var(--surface-alt, #f8f8fc);
-  --cal-surface-3: var(--surface-3, #efeef6);
-  --cal-text: var(--text-primary, var(--text, #1c1a2e));
-  --cal-muted: var(--text-secondary, var(--muted, #75738a));
-  --cal-faint: var(--text-tertiary, var(--faint, #a4a2b6));
+  --cal-surface-3: var(--surface-3, var(--surface-alt, #efeef6));
+  --cal-text: var(--text-primary, #1c1a2e);
+  --cal-muted: var(--text-secondary, #75738a);
+  --cal-faint: var(--text-tertiary, #a4a2b6);
   --cal-accent: var(--accent, #7b5cf6);
   --cal-accent-hover: var(--accent-hover, #6b4aee);
-  --cal-accent-soft: var(--accent-soft, #efeafe);
-  --cal-accent-text: var(--accent-text, #6a46f0);
+  --cal-accent-soft: var(--accent-light, var(--accent-soft, #efeafe));
+  --cal-accent-text: var(--accent-text, var(--accent, #6a46f0));
   --cal-on: #ffffff;
   --cal-now: #e5484d;
-  --cal-shadow: 0 18px 40px -12px rgba(28, 22, 72, 0.28), 0 2px 6px rgba(28, 22, 72, 0.08);
+  --cal-shadow: var(--shadow-lg, 0 18px 40px -12px rgba(28, 22, 72, 0.28));
+  --cal-hover: color-mix(in srgb, var(--cal-text) 6%, var(--cal-surface));
+  --cal-risk-bg: var(--danger-bg, #fee2e2);
+  --cal-risk-fg: var(--danger, #b91c1c);
+  /* PU/DL kind tags — follow theme pickup/delivery tokens */
+  --cal-kind-pu-bg: var(--pickup-bg, #ffffff);
+  --cal-kind-pu-fg: var(--pickup, #111111);
+  --cal-kind-pu-bd: var(--pickup, #111111);
+  --cal-kind-dl-bg: var(--delivery-bg, #111111);
+  --cal-kind-dl-fg: #ffffff;
+  --cal-kind-dl-bd: var(--delivery, #111111);
   --chip-mix: 15%;
   --chip-mix-hover: 26%;
   --st-pending: #46c08a;
@@ -39,9 +50,12 @@
   --spot-fg: #c4561a;
   --contract-bg: #dcf3e6;
   --contract-fg: #1b7a49;
-  --warn-bg: #fff1e7;
-  --warn-fg: #b34b12;
+  --warn-bg: var(--warning-bg, #fff1e7);
+  --warn-fg: var(--warning, #b34b12);
   --bids-ink: #3a2c00;
+}
+
+.cal-container {
 
   display: flex;
   flex-direction: column;
@@ -623,15 +637,15 @@
 }
 
 .ev__kind--pickup {
-  background: #fff;
-  color: #111;
-  border-color: #111;
+  background: var(--cal-kind-pu-bg);
+  color: var(--cal-kind-pu-fg);
+  border-color: var(--cal-kind-pu-bd);
 }
 
 .ev__kind--delivery {
-  background: #111;
-  color: #fff;
-  border-color: #111;
+  background: var(--cal-kind-dl-bg);
+  color: var(--cal-kind-dl-fg);
+  border-color: var(--cal-kind-dl-bd);
 }
 
 .ev__time {
@@ -1200,18 +1214,18 @@
   line-height: 1.2;
 }
 
-/* Pickup = white pill, black text, dark border */
+/* Pickup = outlined pill (theme pickup tokens) */
 .cal-kindtag.pickup {
-  background: #fff;
-  color: #111;
-  border-color: #111;
+  background: var(--cal-kind-pu-bg);
+  color: var(--cal-kind-pu-fg);
+  border-color: var(--cal-kind-pu-bd);
 }
 
-/* Dropoff = solid black pill, white text */
+/* Dropoff = filled pill (theme delivery tokens) */
 .cal-kindtag.delivery {
-  background: #111;
-  color: #fff;
-  border-color: #111;
+  background: var(--cal-kind-dl-bg);
+  color: var(--cal-kind-dl-fg);
+  border-color: var(--cal-kind-dl-bd);
 }
 
 /* Modal shell — always portaled to body; flex-centered (no transform) */
@@ -1264,13 +1278,11 @@
   max-width: 100%;
   max-height: min(720px, calc(100vh - 48px));
   overflow: hidden;
-  background: #ffffff;
-  color: #111;
-  border: 1px solid #ececf0;
+  background: var(--cal-surface);
+  color: var(--cal-text);
+  border: 1px solid var(--cal-line);
   border-radius: 16px;
-  box-shadow:
-    0 20px 40px -12px rgba(15, 15, 20, 0.22),
-    0 8px 16px -8px rgba(15, 15, 20, 0.1);
+  box-shadow: var(--cal-shadow);
   outline: none;
   isolation: isolate;
   opacity: 1;
@@ -1291,8 +1303,8 @@
   max-height: inherit;
   flex: 1 1 auto;
   width: 100%;
-  background: #fff;
-  color: #111;
+  background: var(--cal-surface);
+  color: var(--cal-text);
   position: relative;
   z-index: 1;
 }
@@ -1322,7 +1334,7 @@
 .cal-pop-status {
   font-size: 13px;
   font-weight: 500;
-  color: #111;
+  color: var(--cal-text);
   line-height: 1.3;
 }
 
@@ -1346,12 +1358,12 @@
   font-weight: 700;
   letter-spacing: -0.02em;
   margin: 0;
-  color: #111;
+  color: var(--cal-text);
   line-height: 1.15;
 }
 
 .cal-pop-title span {
-  color: #6b7280;
+  color: var(--cal-muted);
   font-size: 14px;
   font-weight: 400;
 }
@@ -1364,7 +1376,7 @@
   padding: 0;
   border-radius: 0;
   background: transparent;
-  color: #111;
+  color: var(--cal-text);
   font-size: 13px;
   font-weight: 400;
   line-height: 1.4;
@@ -1373,7 +1385,7 @@
 .cal-pop-alert-ico {
   flex: none;
   margin-top: 1px;
-  color: #d97706;
+  color: var(--warn-fg);
 }
 
 .cal-facts {
@@ -1392,7 +1404,7 @@
 }
 
 .cal-facts dt {
-  color: #111;
+  color: var(--cal-text);
   padding-top: 1px;
   margin: 0;
   display: flex;
@@ -1406,20 +1418,20 @@
   min-width: 0;
   overflow-wrap: anywhere;
   word-break: break-word;
-  color: #111;
+  color: var(--cal-text);
 }
 
 .cal-facts b,
 .cal-fact-primary {
   font-weight: 600;
   display: block;
-  color: #111;
+  color: var(--cal-text);
 }
 
 .cal-facts small {
   display: block;
   font-size: 12.5px;
-  color: #6b7280;
+  color: var(--cal-muted);
   font-weight: 400;
   margin-top: 3px;
   line-height: 1.4;
@@ -1427,7 +1439,7 @@
 }
 
 .cal-muted-b {
-  color: #111;
+  color: var(--cal-text);
 }
 
 .cal-chips {
@@ -1445,7 +1457,7 @@
   padding: 0;
   border-radius: 0;
   background: transparent;
-  color: #111;
+  color: var(--cal-text);
   border: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1469,14 +1481,14 @@
 .cal-price-label {
   font-size: 12px;
   font-weight: 400;
-  color: #6b7280;
+  color: var(--cal-muted);
   line-height: 1.3;
 }
 
 .cal-price-col b {
   font-size: 15px;
   font-weight: 700;
-  color: #111;
+  color: var(--cal-text);
   line-height: 1.3;
 }
 
@@ -1485,7 +1497,7 @@
   margin-top: 2px;
   padding: 0;
   background: transparent;
-  color: #6b7280;
+  color: var(--cal-muted);
   font-size: 10px;
   letter-spacing: 0.08em;
   border-radius: 0;
@@ -1493,7 +1505,7 @@
 
 .cal-pop-route {
   padding: 12px 20px 8px;
-  border-top: 1px solid #ececf0;
+  border-top: 1px solid var(--cal-line);
 }
 
 .cal-pop-route .cal-mini-label {
@@ -1502,7 +1514,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #6b7280;
+  color: var(--cal-muted);
 }
 
 .cal-pop-route ol {
@@ -1528,15 +1540,15 @@
   text-align: left;
   cursor: pointer;
   font-family: inherit;
-  color: #111;
+  color: var(--cal-text);
 }
 
 .cal-pop-route button:hover:not(:disabled) {
-  background: #f5f5f7;
+  background: var(--cal-hover);
 }
 
 .cal-pop-route button.is-current {
-  background: #f0f0f4;
+  background: var(--cal-surface-3);
   cursor: default;
 }
 
@@ -1548,17 +1560,17 @@
   border-radius: 50%;
   font-size: 11px;
   font-weight: 600;
-  border: 1.5px solid #111;
-  background: #fff;
-  color: #111;
+  border: 1.5px solid var(--cal-text);
+  background: var(--cal-surface);
+  color: var(--cal-text);
   flex: none;
 }
 
 .cal-r-dot.pickup,
 .cal-r-dot.delivery {
-  background: #fff;
-  border-color: #111;
-  color: #111;
+  background: var(--cal-surface);
+  border-color: var(--cal-text);
+  color: var(--cal-text);
 }
 
 .cal-r-kind {
@@ -1566,7 +1578,7 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #111;
+  color: var(--cal-text);
 }
 
 .cal-r-name {
@@ -1575,12 +1587,12 @@
   white-space: nowrap;
   font-weight: 500;
   min-width: 0;
-  color: #111;
+  color: var(--cal-text);
 }
 
 .cal-r-time {
   font-variant-numeric: tabular-nums;
-  color: #6b7280;
+  color: var(--cal-muted);
   white-space: nowrap;
   font-size: 12px;
 }
@@ -1596,7 +1608,7 @@
   gap: 8px;
   padding: 10px 20px 18px;
   border-top: 0;
-  background: #fff;
+  background: var(--cal-surface);
   flex: none;
   position: relative;
   z-index: 2;
@@ -1613,7 +1625,7 @@
   font-family: inherit;
   font-size: 14px;
   font-weight: 700;
-  color: #111;
+  color: var(--cal-text);
   cursor: pointer;
   line-height: 1.3;
 }
@@ -1637,8 +1649,8 @@
   flex-direction: column;
   min-height: 0;
   max-height: inherit;
-  background: #fff;
-  color: #111;
+  background: var(--cal-surface);
+  color: var(--cal-text);
 }
 
 .cal-daymore-head {
@@ -1663,13 +1675,13 @@
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.25;
-  color: #111;
+  color: var(--cal-text);
 }
 
 .cal-daymore-title span {
   font-size: 12.5px;
   font-weight: 400;
-  color: #6b7280;
+  color: var(--cal-muted);
   line-height: 1.3;
 }
 
@@ -1698,11 +1710,11 @@
   text-align: left;
   cursor: pointer;
   font-family: inherit;
-  color: #111;
+  color: var(--cal-text);
 }
 
 .cal-dm-row:hover {
-  background: #f5f5f7;
+  background: var(--cal-hover);
 }
 
 .cal-dm-row:focus-visible {
@@ -1715,7 +1727,7 @@
   align-items: center;
   gap: 6px;
   padding-top: 1px;
-  color: #111;
+  color: var(--cal-text);
   flex: none;
 }
 
@@ -1743,21 +1755,21 @@
   font-size: 13.5px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-  color: #111;
+  color: var(--cal-text);
   line-height: 1.3;
 }
 
 .cal-dm-sid {
   font-size: 13px;
   font-weight: 600;
-  color: #111;
+  color: var(--cal-text);
   line-height: 1.3;
 }
 
 .cal-dm-cust {
   font-size: 13px;
   font-weight: 500;
-  color: #111;
+  color: var(--cal-text);
   line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1767,7 +1779,7 @@
 .cal-dm-place {
   font-size: 12.5px;
   font-weight: 400;
-  color: #6b7280;
+  color: var(--cal-muted);
   line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1781,8 +1793,8 @@
   height: 20px;
   margin-top: 1px;
   border-radius: 50%;
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--cal-risk-bg);
+  color: var(--cal-risk-fg);
   font-size: 12px;
   font-weight: 800;
   line-height: 1;
@@ -1795,7 +1807,7 @@
   justify-content: center;
   padding: 10px 20px 16px;
   flex: none;
-  border-top: 1px solid #ececf0;
+  border-top: 1px solid var(--cal-line);
 }
 
 .cal-daymore-foot .cal-pop-link {
@@ -1807,15 +1819,15 @@
   flex-direction: column;
   min-height: 0;
   max-height: inherit;
-  background: #fff;
-  color: #111;
+  background: var(--cal-surface);
+  color: var(--cal-text);
 }
 
 .cal-od-panel .cal-mini-note {
   margin: 0 20px 8px;
   padding: 0;
   font-size: 12.5px;
-  color: #6b7280;
+  color: var(--cal-muted);
   line-height: 1.4;
 }
 
@@ -1992,4 +2004,71 @@
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ── Dark theme (follows html.dark / app theme tokens) ── */
+html.dark .cal-container,
+.dark .cal-container,
+html.dark .cal-modal-dialog,
+.dark .cal-modal-dialog {
+  --chip-mix: 28%;
+  --chip-mix-hover: 40%;
+  --cal-hover: color-mix(in srgb, var(--cal-text) 8%, var(--cal-surface));
+  --cal-kind-dl-fg: #ffffff;
+  --spot-bg: rgba(196, 86, 26, 0.22);
+  --spot-fg: #f0b27a;
+  --contract-bg: rgba(47, 169, 104, 0.2);
+  --contract-fg: #6fd49b;
+  --bids-ink: #1a1400;
+  --cal-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.55), 0 8px 16px rgba(0, 0, 0, 0.35);
+}
+
+html.dark .cal-modal-backdrop,
+.dark .cal-modal-backdrop {
+  background: rgba(8, 8, 20, 0.72);
+}
+
+html.dark .cal-container,
+.dark .cal-container {
+  box-shadow: none;
+}
+
+html.dark .ev--open,
+.dark .ev--open {
+  outline-color: color-mix(in srgb, var(--c) 70%, var(--cal-text));
+}
+
+html.dark .mg-cell.is-out,
+.dark .mg-cell.is-out {
+  background: color-mix(in srgb, var(--cal-surface) 88%, #000);
+}
+
+html.dark .mg-cell.is-weekend,
+.dark .mg-cell.is-weekend {
+  background: color-mix(in srgb, var(--cal-surface-2) 70%, var(--cal-surface));
+}
+
+html.dark .tg-col.is-today,
+.dark .tg-col.is-today,
+html.dark .mg-cell.is-today,
+.dark .mg-cell.is-today {
+  background: color-mix(in srgb, var(--cal-accent) 10%, var(--cal-surface));
+}
+
+html.dark .cal-pop-route button.is-current,
+.dark .cal-pop-route button.is-current {
+  background: var(--cal-accent-soft);
+}
+
+html.dark .cal-pill--bids,
+.dark .cal-pill--bids {
+  color: #1a1400;
+}
+
+html.dark .cal-dm-risk,
+.dark .cal-dm-risk,
+html.dark .ev__risk,
+.dark .ev__risk {
+  background: var(--cal-risk-bg);
+  color: var(--cal-risk-fg);
 }

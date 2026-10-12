@@ -484,7 +484,7 @@
   height: 6px;
 }
 .stabs::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border-focus, #cbd5e1);
   border-radius: 99px;
 }
 .stabs::-webkit-scrollbar-track {
@@ -523,9 +523,26 @@
   background: var(--accent-light);
   color: var(--accent);
 }
+/* Active Shipments warn badge */
 .stab .cnt.cw {
   background: var(--warning-bg);
   color: #92400e;
+}
+html.dark .stab .cnt,
+.dark .stab .cnt {
+  background: color-mix(in srgb, var(--text-primary) 10%, var(--surface-alt));
+  color: var(--text-secondary);
+}
+html.dark .stab.act .cnt:not(.cw),
+.dark .stab.act .cnt:not(.cw) {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+html.dark .stab .cnt.cw,
+.dark .stab .cnt.cw {
+  background: var(--warning-bg);
+  color: var(--warning);
+  border: 1px solid color-mix(in srgb, var(--warning) 35%, transparent);
 }
 
 /* Active filter chips — bridge status tabs and table as one card */
