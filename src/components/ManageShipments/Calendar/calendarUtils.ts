@@ -222,7 +222,7 @@ export function stepCursor(range: CalendarRange, cursor: Date, dir: number): Dat
   return addDays(cursor, 7 * dir);
 }
 
-export function rangeLabel(range: CalendarRange, days: Date[], locale = 'en-US'): string {
+export function rangeLabel(range: CalendarRange, days: Date[], locale = 'en-GB'): string {
   if (!days.length) return '';
   const a = days[0];
   const b = days[days.length - 1];
@@ -907,11 +907,11 @@ export function toDateLocale(lang?: string | null): string {
   const code = String(lang || 'en')
     .toLowerCase()
     .split(/[-_]/)[0];
-  return code === 'el' ? 'el-GR' : 'en-US';
+  return code === 'el' ? 'el-GR' : 'en-GB';
 }
 
 export function getWeekdayLabels(
-  locale = 'en-US',
+  locale = 'en-GB',
   uppercase = true,
   style: 'narrow' | 'short' | 'long' = 'short'
 ): string[] {
@@ -937,12 +937,12 @@ export function formatEventTimeRange(
   return `${start} – ${end}`;
 }
 
-export function formatMonthYear(year: number, monthIndex: number, locale = 'en-US'): string {
+export function formatMonthYear(year: number, monthIndex: number, locale = 'en-GB'): string {
   const d = new Date(year, monthIndex, 1);
   return d.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
 }
 
-export function formatDayHeader(ymd: string, locale = 'en-US'): string {
+export function formatDayHeader(ymd: string, locale = 'en-GB'): string {
   const d = parseYmdDate(ymd);
   return d.toLocaleDateString(locale, {
     weekday: 'long',

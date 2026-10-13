@@ -17,14 +17,11 @@ import { FloatingPanel } from './FloatingPanel';
 import {
   STATUS_LABELS,
   cls,
-  formatDayHeader,
   formatDmy,
   formatEventTimeRange,
   moneyEur,
-  toDateLocale,
   type CalendarEvent,
 } from './calendarUtils';
-import { useTranslation } from '../../../hooks/useTranslation';
 
 interface EventDetailPopoverProps {
   event: CalendarEvent;
@@ -59,7 +56,6 @@ export const EventDetailPopover: React.FC<EventDetailPopoverProps> = ({
   onJumpStop,
   t,
 }) => {
-  const { lang } = useTranslation();
   const isPickup = event.type === 'pickup';
   const vs = event.visualStatus;
   const hasBids = vs === 'bids' && event.bids > 0;
@@ -67,7 +63,7 @@ export const EventDetailPopover: React.FC<EventDetailPopoverProps> = ({
   const timeLabel = event.allDay
     ? t('anyTime', 'Any time')
     : formatEventTimeRange(event.timeStart, event.timeEnd) || event.timeStart;
-  const dateLabel = formatDayHeader(event.dateYmd, toDateLocale(lang));
+  const dateLabel = formatDmy(event.dateYmd);
   const placeLine = [event.address, event.city].filter(Boolean).join(', ');
 
   const alert = useMemo(() => {

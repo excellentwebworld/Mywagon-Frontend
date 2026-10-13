@@ -5,6 +5,7 @@ import {
   cls,
   formatEventTimeRange,
   getTodayYmd,
+  toDateLocale,
   toYmd,
   type CalendarEvent,
 } from './calendarUtils';
@@ -29,7 +30,7 @@ export const AgendaList: React.FC<AgendaListProps> = ({
   t,
 }) => {
   const todayYmd = getTodayYmd();
-  const locale = lang === 'el' ? 'el-GR' : 'en-US';
+  const locale = toDateLocale(lang);
   const rows = days
     .map((d) => ({ d, key: toYmd(d), evs: byDay[toYmd(d)] || [] }))
     .filter((r) => showEmpty || r.evs.length > 0);

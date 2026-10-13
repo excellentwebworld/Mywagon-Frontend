@@ -4,6 +4,7 @@ import {
   applyRailFilters,
   collectOverdueEvents,
   extractCalendarEvents,
+  formatDmy,
   formatEventTimeRange,
   getAdjacentDay,
   getAdjacentMonth,
@@ -231,6 +232,13 @@ describe('calendarUtils', () => {
     it('shows start alone when end is missing', () => {
       expect(formatEventTimeRange('14:00', '')).toBe('14:00');
       expect(formatEventTimeRange('14:00', null)).toBe('14:00');
+    });
+  });
+
+  describe('formatDmy', () => {
+    it('formats as dd/MM/yyyy (platform standard, not US MM/DD/yyyy)', () => {
+      expect(formatDmy('2026-10-13')).toBe('13/10/2026');
+      expect(formatDmy('2026-01-05')).toBe('05/01/2026');
     });
   });
 
