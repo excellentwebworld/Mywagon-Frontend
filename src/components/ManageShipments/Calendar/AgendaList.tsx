@@ -111,7 +111,10 @@ export const AgendaList: React.FC<AgendaListProps> = ({
                     </span>
                   </span>
                   <span className="ag-status">
-                    <span className={cls('cal-pill', 'cal-pill--sm', `cal-pill--${vs}`)}>
+                    <span
+                      className={cls('cal-pill', 'cal-pill--sm', `cal-pill--${vs}`)}
+                      title={t(`legend_${vs}`, STATUS_LABELS[vs])}
+                    >
                       {t(`legend_${vs}`, STATUS_LABELS[vs])}
                     </span>
                     {(ev.atRisk || ev.isOverdue) && (

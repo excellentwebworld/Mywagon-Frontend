@@ -1040,8 +1040,16 @@
 
 .ag-row {
   display: grid;
-  grid-template-columns: 62px 116px minmax(118px, 0.9fr) minmax(170px, 1.5fr) minmax(130px, 1fr) minmax(130px, 1fr) 150px;
-  gap: 12px;
+  /* Flexible cols so EN + longer EL labels (ΠΑΡΑΛΑΒΉ / Εκκρεμές · προσφορές) fit */
+  grid-template-columns:
+    56px
+    minmax(112px, auto)
+    minmax(104px, 0.85fr)
+    minmax(140px, 1.4fr)
+    minmax(112px, 1fr)
+    minmax(124px, 1fr)
+    minmax(168px, 1.4fr);
+  gap: 10px 12px;
   align-items: center;
   width: 100%;
   text-align: left;
@@ -1122,11 +1130,39 @@
   color: var(--cal-faint);
 }
 
+.ag-kind {
+  min-width: 0;
+}
+
+.ag-kind .cal-kindtag {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .ag-status {
   display: flex;
   align-items: center;
   gap: 6px;
   justify-content: flex-end;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ag-status .cal-pill {
+  max-width: 100%;
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.ag-status .ev__risk {
+  flex: none;
 }
 
 .cal-empty {
@@ -1960,7 +1996,7 @@
   }
 
   .ag-row {
-    grid-template-columns: 56px minmax(0, 1fr) auto;
+    grid-template-columns: 56px minmax(0, 1fr) minmax(140px, auto);
     grid-template-areas:
       'time id status'
       'kind place place'
@@ -1974,7 +2010,42 @@
   .ag-place { grid-area: place; }
   .ag-cust { grid-area: cust; }
   .ag-carrier { grid-area: carrier; }
-  .ag-status { grid-area: status; }
+  .ag-status {
+    grid-area: status;
+    justify-content: flex-end;
+  }
+
+  .ag-status .cal-pill {
+    max-width: min(220px, 100%);
+  }
+}
+
+/* Mid widths: wrap status under carrier so long EL pills never collide */
+@media (max-width: 1280px) and (min-width: 901px) {
+  .ag-row {
+    grid-template-columns:
+      56px
+      minmax(108px, auto)
+      minmax(100px, 0.9fr)
+      minmax(140px, 1.3fr)
+      minmax(110px, 1fr)
+      minmax(120px, 1fr);
+    grid-template-areas:
+      'time kind id place cust carrier'
+      '. . status status status status';
+  }
+
+  .ag-time { grid-area: time; }
+  .ag-kind { grid-area: kind; }
+  .ag-id { grid-area: id; }
+  .ag-place { grid-area: place; }
+  .ag-cust { grid-area: cust; }
+  .ag-carrier { grid-area: carrier; }
+  .ag-status {
+    grid-area: status;
+    justify-content: flex-start;
+    padding-left: 4px;
+  }
 }
 
 @media (max-width: 640px) {
