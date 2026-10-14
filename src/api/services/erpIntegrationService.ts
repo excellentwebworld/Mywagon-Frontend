@@ -66,6 +66,32 @@ export type BcConnectionPayload = {
   client_secret?: string;
 };
 
+export type SapB1Connection = {
+  id?: number;
+  provider: string;
+  status: string;
+  settings: {
+    service_layer_url: string | null;
+    company_db: string | null;
+    username: string | null;
+    language?: string | null;
+    use_fixture: boolean;
+    has_password: boolean;
+  };
+  last_synced_at: string | null;
+  last_error: string | null;
+  last_run: ErpSyncRun | null;
+};
+
+export type SapB1ConnectionPayload = {
+  service_layer_url: string;
+  company_db: string;
+  username: string;
+  password?: string;
+  language?: string;
+  use_fixture?: boolean;
+};
+
 const BASE = '/integrations/erp/connections';
 
 export const erpIntegrationService = {
@@ -142,5 +168,45 @@ export const erpIntegrationService = {
 
   async disconnectBusinessCentral(): Promise<void> {
     await apiDelete(`${BASE}/business_central`);
+  },
+
+  async getSapB1(): Promise<SapB1Connection> {
+    const res = await apiGet<SapB1Connection>(`${BASE}/sap_b1`);
+    return res.data;
+  },
+
+  async saveSapB1(body: SapB1ConnectionPayload): Promise<SapB1Connection> {
+    const res = await apiPut<SapB1Connection>(`${BASE}/sap_b1`, body);
+    return res.data;
+  },
+
+  async testSapB1(): Promise<{
+    ok: boolean;
+    message: string;
+    companies: Array<{ id: string; name: string }>;
+    connection: SapB1Connection;
+  }> {
+    const res = await apiPost<{
+      ok: boolean;
+      message: string;
+      companies: Array<{ id: string; name: string }>;
+      connection: SapB1Connection;
+    }>(`${BASE}/sap_b1/test`);
+    return res.data;
+  },
+
+  async syncSapB1(types?: ErpSyncType[]): Promise<{
+    connection: SapB1Connection;
+    run: ErpSyncRun;
+  }> {
+    const res = await apiPost<{
+      connection: SapB1Connection;
+      run: ErpSyncRun;
+    }>(`${BASE}/sap_b1/sync`, types?.length ? { types } : {});
+    return res.data;
+  },
+
+  async disconnectSapB1(): Promise<void> {
+    await apiDelete(`${BASE}/sap_b1`);
   },
 };

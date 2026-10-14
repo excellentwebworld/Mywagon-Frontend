@@ -29,6 +29,7 @@ import {
 import { erpIntegrationService } from '../../../api/services/erpIntegrationService';
 import { MvButton, RecordStatusBadge, Tag } from '../../../components/ui/mv';
 import BusinessCentralConnectPanel from './BusinessCentralConnectPanel';
+import SapB1ConnectPanel from './SapB1ConnectPanel';
 
 const TABS = [
   { id: 'directory', icon: Zap, labelKey: 'integrations.tabs.directory' },
@@ -51,8 +52,9 @@ export default function IntegrationsSection() {
   const [expandedKey, setExpandedKey] = useState(() => (
     searchParams.get('code') || searchParams.get('error') ? 'business_central' : null
   ));
+  const liveProviderIds = new Set(['business_central', 'sap_b1']);
   const [connectors, setConnectors] = useState(CONNECTORS.map((c) => (
-    c.id === 'business_central' ? c : { ...c, status: 'coming_soon' }
+    liveProviderIds.has(c.id) ? c : { ...c, status: 'coming_soon' }
   )));
 
   const loadCatalog = useCallback(async () => {
@@ -68,7 +70,7 @@ export default function IntegrationsSection() {
       setConnectors(CONNECTORS.map((c) => {
         const api = byId[c.id];
         if (!api) {
-          return { ...c, status: 'coming_soon' };
+          return { ...c, status: liveProviderIds.has(c.id) ? 'not_connected' : 'coming_soon' };
         }
         return {
           ...c,
@@ -83,7 +85,7 @@ export default function IntegrationsSection() {
       }));
     } catch {
       setConnectors(CONNECTORS.map((c) => (
-        c.id === 'business_central' ? { ...c, status: 'not_connected' } : { ...c, status: 'coming_soon' }
+        liveProviderIds.has(c.id) ? { ...c, status: 'not_connected' } : { ...c, status: 'coming_soon' }
       )));
     }
   }, []);
@@ -255,6 +257,8 @@ function connectorStatusTone(status) {
 
 function ConnectorCard({ connector: c, T, t, toast, expanded, onToggle, onCatalogChanged }) {
   const isBc = c.id === 'business_central';
+  const isSapB1 = c.id === 'sap_b1';
+  const isConfigurable = isBc || isSapB1;
   const isActive = ['connected', 'error', 'syncing'].includes(c.status);
   const statusConfig = {
     connected: { label: t('integrations.status.connected') },
@@ -309,7 +313,7 @@ function ConnectorCard({ connector: c, T, t, toast, expanded, onToggle, onCatalo
               type="button"
               variant="primary"
               size="sm"
-              onClick={(e) => { e.stopPropagation(); if (isBc) onToggle(); else toast.info(t('integrations.connectMock')); }}
+              onClick={(e) => { e.stopPropagation(); if (isConfigurable) onToggle(); else toast.info(t('integrations.connectMock')); }}
             >
               {t('integrations.connect')}
             </MvButton>
@@ -334,9 +338,13 @@ function ConnectorCard({ connector: c, T, t, toast, expanded, onToggle, onCatalo
         <div className="px-4 pb-4" style={{ borderTop: `1px solid ${T.bd}` }}>
           <div className="pt-3">
             {/* Description */}
-            {(isBc || c.description) && (
+            {(isConfigurable || c.description) && (
               <p className="mb-3" style={{ fontSize: 12, color: T.t2, lineHeight: 1.6 }}>
-                {isBc ? t('integrations.bc.catalogDescription') : c.description}
+                {isBc
+                  ? t('integrations.bc.catalogDescription')
+                  : isSapB1
+                    ? t('integrations.sap_b1.catalogDescription')
+                    : c.description}
               </p>
             )}
 
@@ -357,9 +365,12 @@ function ConnectorCard({ connector: c, T, t, toast, expanded, onToggle, onCatalo
             {isBc && expanded && (
               <BusinessCentralConnectPanel T={T} t={t} toast={toast} onChanged={onCatalogChanged} />
             )}
+            {isSapB1 && expanded && (
+              <SapB1ConnectPanel T={T} t={t} toast={toast} onChanged={onCatalogChanged} />
+            )}
 
             {/* Last sync + records (connected only) */}
-            {!isBc && isActive && c.lastSync && (
+            {!isConfigurable && isActive && c.lastSync && (
               <div className="flex items-center gap-4">
                 <span className="flex items-center gap-1" style={{ fontSize: 11, color: T.t3 }}>
                   <Clock size={10} /> {t('integrations.lastSync')}: {new Date(c.lastSync).toLocaleString()}
