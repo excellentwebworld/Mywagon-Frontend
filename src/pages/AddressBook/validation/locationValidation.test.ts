@@ -4,8 +4,9 @@ import {
   sanitizeLoadTimeMinutesInput,
 } from '../constants';
 import { isPositiveMeasurement, locationEditValidationSchema } from './locationFormSchema';
-import { validateCreateStep3 } from './locationCreateValidation';
+import { validateCreateStep2, validateCreateStep3 } from './locationCreateValidation';
 import type { CreateLocationData } from '../types';
+import { EMPTY_CREATE_DATA } from '../types';
 
 describe('Address Book Location Measurement and Step 3 Validation', () => {
   describe('sanitizeLoadTimeMinutesInput', () => {
@@ -15,12 +16,8 @@ describe('Address Book Location Measurement and Step 3 Validation', () => {
       expect(sanitizeLoadTimeMinutesInput(String(LOAD_TIME_MINUTES_MAX))).toBe(
         String(LOAD_TIME_MINUTES_MAX)
       );
+      expect(sanitizeLoadTimeMinutesInput('1441')).toBeNull();
       expect(sanitizeLoadTimeMinutesInput('65536')).toBeNull();
-      expect(
-        sanitizeLoadTimeMinutesInput(
-          '9876789067898765456789876545678987654567876567898765445678'
-        )
-      ).toBeNull();
       expect(sanitizeLoadTimeMinutesInput('45.5')).toBeNull();
       expect(sanitizeLoadTimeMinutesInput('-1')).toBeNull();
     });
@@ -60,36 +57,62 @@ describe('Address Book Location Measurement and Step 3 Validation', () => {
     });
   });
 
+  describe('validateCreateStep2', () => {
+    const baseAddress: CreateLocationData = {
+      ...EMPTY_CREATE_DATA,
+      name: 'Central Warehouse',
+      address: 'Industrial St 1',
+      city: 'Athens',
+      postal: '10000',
+      lat: '38.0',
+      lng: '23.7',
+      role: 'both',
+      code: '12345',
+    };
+
+    it('accepts valid location name, postal, and code', () => {
+      expect(Object.keys(validateCreateStep2(baseAddress)).length).toBe(0);
+    });
+
+    it('rejects location name with special characters', () => {
+      const errors = validateCreateStep2({ ...baseAddress, name: 'Hub@Main!' });
+      expect(errors.name).toMatch(/special characters/i);
+    });
+
+    it('rejects non-digit postal but allows alphanumeric code', () => {
+      const errors = validateCreateStep2({
+        ...baseAddress,
+        postal: 'AB-12',
+        code: 'WH-IOA-01',
+      });
+      expect(errors.postal).toMatch(/digits/i);
+      expect(errors.code).toBeUndefined();
+    });
+
+    it('rejects internal code longer than 10 characters', () => {
+      const errors = validateCreateStep2({
+        ...baseAddress,
+        code: 'WH-IOA-01-XX',
+      });
+      expect(errors.code).toMatch(/at most 10/i);
+    });
+  });
+
   describe('validateCreateStep3', () => {
     const baseValidData: CreateLocationData = {
-      context: 'my',
-      company: 'My Co',
-      companyVat: '123456789',
-      companyEntityId: null,
-      template: null,
+      ...EMPTY_CREATE_DATA,
       type: 'warehouse',
       name: 'Main Hub',
       address: 'Industrial St 1',
       city: 'Athens',
-      postalCode: '10000',
-      region: 'Attica',
-      lat: 38.0,
-      lng: 23.7,
-      phone: '',
-      email: '',
+      postal: '10000',
+      lat: '38.0',
+      lng: '23.7',
       role: 'both',
-      code: '',
-      custCode: '',
       dock: 'Dock-level',
-      maxTruck: '18.75m',
-      maxWeight: '40T',
+      maxTruck: '18.75',
+      maxWeight: '40',
       loadTime: '45',
-      appt: false,
-      adr: false,
-      palletExchange: false,
-      noteInternal: '',
-      noteCarrier: '',
-      timeRanges: [],
     };
 
     it('returns no errors for valid step 3 data', () => {
@@ -105,8 +128,8 @@ describe('Address Book Location Measurement and Step 3 Validation', () => {
         loadTime: '-15',
       };
       const errors = validateCreateStep3(invalidData);
-      expect(errors.maxTruck).toBe('Must be greater than 0');
-      expect(errors.maxWeight).toBe('Must be greater than 0');
+      expect(errors.maxTruck).toMatch(/greater than 0/i);
+      expect(errors.maxWeight).toMatch(/greater than 0/i);
       expect(errors.loadTime).toBe('Enter a whole number of minutes');
     });
 
@@ -121,65 +144,56 @@ describe('Address Book Location Measurement and Step 3 Validation', () => {
       expect(errors.loadTime).toBe('Must be at least 1 minute');
     });
 
-    it('flags oversized and non-integer loadTime values', () => {
-      const oversized = validateCreateStep3({
-        ...baseValidData,
-        loadTime: '9876789067898765456789876545678987654567876567898765445678',
-      });
-      expect(oversized.loadTime).toBe('Must be at most 65535 minutes');
-
-      const overMax = validateCreateStep3({
-        ...baseValidData,
-        loadTime: '65536',
-      });
-      expect(overMax.loadTime).toBe('Must be at most 65535 minutes');
-
-      const nonInteger = validateCreateStep3({
-        ...baseValidData,
-        loadTime: '45.5',
-      });
-      expect(nonInteger.loadTime).toBe('Enter a whole number of minutes');
+    it('flags oversized truck/weight and loadTime over 1440', () => {
+      expect(
+        validateCreateStep3({ ...baseValidData, maxTruck: '26' }).maxTruck
+      ).toMatch(/max 25/i);
+      expect(
+        validateCreateStep3({ ...baseValidData, maxWeight: '100.01' }).maxWeight
+      ).toMatch(/max 100/i);
+      expect(
+        validateCreateStep3({ ...baseValidData, loadTime: '1441' }).loadTime
+      ).toBe('Must be at most 1440 minutes');
+      expect(
+        validateCreateStep3({ ...baseValidData, loadTime: '45.5' }).loadTime
+      ).toBe('Enter a whole number of minutes');
     });
 
-    it('accepts loadTime at the unsignedSmallInteger upper bound', () => {
-      const errors = validateCreateStep3({
-        ...baseValidData,
-        loadTime: '65535',
-      });
-      expect(errors.loadTime).toBeUndefined();
+    it('accepts loadTime at 1440 and empty optional truck/weight', () => {
+      expect(
+        validateCreateStep3({ ...baseValidData, loadTime: '1440' }).loadTime
+      ).toBeUndefined();
+      expect(
+        validateCreateStep3({ ...baseValidData, maxTruck: '', maxWeight: '' }).maxTruck
+      ).toBeUndefined();
     });
 
-    it('flags alphabetic and invalid non-numeric inputs for maxTruck and maxWeight', () => {
-      const invalidData: CreateLocationData = {
-        ...baseValidData,
-        maxTruck: 'abc',
-        maxWeight: 'jjjjjj',
-      };
-      const errors = validateCreateStep3(invalidData);
-      expect(errors.maxTruck).toBe('Must be greater than 0');
-      expect(errors.maxWeight).toBe('Must be greater than 0');
+    it('flags more than 2 decimal places', () => {
+      expect(
+        validateCreateStep3({ ...baseValidData, maxTruck: '18.751' }).maxTruck
+      ).toMatch(/2 decimals/i);
     });
   });
 
   describe('locationEditValidationSchema (Yup)', () => {
-    it('rejects negative maxTruck and negative maxWeight on edit schema', async () => {
+    it('rejects invalid maxTruck and maxWeight on edit schema', async () => {
       await expect(
         locationEditValidationSchema.validateAt('maxTruck', { maxTruck: '-5' })
-      ).rejects.toThrow('Must be greater than 0');
+      ).rejects.toThrow(/greater than 0/i);
 
       await expect(
-        locationEditValidationSchema.validateAt('maxWeight', { maxWeight: '-20T' })
-      ).rejects.toThrow('Must be greater than 0');
+        locationEditValidationSchema.validateAt('maxWeight', { maxWeight: '101' })
+      ).rejects.toThrow(/max 100/i);
     });
 
     it('accepts valid maxTruck and maxWeight strings on edit schema', async () => {
       await expect(
-        locationEditValidationSchema.validateAt('maxTruck', { maxTruck: '18.75m' })
-      ).resolves.toBe('18.75m');
+        locationEditValidationSchema.validateAt('maxTruck', { maxTruck: '18.75' })
+      ).resolves.toBe('18.75');
 
       await expect(
-        locationEditValidationSchema.validateAt('maxWeight', { maxWeight: '40T' })
-      ).resolves.toBe('40T');
+        locationEditValidationSchema.validateAt('maxWeight', { maxWeight: '40' })
+      ).resolves.toBe('40');
 
       await expect(
         locationEditValidationSchema.validateAt('maxTruck', { maxTruck: '' })
@@ -188,12 +202,24 @@ describe('Address Book Location Measurement and Step 3 Validation', () => {
 
     it('rejects oversized loadTime on edit schema', async () => {
       await expect(
-        locationEditValidationSchema.validateAt('loadTime', { loadTime: '65536' })
-      ).rejects.toThrow('Must be at most 65535 minutes');
+        locationEditValidationSchema.validateAt('loadTime', { loadTime: '1441' })
+      ).rejects.toThrow('Must be at most 1440 minutes');
 
       await expect(
         locationEditValidationSchema.validateAt('loadTime', { loadTime: '45' })
       ).resolves.toBe('45');
+    });
+
+    it('enforces note max 500 and location name rules', async () => {
+      await expect(
+        locationEditValidationSchema.validateAt('noteInternal', {
+          noteInternal: 'x'.repeat(501),
+        })
+      ).rejects.toThrow(/500/);
+
+      await expect(
+        locationEditValidationSchema.validateAt('name', { name: 'Hub@1' })
+      ).rejects.toThrow(/special characters|letters/i);
     });
   });
 });

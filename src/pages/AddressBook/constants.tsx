@@ -82,17 +82,17 @@ export function getSystemDirectories(t: (k: string) => string): { id: string; na
   ];
 }
 
-/** Matches shipper_addresses.load_time_minutes (unsignedSmallInteger). */
+/** Est. loading/unloading time: whole minutes, 1–1440 (24h). */
 export const LOAD_TIME_MINUTES_MIN = 1;
-export const LOAD_TIME_MINUTES_MAX = 65535;
+export const LOAD_TIME_MINUTES_MAX = 1440;
 
 /**
- * Keeps load-time inputs within DB bounds while typing/pasting.
+ * Keeps load-time inputs within bounds while typing/pasting.
  * Returns null when the keystroke/paste should be ignored (keeps prior value).
  */
 export function sanitizeLoadTimeMinutesInput(raw: string): string | null {
   if (raw === '') return '';
-  if (!/^\d{1,5}$/.test(raw)) return null;
+  if (!/^\d{1,4}$/.test(raw)) return null;
   const n = Number(raw);
   if (!Number.isFinite(n) || n > LOAD_TIME_MINUTES_MAX) return null;
   return raw;
