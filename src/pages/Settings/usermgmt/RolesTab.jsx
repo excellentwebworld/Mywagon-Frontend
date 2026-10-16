@@ -27,6 +27,27 @@ import {
 import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 
 const COLORS = ['#9B51E0', '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#0EA5E9', '#EC4899', '#9B51E0'];
+const ROLE_NAME_MAX = 25;
+const ROLE_DESCRIPTION_MAX = 100;
+
+/** Letters/spaces/punctuation allowed; digits stripped; hard-capped at 25. */
+function sanitizeRoleNameInput(value) {
+  return String(value ?? '')
+    .replace(/\d/g, '')
+    .slice(0, ROLE_NAME_MAX);
+}
+
+function isValidRoleName(value) {
+  const v = String(value ?? '').trim();
+  if (!v) return false;
+  if (v.length > ROLE_NAME_MAX) return false;
+  if (/\d/.test(v)) return false;
+  return true;
+}
+
+function sanitizeRoleDescriptionInput(value) {
+  return String(value ?? '').slice(0, ROLE_DESCRIPTION_MAX);
+}
 
 function FieldLabel({ children, T }) {
   return (
@@ -212,10 +233,16 @@ export default function RolesTab() {
           toast.error(t('userMgmt.roles.nameRequired', { defaultValue: 'Role name is required.' }));
           return;
         }
+        if (!isValidRoleName(trimmed)) {
+          toast.error(t('userMgmt.roles.nameInvalid', {
+            defaultValue: 'Role name must be at most 25 characters and cannot contain digits.',
+          }));
+          return;
+        }
         data = await rolesSettingsService.update(selectedRole.key, {
           name: trimmed,
           color: editColor,
-          description: editDescription,
+          description: sanitizeRoleDescriptionInput(editDescription).trim(),
           permissions: editPerms || [],
         });
       } else {
@@ -251,6 +278,12 @@ export default function RolesTab() {
       setNameError(t('userMgmt.roles.nameRequired', { defaultValue: 'Role name is required.' }));
       return;
     }
+    if (!isValidRoleName(trimmed)) {
+      setNameError(t('userMgmt.roles.nameInvalid', {
+        defaultValue: 'Role name must be at most 25 characters and cannot contain digits.',
+      }));
+      return;
+    }
     if (roles.some((r) => String(r.name || r.label || '').trim().toLowerCase() === trimmed.toLowerCase())) {
       setNameError(t('userMgmt.roles.nameTaken', { defaultValue: 'A role with this name already exists.' }));
       return;
@@ -261,7 +294,7 @@ export default function RolesTab() {
       const data = await rolesSettingsService.create({
         name: trimmed,
         color: newRoleColor,
-        description: newRoleDescription.trim() || undefined,
+        description: sanitizeRoleDescriptionInput(newRoleDescription).trim() || undefined,
         permissions: [],
       });
       applyRolesPayload(data, setApiRoles, setPermissionGroups);
@@ -449,8 +482,9 @@ export default function RolesTab() {
               <FieldLabel T={T}>{t('userMgmt.roles.roleName')}</FieldLabel>
               <input
                 value={newRoleName}
+                maxLength={ROLE_NAME_MAX}
                 onChange={(e) => {
-                  setNewRoleName(e.target.value);
+                  setNewRoleName(sanitizeRoleNameInput(e.target.value));
                   if (nameError) setNameError('');
                 }}
                 placeholder={t('userMgmt.roles.roleName')}
@@ -479,10 +513,10 @@ export default function RolesTab() {
               <FieldLabel T={T}>{t('userMgmt.roles.description', { defaultValue: 'Description' })}</FieldLabel>
               <textarea
                 value={newRoleDescription}
-                onChange={(e) => setNewRoleDescription(e.target.value)}
+                onChange={(e) => setNewRoleDescription(sanitizeRoleDescriptionInput(e.target.value))}
                 placeholder={t('userMgmt.roles.descriptionPlaceholder', { defaultValue: 'Short description shown when inviting users…' })}
                 rows={2}
-                maxLength={500}
+                maxLength={ROLE_DESCRIPTION_MAX}
                 className="w-full px-3 py-2 rounded-lg outline-none resize-none"
                 style={{
                   border: `1px solid ${T.bd}`,
@@ -492,6 +526,9 @@ export default function RolesTab() {
                   lineHeight: 1.45,
                 }}
               />
+              <div className="mt-1 text-right" style={{ fontSize: 10, color: T.t3 }}>
+                {newRoleDescription.length}/{ROLE_DESCRIPTION_MAX}
+              </div>
             </div>
             <div className="flex gap-2 pt-1">
               <button
@@ -546,7 +583,8 @@ export default function RolesTab() {
                     <FieldLabel T={T}>{t('userMgmt.roles.roleName')}</FieldLabel>
                     <input
                       value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
+                      maxLength={ROLE_NAME_MAX}
+                      onChange={(e) => setEditName(sanitizeRoleNameInput(e.target.value))}
                       className="w-full px-3 py-2 rounded-lg outline-none"
                       style={{ border: `1px solid ${T.bd}`, background: T.sa, color: T.t1, fontSize: 13 }}
                     />
@@ -559,15 +597,15 @@ export default function RolesTab() {
                     <FieldLabel T={T}>{t('userMgmt.roles.description', { defaultValue: 'Description' })}</FieldLabel>
                     <textarea
                       value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
+                      onChange={(e) => setEditDescription(sanitizeRoleDescriptionInput(e.target.value))}
                       placeholder={t('userMgmt.roles.descriptionPlaceholder', { defaultValue: 'Short description shown when inviting users…' })}
                       rows={3}
-                      maxLength={500}
+                      maxLength={ROLE_DESCRIPTION_MAX}
                       className="w-full px-3 py-2.5 rounded-lg outline-none resize-none"
                       style={{ border: `1px solid ${T.bd}`, background: T.sa, color: T.t1, fontSize: 13, lineHeight: 1.5 }}
                     />
                     <div className="mt-1 text-right" style={{ fontSize: 10, color: T.t3 }}>
-                      {editDescription.length}/500
+                      {editDescription.length}/{ROLE_DESCRIPTION_MAX}
                     </div>
                   </div>
                 </div>
