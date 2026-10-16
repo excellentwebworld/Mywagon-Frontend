@@ -426,7 +426,7 @@ export const ItineraryPreview: React.FC<ItineraryPreviewProps> = ({
                 >
                   <div className="itin-head-top">
                     <span className={`itin-badge ${isPickup ? 'itin-badge-pick' : 'itin-badge-drop'}`}>
-                      {isPickup ? t('pickup') : t('delivery')}
+                      {isPickup ? t('pickup') : t('dropoff')}
                     </span>
                     {when ? <span className="itin-when">{when}</span> : null}
                     <StopStatusIcon visual={stopVisual} t={t} />
