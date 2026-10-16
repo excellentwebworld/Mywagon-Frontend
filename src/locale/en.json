@@ -4066,6 +4066,7 @@
       "back": "Back",
       "sendInvitation": "Send Invitation",
       "required": "This field is required",
+      "nameLettersOnly": "Only letters and spaces allowed (max 25 characters).",
       "invalidEmail": "Invalid email address",
       "invalidPhone": "Please enter a valid phone number (8–15 digits)",
       "selectRole": "Please select a role",

@@ -23,6 +23,11 @@ import { ApiError } from '../../../api/client';
 import { expandPermissionDependencies, localizeShipperRoleName } from '../../../utils/shipperAccessPresets';
 import { CountryCodeSelect } from '../../Register/components/CountryCodeSelect';
 import { validateCountryCode, validatePhone } from '../../Register/registerValidation';
+import {
+  INVITE_NAME_MAX,
+  isValidInviteName,
+  sanitizeInviteNameInput,
+} from './inviteNameValidation';
 import '../../Register/RegisterPage.css';
 
 function effectivePermissions(user) {
@@ -152,8 +157,20 @@ export default function UserEditPage() {
 
   const validateProfile = () => {
     const errs = {};
-    if (!draft.firstName.trim()) errs.firstName = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
-    if (!draft.lastName.trim()) errs.lastName = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    if (!draft.firstName.trim()) {
+      errs.firstName = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    } else if (!isValidInviteName(draft.firstName)) {
+      errs.firstName = t('userMgmt.invite.nameLettersOnly', {
+        defaultValue: 'Only letters and spaces allowed (max 25 characters).',
+      });
+    }
+    if (!draft.lastName.trim()) {
+      errs.lastName = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    } else if (!isValidInviteName(draft.lastName)) {
+      errs.lastName = t('userMgmt.invite.nameLettersOnly', {
+        defaultValue: 'Only letters and spaces allowed (max 25 characters).',
+      });
+    }
     
     if (!draft.countryCode || !draft.countryCode.trim()) {
       errs.countryCode = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
@@ -349,8 +366,9 @@ export default function UserEditPage() {
           <Field label={t('userMgmt.invite.firstName')} required error={profileErrors.firstName} T={T}>
             <input
               value={draft.firstName}
+              maxLength={INVITE_NAME_MAX}
               onChange={(e) => {
-                setDraft((d) => ({ ...d, firstName: e.target.value }));
+                setDraft((d) => ({ ...d, firstName: sanitizeInviteNameInput(e.target.value) }));
                 if (profileErrors.firstName) setProfileErrors((p) => ({ ...p, firstName: undefined }));
               }}
               className="w-full px-3 py-2 rounded-lg outline-none"
@@ -360,8 +378,9 @@ export default function UserEditPage() {
           <Field label={t('userMgmt.invite.lastName')} required error={profileErrors.lastName} T={T}>
             <input
               value={draft.lastName}
+              maxLength={INVITE_NAME_MAX}
               onChange={(e) => {
-                setDraft((d) => ({ ...d, lastName: e.target.value }));
+                setDraft((d) => ({ ...d, lastName: sanitizeInviteNameInput(e.target.value) }));
                 if (profileErrors.lastName) setProfileErrors((p) => ({ ...p, lastName: undefined }));
               }}
               className="w-full px-3 py-2 rounded-lg outline-none"
