@@ -87,9 +87,9 @@ export const WHATS_NEW_SLIDES: WhatsNewSlide[] = [
     titleKey: 'whatsNew.slides.customization.title',
     titleFallback: 'User customization',
     bodyKey: 'whatsNew.slides.customization.body',
-    bodyFallback: 'Personalize navigation, language, and workspace preferences to match how you work.',
+    bodyFallback: 'Create custom roles and assign them to new users in your account.',
     ctaKey: 'whatsNew.slides.customization.cta',
-    ctaFallback: 'Customize workspace',
-    route: '/settings',
+    ctaFallback: 'Manage roles',
+    route: '/settings/users/roles',
   },
 ];
