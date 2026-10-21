@@ -931,6 +931,110 @@
   background-color: color-mix(in srgb, var(--cal-accent) 5%, var(--cal-surface));
 }
 
+.tg-more {
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid var(--cal-line);
+  border-radius: 6px;
+  background: var(--cal-surface);
+  color: var(--cal-text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.tg-more:hover {
+  background: var(--cal-hover);
+  border-color: var(--cal-accent);
+  color: var(--cal-accent);
+}
+
+.cal-more-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 8px;
+}
+
+.cal-more-head b {
+  font-size: 15px;
+}
+
+.cal-more-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: min(52vh, 420px);
+  overflow: auto;
+  padding: 4px 16px 12px;
+}
+
+.cal-more-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    'kind sid'
+    'cust cust'
+    'place place';
+  gap: 2px 8px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border: 1px solid var(--cal-line);
+  border-radius: 8px;
+  background: var(--cal-surface);
+  color: var(--cal-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cal-more-row:hover {
+  background: var(--cal-hover);
+}
+
+.cal-more-row .ev__kind {
+  grid-area: kind;
+}
+
+.cal-more-sid {
+  grid-area: sid;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-more-cust,
+.cal-more-place {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cal-more-cust {
+  grid-area: cust;
+  font-weight: 600;
+}
+
+.cal-more-place {
+  grid-area: place;
+  color: var(--cal-muted);
+}
+
+.cal-more-foot {
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--cal-line);
+}
+
 .tg-now {
   position: absolute;
   left: 0;

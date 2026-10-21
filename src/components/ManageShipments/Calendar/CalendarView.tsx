@@ -248,6 +248,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setOverdueAnchor(null);
   }, []);
 
+  const openDayList = useCallback((dateYmd: string) => {
+    setCursor(parseYmdDate(dateYmd));
+    setRange('day');
+    setLayout('list');
+    setPop(null);
+    setOverdueAnchor(null);
+  }, []);
+
   const pickDay = useCallback((d: Date) => {
     setCursor(d);
     if (typeof window !== 'undefined' && window.innerWidth < 900) setRailOpen(false);
@@ -324,6 +332,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         selectedId={selectedId}
         onOpen={openEvent}
         onDayOpen={openDay}
+        onViewDayList={openDayList}
         detailed={range === 'day'}
         lang={lang}
         t={t}

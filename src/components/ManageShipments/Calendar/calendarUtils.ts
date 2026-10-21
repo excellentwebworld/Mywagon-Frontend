@@ -970,7 +970,7 @@ export interface LaidOutEvent {
   e: number;
 }
 
-export function layoutDayEvents(evs: CalendarEvent[]): LaidOutEvent[] {
+function clusterTimedEvents(evs: CalendarEvent[]) {
   const items = evs
     .filter((e) => !e.allDay)
     .map((ev) => {
@@ -980,11 +980,12 @@ export function layoutDayEvents(evs: CalendarEvent[]): LaidOutEvent[] {
     })
     .sort((a, b) => a.s - b.s || b.e - a.e);
 
-  const out: LaidOutEvent[] = [];
+  const clusters: Array<typeof items> = [];
   let cluster: typeof items = [];
   let cEnd = -1;
 
   const flush = () => {
+    if (!cluster.length) return;
     const colEnds: number[] = [];
     for (const it of cluster) {
       let c = colEnds.findIndex((end) => end <= it.s);
@@ -995,10 +996,10 @@ export function layoutDayEvents(evs: CalendarEvent[]): LaidOutEvent[] {
         colEnds[c] = it.e;
       }
       it.col = c;
+      it.cols = colEnds.length;
     }
-    for (const it of cluster) {
-      out.push({ ev: it.ev, col: it.col, cols: colEnds.length, s: it.s, e: it.e });
-    }
+    for (const it of cluster) it.cols = colEnds.length;
+    clusters.push(cluster);
     cluster = [];
     cEnd = -1;
   };
@@ -1008,8 +1009,92 @@ export function layoutDayEvents(evs: CalendarEvent[]): LaidOutEvent[] {
     cluster.push(it);
     cEnd = Math.max(cEnd, it.e);
   }
-  if (cluster.length) flush();
+  flush();
+  return clusters;
+}
+
+export function layoutDayEvents(evs: CalendarEvent[]): LaidOutEvent[] {
+  const out: LaidOutEvent[] = [];
+  for (const cluster of clusterTimedEvents(evs)) {
+    for (const it of cluster) {
+      out.push({ ev: it.ev, col: it.col, cols: it.cols, s: it.s, e: it.e });
+    }
+  }
   return out;
+}
+
+export type TimeGridPiece =
+  | {
+      type: 'event';
+      key: string;
+      ev: CalendarEvent;
+      s: number;
+      e: number;
+      left: string;
+      width: string;
+    }
+  | {
+      type: 'more';
+      key: string;
+      events: CalendarEvent[];
+      extra: number;
+      s: number;
+      e: number;
+      left: string;
+      width: string;
+    };
+
+/**
+ * Time-grid placement.
+ * - At most `maxColumns` side by side (1 outside Day view, 5 on Day view).
+ * - A busier overlap collapses to one slot (3/4) plus a +n rail (1/4).
+ */
+export function presentTimeGrid(evs: CalendarEvent[], maxColumns: number): TimeGridPiece[] {
+  const cap = Math.max(1, maxColumns);
+  const pieces: TimeGridPiece[] = [];
+
+  for (const cluster of clusterTimedEvents(evs)) {
+    const colCount = cluster[0]?.cols ?? 1;
+    if (colCount <= cap) {
+      for (const it of cluster) {
+        pieces.push({
+          type: 'event',
+          key: it.ev.id,
+          ev: it.ev,
+          s: it.s,
+          e: it.e,
+          left: `calc(${(it.col / colCount) * 100}% + 2px)`,
+          width: `calc(${100 / colCount}% - 4px)`,
+        });
+      }
+      continue;
+    }
+
+    const shown = cluster[0];
+    const spanS = Math.min(...cluster.map((it) => it.s));
+    const spanE = Math.max(...cluster.map((it) => it.e));
+    pieces.push({
+      type: 'event',
+      key: shown.ev.id,
+      ev: shown.ev,
+      s: shown.s,
+      e: shown.e,
+      left: '2px',
+      width: 'calc(75% - 4px)',
+    });
+    pieces.push({
+      type: 'more',
+      key: `more-${shown.ev.id}`,
+      events: cluster.map((it) => it.ev),
+      extra: cluster.length - 1,
+      s: spanS,
+      e: spanE,
+      left: 'calc(75% + 2px)',
+      width: 'calc(25% - 4px)',
+    });
+  }
+
+  return pieces;
 }
 
 /* ── Formatting ── */

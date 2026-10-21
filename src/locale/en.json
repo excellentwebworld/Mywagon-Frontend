@@ -220,6 +220,8 @@
   "overdueNote": "Past Due loads and Pending loads whose pickup date has passed, in the dates you are viewing.",
   "openDayView": "Open day view",
   "openThisDay": "Open this day",
+  "viewList": "View list",
+  "moreStops": "more stops",
   "noStops": "No stops",
   "noStopsInRange": "No pickups or deliveries in this range",
   "noStopsInRangeDesc": "Try another range, the All tab, or fewer filters.",

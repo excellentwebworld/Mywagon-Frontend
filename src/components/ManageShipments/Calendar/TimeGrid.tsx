@@ -1,11 +1,12 @@
-import React, { useLayoutEffect, useMemo, useRef } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { EventChip } from './EventChip';
+import { SlotMorePopover } from './SlotMorePopover';
 import {
   HOUR_HEIGHT_PX,
   cls,
   getTodayYmd,
-  layoutDayEvents,
   padZero,
+  presentTimeGrid,
   toYmd,
   weekdayIndex,
   type CalendarEvent,
@@ -17,6 +18,8 @@ interface TimeGridProps {
   selectedId: string | null;
   onOpen: (ev: CalendarEvent, rect: DOMRect) => void;
   onDayOpen: (dateYmd: string) => void;
+  /** Opens the list layout for one day. */
+  onViewDayList: (dateYmd: string) => void;
   /** Day range: full Pickup/Dropoff label, SID, customer, location. */
   detailed?: boolean;
   lang?: string;
@@ -31,11 +34,17 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
   selectedId,
   onOpen,
   onDayOpen,
+  onViewDayList,
   detailed = false,
   lang = 'en',
   t,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState<{
+    events: CalendarEvent[];
+    extra: number;
+    dateYmd: string;
+  } | null>(null);
   const todayYmd = getTodayYmd();
   const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
@@ -136,7 +145,7 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
             </div>
             {days.map((d) => {
               const key = toYmd(d);
-              const laid = layoutDayEvents(byDay[key] || []);
+              const laid = presentTimeGrid(byDay[key] || [], oneDay ? 5 : 1);
               const isToday = key === todayYmd;
               const weekend = weekdayIndex(d) >= 5;
               return (
@@ -144,25 +153,43 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                   key={key}
                   className={cls('tg-col', isToday && 'is-today', weekend && 'is-weekend')}
                 >
-                  {laid.map(({ ev, col, cols, s, e }) => (
-                    <EventChip
-                      key={ev.id}
-                      ev={ev}
-                      onOpen={onOpen}
-                      selected={selectedId === ev.id}
-                      detailed={oneDay}
-                      showTime={false}
-                      compact={!oneDay && (e - s < 50 || cols > 2)}
-                      t={t}
-                      style={{
-                        position: 'absolute',
-                        top: (s / 60) * HOUR_HEIGHT_PX + 1,
-                        height: Math.max(24, ((e - s) / 60) * HOUR_HEIGHT_PX - 2),
-                        left: `calc(${(col / cols) * 100}% + 2px)`,
-                        width: `calc(${100 / cols}% - 4px)`,
-                      }}
-                    />
-                  ))}
+                  {laid.map((piece) => {
+                    const box = {
+                      position: 'absolute' as const,
+                      top: (piece.s / 60) * HOUR_HEIGHT_PX + 1,
+                      height: Math.max(24, ((piece.e - piece.s) / 60) * HOUR_HEIGHT_PX - 2),
+                      left: piece.left,
+                      width: piece.width,
+                    };
+                    if (piece.type === 'more') {
+                      return (
+                        <button
+                          key={piece.key}
+                          type="button"
+                          className="tg-more"
+                          style={box}
+                          onClick={() =>
+                            setMore({ events: piece.events, extra: piece.extra, dateYmd: key })
+                          }
+                        >
+                          +{piece.extra}
+                        </button>
+                      );
+                    }
+                    return (
+                      <EventChip
+                        key={piece.key}
+                        ev={piece.ev}
+                        onOpen={onOpen}
+                        selected={selectedId === piece.ev.id}
+                        detailed={oneDay}
+                        showTime={false}
+                        compact={!oneDay && piece.e - piece.s < 50}
+                        t={t}
+                        style={box}
+                      />
+                    );
+                  })}
                   {isToday && (
                     <div className="tg-now" style={{ top: (nowMinutes / 60) * HOUR_HEIGHT_PX }}>
                       <span />
@@ -174,6 +201,23 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
           </div>
         </div>
       </div>
+      {more && (
+        <SlotMorePopover
+          events={more.events}
+          extra={more.extra}
+          t={t}
+          onClose={() => setMore(null)}
+          onOpen={(ev, rect) => {
+            setMore(null);
+            onOpen(ev, rect);
+          }}
+          onViewList={() => {
+            const dateYmd = more.dateYmd;
+            setMore(null);
+            onViewDayList(dateYmd);
+          }}
+        />
+      )}
     </div>
   );
 };
