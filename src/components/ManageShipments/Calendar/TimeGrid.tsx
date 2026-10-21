@@ -168,13 +168,9 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                           type="button"
                           className="tg-more"
                           style={box}
-                          onClick={() => {
-                            if (!oneDay) {
-                              onDayOpen(key);
-                              return;
-                            }
-                            setMore({ events: piece.events, extra: piece.extra, dateYmd: key });
-                          }}
+                          onClick={() =>
+                            setMore({ events: piece.events, extra: piece.extra, dateYmd: key })
+                          }
                         >
                           +{piece.extra}
                         </button>

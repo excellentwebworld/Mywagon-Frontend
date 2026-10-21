@@ -937,6 +937,7 @@
 .tg-col {
   position: relative;
   height: calc(24 * var(--cal-hour, 72px));
+  overflow: hidden;
   border-left: 1px solid var(--cal-line);
   background-image:
     linear-gradient(to bottom, var(--cal-line) 1px, transparent 1px),
@@ -955,6 +956,7 @@
 
 .tg-more {
   z-index: 2;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -1052,7 +1052,8 @@ export type TimeGridPiece =
 /**
  * Time-grid placement.
  * - At most `maxColumns` side by side (1 outside Day view, 5 on Day view).
- * - A busier overlap collapses to one slot (3/4) plus a +n rail (1/4).
+ * - Week and other grids: a busier overlap is one slot (3/4) plus a +n rail (1/4).
+ * - Day view past 5: five slots, then +n in the same day column for the rest.
  */
 export function presentTimeGrid(evs: CalendarEvent[], maxColumns: number): TimeGridPiece[] {
   const cap = Math.max(1, maxColumns);
@@ -1075,27 +1076,56 @@ export function presentTimeGrid(evs: CalendarEvent[], maxColumns: number): TimeG
       continue;
     }
 
-    const shown = cluster[0];
     const spanS = Math.min(...cluster.map((it) => it.s));
     const spanE = Math.max(...cluster.map((it) => it.e));
-    pieces.push({
-      type: 'event',
-      key: shown.ev.id,
-      ev: shown.ev,
-      s: shown.s,
-      e: shown.e,
-      left: '2px',
-      width: 'calc(75% - 4px)',
-    });
+
+    if (cap === 1) {
+      const shown = cluster[0];
+      pieces.push({
+        type: 'event',
+        key: shown.ev.id,
+        ev: shown.ev,
+        s: shown.s,
+        e: shown.e,
+        left: '2px',
+        width: 'calc(75% - 4px)',
+      });
+      pieces.push({
+        type: 'more',
+        key: `more-${shown.ev.id}`,
+        events: cluster.map((it) => it.ev),
+        extra: cluster.length - 1,
+        s: spanS,
+        e: spanE,
+        left: 'calc(75% + 2px)',
+        width: 'calc(25% - 4px)',
+      });
+      continue;
+    }
+
+    const slots = cap + 1;
+    const shown = cluster.filter((it) => it.col < cap);
+    const hidden = cluster.filter((it) => it.col >= cap);
+    for (const it of shown) {
+      pieces.push({
+        type: 'event',
+        key: it.ev.id,
+        ev: it.ev,
+        s: it.s,
+        e: it.e,
+        left: `calc(${(it.col / slots) * 100}% + 2px)`,
+        width: `calc(${100 / slots}% - 4px)`,
+      });
+    }
     pieces.push({
       type: 'more',
-      key: `more-${shown.ev.id}`,
-      events: cluster.map((it) => it.ev),
-      extra: cluster.length - 1,
+      key: `more-${cluster[0].ev.id}`,
+      events: hidden.map((it) => it.ev),
+      extra: hidden.length,
       s: spanS,
       e: spanE,
-      left: 'calc(75% + 2px)',
-      width: 'calc(25% - 4px)',
+      left: `calc(${(cap / slots) * 100}% + 2px)`,
+      width: `calc(${100 / slots}% - 4px)`,
     });
   }
 

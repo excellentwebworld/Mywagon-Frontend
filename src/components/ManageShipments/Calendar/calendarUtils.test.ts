@@ -381,9 +381,14 @@ describe('calendarUtils', () => {
       expect(five).toHaveLength(5);
 
       const six = presentTimeGrid(events, 5);
-      expect(six.map((p) => p.type)).toEqual(['event', 'more']);
-      const more = six[1];
-      if (more.type === 'more') expect(more.extra).toBe(5);
+      expect(six.filter((p) => p.type === 'event')).toHaveLength(5);
+      const more = six.find((p) => p.type === 'more');
+      expect(more?.type).toBe('more');
+      if (more?.type === 'more') {
+        expect(more.extra).toBe(1);
+        expect(more.events).toHaveLength(1);
+        expect(more.left).toContain(`${(5 / 6) * 100}%`);
+      }
     });
 
     it('sizes a ranged window to its full duration and keeps 1 hour when there is no end', () => {
