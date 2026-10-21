@@ -504,6 +504,25 @@
   white-space: nowrap;
 }
 
+.cal-rail .cal-kindtag {
+  font-size: 11px;
+  padding: 3px 8px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+.cal-rail .cal-kindtag.pickup {
+  background: #fff;
+  color: #111;
+  border-color: #111;
+}
+
+.cal-rail .cal-kindtag.delivery {
+  background: #111;
+  color: #fff;
+  border-color: #111;
+}
+
 .cal-check-count {
   font-size: 11.5px;
   color: var(--cal-faint);
@@ -573,11 +592,11 @@
   border: 0;
   border-left: 3px solid var(--c);
   border-radius: 6px;
-  padding: 3px 6px 3px 5px;
+  padding: 5px 8px 4px 7px;
   background: color-mix(in srgb, var(--c) var(--chip-mix), var(--cal-surface));
   color: var(--cal-text);
-  font-size: 11.5px;
-  line-height: 1.32;
+  font-size: 12px;
+  line-height: 1.35;
   overflow: hidden;
   cursor: pointer;
   font-family: inherit;
@@ -591,7 +610,7 @@
 
 .ev--open {
   outline: 1px dashed color-mix(in srgb, var(--c) 85%, var(--cal-text));
-  outline-offset: -1px;
+  outline-offset: 1px;
 }
 
 .ev.is-selected {
@@ -610,11 +629,12 @@
 .ev__top {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   white-space: nowrap;
-  overflow: hidden;
+  overflow: visible;
   font-weight: 600;
   min-width: 0;
+  min-height: 20px;
 }
 
 .ev__icon {
@@ -625,27 +645,28 @@
 .ev__kind {
   display: inline-flex;
   align-items: center;
-  font-size: 9px;
-  letter-spacing: 0.06em;
+  flex: 0 0 auto;
+  font-size: 11px;
+  letter-spacing: 0.01em;
   font-weight: 700;
-  text-transform: uppercase;
-  padding: 1px 5px;
+  padding: 2px 8px;
   border-radius: 999px;
   border: 1px solid transparent;
   line-height: 1.2;
-  flex: none;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .ev__kind--pickup {
-  background: var(--cal-kind-pu-bg);
-  color: var(--cal-kind-pu-fg);
-  border-color: var(--cal-kind-pu-bd);
+  background: #fff;
+  color: #111;
+  border-color: #111;
 }
 
 .ev__kind--delivery {
-  background: var(--cal-kind-dl-bg);
-  color: var(--cal-kind-dl-fg);
-  border-color: var(--cal-kind-dl-bd);
+  background: #111;
+  color: #fff;
+  border-color: #111;
 }
 
 .ev__time {
@@ -654,24 +675,74 @@
   color: var(--cal-muted);
 }
 
+/* Day grid already shows hours in the gutter. */
+.tg .ev__time {
+  display: none;
+}
+
 .ev__sid {
+  flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   min-width: 0;
 }
 
-.ev__cust {
+.ev__cust,
+.ev__place {
+  display: block;
+  flex: 0 0 auto;
+  width: 100%;
+  min-height: 16px;
+  height: 16px;
+  line-height: 16px;
+  font-size: 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-weight: 500;
+}
+
+.ev__cust {
+  font-weight: 600;
+  color: var(--cal-text);
 }
 
 .ev__place {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 500;
   color: var(--cal-muted);
+}
+
+.tg .ev {
+  justify-content: flex-start;
+  align-items: stretch;
+  gap: 3px;
+  padding: 6px 8px 5px 7px;
+}
+
+.tg .ev__top,
+.tg .ev__cust,
+.tg .ev__place {
+  flex-shrink: 0;
+}
+
+.ev--day {
+  gap: 2px;
+  padding: 6px 8px 5px 7px;
+  font-size: 12px;
+}
+
+.ev--day .ev__kind {
+  font-size: 10.5px;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  padding: 2px 7px;
+}
+
+.ev--day .ev__sid {
+  font-weight: 700;
+}
+
+.ev--day .ev__cust {
+  font-weight: 600;
 }
 
 .ev__risk {
@@ -714,6 +785,7 @@
 /* ── Time grid ── */
 .tg {
   min-width: 0;
+  --cal-hour: 72px;
 }
 
 .tg-scroll {
@@ -828,7 +900,7 @@
 }
 
 .tg-hour {
-  height: 56px;
+  height: var(--cal-hour, 72px);
   display: grid;
   justify-items: center;
   font-size: 11.5px;
@@ -842,13 +914,13 @@
 
 .tg-col {
   position: relative;
-  height: calc(24 * 56px);
+  height: calc(24 * var(--cal-hour, 72px));
   border-left: 1px solid var(--cal-line);
   background-image:
     linear-gradient(to bottom, var(--cal-line) 1px, transparent 1px),
     linear-gradient(to bottom, var(--cal-line-soft) 1px, transparent 1px);
-  background-size: 100% 56px, 100% 56px;
-  background-position: 0 0, 0 28px;
+  background-size: 100% var(--cal-hour, 72px), 100% var(--cal-hour, 72px);
+  background-position: 0 0, 0 calc(var(--cal-hour, 72px) / 2);
 }
 
 .tg-col.is-weekend {

@@ -123,7 +123,7 @@ export const WEEKDAY_KEYS = [
   'sunday',
 ] as const;
 
-export const HOUR_HEIGHT_PX = 56;
+export const HOUR_HEIGHT_PX = 72;
 export const DEFAULT_EVENT_DURATION_MIN = 60;
 export const CAL_PREFS_KEY = 'mv-cal-prefs-v1';
 
@@ -194,12 +194,89 @@ export function minutesOfDayFromParts(timeStart?: string | null): number {
   return parseTimeToMinutes(timeStart) ?? 0;
 }
 
-export function durationFromTimes(timeStart?: string | null, timeEnd?: string | null): number {
-  const s = parseTimeToMinutes(timeStart);
-  const e = parseTimeToMinutes(timeEnd);
-  if (s == null) return DEFAULT_EVENT_DURATION_MIN;
-  if (e == null || e <= s) return DEFAULT_EVENT_DURATION_MIN;
-  return Math.max(30, e - s);
+export interface ScheduleSpan {
+  dateYmd: string;
+  timeStart: string;
+  timeEnd: string;
+  startMinutes: number;
+  durationMinutes: number;
+}
+
+/**
+ * Time-grid slices for one stop.
+ * - No end (or end equal to start): 1 hour from the start.
+ * - Same-day range: one slot covering the full window.
+ * - Range that crosses midnight: first slot runs to 24:00, second slot continues the next day until the end time.
+ */
+export function scheduleSpans(dateYmd: string, timeStart: string, timeEnd: string): ScheduleSpan[] {
+  const start = parseTimeToMinutes(timeStart);
+  if (start == null) {
+    return [
+      {
+        dateYmd,
+        timeStart: '',
+        timeEnd: '',
+        startMinutes: 0,
+        durationMinutes: DEFAULT_EVENT_DURATION_MIN,
+      },
+    ];
+  }
+
+  const end = parseTimeToMinutes(timeEnd);
+  const hasRange = end != null && end !== start;
+  if (!hasRange) {
+    return [
+      {
+        dateYmd,
+        timeStart,
+        timeEnd: '',
+        startMinutes: start,
+        durationMinutes: DEFAULT_EVENT_DURATION_MIN,
+      },
+    ];
+  }
+
+  if (end! > start) {
+    return [
+      {
+        dateYmd,
+        timeStart,
+        timeEnd,
+        startMinutes: start,
+        durationMinutes: end! - start,
+      },
+    ];
+  }
+
+  // 00:00 end means "until midnight" on the start day, not an empty next-day slot.
+  if (end === 0) {
+    return [
+      {
+        dateYmd,
+        timeStart,
+        timeEnd: '24:00',
+        startMinutes: start,
+        durationMinutes: 1440 - start,
+      },
+    ];
+  }
+
+  return [
+    {
+      dateYmd,
+      timeStart,
+      timeEnd: '24:00',
+      startMinutes: start,
+      durationMinutes: 1440 - start,
+    },
+    {
+      dateYmd: getAdjacentDay(dateYmd, 1),
+      timeStart: '00:00',
+      timeEnd,
+      startMinutes: 0,
+      durationMinutes: end!,
+    },
+  ];
 }
 
 /* ── Range maths ── */
@@ -595,10 +672,17 @@ export function extractCalendarEvents(shipments: Shipment[]): CalendarEvent[] {
         const timeStart = fromStopStart.time || fromIso.time || '';
         const timeEnd = fromStopEnd.time || '';
         const allDay = !timeStart || !!stopAny.allDay || !!stopAny.all_day;
-        const startMinutes = allDay ? 0 : minutesOfDayFromParts(timeStart);
-        const durationMinutes = allDay
-          ? DEFAULT_EVENT_DURATION_MIN
-          : durationFromTimes(timeStart, timeEnd);
+        const spans = allDay
+          ? [
+              {
+                dateYmd,
+                timeStart: '',
+                timeEnd: '',
+                startMinutes: 0,
+                durationMinutes: DEFAULT_EVENT_DURATION_MIN,
+              },
+            ]
+          : scheduleSpans(dateYmd, timeStart, timeEnd);
 
         const orderId =
           stopAny.order_id ||
@@ -656,17 +740,21 @@ export function extractCalendarEvents(shipments: Shipment[]): CalendarEvent[] {
           (sAny.customers && sAny.customers[0]) ||
           null;
 
-        pushEvent({
-          id: `${s.id}-${stopAny.id || idx}-${type}`,
-          shipmentId: Number(s.id),
-          sid,
-          type,
-          dateYmd,
-          timeStart: allDay ? '' : timeStart,
-          timeEnd: allDay ? '' : timeEnd,
-          startMinutes,
-          durationMinutes,
-          allDay,
+        spans.forEach((span, spanIdx) => {
+          pushEvent({
+            id:
+              spanIdx === 0
+                ? `${s.id}-${stopAny.id || idx}-${type}`
+                : `${s.id}-${stopAny.id || idx}-${type}-next`,
+            shipmentId: Number(s.id),
+            sid,
+            type,
+            dateYmd: span.dateYmd,
+            timeStart: span.timeStart,
+            timeEnd: span.timeEnd,
+            startMinutes: span.startMinutes,
+            durationMinutes: span.durationMinutes,
+            allDay,
           orderId,
           productName,
           qty,
@@ -682,6 +770,7 @@ export function extractCalendarEvents(shipments: Shipment[]): CalendarEvent[] {
           shipment: s,
           stopIndex: idx,
         });
+        });
       });
     } else {
       const pickupLocal = resolveLocalParts(
@@ -696,19 +785,29 @@ export function extractCalendarEvents(shipments: Shipment[]): CalendarEvent[] {
         const timeStart = pickupLocal.time;
         const timeEnd = pickupEndLocal.time;
         const allDay = !timeStart;
-        pushEvent({
-          id: `${s.id}-pickup`,
-          shipmentId: Number(s.id),
-          sid,
-          type: 'pickup',
-          dateYmd: pickupLocal.date,
-          timeStart: allDay ? '' : timeStart,
-          timeEnd: allDay ? '' : timeEnd,
-          startMinutes: allDay ? 0 : minutesOfDayFromParts(timeStart),
-          durationMinutes: allDay
-            ? DEFAULT_EVENT_DURATION_MIN
-            : durationFromTimes(timeStart, timeEnd),
-          allDay,
+        const spans = allDay
+          ? [
+              {
+                dateYmd: pickupLocal.date,
+                timeStart: '',
+                timeEnd: '',
+                startMinutes: 0,
+                durationMinutes: DEFAULT_EVENT_DURATION_MIN,
+              },
+            ]
+          : scheduleSpans(pickupLocal.date, timeStart, timeEnd);
+        spans.forEach((span, spanIdx) => {
+          pushEvent({
+            id: spanIdx === 0 ? `${s.id}-pickup` : `${s.id}-pickup-next`,
+            shipmentId: Number(s.id),
+            sid,
+            type: 'pickup',
+            dateYmd: span.dateYmd,
+            timeStart: span.timeStart,
+            timeEnd: span.timeEnd,
+            startMinutes: span.startMinutes,
+            durationMinutes: span.durationMinutes,
+            allDay,
           orderId:
             (sAny.orderIds && sAny.orderIds[0]) ||
             (sAny.order_ids && sAny.order_ids[0]) ||
@@ -731,6 +830,7 @@ export function extractCalendarEvents(shipments: Shipment[]): CalendarEvent[] {
           shipment: s,
           stopIndex: 0,
         });
+        });
       }
 
       const deliveryLocal = resolveLocalParts(
@@ -745,19 +845,29 @@ export function extractCalendarEvents(shipments: Shipment[]): CalendarEvent[] {
         const timeStart = deliveryLocal.time;
         const timeEnd = deliveryEndLocal.time;
         const allDay = !timeStart;
-        pushEvent({
-          id: `${s.id}-delivery`,
-          shipmentId: Number(s.id),
-          sid,
-          type: 'delivery',
-          dateYmd: deliveryLocal.date,
-          timeStart: allDay ? '' : timeStart,
-          timeEnd: allDay ? '' : timeEnd,
-          startMinutes: allDay ? 0 : minutesOfDayFromParts(timeStart),
-          durationMinutes: allDay
-            ? DEFAULT_EVENT_DURATION_MIN
-            : durationFromTimes(timeStart, timeEnd),
-          allDay,
+        const spans = allDay
+          ? [
+              {
+                dateYmd: deliveryLocal.date,
+                timeStart: '',
+                timeEnd: '',
+                startMinutes: 0,
+                durationMinutes: DEFAULT_EVENT_DURATION_MIN,
+              },
+            ]
+          : scheduleSpans(deliveryLocal.date, timeStart, timeEnd);
+        spans.forEach((span, spanIdx) => {
+          pushEvent({
+            id: spanIdx === 0 ? `${s.id}-delivery` : `${s.id}-delivery-next`,
+            shipmentId: Number(s.id),
+            sid,
+            type: 'delivery',
+            dateYmd: span.dateYmd,
+            timeStart: span.timeStart,
+            timeEnd: span.timeEnd,
+            startMinutes: span.startMinutes,
+            durationMinutes: span.durationMinutes,
+            allDay,
           orderId:
             (sAny.orderIds && sAny.orderIds[0]) ||
             (sAny.order_ids && sAny.order_ids[0]) ||
@@ -779,6 +889,7 @@ export function extractCalendarEvents(shipments: Shipment[]): CalendarEvent[] {
           carrierName,
           shipment: s,
           stopIndex: 1,
+        });
         });
       }
     }
@@ -864,7 +975,7 @@ export function layoutDayEvents(evs: CalendarEvent[]): LaidOutEvent[] {
     .filter((e) => !e.allDay)
     .map((ev) => {
       const s = ev.startMinutes;
-      const e = Math.min(1440, s + Math.max(30, ev.durationMinutes));
+      const e = Math.min(1440, s + Math.max(1, ev.durationMinutes));
       return { ev, s, e, col: 0, cols: 1 };
     })
     .sort((a, b) => a.s - b.s || b.e - a.e);

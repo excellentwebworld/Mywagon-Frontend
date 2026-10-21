@@ -324,6 +324,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         selectedId={selectedId}
         onOpen={openEvent}
         onDayOpen={openDay}
+        detailed={range === 'day'}
         lang={lang}
         t={t}
       />

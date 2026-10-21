@@ -17,6 +17,8 @@ interface TimeGridProps {
   selectedId: string | null;
   onOpen: (ev: CalendarEvent, rect: DOMRect) => void;
   onDayOpen: (dateYmd: string) => void;
+  /** Day range: full Pickup/Dropoff label, SID, customer, location. */
+  detailed?: boolean;
   lang?: string;
   t: (key: string, defaultValue?: string) => string;
 }
@@ -29,6 +31,7 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
   selectedId,
   onOpen,
   onDayOpen,
+  detailed = false,
   lang = 'en',
   t,
 }) => {
@@ -47,6 +50,7 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
   );
 
   const n = days.length;
+  const oneDay = detailed || n === 1;
   const wdLabels = useMemo(() => {
     if (lang === 'el') {
       const base = new Date(2026, 5, 1);
@@ -74,6 +78,7 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
               const key = toYmd(d);
               const evs = byDay[key] || [];
               const pu = evs.filter((e) => e.type === 'pickup').length;
+              const dl = evs.length - pu;
               const isToday = key === todayYmd;
               return (
                 <button
@@ -87,7 +92,7 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                   <span className="tg-dnum">{d.getDate()}</span>
                   <span className="tg-sum">
                     {evs.length
-                      ? `${pu} PU · ${evs.length - pu} DL`
+                      ? `${pu} ${pu === 1 ? t('pickup', 'Pickup') : t('pickups', 'Pickups')} · ${dl} ${dl === 1 ? t('dropoff', 'Dropoff') : t('dropoffs', 'Dropoffs')}`
                       : t('noStops', 'No stops')}
                   </span>
                 </button>
@@ -107,6 +112,8 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                             key={e.id}
                             ev={e}
                             compact
+                            detailed={oneDay}
+                            showTime={false}
                             onOpen={onOpen}
                             selected={selectedId === e.id}
                             t={t}
@@ -143,7 +150,9 @@ export const TimeGrid: React.FC<TimeGridProps> = ({
                       ev={ev}
                       onOpen={onOpen}
                       selected={selectedId === ev.id}
-                      compact={e - s < 50 || cols > 2}
+                      detailed={oneDay}
+                      showTime={false}
+                      compact={!oneDay && (e - s < 50 || cols > 2)}
                       t={t}
                       style={{
                         position: 'absolute',

@@ -1,8 +1,6 @@
 import React, { useMemo } from 'react';
 import {
   AlertTriangle,
-  ArrowDown,
-  ArrowUp,
   Building2,
   Clock,
   ExternalLink,
@@ -115,7 +113,6 @@ export const EventDetailPopover: React.FC<EventDetailPopoverProps> = ({
               {statusLabel}
             </span>
             <span className={cls('cal-kindtag', event.type)}>
-              {isPickup ? <ArrowUp size={12} strokeWidth={2.5} /> : <ArrowDown size={12} strokeWidth={2.5} />}
               {isPickup ? t('pickup', 'Pickup') : t('dropoff', 'Dropoff')}
               {event.stopCount > 2 && event.stopIndex != null
                 ? ` · ${(event.stopIndex ?? 0) + 1}/${event.stopCount}`

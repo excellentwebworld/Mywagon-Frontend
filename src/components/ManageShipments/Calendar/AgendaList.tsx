@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowDown, ArrowUp, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import {
   STATUS_LABELS,
   cls,
@@ -89,7 +89,6 @@ export const AgendaList: React.FC<AgendaListProps> = ({
                   <span className="ag-time">{timeLabel}</span>
                   <span className="ag-kind">
                     <span className={cls('cal-kindtag', ev.type)}>
-                      {ev.type === 'pickup' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
                       {ev.type === 'pickup' ? t('pickup', 'Pickup') : t('dropoff', 'Dropoff')}
                     </span>
                   </span>

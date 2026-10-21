@@ -1,5 +1,4 @@
 import React from 'react';
-import { ArrowDown, ArrowUp } from 'lucide-react';
 import {
   STATUS_LABELS,
   cls,
@@ -12,6 +11,10 @@ interface EventChipProps {
   onOpen: (ev: CalendarEvent, rect: DOMRect) => void;
   selected?: boolean;
   compact?: boolean;
+  /** Single-day time grid: Pickup/Dropoff, SID, customer, location. No clock time. */
+  detailed?: boolean;
+  /** Time grid already shows hours in the gutter. */
+  showTime?: boolean;
   style?: React.CSSProperties;
   t: (key: string, defaultValue?: string) => string;
 }
@@ -21,6 +24,8 @@ export const EventChip: React.FC<EventChipProps> = ({
   onOpen,
   selected = false,
   compact = false,
+  detailed = false,
+  showTime = true,
   style,
   t,
 }) => {
@@ -43,7 +48,8 @@ export const EventChip: React.FC<EventChipProps> = ({
       className={cls(
         'ev',
         `ev--st-${vs}`,
-        compact && 'ev--compact',
+        compact && !detailed && 'ev--compact',
+        detailed && 'ev--day',
         !ev.carrierName && vs !== 'canceled' && 'ev--open',
         vs === 'canceled' && 'ev--canceled',
         selected && 'is-selected'
@@ -55,21 +61,16 @@ export const EventChip: React.FC<EventChipProps> = ({
       }}
     >
       <span className="ev__top">
-        {ev.type === 'pickup' ? (
-          <ArrowUp size={12} className="ev__icon" aria-hidden />
-        ) : (
-          <ArrowDown size={12} className="ev__icon" aria-hidden />
-        )}
         <span
           className={cls(
             'ev__kind',
             ev.type === 'pickup' ? 'ev__kind--pickup' : 'ev__kind--delivery'
           )}
         >
-          {ev.type === 'pickup' ? 'PU' : 'DL'}
+          {ev.type === 'pickup' ? t('pickup', 'Pickup') : t('dropoff', 'Dropoff')}
           {multi}
         </span>
-        <span className="ev__time">{timeLabel}</span>
+        {showTime && !detailed && <span className="ev__time">{timeLabel}</span>}
         <span className="ev__sid">{ev.sid}</span>
         {risk && (
           <span className="ev__risk" aria-hidden>
@@ -78,7 +79,9 @@ export const EventChip: React.FC<EventChipProps> = ({
         )}
       </span>
       <span className="ev__cust">{ev.companyName || t('unknownCustomer', '—')}</span>
-      {!compact && <span className="ev__place">{ev.locationName || ev.city || ''}</span>}
+      {(detailed || !compact) && (
+        <span className="ev__place">{ev.locationName || ev.city || ''}</span>
+      )}
     </button>
   );
 };

@@ -336,6 +336,56 @@ describe('calendarUtils', () => {
       expect(laid[0].cols).toBe(2);
       expect(laid[1].cols).toBe(2);
       expect(new Set(laid.map((x) => x.col)).size).toBe(2);
+      expect(laid[0].e - laid[0].s).toBe(120);
+      expect(laid[1].e - laid[1].s).toBe(120);
+    });
+
+    it('sizes a ranged window to its full duration and keeps 1 hour when there is no end', () => {
+      const events = extractCalendarEvents([
+        {
+          id: '301',
+          auto_id: 'RANGE',
+          status: 'scheduled',
+          stops: [
+            { id: 1, type: 'pickup', date: '2026-10-12', time_start: '08:30', time_end: '11:00' },
+          ],
+        } as Shipment,
+        {
+          id: '302',
+          auto_id: 'OPEN',
+          status: 'scheduled',
+          stops: [{ id: 1, type: 'pickup', date: '2026-10-12', time_start: '09:00' }],
+        } as Shipment,
+      ]);
+      const ranged = events.find((e) => e.sid === 'RANGE')!;
+      const open = events.find((e) => e.sid === 'OPEN')!;
+      expect(ranged.durationMinutes).toBe(150);
+      expect(ranged.startMinutes).toBe(8 * 60 + 30);
+      expect(open.durationMinutes).toBe(60);
+      expect(open.timeEnd).toBe('');
+    });
+
+    it('splits an overnight range into a second slot on the following day', () => {
+      const events = extractCalendarEvents([
+        {
+          id: '303',
+          auto_id: 'NIGHT',
+          status: 'scheduled',
+          stops: [
+            { id: 1, type: 'pickup', date: '2026-10-12', time_start: '22:00', time_end: '02:30' },
+          ],
+        } as Shipment,
+      ]);
+      expect(events).toHaveLength(2);
+      expect(events[0].dateYmd).toBe('2026-10-12');
+      expect(events[0].startMinutes).toBe(22 * 60);
+      expect(events[0].durationMinutes).toBe(2 * 60);
+      expect(events[0].timeEnd).toBe('24:00');
+      expect(events[1].dateYmd).toBe('2026-10-13');
+      expect(events[1].timeStart).toBe('00:00');
+      expect(events[1].timeEnd).toBe('02:30');
+      expect(events[1].startMinutes).toBe(0);
+      expect(events[1].durationMinutes).toBe(150);
     });
 
     it('collectOverdueEvents counts only overdue loads in the given visible set', () => {

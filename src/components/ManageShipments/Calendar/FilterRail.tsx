@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import {
   DEFAULT_RAIL_FILTERS,
   LEGEND_ORDER,
@@ -160,7 +160,7 @@ export const FilterRail: React.FC<FilterRailProps> = ({
             onChange={(e) => set({ pickup: e.target.checked })}
           />
           <span className="cal-check-label">
-            <ArrowUp size={13} /> {t('pickups', 'Pickups')}
+            <span className="cal-kindtag pickup">{t('pickups', 'Pickups')}</span>
           </span>
         </label>
         <label className="cal-check">
@@ -170,7 +170,7 @@ export const FilterRail: React.FC<FilterRailProps> = ({
             onChange={(e) => set({ delivery: e.target.checked })}
           />
           <span className="cal-check-label">
-            <ArrowDown size={13} /> {t('dropoffs', 'Dropoffs')}
+            <span className="cal-kindtag delivery">{t('dropoffs', 'Dropoffs')}</span>
           </span>
         </label>
       </fieldset>
