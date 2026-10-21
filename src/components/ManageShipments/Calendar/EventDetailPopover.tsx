@@ -262,10 +262,32 @@ export const EventDetailPopover: React.FC<EventDetailPopoverProps> = ({
                     <button
                       type="button"
                       className={cls('cal-route-stop', st.id === event.id && 'is-current')}
-                      disabled={st.id === event.id}
-                      onClick={() => onJumpStop(st)}
+                      aria-disabled={st.id === event.id || undefined}
+                      onClick={() => {
+                        if (st.id === event.id) return;
+                        onJumpStop(st);
+                      }}
                     >
-                      <span className="cal-r-dot">{(st.stopIndex ?? idx) + 1}</span>
+                      <span
+                        className={cls('cal-r-dot', st.type === 'pickup' ? 'pickup' : 'delivery')}
+                        style={
+                          st.type === 'pickup'
+                            ? {
+                                backgroundColor: '#ffffff',
+                                color: '#111111',
+                                WebkitTextFillColor: '#111111',
+                                border: '1.5px solid #111111',
+                              }
+                            : {
+                                backgroundColor: '#111111',
+                                color: '#ffffff',
+                                WebkitTextFillColor: '#ffffff',
+                                border: '1.5px solid #111111',
+                              }
+                        }
+                      >
+                        {(st.stopIndex ?? idx) + 1}
+                      </span>
                       <span className={cls('cal-kindtag', 'cal-kindtag--route', st.type)}>
                         {st.type === 'pickup' ? t('pickup', 'Pickup') : t('dropoff', 'Dropoff')}
                       </span>

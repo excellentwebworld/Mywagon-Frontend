@@ -2357,6 +2357,7 @@ html.dark .stab .cnt.cw,
 .itin-pin-drop {
   background: #111;
   color: #fff;
+  border: 1px solid #111;
 }
 /* Driver stop number ring by progress */
 .itin-pin--done {

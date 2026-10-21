@@ -1819,13 +1819,25 @@
   flex: none;
 }
 
-/* Itinerary stop numbers stay black on a light circle in both themes */
-.cal-pop-route .cal-r-dot,
-.cal-pop-route .cal-r-dot.pickup,
-.cal-pop-route .cal-r-dot.delivery {
-  background: #fff;
-  border-color: #111;
-  color: #111;
+/* Pickup number: white circle, black digit. Dropoff number: black circle, white digit. */
+.cal-pop-route button .cal-r-dot.pickup,
+.cal-pop-route button:disabled .cal-r-dot.pickup {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border: 1.5px solid #111111 !important;
+  color: #111111 !important;
+  -webkit-text-fill-color: #111111 !important;
+  opacity: 1;
+}
+
+.cal-pop-route button .cal-r-dot.delivery,
+.cal-pop-route button:disabled .cal-r-dot.delivery {
+  background: #111111 !important;
+  background-color: #111111 !important;
+  border: 1.5px solid #111111 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1;
 }
 
 .cal-pop-route .cal-kindtag--route {
