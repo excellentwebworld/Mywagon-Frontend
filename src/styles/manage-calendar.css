@@ -570,7 +570,7 @@
 }
 
 .cal-legend .ev--st-scheduled i {
-  background: #ffffff;
+  background: color-mix(in srgb, var(--st-scheduled) var(--chip-mix), var(--cal-surface));
   border: 1.5px solid #9B51E0;
 }
 
