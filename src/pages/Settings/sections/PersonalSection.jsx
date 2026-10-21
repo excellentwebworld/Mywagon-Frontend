@@ -32,6 +32,22 @@ import { ContextualTutorialTrigger } from '../../../components/Tutorials';
 import '../../../styles/tutorials.css';
 
 const ACTIVITY_PREVIEW_LIMIT = 10;
+const NAME_MAX = 25;
+
+/** Letters/spaces/punctuation allowed; digits stripped; hard-capped at 25. */
+function sanitizePersonNameInput(value) {
+  return String(value ?? '')
+    .replace(/\d/g, '')
+    .slice(0, NAME_MAX);
+}
+
+function isValidPersonName(value) {
+  const v = String(value ?? '').trim();
+  if (!v) return false;
+  if (v.length > NAME_MAX) return false;
+  if (/\d/.test(v)) return false;
+  return true;
+}
 
 export default function PersonalSection() {
   const { t, i18n } = useTranslation();
@@ -118,8 +134,24 @@ export default function PersonalSection() {
       toast.error(t('settings.profileSection.firstNameRequired', { defaultValue: 'The first name field is required.' }));
       return;
     }
+    if (!isValidPersonName(draft.first_name)) {
+      toast.error(
+        t('settings.profileSection.firstNameInvalid', {
+          defaultValue: 'First name must be at most 25 characters and cannot contain digits.',
+        })
+      );
+      return;
+    }
     if (!draft.last_name?.trim()) {
       toast.error(t('settings.profileSection.lastNameRequired', { defaultValue: 'The last name field is required.' }));
+      return;
+    }
+    if (!isValidPersonName(draft.last_name)) {
+      toast.error(
+        t('settings.profileSection.lastNameInvalid', {
+          defaultValue: 'Last name must be at most 25 characters and cannot contain digits.',
+        })
+      );
       return;
     }
     const phoneDigits = String(draft.phone || '').replace(/[^0-9]/g, '');
@@ -358,15 +390,17 @@ export default function PersonalSection() {
             label={t('settings.profileSection.firstName')}
             required
             value={editing ? draft.first_name : profile.first_name}
-            onChange={(v) => setField('first_name', v)}
+            onChange={(v) => setField('first_name', sanitizePersonNameInput(v))}
             editing={editing}
+            maxLength={NAME_MAX}
           />
           <Field
             label={t('settings.profileSection.lastName')}
             required
             value={editing ? draft.last_name : profile.last_name}
-            onChange={(v) => setField('last_name', v)}
+            onChange={(v) => setField('last_name', sanitizePersonNameInput(v))}
             editing={editing}
+            maxLength={NAME_MAX}
           />
           <Field
             label={t('settings.profileSection.email')}
@@ -607,7 +641,7 @@ function Card({ title, icon, action, children }) {
   );
 }
 
-function Field({ label, value, onChange, editing, locked, lockMsg, required, icon }) {
+function Field({ label, value, onChange, editing, locked, lockMsg, required, icon, maxLength }) {
   const { T: theme } = useTheme();
   return (
     <div>
@@ -617,6 +651,7 @@ function Field({ label, value, onChange, editing, locked, lockMsg, required, ico
       {editing && !locked ? (
         <input
           value={value || ''}
+          maxLength={maxLength}
           onChange={(e) => onChange?.(e.target.value)}
           className="w-full px-3 py-2 rounded-lg outline-none"
           style={{ border: `1px solid ${theme.bd}`, background: theme.sf, color: theme.t1, fontSize: 13 }}

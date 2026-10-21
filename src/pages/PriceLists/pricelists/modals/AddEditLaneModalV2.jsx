@@ -36,6 +36,7 @@ const METRICS = [
 const MAX_PRICE_DIGITS = 8;
 const MAX_PRICE_DECIMALS = 2;
 const MAX_PRICE_VALUE = 10 ** MAX_PRICE_DIGITS - 1; // 99_999_999
+const LANE_NOTES_MAX = 200;
 
 function clampPriceInput(raw) {
   const value = String(raw ?? '');
@@ -665,6 +666,10 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
 
     if (effectiveTo && effectiveFrom && effectiveTo < effectiveFrom) errs.dateOrder = true;
 
+    if (notes.trim().length > LANE_NOTES_MAX) {
+      errs.notes = true;
+    }
+
     if (dupeWarn) {
       errs.form = t(
         'priceLists.phase2.validation.conflictWarn',
@@ -678,7 +683,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
         ...prev,
         route: Boolean(errs.stops || errs.sameCity) || prev.route,
         pricing: Boolean(errs.pricingRows || Object.keys(errs).some((k) => k.startsWith('amount_') || k.startsWith('metricValue_'))) || prev.pricing,
-        validity: Boolean(errs.dateOrder) || prev.validity,
+        validity: Boolean(errs.dateOrder || errs.notes) || prev.validity,
       }));
       scrollToFirstError();
       return;
@@ -727,7 +732,7 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
         ? scopePartnerIds.map((id) => partnerNameById.get(String(id)) || String(id)).join(', ')
         : t('priceLists.scope.default', 'Default'),
       scopeDirection: role === 'forwarder' && scopePartnerIds.length > 0 && scopeDirection ? scopeDirection : null,
-      notes,
+      notes: notes.trim().slice(0, LANE_NOTES_MAX),
     };
 
     if (mode === 'duplicate' && sourceLaneRef.current) {
@@ -1258,7 +1263,31 @@ export default function AddEditLaneModalV2({ open, onClose, onSave, lane, mode =
 
               <div>
                 <label style={labelStyle}>{t('priceLists.detail.notes', 'Notes')}</label>
-                <textarea rows={3} style={{ ...inputStyle, resize: 'vertical' }} value={notes} onChange={(e) => setNotes(e.target.value)} />
+                <textarea
+                  rows={3}
+                  maxLength={LANE_NOTES_MAX}
+                  style={{
+                    ...inputStyle,
+                    resize: 'vertical',
+                    ...(errors.notes ? { borderColor: 'var(--danger, #ef4444)' } : null),
+                  }}
+                  value={notes}
+                  onChange={(e) => {
+                    setNotes(e.target.value.slice(0, LANE_NOTES_MAX));
+                    setErrors((prev) => {
+                      if (!prev.notes) return prev;
+                      const next = { ...prev };
+                      delete next.notes;
+                      return next;
+                    });
+                  }}
+                  onBlur={() => setNotes((prev) => prev.trim().slice(0, LANE_NOTES_MAX))}
+                />
+                {!!errors.notes && (
+                  <div className="error-msg" data-error="true" style={errorStyle}>
+                    {t('priceLists.modal.notesMax', 'Notes must be at most 200 characters.')}
+                  </div>
+                )}
               </div>
             </div>
           )}

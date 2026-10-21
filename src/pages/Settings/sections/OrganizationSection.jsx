@@ -35,6 +35,30 @@ import '../../Register/RegisterPage.css';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_INVOICE_EMAILS = 5;
+const TRADE_NAME_MAX = 30;
+const CITY_MAX = 25;
+const POSTAL_CODE_MAX = 10;
+
+/** Trade name: no digits, max 30. */
+function sanitizeTradeNameInput(value) {
+  return String(value ?? '')
+    .replace(/\d/g, '')
+    .slice(0, TRADE_NAME_MAX);
+}
+
+/** City: letters and spaces only, max 25. */
+function sanitizeCityInput(value) {
+  return String(value ?? '')
+    .replace(/[^\p{L}\s]/gu, '')
+    .slice(0, CITY_MAX);
+}
+
+/** Postal code: digits only, max 10. */
+function sanitizePostalCodeInput(value) {
+  return String(value ?? '')
+    .replace(/\D/g, '')
+    .slice(0, POSTAL_CODE_MAX);
+}
 
 /** Scroll within settings scroller only — native scrollIntoView can scroll the document and leave blank space under the form after SPA handoff from /complete-signup. */
 function scrollWithinSettings(el, { block = 'start', behavior = 'smooth', offset = 12 } = {}) {
@@ -557,6 +581,42 @@ export default function OrganizationSection() {
       }
     }
 
+    const tradeName = String(legalDraft.trade_name || '').trim();
+    if (tradeName) {
+      if (tradeName.length > TRADE_NAME_MAX || /\d/.test(tradeName)) {
+        toast.error(
+          t('settings.orgSection.legal.tradeNameInvalid', {
+            defaultValue: 'Trade name must be at most 30 characters and cannot contain digits.',
+          })
+        );
+        return;
+      }
+    }
+
+    const city = String(legalDraft.city || '').trim();
+    if (city) {
+      if (city.length > CITY_MAX || /[^\p{L}\s]/u.test(city)) {
+        toast.error(
+          t('settings.orgSection.legal.cityInvalid', {
+            defaultValue: 'City may only contain letters and spaces (max 25 characters).',
+          })
+        );
+        return;
+      }
+    }
+
+    const postal = String(legalDraft.postal_code || '').trim();
+    if (postal) {
+      if (!/^\d{1,10}$/.test(postal)) {
+        toast.error(
+          t('settings.orgSection.legal.postalInvalid', {
+            defaultValue: 'Postal code may only contain digits (max 10).',
+          })
+        );
+        return;
+      }
+    }
+
     // Commit typed-but-not-added email so Save does not drop it.
     const { emails: invoiceEmails, error: emailError, clearedInput } = buildInvoiceEmails(
       legalDraft.invoice_emails,
@@ -927,8 +987,9 @@ export default function OrganizationSection() {
           <LegalField
             label={t('settings.orgSection.legal.tradeName')}
             value={editingLegal ? legalDraft.trade_name : data.legal.trade_name}
-            onChange={(v) => setLegalDraft((p) => ({ ...p, trade_name: v }))}
+            onChange={(v) => setLegalDraft((p) => ({ ...p, trade_name: sanitizeTradeNameInput(v) }))}
             editing={editingLegal}
+            maxLength={TRADE_NAME_MAX}
           />
           <LegalField
             label={t('settings.orgSection.legal.vatNumber')}
@@ -978,8 +1039,10 @@ export default function OrganizationSection() {
                   onCityPostalChange={(city, postalCode) => {
                     setLegalDraft((p) => ({
                       ...p,
-                      city: city || p.city,
-                      postal_code: postalCode || p.postal_code,
+                      city: city ? sanitizeCityInput(city) : p.city,
+                      postal_code: postalCode
+                        ? sanitizePostalCodeInput(postalCode)
+                        : p.postal_code,
                     }));
                   }}
                   onPlaceSelected={(place) => {
@@ -992,8 +1055,10 @@ export default function OrganizationSection() {
                     setLegalDraft((p) => ({
                       ...p,
                       billing_address: place.address || place.formattedAddress || p.billing_address,
-                      city: place.city || p.city,
-                      postal_code: place.postalCode || p.postal_code,
+                      city: place.city ? sanitizeCityInput(place.city) : p.city,
+                      postal_code: place.postalCode
+                        ? sanitizePostalCodeInput(place.postalCode)
+                        : p.postal_code,
                       country: matchCountry || p.country,
                       lat: place.lat != null && place.lat !== '' ? String(place.lat) : p.lat,
                       lng: place.lng != null && place.lng !== '' ? String(place.lng) : p.lng,
@@ -1013,16 +1078,19 @@ export default function OrganizationSection() {
           <LegalField
             label={t('settings.orgSection.legal.city')}
             value={editingLegal ? legalDraft.city : data.legal.city}
-            onChange={(v) => setLegalDraft((p) => ({ ...p, city: v }))}
+            onChange={(v) => setLegalDraft((p) => ({ ...p, city: sanitizeCityInput(v) }))}
             editing={editingLegal}
             required={fromSocialSetup || needsSignupComplete(user)}
+            maxLength={CITY_MAX}
           />
           <LegalField
             label={t('settings.orgSection.legal.postalCode')}
             value={editingLegal ? legalDraft.postal_code : data.legal.postal_code}
-            onChange={(v) => setLegalDraft((p) => ({ ...p, postal_code: v }))}
+            onChange={(v) => setLegalDraft((p) => ({ ...p, postal_code: sanitizePostalCodeInput(v) }))}
             editing={editingLegal}
             required={fromSocialSetup || needsSignupComplete(user)}
+            maxLength={POSTAL_CODE_MAX}
+            inputMode="numeric"
           />
           <div>
             <label className="block mb-1" style={{ fontSize: 12, fontWeight: 600, color: T.t2 }}>
@@ -2369,7 +2437,7 @@ function SectionCard({ title, icon, editing, saving, onEdit, onSave, onCancel, h
   );
 }
 
-function LegalField({ label, value, onChange, locked, editing, required }) {
+function LegalField({ label, value, onChange, locked, editing, required, maxLength, inputMode }) {
   const { T: theme } = useTheme();
   const { t } = useTranslation();
   const hasValue = value !== null && value !== undefined && String(value).trim() !== '';
@@ -2384,6 +2452,8 @@ function LegalField({ label, value, onChange, locked, editing, required }) {
       {editing && !locked ? (
         <input
           value={value || ''}
+          maxLength={maxLength}
+          inputMode={inputMode}
           onChange={(e) => onChange?.(e.target.value)}
           className="w-full px-3 py-2 rounded-lg outline-none"
           style={{ border: `1px solid ${theme.bd}`, background: theme.sf, color: theme.t1, fontSize: 13 }}

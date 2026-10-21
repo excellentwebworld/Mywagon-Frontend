@@ -50,15 +50,19 @@ function InstructionNoteItem({
   const isLong = text.length > INSTRUCTION_MAX_LEN;
 
   return (
-    <div className="p-3 rounded-lg bg-[var(--surface-alt)] border border-amber-200 dark:border-amber-800/60 shadow-2xs">
+    <div className="p-3 rounded-lg bg-[var(--surface)] dark:bg-[var(--surface-alt)] border border-amber-200 dark:border-amber-700/80 shadow-2xs">
       {(item.author || item.timestamp || item.visibility) && (
         <div className="flex items-center gap-1.5 flex-wrap text-[11px] mb-1.5">
           {item.author && (
-            <span className="font-bold text-amber-900 dark:text-amber-300">{item.author}</span>
+            <span className="font-bold text-amber-900 dark:text-amber-200">{item.author}</span>
           )}
-          {item.author && item.timestamp && <span className="text-amber-500">·</span>}
+          {item.author && item.timestamp && (
+            <span className="text-amber-500 dark:text-amber-500/80">·</span>
+          )}
           {item.timestamp && (
-            <span className="tabular-nums text-[10px] text-amber-700 dark:text-amber-400">{item.timestamp}</span>
+            <span className="tabular-nums text-[10px] text-amber-700 dark:text-amber-300/90">
+              {item.timestamp}
+            </span>
           )}
           {item.visibility && (
             <span
@@ -75,7 +79,7 @@ function InstructionNoteItem({
           )}
         </div>
       )}
-      <div className="text-[12px] text-amber-950 dark:text-amber-200 leading-relaxed break-words">
+      <div className="text-[12px] font-medium text-amber-950 dark:text-amber-50 leading-relaxed break-words">
         <span>{isLong && !expanded ? `${text.slice(0, INSTRUCTION_MAX_LEN)}…` : text}</span>
         {isLong && (
           <button
@@ -366,12 +370,12 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
       </div>
 
       {parsedNotes.length > 0 && (
-        <div className="mt-3.5 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 space-y-2.5">
-          <div className="flex items-center gap-1.5 font-bold text-[12px] text-amber-900 dark:text-amber-300">
-            <FileText size={14} className="text-amber-600 dark:text-amber-400" />
+        <div className="mt-3.5 p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/45 border border-amber-200 dark:border-amber-700/80 space-y-2.5">
+          <div className="flex items-center gap-1.5 font-bold text-[12px] text-amber-900 dark:text-amber-100">
+            <FileText size={14} className="text-amber-600 dark:text-amber-300" />
             <span>{t('specialInstructions', 'Special Instructions')}</span>
             {parsedNotes.length > 1 && (
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200">
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-100">
                 {parsedNotes.length}
               </span>
             )}

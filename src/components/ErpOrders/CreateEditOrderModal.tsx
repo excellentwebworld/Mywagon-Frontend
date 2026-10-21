@@ -11,6 +11,21 @@ import { FormFieldError } from '../AddressBook/FormFieldError';
 import type { ApiErpOrderCustomer } from '../../api/types/erpOrders';
 import type { LocationItem, SKU } from '../../context/AppContext';
 import type { ErpOrderFormState, ErpOrderLine } from '../../pages/ErpOrders/types';
+import {
+  getWeightMaxForUnit,
+  isValidLineWeight,
+  isValidNotes,
+  isValidOrderId,
+  isValidOrderValue,
+  isValidQty,
+  NOTES_MAX,
+  normalizeOrderId,
+  ORDER_ID_MAX,
+  parseOrderValueNumber,
+  sanitizeNotesInput,
+  sanitizeOrderIdInput,
+  sanitizeOrderValueInput,
+} from '../../pages/ErpOrders/validation/orderFieldValidation';
 
 type Props = {
   t: (key: string, options?: Record<string, string | number>) => string;
@@ -104,7 +119,20 @@ export const CreateEditOrderModal: React.FC<Props> = ({
   const validationSchema = useMemo(() => {
     return Yup.object().shape({
       // MS3-403 / MS3-405: order number and customer are optional.
-      orderReference: Yup.string().trim(),
+      orderReference: Yup.string()
+        .transform((v) => (typeof v === 'string' ? normalizeOrderId(v) : v))
+        .test(
+          'order-id-format',
+          t('erpOrdersOrderIdFormat'),
+          (v) => isValidOrderId(v ?? '', { required: false })
+        ),
+      erpReference: Yup.string()
+        .transform((v) => (typeof v === 'string' ? normalizeOrderId(v) : v))
+        .test(
+          'erp-id-format',
+          t('erpOrdersErpIdFormat'),
+          (v) => isValidOrderId(v ?? '', { required: false })
+        ),
       customerName: Yup.string().trim(),
       deliveryDate: Yup.string().trim().required(t('erpOrdersDeliveryDateRequired')),
       shipDate: Yup.string()
@@ -120,6 +148,17 @@ export const CreateEditOrderModal: React.FC<Props> = ({
             return true;
           }
         ),
+      orderValue: Yup.mixed()
+        .nullable()
+        .test(
+          'order-value-bounds',
+          t('erpOrdersOrderValueInvalid'),
+          (v) => isValidOrderValue(v as number | null | undefined)
+        ),
+      notes: Yup.string()
+        .transform((v) => (typeof v === 'string' ? v.trim() : v))
+        .test('notes-max', t('erpOrdersNotesMax'), (v) => isValidNotes(v ?? ''))
+        .max(NOTES_MAX, t('erpOrdersNotesMax')),
       lines: Yup.array()
         .of(
           Yup.object().shape({
@@ -135,11 +174,9 @@ export const CreateEditOrderModal: React.FC<Props> = ({
 
           const isComplete = (line: ErpOrderLine) =>
             line.productSkuId != null &&
-            line.quantity != null &&
-            Number(line.quantity) > 0 &&
+            isValidQty(line.quantity) &&
             Boolean(String(line.unit || '').trim()) &&
-            line.weight != null &&
-            Number(line.weight) >= 0 &&
+            isValidLineWeight(line.weight, line.weightUnit, { required: true }) &&
             Boolean(String(line.weightUnit || '').trim());
 
           const isBlank = (line: ErpOrderLine) =>
@@ -168,11 +205,9 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                 ),
               });
             }
-            if (line.quantity == null || Number(line.quantity) <= 0) {
+            if (!isValidQty(line.quantity)) {
               return this.createError({
-                message: String(
-                  t('erpOrdersFieldRequired', { field: `${t('qty')} (line ${i + 1})` })
-                ),
+                message: String(t('erpOrdersQtyInvalid', { line: i + 1 })),
               });
             }
             if (!String(line.unit || '').trim()) {
@@ -182,9 +217,10 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                 ),
               });
             }
-            if (line.weight == null || Number(line.weight) < 0) {
+            if (!isValidLineWeight(line.weight, line.weightUnit, { required: true })) {
+              const max = getWeightMaxForUnit(line.weightUnit);
               return this.createError({
-                message: String(t('erpOrdersLineWeightMin', { line: i + 1 })),
+                message: String(t('erpOrdersLineWeightInvalid', { line: i + 1, max })),
               });
             }
             if (!String(line.weightUnit || '').trim()) {
@@ -203,10 +239,12 @@ export const CreateEditOrderModal: React.FC<Props> = ({
         .test('line-weights', function validateLineWeights(lines) {
           const orderLines = (lines ?? []) as ErpOrderLine[];
           for (let i = 0; i < orderLines.length; i++) {
-            const weight = orderLines[i]?.weight;
-            if (weight != null && weight < 0) {
+            const line = orderLines[i];
+            if (line?.weight == null) continue;
+            if (!isValidLineWeight(line.weight, line.weightUnit, { required: false })) {
+              const max = getWeightMaxForUnit(line.weightUnit);
               return this.createError({
-                message: String(t('erpOrdersLineWeightMin', { line: i + 1 })),
+                message: String(t('erpOrdersLineWeightInvalid', { line: i + 1, max })),
               });
             }
           }
@@ -255,10 +293,15 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                   <label className="field-l">{t('erpOrdersColOrderId')}</label>
                   <input
                     className={`inp${showError('orderReference') ? ' has-error' : ''}`}
+                    maxLength={ORDER_ID_MAX}
                     placeholder={t('erpOrdersOrderIdPlaceholder')}
-                    maxLength={100}
                     value={values.orderReference}
-                    onChange={(e) => setFieldValue('orderReference', e.target.value)}
+                    onChange={(e) =>
+                      setFieldValue('orderReference', sanitizeOrderIdInput(e.target.value), true)
+                    }
+                    onBlur={() =>
+                      setFieldValue('orderReference', normalizeOrderId(values.orderReference), true)
+                    }
                     disabled={referenceLocked}
                   />
                   <FormFieldError message={showError('orderReference') ? errors.orderReference : undefined} />
@@ -268,9 +311,15 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                   <label className="field-l">{t('erpOrdersErpId')}</label>
                   <input
                     className={`inp${showError('erpReference') ? ' has-error' : ''}`}
+                    maxLength={ORDER_ID_MAX}
                     placeholder={t('erpOrdersErpIdPlaceholder')}
                     value={values.erpReference}
-                    onChange={(e) => setFieldValue('erpReference', e.target.value)}
+                    onChange={(e) =>
+                      setFieldValue('erpReference', sanitizeOrderIdInput(e.target.value), true)
+                    }
+                    onBlur={() =>
+                      setFieldValue('erpReference', normalizeOrderId(values.erpReference), true)
+                    }
                   />
                   <FormFieldError message={showError('erpReference') ? errors.erpReference : undefined} />
                 </div>
@@ -372,26 +421,36 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                   <label className="field-l">{t('erpOrdersOrderValue')}</label>
                   <input
                     type="text"
-                    className="inp"
+                    className={`inp${showError('orderValue') ? ' has-error' : ''}`}
                     inputMode="decimal"
                     placeholder={t('erpOrdersOrderValuePlaceholder')}
                     value={values.orderValue != null ? String(values.orderValue) : ''}
                     onChange={(e) => {
-                      const raw = e.target.value.replace(/[^0-9.,]/g, '');
-                      setFieldValue('orderValue', raw ? Number(raw.replace(',', '.')) : null);
+                      const raw = sanitizeOrderValueInput(e.target.value);
+                      const parsed = parseOrderValueNumber(raw);
+                      setFieldValue('orderValue', parsed, true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'e' || e.key === 'E' || e.key === '+' || e.key === '-') {
+                        e.preventDefault();
+                      }
                     }}
                   />
+                  <FormFieldError message={showError('orderValue') ? (errors.orderValue as string) : undefined} />
                   <div className="text-[11px] text-slate-400 mt-1">{t('orderValueHint')}</div>
                 </div>
 
                 <div className="field">
                   <label className="field-l">{t('notes')}</label>
                   <textarea
-                    className="inp"
+                    className={`inp${showError('notes') ? ' has-error' : ''}`}
                     rows={2}
+                    maxLength={NOTES_MAX}
                     value={values.notes}
-                    onChange={(e) => setFieldValue('notes', e.target.value)}
+                    onChange={(e) => setFieldValue('notes', sanitizeNotesInput(e.target.value), true)}
+                    onBlur={() => setFieldValue('notes', values.notes.trim(), true)}
                   />
+                  <FormFieldError message={showError('notes') ? errors.notes : undefined} />
                 </div>
               </div>
 

@@ -1,7 +1,17 @@
 import type { CreateLocationData } from '../types';
 import { LOAD_TIME_MINUTES_MAX, LOAD_TIME_MINUTES_MIN } from '../constants';
 import { validateTimeRangesList } from './timeRangeValidation';
-import { isPositiveMeasurement } from './locationFormSchema';
+import {
+  isValidBoundedDecimal,
+  isValidInternalCode,
+  isValidLocationName,
+  isValidNote,
+  isValidPostalCode,
+  LOCATION_NAME_MAX,
+  MAX_TRUCK_LENGTH_M,
+  MAX_WEIGHT_T,
+  NOTE_MAX,
+} from './locationFieldValidation';
 
 export type CreateFieldErrors = Partial<Record<string, string>>;
 
@@ -37,14 +47,32 @@ export function validateCreateStep2(
   t: TFn = defaultT
 ): CreateFieldErrors {
   const errors: CreateFieldErrors = {};
-  if (!String(data.name ?? '').trim()) {
+  const name = String(data.name ?? '');
+  if (!name.trim()) {
     errors.name = t('abValLocationNameRequired', 'Location name is required');
+  } else if (!isValidLocationName(name)) {
+    errors.name = t(
+      'abValLocationNameFormat',
+      `Location name must be at most ${LOCATION_NAME_MAX} characters with no special characters`
+    );
   }
   if (!String(data.address ?? '').trim()) {
     errors.address = t('abValAddressRequired', 'Address is required');
   }
   if (!String(data.city ?? '').trim()) {
     errors.city = t('abValCityRequired', 'City is required');
+  }
+  if (!isValidPostalCode(String(data.postal ?? ''))) {
+    errors.postal = t(
+      'abValPostalDigits',
+      'Postal code may only contain digits (max 10)'
+    );
+  }
+  if (!isValidInternalCode(String(data.code ?? ''))) {
+    errors.code = t(
+      'abValInternalCodeMax',
+      'Internal location code must be at most 10 characters'
+    );
   }
   if (!isValidCoordinate(data.lat, -90, 90)) {
     errors.address =
@@ -89,12 +117,31 @@ export function validateCreateStep3(
     }
   }
 
-  if (!isPositiveMeasurement(data.maxTruck, /m$/i)) {
-    errors.maxTruck = t('abValMustBePositive', 'Must be greater than 0');
+  if (!isValidBoundedDecimal(data.maxTruck, MAX_TRUCK_LENGTH_M, { optional: true })) {
+    errors.maxTruck = t(
+      'abValMaxTruckInvalid',
+      `Must be greater than 0, up to 2 decimals, max ${MAX_TRUCK_LENGTH_M}`
+    );
   }
 
-  if (!isPositiveMeasurement(data.maxWeight, /(t|tons?|kg)$/i)) {
-    errors.maxWeight = t('abValMustBePositive', 'Must be greater than 0');
+  if (!isValidBoundedDecimal(data.maxWeight, MAX_WEIGHT_T, { optional: true })) {
+    errors.maxWeight = t(
+      'abValMaxWeightInvalid',
+      `Must be greater than 0, up to 2 decimals, max ${MAX_WEIGHT_T}`
+    );
+  }
+
+  if (!isValidNote(String(data.noteInternal ?? ''))) {
+    errors.noteInternal = t(
+      'abValNoteInternalMax',
+      `Internal note must be at most ${NOTE_MAX} characters`
+    );
+  }
+  if (!isValidNote(String(data.noteCarrier ?? ''))) {
+    errors.noteCarrier = t(
+      'abValNoteCarrierMax',
+      `Carrier-visible note must be at most ${NOTE_MAX} characters`
+    );
   }
 
   if (data.appt) {

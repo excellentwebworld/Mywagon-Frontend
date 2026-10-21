@@ -11,6 +11,17 @@ import {
   validateCreateStep3,
   type CreateFieldErrors,
 } from '../../pages/AddressBook/validation/locationCreateValidation';
+import {
+  LOCATION_CODE_MAX,
+  LOCATION_NAME_MAX,
+  LOCATION_POSTAL_MAX,
+  NOTE_MAX,
+  sanitizeDecimalInput,
+  sanitizeInternalCodeInput,
+  sanitizeLocationNameInput,
+  sanitizeNoteInput,
+  sanitizePostalCodeInput,
+} from '../../pages/AddressBook/validation/locationFieldValidation';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { FormFieldError } from './FormFieldError';
 import { scrollToFirstModalError } from '../ui/scrollToModalError';
@@ -283,9 +294,10 @@ export const CreateLocationModal: React.FC<Props> = ({
         </label>
         <input
           type="text"
+          maxLength={LOCATION_NAME_MAX}
           placeholder={t('abEgLocationName', 'e.g. Central Warehouse, DC Thiva…')}
           value={createData.name}
-          onChange={(e) => update({ name: e.target.value })}
+          onChange={(e) => update({ name: sanitizeLocationNameInput(e.target.value) })}
         />
         <FormFieldError message={fieldErrors.name} />
       </div>
@@ -303,7 +315,9 @@ export const CreateLocationModal: React.FC<Props> = ({
             lat: details.lat,
             lng: details.lng,
             city: details.city || createData.city,
-            postal: details.postalCode || createData.postal,
+            postal: details.postalCode
+              ? sanitizePostalCodeInput(details.postalCode)
+              : createData.postal,
             region: details.region || createData.region,
           })
         }
@@ -321,7 +335,14 @@ export const CreateLocationModal: React.FC<Props> = ({
           <label>
             {t('abPostalCode')}
           </label>
-          <input type="text" placeholder={t('abEgPostal', 'e.g. 45500')} value={createData.postal} onChange={(e) => update({ postal: e.target.value })} />
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={LOCATION_POSTAL_MAX}
+            placeholder={t('abEgPostal', 'e.g. 45500')}
+            value={createData.postal}
+            onChange={(e) => update({ postal: sanitizePostalCodeInput(e.target.value) })}
+          />
           <FormFieldError message={fieldErrors.postal} />
         </div>
       </div>
@@ -339,9 +360,16 @@ export const CreateLocationModal: React.FC<Props> = ({
           <FormFieldError message={fieldErrors.role} />
         </div>
 
-        <div className="mf">
+        <div className={`mf${fieldErrors.code ? ' has-error' : ''}`}>
           <label>{t('abInternalCode')}</label>
-          <input type="text" placeholder={t('abEgLocationCode', 'e.g. WH-IOA-01')} value={createData.code} onChange={(e) => update({ code: e.target.value })} />
+          <input
+            type="text"
+            maxLength={LOCATION_CODE_MAX}
+            placeholder={t('abEgLocationCode', 'e.g. WH-IOA-01')}
+            value={createData.code}
+            onChange={(e) => update({ code: sanitizeInternalCodeInput(e.target.value) })}
+          />
+          <FormFieldError message={fieldErrors.code} />
         </div>
       </div>
 
@@ -356,7 +384,9 @@ export const CreateLocationModal: React.FC<Props> = ({
             lat: details.lat,
             lng: details.lng,
             city: details.city || createData.city,
-            postal: details.postalCode || createData.postal,
+            postal: details.postalCode
+              ? sanitizePostalCodeInput(details.postalCode)
+              : createData.postal,
             region: details.region || createData.region,
           })
         }
@@ -418,13 +448,12 @@ export const CreateLocationModal: React.FC<Props> = ({
           <label htmlFor="create-max-truck">{t('abMaxTruckLength')}</label>
           <input
             id="create-max-truck"
-            type="number"
-            min="0.1"
-            step="any"
+            type="text"
+            inputMode="decimal"
             placeholder={t('abEgMaxTruck', 'e.g. 18.75')}
             value={createData.maxTruck}
             onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
-            onChange={(e) => update({ maxTruck: e.target.value })}
+            onChange={(e) => update({ maxTruck: sanitizeDecimalInput(e.target.value) })}
           />
           <FormFieldError message={fieldErrors.maxTruck} />
         </div>
@@ -432,13 +461,12 @@ export const CreateLocationModal: React.FC<Props> = ({
           <label htmlFor="create-max-weight">{t('abMaxWeight')}</label>
           <input
             id="create-max-weight"
-            type="number"
-            min="0.1"
-            step="any"
+            type="text"
+            inputMode="decimal"
             placeholder={t('abEgMaxWeight', 'e.g. 40')}
             value={createData.maxWeight}
             onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
-            onChange={(e) => update({ maxWeight: e.target.value })}
+            onChange={(e) => update({ maxWeight: sanitizeDecimalInput(e.target.value) })}
           />
           <FormFieldError message={fieldErrors.maxWeight} />
         </div>
@@ -458,7 +486,7 @@ export const CreateLocationModal: React.FC<Props> = ({
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
-          maxLength={5}
+          maxLength={4}
           placeholder={t('abEgLoadTime', 'e.g. 45')}
           value={createData.loadTime}
           aria-valuemin={LOAD_TIME_MINUTES_MIN}
@@ -473,13 +501,27 @@ export const CreateLocationModal: React.FC<Props> = ({
       </div>
 
       <h4 className="ab-form-section-title">{t('abNotes')}</h4>
-      <div className="mf">
+      <div className={`mf${fieldErrors.noteInternal ? ' has-error' : ''}`}>
         <label>🔒 {t('abInternalNote')}</label>
-        <textarea placeholder={t('abInternalNotePlaceholder')} value={createData.noteInternal} onChange={(e) => update({ noteInternal: e.target.value })} />
+        <textarea
+          maxLength={NOTE_MAX}
+          placeholder={t('abInternalNotePlaceholder')}
+          value={createData.noteInternal}
+          onChange={(e) => update({ noteInternal: sanitizeNoteInput(e.target.value) })}
+          onBlur={() => update({ noteInternal: createData.noteInternal.trim() })}
+        />
+        <FormFieldError message={fieldErrors.noteInternal} />
       </div>
-      <div className="mf">
+      <div className={`mf${fieldErrors.noteCarrier ? ' has-error' : ''}`}>
         <label>🚛 {t('abCarrierNote')}</label>
-        <textarea placeholder={t('abCarrierNotePlaceholder')} value={createData.noteCarrier} onChange={(e) => update({ noteCarrier: e.target.value })} />
+        <textarea
+          maxLength={NOTE_MAX}
+          placeholder={t('abCarrierNotePlaceholder')}
+          value={createData.noteCarrier}
+          onChange={(e) => update({ noteCarrier: sanitizeNoteInput(e.target.value) })}
+          onBlur={() => update({ noteCarrier: createData.noteCarrier.trim() })}
+        />
+        <FormFieldError message={fieldErrors.noteCarrier} />
       </div>
     </>
   );

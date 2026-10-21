@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
-import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { EventChip } from './EventChip';
 import {
-  formatEventTimeRange,
+  cls,
   getWeekdayLabels,
   toDateLocale,
   type CalendarDayCell,
@@ -11,112 +11,89 @@ import {
 interface MonthViewProps {
   cells: CalendarDayCell[];
   eventsByDate: Record<string, CalendarEvent[]>;
-  onSelectEvent: (event: CalendarEvent) => void;
+  selectedId: string | null;
+  onSelectEvent: (event: CalendarEvent, rect: DOMRect) => void;
   onSelectDate: (dateYmd: string) => void;
-  /** App language code (`en` / `el`) for weekday headers. */
+  /** Opens day view for the cell date (e.g. "+N more"). */
+  onMore: (dateYmd: string) => void;
   lang?: string;
   t: (key: string, defaultValue?: string) => string;
 }
 
-const MAX_VISIBLE_EVENTS_PER_CELL = 3;
+const MAX_VISIBLE = 3;
 
 export const MonthView: React.FC<MonthViewProps> = ({
   cells,
   eventsByDate,
+  selectedId,
   onSelectEvent,
   onSelectDate,
+  onMore,
   lang = 'en',
   t,
 }) => {
-  const weekdayLabels = useMemo(() => getWeekdayLabels(toDateLocale(lang)), [lang]);
+  const weekdayLabels = useMemo(() => getWeekdayLabels(toDateLocale(lang), false), [lang]);
+  const weeks = Math.ceil(cells.length / 7) || 5;
 
   return (
-    <div className="cal-month">
-      {/* Weekday headers */}
-      <div className="cal-weekday-row">
+    <div className="mg">
+      <div className="mg-head" aria-hidden>
         {weekdayLabels.map((label, idx) => (
-          <div key={`${label}-${idx}`} className="cal-weekday-cell">
-            {label}
-          </div>
+          <div key={`${label}-${idx}`}>{label}</div>
         ))}
       </div>
-
-      {/* Grid of days */}
-      <div className="cal-grid">
+      <div className="mg-grid" style={{ gridTemplateRows: `repeat(${weeks}, minmax(116px, 1fr))` }}>
         {cells.map((cell) => {
           const events = eventsByDate[cell.dateYmd] || [];
-          const visibleEvents = events.slice(0, MAX_VISIBLE_EVENTS_PER_CELL);
-          const hiddenCount = events.length - visibleEvents.length;
+          const shown = events.length > MAX_VISIBLE ? events.slice(0, MAX_VISIBLE - 1) : events;
+          const hidden = events.length - shown.length;
 
           return (
             <div
               key={cell.dateYmd}
-              className={`cal-day-cell ${cell.isCurrentMonth ? '' : 'is-outside'} ${
-                cell.isToday ? 'is-today' : ''
-              } ${cell.isWeekend ? 'is-weekend' : ''}`}
+              className={cls(
+                'mg-cell',
+                !cell.isCurrentMonth && 'is-out',
+                cell.isToday && 'is-today',
+                cell.isWeekend && 'is-weekend'
+              )}
             >
-              <div className="cal-day-cell-header">
+              <div className="mg-top">
                 <button
                   type="button"
-                  className={`cal-day-number ${cell.isToday ? 'cal-day-number--today' : ''}`}
+                  className="mg-dnum"
                   onClick={() => onSelectDate(cell.dateYmd)}
-                  title={t('viewDaySchedule', 'View day schedule')}
+                  aria-label={t('viewDaySchedule', 'View day schedule')}
                 >
-                  {cell.dayNumber}
+                  {cell.dayNumber === 1
+                    ? `${cell.dayNumber} ${cell.date.toLocaleDateString(toDateLocale(lang), { month: 'short' })}`
+                    : cell.dayNumber}
                 </button>
-
                 {events.length > 0 && (
-                  <span
-                    className="cal-day-total-badge"
-                    onClick={() => onSelectDate(cell.dateYmd)}
-                    title={`${events.length} ${t('events', 'Events')}`}
-                  >
-                    {events.length}
+                  <span className="mg-count">
+                    {events.length} {events.length === 1 ? t('stop', 'stop') : t('stops', 'stops')}
                   </span>
                 )}
               </div>
-
-              <div className="cal-day-events-list">
-                {visibleEvents.map((ev) => {
-                  const isPickup = ev.type === 'pickup';
-                  const timeLabel = formatEventTimeRange(ev.timeStart, ev.timeEnd);
-                  const titleDesc = `${ev.sid} · ${isPickup ? t('pickup', 'Pickup') : t('dropoff', 'Dropoff')}${
-                    timeLabel ? ` · ${timeLabel}` : ''
-                  }${ev.productName ? ` · ${ev.productName}` : ''}${ev.orderId ? ` · Order: ${ev.orderId}` : ''}`;
-
-                  return (
-                    <button
-                      key={ev.id}
-                      type="button"
-                      className={`cal-event-chip cal-event-chip--${ev.type}`}
-                      onClick={() => onSelectEvent(ev)}
-                      title={titleDesc}
-                    >
-                      <span className="cal-event-chip-icon">
-                        {isPickup ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
-                      </span>
-                      {timeLabel && <span className="cal-event-chip-time">{timeLabel}</span>}
-                      <span className="cal-event-chip-sid">{ev.sid}</span>
-                      {ev.productName ? (
-                        <span className="cal-event-chip-prod">{ev.productName}</span>
-                      ) : ev.orderId ? (
-                        <span className="cal-event-chip-prod">#{ev.orderId}</span>
-                      ) : null}
-                    </button>
-                  );
-                })}
-
-                {hiddenCount > 0 && (
-                  <button
-                    type="button"
-                    className="cal-more-chip"
-                    onClick={() => onSelectDate(cell.dateYmd)}
-                    title={t('viewAllEventsForDay', 'View all events for this day')}
-                  >
-                    +{hiddenCount} {t('more', 'more')}
-                  </button>
-                )}
-              </div>
+              {shown.map((e) => (
+                <EventChip
+                  key={e.id}
+                  ev={e}
+                  compact
+                  onOpen={onSelectEvent}
+                  selected={selectedId === e.id}
+                  t={t}
+                />
+              ))}
+              {hidden > 0 && (
+                <button
+                  type="button"
+                  className="mg-more"
+                  onClick={() => onMore(cell.dateYmd)}
+                >
+                  +{hidden} {t('more', 'more')}
+                </button>
+              )}
             </div>
           );
         })}

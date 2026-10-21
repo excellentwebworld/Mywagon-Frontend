@@ -1,29 +1,44 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { shipmentsService } from '../../../api';
 import type { CalendarShipmentsParams } from '../../../api/types/shipments';
 import type { Shipment } from '../../../context/AppContext';
 import {
+  DEFAULT_RAIL_FILTERS,
+  applyRailFilters,
+  collectOverdueEvents,
   extractCalendarEvents,
-  formatMonthYear,
-  getAdjacentDay,
-  getAdjacentMonth,
   getCalendarMonthGrid,
-  getMonthDateRange,
+  getRangeDateRange,
   getTodayYmd,
   groupEventsByDate,
+  loadCalPrefs,
+  parseCalendarLayout,
+  parseCalendarRange,
   parseYmdDate,
+  rangeLabel,
+  saveCalPrefs,
+  cls,
+  stepCursor,
   toDateLocale,
   toYmd,
+  visibleDays,
   type CalendarEvent,
+  type CalendarLayout,
+  type CalendarRailFilters,
+  type CalendarRange,
 } from './calendarUtils';
 import { CalendarToolbar } from './CalendarToolbar';
 import { MonthView } from './MonthView';
-import { DayView } from './DayView';
+import { TimeGrid } from './TimeGrid';
+import { AgendaList } from './AgendaList';
 import { EventDetailPopover } from './EventDetailPopover';
+import { FilterRail } from './FilterRail';
+import { OverdueList } from './OverdueList';
 import {
   filtersToApiParams,
   statusTabToApiStatus,
+  type KpiKey,
   type ShipmentsFilterState,
   type StatusTabKey,
 } from '../../../pages/ManageShipments/utils/listingUtils';
@@ -33,6 +48,8 @@ import '../../../styles/manage-calendar.css';
 interface CalendarViewProps {
   direction: 'outbound' | 'inbound';
   activeTabStatus?: StatusTabKey;
+  /** Top KPI strip filter (Needs Action, Awaiting POD, …) — same as list view. */
+  activeKpi?: KpiKey | null;
   searchQuery: string;
   appliedFilters: ShipmentsFilterState;
   t: (key: string, defaultValue?: string) => string;
@@ -41,39 +58,48 @@ interface CalendarViewProps {
 export const CalendarView: React.FC<CalendarViewProps> = ({
   direction,
   activeTabStatus,
+  activeKpi = null,
   searchQuery,
   appliedFilters,
   t,
 }) => {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { lang } = useTranslation();
   const dateLocale = toDateLocale(lang);
+  const prefs = useMemo(() => loadCalPrefs(), []);
 
-  // Initial state derived from search params or today's date
   const initialDateStr = searchParams.get('cal_date') || getTodayYmd();
   const initialDate = parseYmdDate(initialDateStr);
+  const urlRange = searchParams.get('cal_view');
+  const urlLayout = searchParams.get('cal_layout');
 
-  const [currentYear, setCurrentYear] = useState<number>(() => initialDate.getFullYear());
-  const [currentMonthIndex, setCurrentMonthIndex] = useState<number>(() => initialDate.getMonth());
-  const [selectedDateYmd, setSelectedDateYmd] = useState<string>(() => initialDateStr);
-
-  const initialPerspective = (searchParams.get('cal_view') === 'day' ? 'day' : 'month') as 'month' | 'day';
-  const [viewPerspective, setViewPerspective] = useState<'month' | 'day'>(initialPerspective);
+  const [cursor, setCursor] = useState<Date>(() => initialDate);
+  const [range, setRange] = useState<CalendarRange>(() =>
+    parseCalendarRange(urlRange || prefs.range || 'week')
+  );
+  const [layout, setLayout] = useState<CalendarLayout>(() =>
+    parseCalendarLayout(urlLayout || prefs.layout || 'grid')
+  );
+  const [railOpen, setRailOpen] = useState(
+    () => prefs.railOpen ?? (typeof window !== 'undefined' ? window.innerWidth >= 1180 : true)
+  );
+  const [railFilters, setRailFilters] = useState<CalendarRailFilters>(DEFAULT_RAIL_FILTERS);
 
   const [calendarShipments, setCalendarShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
-  // Sync state changes with URL query parameters
+  const [pop, setPop] = useState<{ event: CalendarEvent; anchor: DOMRect | null } | null>(null);
+  const [overdueAnchor, setOverdueAnchor] = useState<DOMRect | null>(null);
+
   const updateUrlParams = useCallback(
-    (perspective: 'month' | 'day', dateYmd: string) => {
+    (nextRange: CalendarRange, nextLayout: CalendarLayout, dateYmd: string) => {
       setSearchParams(
         (prev) => {
           const next = new URLSearchParams(prev);
           next.set('view', 'calendar');
-          next.set('cal_view', perspective);
+          next.set('cal_view', nextRange);
+          next.set('cal_layout', nextLayout);
           next.set('cal_date', dateYmd);
           return next;
         },
@@ -83,29 +109,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     [setSearchParams]
   );
 
-  // Handle perspective change (Month vs Day)
-  const handlePerspectiveChange = (p: 'month' | 'day') => {
-    setViewPerspective(p);
-    updateUrlParams(p, selectedDateYmd);
-  };
+  useEffect(() => {
+    saveCalPrefs({ range, layout, railOpen });
+  }, [range, layout, railOpen]);
 
-  // Compute visible date range for backend query
-  const dateRange = useMemo(() => {
-    if (viewPerspective === 'day') {
-      return { from: selectedDateYmd, to: selectedDateYmd };
-    }
-    return getMonthDateRange(currentYear, currentMonthIndex);
-  }, [viewPerspective, selectedDateYmd, currentYear, currentMonthIndex]);
+  useEffect(() => {
+    updateUrlParams(range, layout, toYmd(cursor));
+  }, [range, layout, cursor, updateUrlParams]);
 
-  // Fetch calendar shipments when range, direction, status, search, or filters change
+  const dateRange = useMemo(() => getRangeDateRange(range, cursor), [range, cursor]);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    const apiStatus = activeTabStatus
-      ? statusTabToApiStatus(activeTabStatus)
-      : undefined;
+    const apiStatus = activeTabStatus ? statusTabToApiStatus(activeTabStatus) : undefined;
 
     const params: CalendarShipmentsParams = {
       from: dateRange.from,
@@ -113,6 +132,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       direction,
       ...filtersToApiParams(appliedFilters),
       ...(apiStatus !== undefined ? { status: apiStatus } : {}),
+      ...(activeKpi ? { kpi: activeKpi } : {}),
       ...(searchQuery.trim() ? { search: searchQuery.trim() } : {}),
     };
 
@@ -126,127 +146,220 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       .catch((err) => {
         if (cancelled) return;
         console.error('Failed to load calendar shipments:', err);
-        setError('Failed to load calendar events');
+        setError(t('failedLoadCalendar', 'Failed to load calendar events'));
         setLoading(false);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [dateRange.from, dateRange.to, direction, activeTabStatus, searchQuery, appliedFilters]);
+  }, [
+    dateRange.from,
+    dateRange.to,
+    direction,
+    activeTabStatus,
+    activeKpi,
+    searchQuery,
+    appliedFilters,
+    t,
+  ]);
 
-  // Extract events and group by date
-  const events = useMemo(() => extractCalendarEvents(calendarShipments), [calendarShipments]);
-  const eventsByDate = useMemo(() => groupEventsByDate(events), [events]);
-
-  // Grid cells for Month view
-  const monthCells = useMemo(
-    () => getCalendarMonthGrid(currentYear, currentMonthIndex),
-    [currentYear, currentMonthIndex]
+  const allEvents = useMemo(
+    () => extractCalendarEvents(calendarShipments),
+    [calendarShipments]
   );
 
-  // Counts for the active view
-  const activeEvents = useMemo(() => {
-    if (viewPerspective === 'day') {
-      return eventsByDate[selectedDateYmd] || [];
-    }
-    return events;
-  }, [viewPerspective, selectedDateYmd, eventsByDate, events]);
-
-  const pickupCount = useMemo(
-    () => activeEvents.filter((e) => e.type === 'pickup').length,
-    [activeEvents]
+  const filteredEvents = useMemo(
+    () => applyRailFilters(allEvents, railFilters),
+    [allEvents, railFilters]
   );
-  const deliveryCount = useMemo(
-    () => activeEvents.filter((e) => e.type === 'delivery').length,
-    [activeEvents]
+  const eventsByDate = useMemo(() => groupEventsByDate(filteredEvents), [filteredEvents]);
+  const days = useMemo(() => visibleDays(range, cursor), [range, cursor]);
+  const monthCells = useMemo(() => {
+    if (range !== 'month') return [];
+    return getCalendarMonthGrid(cursor.getFullYear(), cursor.getMonth());
+  }, [range, cursor]);
+
+  const inRangeEvents = useMemo(
+    () => days.flatMap((d) => eventsByDate[toYmd(d)] || []),
+    [days, eventsByDate]
+  );
+  const loadsInRange = useMemo(
+    () => new Set(inRangeEvents.map((e) => e.shipmentId)).size,
+    [inRangeEvents]
+  );
+  // Scope overdue badge to the visible day/range so it matches what the user sees
+  const overdue = useMemo(() => collectOverdueEvents(inRangeEvents), [inRangeEvents]);
+
+  const filterCount = useMemo(() => {
+    const f = railFilters;
+    return !f.pickup || !f.delivery ? 1 : 0;
+  }, [railFilters]);
+
+  const periodLabelText = useMemo(
+    () => rangeLabel(range, days, dateLocale),
+    [range, days, dateLocale]
   );
 
-  // Period label for toolbar (localized month / day heading)
-  const periodLabel = useMemo(() => {
-    if (viewPerspective === 'day') {
-      const d = parseYmdDate(selectedDateYmd);
-      return d.toLocaleDateString(dateLocale, {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
-    }
-    return formatMonthYear(currentYear, currentMonthIndex, dateLocale);
-  }, [viewPerspective, selectedDateYmd, currentYear, currentMonthIndex, dateLocale]);
+  const relatedStops = useMemo(() => {
+    if (!pop) return [];
+    return allEvents
+      .filter((e) => e.shipmentId === pop.event.shipmentId)
+      .sort((a, b) => (a.stopIndex ?? 0) - (b.stopIndex ?? 0));
+  }, [pop, allEvents]);
 
-  // Navigation handlers
+  const openEvent = useCallback((ev: CalendarEvent, rect: DOMRect) => {
+    setOverdueAnchor(null);
+    setPop({ event: ev, anchor: rect });
+  }, []);
+
+  const closePop = useCallback(() => setPop(null), []);
+  const closeOverdue = useCallback(() => setOverdueAnchor(null), []);
+
+  const handleRangeChange = (r: CalendarRange) => {
+    setRange(r);
+    setPop(null);
+  };
+
+  const handleLayoutChange = (l: CalendarLayout) => {
+    setLayout(l);
+    setPop(null);
+  };
+
   const handlePrev = () => {
-    if (viewPerspective === 'day') {
-      const prevDay = getAdjacentDay(selectedDateYmd, -1);
-      setSelectedDateYmd(prevDay);
-      const parsed = parseYmdDate(prevDay);
-      setCurrentYear(parsed.getFullYear());
-      setCurrentMonthIndex(parsed.getMonth());
-      updateUrlParams('day', prevDay);
-    } else {
-      const adj = getAdjacentMonth(currentYear, currentMonthIndex, -1);
-      setCurrentYear(adj.year);
-      setCurrentMonthIndex(adj.monthIndex);
-      const monthAnchor = `${adj.year}-${String(adj.monthIndex + 1).padStart(2, '0')}-01`;
-      setSelectedDateYmd(monthAnchor);
-      updateUrlParams('month', monthAnchor);
-    }
+    setCursor((c) => stepCursor(range, c, -1));
+    setPop(null);
   };
 
   const handleNext = () => {
-    if (viewPerspective === 'day') {
-      const nextDay = getAdjacentDay(selectedDateYmd, 1);
-      setSelectedDateYmd(nextDay);
-      const parsed = parseYmdDate(nextDay);
-      setCurrentYear(parsed.getFullYear());
-      setCurrentMonthIndex(parsed.getMonth());
-      updateUrlParams('day', nextDay);
-    } else {
-      const adj = getAdjacentMonth(currentYear, currentMonthIndex, 1);
-      setCurrentYear(adj.year);
-      setCurrentMonthIndex(adj.monthIndex);
-      const monthAnchor = `${adj.year}-${String(adj.monthIndex + 1).padStart(2, '0')}-01`;
-      setSelectedDateYmd(monthAnchor);
-      updateUrlParams('month', monthAnchor);
-    }
+    setCursor((c) => stepCursor(range, c, 1));
+    setPop(null);
   };
 
   const handleToday = () => {
-    const today = new Date();
-    const todayYmd = toYmd(today);
-    setSelectedDateYmd(todayYmd);
-    setCurrentYear(today.getFullYear());
-    setCurrentMonthIndex(today.getMonth());
-    updateUrlParams(viewPerspective, todayYmd);
+    setCursor(new Date());
+    setPop(null);
   };
 
-  const handleSelectDateFromMonth = (dateYmd: string) => {
-    setSelectedDateYmd(dateYmd);
-    const parsed = parseYmdDate(dateYmd);
-    setCurrentYear(parsed.getFullYear());
-    setCurrentMonthIndex(parsed.getMonth());
-    setViewPerspective('day');
-    updateUrlParams('day', dateYmd);
-  };
+  const openDay = useCallback((dateYmd: string) => {
+    setCursor(parseYmdDate(dateYmd));
+    setRange('day');
+    setPop(null);
+    setOverdueAnchor(null);
+  }, []);
+
+  const openDayList = useCallback((dateYmd: string) => {
+    setCursor(parseYmdDate(dateYmd));
+    setRange('day');
+    setLayout('list');
+    setPop(null);
+    setOverdueAnchor(null);
+  }, []);
+
+  const pickDay = useCallback((d: Date) => {
+    setCursor(d);
+    if (typeof window !== 'undefined' && window.innerWidth < 900) setRailOpen(false);
+  }, []);
+
+  const jumpTo = useCallback((ev: CalendarEvent) => {
+    setOverdueAnchor(null);
+    setCursor(parseYmdDate(ev.dateYmd));
+    setPop({ event: ev, anchor: null });
+  }, []);
 
   const handleNavigateToDetail = (shipmentId: number) => {
-    navigate(`/shipments/${shipmentId}`);
+    window.open(`/shipments/${shipmentId}`, '_blank', 'noopener,noreferrer');
   };
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 'Escape') {
+        setPop(null);
+        setOverdueAnchor(null);
+        if (typeof window !== 'undefined' && window.innerWidth < 900) setRailOpen(false);
+        return;
+      }
+      const k = e.key.toLowerCase();
+      if (k === 't') setCursor(new Date());
+      else if (e.key === 'ArrowLeft') setCursor((c) => stepCursor(range, c, -1));
+      else if (e.key === 'ArrowRight') setCursor((c) => stepCursor(range, c, 1));
+      else if (k === 'd') setRange('day');
+      else if (k === '3') setRange('3day');
+      else if (k === 'r') setRange('workweek');
+      else if (k === 'w') setRange('week');
+      else if (k === 'm') setRange('month');
+      else if (k === 'l') setLayout((x) => (x === 'grid' ? 'list' : 'grid'));
+      else return;
+      e.preventDefault();
+      setPop(null);
+    };
+    window.addEventListener('keydown', h);
+    return () => window.removeEventListener('keydown', h);
+  }, [range]);
+
+  const selectedId = pop?.event.id ?? null;
+
+  const calendarBody =
+    layout === 'list' ? (
+      <AgendaList
+        days={days}
+        byDay={eventsByDate}
+        selectedId={selectedId}
+        showEmpty={range !== 'month'}
+        onOpen={openEvent}
+        lang={lang}
+        t={t}
+      />
+    ) : range === 'month' ? (
+      <MonthView
+        cells={monthCells}
+        eventsByDate={eventsByDate}
+        selectedId={selectedId}
+        onSelectEvent={openEvent}
+        onSelectDate={openDay}
+        onMore={openDay}
+        lang={lang}
+        t={t}
+      />
+    ) : (
+      <TimeGrid
+        key={range}
+        days={days}
+        byDay={eventsByDate}
+        selectedId={selectedId}
+        onOpen={openEvent}
+        onDayOpen={openDay}
+        onViewDayList={openDayList}
+        detailed={range === 'day'}
+        lang={lang}
+        t={t}
+      />
+    );
 
   return (
     <div className="cal-container">
       <CalendarToolbar
-        viewPerspective={viewPerspective}
-        onPerspectiveChange={handlePerspectiveChange}
-        periodLabel={periodLabel}
+        range={range}
+        layout={layout}
+        onRangeChange={handleRangeChange}
+        onLayoutChange={handleLayoutChange}
+        periodLabel={periodLabelText}
         onPrev={handlePrev}
         onNext={handleNext}
         onToday={handleToday}
-        totalEvents={activeEvents.length}
-        pickupCount={pickupCount}
-        deliveryCount={deliveryCount}
+        railOpen={railOpen}
+        onToggleRail={() => setRailOpen((o) => !o)}
+        stopsCount={inRangeEvents.length}
+        loadsCount={loadsInRange}
+        overdueCount={overdue.length}
+        onOverdueClick={(rect) => {
+          setPop(null);
+          setOverdueAnchor(rect);
+        }}
+        filterCount={filterCount}
         loading={loading}
         t={t}
       />
@@ -260,32 +373,48 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       )}
 
-      {viewPerspective === 'month' ? (
-        <MonthView
-          cells={monthCells}
-          eventsByDate={eventsByDate}
-          onSelectEvent={(ev) => setSelectedEvent(ev)}
-          onSelectDate={handleSelectDateFromMonth}
-          lang={lang}
-          t={t}
-        />
-      ) : (
-        <DayView
-          dateYmd={selectedDateYmd}
-          events={eventsByDate[selectedDateYmd] || []}
-          onSelectEvent={(ev) => setSelectedEvent(ev)}
+      <div className={cls('cal-body', railOpen && 'has-rail')}>
+        {railOpen && (
+          <>
+            <FilterRail
+              cursor={cursor}
+              days={days}
+              byDay={eventsByDate}
+              filters={railFilters}
+              setFilters={setRailFilters}
+              onPickDate={pickDay}
+              onClose={() => setRailOpen(false)}
+              lang={lang}
+              t={t}
+            />
+            <div className="cal-rail-scrim" onClick={() => setRailOpen(false)} />
+          </>
+        )}
+        <div className="cal-main">{calendarBody}</div>
+      </div>
+
+      {pop && (
+        <EventDetailPopover
+          key={pop.event.id}
+          event={pop.event}
+          relatedStops={relatedStops}
+          anchor={pop.anchor}
+          onClose={closePop}
           onNavigateToDetail={handleNavigateToDetail}
-          onBackToMonth={() => handlePerspectiveChange('month')}
-          lang={lang}
+          onJumpStop={(ev) => {
+            setCursor(parseYmdDate(ev.dateYmd));
+            setPop({ event: ev, anchor: null });
+          }}
           t={t}
         />
       )}
 
-      {selectedEvent && (
-        <EventDetailPopover
-          event={selectedEvent}
-          onClose={() => setSelectedEvent(null)}
-          onNavigateToDetail={handleNavigateToDetail}
+      {overdueAnchor && (
+        <OverdueList
+          anchor={overdueAnchor}
+          events={overdue}
+          onClose={closeOverdue}
+          onJump={jumpTo}
           t={t}
         />
       )}

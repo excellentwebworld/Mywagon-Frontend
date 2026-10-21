@@ -17,6 +17,17 @@ import {
   type LocationFormValues,
 } from '../../pages/AddressBook/validation/locationFormSchema';
 import {
+  LOCATION_CODE_MAX,
+  LOCATION_NAME_MAX,
+  LOCATION_POSTAL_MAX,
+  NOTE_MAX,
+  sanitizeDecimalInput,
+  sanitizeInternalCodeInput,
+  sanitizeLocationNameInput,
+  sanitizeNoteInput,
+  sanitizePostalCodeInput,
+} from '../../pages/AddressBook/validation/locationFieldValidation';
+import {
   API_FIELD_TO_FORM,
   formValuesToLocationItem,
   locationToFormValues,
@@ -340,9 +351,10 @@ export const EditLocationModal: React.FC<Props> = ({
                 id="edit-name"
                 name="name"
                 type="text"
+                maxLength={LOCATION_NAME_MAX}
                 value={values.name}
                 onChange={(e) => {
-                  handleChange(e);
+                  setFieldValue('name', sanitizeLocationNameInput(e.target.value), true);
                   clearStepErrors();
                 }}
                 onBlur={handleBlur}
@@ -369,7 +381,9 @@ export const EditLocationModal: React.FC<Props> = ({
                   setFieldValue('lat', details.lat);
                   setFieldValue('lng', details.lng);
                   if (details.city) setFieldValue('city', details.city);
-                  if (details.postalCode) setFieldValue('postalCode', details.postalCode);
+                  if (details.postalCode) {
+                    setFieldValue('postalCode', sanitizePostalCodeInput(details.postalCode));
+                  }
                   if (details.region) setFieldValue('region', details.region);
                   clearStepErrors();
                 }}
@@ -407,8 +421,10 @@ export const EditLocationModal: React.FC<Props> = ({
                   id="edit-postal"
                   name="postalCode"
                   type="text"
+                  inputMode="numeric"
+                  maxLength={LOCATION_POSTAL_MAX}
                   value={values.postalCode}
-                  onChange={handleChange}
+                  onChange={(e) => setFieldValue('postalCode', sanitizePostalCodeInput(e.target.value), true)}
                   onBlur={handleBlur}
                 />
                 <FormFieldError message={errorMessage('postalCode')} />
@@ -444,8 +460,9 @@ export const EditLocationModal: React.FC<Props> = ({
                   id="edit-code"
                   name="code"
                   type="text"
+                  maxLength={LOCATION_CODE_MAX}
                   value={values.code}
-                  onChange={handleChange}
+                  onChange={(e) => setFieldValue('code', sanitizeInternalCodeInput(e.target.value), true)}
                   onBlur={handleBlur}
                 />
                 <FormFieldError message={errorMessage('code')} />
@@ -466,7 +483,9 @@ export const EditLocationModal: React.FC<Props> = ({
                 setFieldValue('lat', details.lat);
                 setFieldValue('lng', details.lng);
                 if (details.city) setFieldValue('city', details.city);
-                if (details.postalCode) setFieldValue('postalCode', details.postalCode);
+                if (details.postalCode) {
+                  setFieldValue('postalCode', sanitizePostalCodeInput(details.postalCode));
+                }
                 if (details.region) setFieldValue('region', details.region);
                 clearStepErrors();
               }}
@@ -540,14 +559,13 @@ export const EditLocationModal: React.FC<Props> = ({
                 <input
                   id="edit-max-truck"
                   name="maxTruck"
-                  type="number"
-                  min="0.1"
-                  step="any"
+                  type="text"
+                  inputMode="decimal"
                   placeholder={t('abEgMaxTruck', 'e.g. 18.75')}
                   value={values.maxTruck}
                   onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
                   onChange={(e) => {
-                    handleChange(e);
+                    setFieldValue('maxTruck', sanitizeDecimalInput(e.target.value), true);
                     clearStepErrors();
                   }}
                   onBlur={handleBlur}
@@ -559,14 +577,13 @@ export const EditLocationModal: React.FC<Props> = ({
                 <input
                   id="edit-max-weight"
                   name="maxWeight"
-                  type="number"
-                  min="0.1"
-                  step="any"
+                  type="text"
+                  inputMode="decimal"
                   placeholder={t('abEgMaxWeight', 'e.g. 40')}
                   value={values.maxWeight}
                   onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
                   onChange={(e) => {
-                    handleChange(e);
+                    setFieldValue('maxWeight', sanitizeDecimalInput(e.target.value), true);
                     clearStepErrors();
                   }}
                   onBlur={handleBlur}
@@ -598,7 +615,7 @@ export const EditLocationModal: React.FC<Props> = ({
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                maxLength={5}
+                maxLength={4}
                 placeholder={t('abEgLoadTime', 'e.g. 45')}
                 value={values.loadTime}
                 aria-valuemin={LOAD_TIME_MINUTES_MIN}
@@ -617,27 +634,37 @@ export const EditLocationModal: React.FC<Props> = ({
             </div>
 
             <h4 className="ab-form-section-title">{t('abNotes', 'Notes')}</h4>
-            <div className="mf">
+            <div className={fieldClass(showError('noteInternal'))}>
               <label htmlFor="edit-note-internal">{t('abInternalNote', 'Internal Note')}</label>
               <textarea
                 id="edit-note-internal"
                 name="noteInternal"
+                maxLength={NOTE_MAX}
                 placeholder={t('abInternalNotePlaceholder', 'Visible only to your team…')}
                 value={values.noteInternal}
-                onChange={handleChange}
-                onBlur={handleBlur}
+                onChange={(e) => setFieldValue('noteInternal', sanitizeNoteInput(e.target.value), true)}
+                onBlur={(e) => {
+                  setFieldValue('noteInternal', e.target.value.trim(), true);
+                  handleBlur(e);
+                }}
               />
+              <FormFieldError message={errorMessage('noteInternal')} />
             </div>
-            <div className="mf">
+            <div className={fieldClass(showError('noteCarrier'))}>
               <label htmlFor="edit-note-carrier">{t('abCarrierNote', 'Carrier-Visible Note')}</label>
               <textarea
                 id="edit-note-carrier"
                 name="noteCarrier"
+                maxLength={NOTE_MAX}
                 placeholder={t('abCarrierNotePlaceholder', 'Drivers/carriers will see this…')}
                 value={values.noteCarrier}
-                onChange={handleChange}
-                onBlur={handleBlur}
+                onChange={(e) => setFieldValue('noteCarrier', sanitizeNoteInput(e.target.value), true)}
+                onBlur={(e) => {
+                  setFieldValue('noteCarrier', e.target.value.trim(), true);
+                  handleBlur(e);
+                }}
               />
+              <FormFieldError message={errorMessage('noteCarrier')} />
             </div>
           </>
         );

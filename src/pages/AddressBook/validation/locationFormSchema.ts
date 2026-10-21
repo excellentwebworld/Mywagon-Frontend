@@ -10,6 +10,15 @@ import { areTimeRangesValid } from './timeRangeValidation';
 import { coerceFormString } from './locationFormCoerce';
 import { optionalPhoneSchema } from './phoneValidation';
 import { isPositiveMeasurement } from '../../../utils/measurementValidation';
+import {
+  isValidBoundedDecimal,
+  LOCATION_CODE_MAX,
+  LOCATION_NAME_MAX,
+  LOCATION_POSTAL_MAX,
+  MAX_TRUCK_LENGTH_M,
+  MAX_WEIGHT_T,
+  NOTE_MAX,
+} from './locationFieldValidation';
 
 export { isPositiveMeasurement };
 
@@ -67,7 +76,17 @@ export function getLocationEditValidationSchema(t: TFn = (_k, fb) => fb ?? _k) {
     name: Yup.string()
       .trim()
       .required(t('abValLocationNameRequired', 'Location name is required'))
-      .max(255),
+      .max(
+        LOCATION_NAME_MAX,
+        t('abValLocationNameMax', `Location name must be at most ${LOCATION_NAME_MAX} characters`)
+      )
+      .matches(
+        /^[\p{L}\p{N}\s]+$/u,
+        t(
+          'abValLocationNameFormat',
+          'Location name may only contain letters, digits and spaces (no special characters)'
+        )
+      ),
     address: Yup.string()
       .trim()
       .required(t('abValAddressRequired', 'Address is required'))
@@ -76,7 +95,16 @@ export function getLocationEditValidationSchema(t: TFn = (_k, fb) => fb ?? _k) {
       .trim()
       .required(t('abValCityRequired', 'City is required'))
       .max(255),
-    postalCode: Yup.string().max(50),
+    postalCode: Yup.string()
+      .trim()
+      .matches(
+        /^\d*$/,
+        t('abValPostalDigits', 'Postal code may only contain digits (max 10)')
+      )
+      .max(
+        LOCATION_POSTAL_MAX,
+        t('abValPostalMax', `Postal code must be at most ${LOCATION_POSTAL_MAX} digits`)
+      ),
     region: Yup.string().max(100),
     lat: Yup.string()
       .required(t('abValLatRequired', 'Latitude is required'))
@@ -100,7 +128,15 @@ export function getLocationEditValidationSchema(t: TFn = (_k, fb) => fb ?? _k) {
     type: Yup.string()
       .oneOf(facilityValues as unknown as string[], t('abValValidFacility', 'Select a valid facility type'))
       .required(t('abValFacilityRequired', 'Facility type is required')),
-    code: Yup.string().max(100),
+    code: Yup.string()
+      .trim()
+      .max(
+        LOCATION_CODE_MAX,
+        t(
+          'abValInternalCodeMax',
+          `Internal location code must be at most ${LOCATION_CODE_MAX} characters`
+        )
+      ),
     custCode: Yup.string().max(100),
     dock: Yup.string()
       .transform((v) => coerceFormString(v))
@@ -113,16 +149,24 @@ export function getLocationEditValidationSchema(t: TFn = (_k, fb) => fb ?? _k) {
     maxTruck: Yup.string()
       .transform((v) => coerceFormString(v))
       .trim()
-      .max(20)
-      .test('positive-truck-length', t('abValMustBePositive', 'Must be greater than 0'), (v) =>
-        isPositiveMeasurement(v, /m$/i)
+      .test(
+        'max-truck-bounds',
+        t(
+          'abValMaxTruckInvalid',
+          `Must be greater than 0, up to 2 decimals, max ${MAX_TRUCK_LENGTH_M}`
+        ),
+        (v) => isValidBoundedDecimal(v, MAX_TRUCK_LENGTH_M, { optional: true })
       ),
     maxWeight: Yup.string()
       .transform((v) => coerceFormString(v))
       .trim()
-      .max(20)
-      .test('positive-weight', t('abValMustBePositive', 'Must be greater than 0'), (v) =>
-        isPositiveMeasurement(v, /(t|tons?|kg)$/i)
+      .test(
+        'max-weight-bounds',
+        t(
+          'abValMaxWeightInvalid',
+          `Must be greater than 0, up to 2 decimals, max ${MAX_WEIGHT_T}`
+        ),
+        (v) => isValidBoundedDecimal(v, MAX_WEIGHT_T, { optional: true })
       ),
     loadTime: Yup.string()
       .transform((v) => coerceFormString(v))
@@ -164,8 +208,18 @@ export function getLocationEditValidationSchema(t: TFn = (_k, fb) => fb ?? _k) {
         }
       ),
     contacts: Yup.array().of(buildContactSchema(t)),
-    noteInternal: Yup.string(),
-    noteCarrier: Yup.string(),
+    noteInternal: Yup.string()
+      .transform((v) => (typeof v === 'string' ? v.trim() : v))
+      .max(
+        NOTE_MAX,
+        t('abValNoteInternalMax', `Internal note must be at most ${NOTE_MAX} characters`)
+      ),
+    noteCarrier: Yup.string()
+      .transform((v) => (typeof v === 'string' ? v.trim() : v))
+      .max(
+        NOTE_MAX,
+        t('abValNoteCarrierMax', `Carrier-visible note must be at most ${NOTE_MAX} characters`)
+      ),
   });
 }
 

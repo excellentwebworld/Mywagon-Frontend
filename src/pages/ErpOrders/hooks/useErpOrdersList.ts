@@ -500,10 +500,17 @@ export function useErpOrdersList() {
     async (order: ErpOrder) => {
       try {
         showToast(t('erpOrdersResyncTriggered', { id: order.orderReference }), 'info');
-        const result = await erpIntegrationService.syncBusinessCentral(['orders']);
+        const catalog = await erpIntegrationService.listConnections();
+        const sapConnected = catalog.some(
+          (c) => c.id === 'sap_b1' && (c.status === 'connected' || c.status === 'error')
+        );
+        const result = sapConnected
+          ? await erpIntegrationService.syncSapB1(['orders'])
+          : await erpIntegrationService.syncBusinessCentral(['orders']);
+        const i18nPrefix = sapConnected ? 'integrations.sap_b1' : 'integrations.bc';
         await queryClient.invalidateQueries({ queryKey: ['erp-orders'] });
         showToast(
-          t('integrations.bc.syncOk', {
+          t(`${i18nPrefix}.syncOk`, {
             created: result.run.created,
             updated: result.run.updated,
             skipped: result.run.skipped,

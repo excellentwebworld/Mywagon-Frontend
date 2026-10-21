@@ -4,7 +4,17 @@ import { Form, Formik, type FormikHelpers } from 'formik';
 import * as Yup from 'yup';
 import type { AddressBookState } from '../../pages/AddressBook/hooks/useAddressBook';
 import type { CompanyFormData } from '../../pages/AddressBook/types';
-import { requiredPhoneSchema, sanitizePhoneInput } from '../../pages/AddressBook/validation/phoneValidation';
+import {
+  COMPANY_CONTACT_MAX,
+  COMPANY_NAME_MAX,
+  COMPANY_PHONE_MAX,
+  COMPANY_VAT_MAX,
+  createCompanyFieldValidators,
+  sanitizeCompanyNameInput,
+  sanitizeCompanyPhoneInput,
+  sanitizeCompanyVatInput,
+  sanitizeContactPersonInput,
+} from '../../pages/AddressBook/validation/companyFieldValidation';
 import { useTranslation } from '../../hooks/useTranslation';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import { GoogleMapAddressField } from './GoogleMapAddressField';
@@ -74,31 +84,25 @@ export const CreateCompanyModal: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation();
 
-  const companyValidationSchema = useMemo(
-    () =>
-      Yup.object().shape({
-        name: Yup.string().trim().required(t('abCompanyNameRequired', 'Company name is required.')),
-        email: Yup.string()
-          .trim()
-          .email(t('abValidEmail', 'Enter a valid email address.'))
-          .required(t('abEmailRequired', 'Email is required.')),
-        vat: Yup.string().trim().required(t('abVatRequired', 'VAT number is required.')),
-        phone: requiredPhoneSchema(
-          t('abPhoneRequired', 'Phone is required.'),
-          t('abValidPhone', 'Enter a valid phone number.')
-        ),
-        address: Yup.string().trim().required(t('abAddressRequiredMsg', 'Address is required.')),
-        country: Yup.string()
-          .trim()
-          .required(t('abCountryRequiredMsg', 'Country is required. Please select an address suggestion.')),
-        website: Yup.string().trim().required(t('abWebsiteRequired', 'Website is required.')),
-        industry: Yup.string().trim().required(t('abIndustryRequired', 'Industry is required.')),
-        contactPerson: Yup.string()
-          .trim()
-          .required(t('abContactPersonRequired', 'Primary contact person is required.')),
-      }),
-    [t]
-  );
+  const companyValidationSchema = useMemo(() => {
+    const fields = createCompanyFieldValidators(t);
+    return Yup.object().shape({
+      name: fields.name,
+      email: Yup.string()
+        .trim()
+        .email(t('abValidEmail', 'Enter a valid email address.'))
+        .required(t('abEmailRequired', 'Email is required.')),
+      vat: fields.vat,
+      phone: fields.phone,
+      address: Yup.string().trim().required(t('abAddressRequiredMsg', 'Address is required.')),
+      country: Yup.string()
+        .trim()
+        .required(t('abCountryRequiredMsg', 'Country is required. Please select an address suggestion.')),
+      website: Yup.string().trim().required(t('abWebsiteRequired', 'Website is required.')),
+      industry: Yup.string().trim().required(t('abIndustryRequired', 'Industry is required.')),
+      contactPerson: fields.contactPerson,
+    });
+  }, [t]);
 
   React.useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -188,9 +192,10 @@ export const CreateCompanyModal: React.FC<Props> = ({
                     id="company-name"
                     name="name"
                     type="text"
+                    maxLength={COMPANY_NAME_MAX}
                     placeholder={t('abEgCompanyName', 'e.g. Acme Corp')}
                     value={values.name}
-                    onChange={handleChange}
+                    onChange={(e) => setFieldValue('name', sanitizeCompanyNameInput(e.target.value), true)}
                     onBlur={handleBlur}
                   />
                   <FormFieldError message={showError('name') ? errors.name : undefined} />
@@ -220,9 +225,11 @@ export const CreateCompanyModal: React.FC<Props> = ({
                       id="company-vat"
                       name="vat"
                       type="text"
-                      placeholder={t('abEgVat', 'e.g. EL094123456')}
+                      inputMode="numeric"
+                      maxLength={COMPANY_VAT_MAX}
+                      placeholder={t('abEgVat', 'e.g. 094123456')}
                       value={values.vat}
-                      onChange={handleChange}
+                      onChange={(e) => setFieldValue('vat', sanitizeCompanyVatInput(e.target.value), true)}
                       onBlur={handleBlur}
                     />
                     <FormFieldError message={showError('vat') ? errors.vat : undefined} />
@@ -237,11 +244,12 @@ export const CreateCompanyModal: React.FC<Props> = ({
                     id="company-phone"
                     name="phone"
                     type="tel"
-                    inputMode="tel"
+                    inputMode="numeric"
                     autoComplete="tel"
-                    placeholder={t('abPhonePlaceholder', '+30 210 ...')}
+                    maxLength={COMPANY_PHONE_MAX}
+                    placeholder={t('abPhonePlaceholder', '2101234567')}
                     value={values.phone}
-                    onChange={(e) => setFieldValue('phone', sanitizePhoneInput(e.target.value))}
+                    onChange={(e) => setFieldValue('phone', sanitizeCompanyPhoneInput(e.target.value), true)}
                     onBlur={handleBlur}
                   />
                   <FormFieldError message={showError('phone') ? errors.phone : undefined} />
@@ -327,9 +335,12 @@ export const CreateCompanyModal: React.FC<Props> = ({
                       id="company-contact-person"
                       name="contactPerson"
                       type="text"
+                      maxLength={COMPANY_CONTACT_MAX}
                       placeholder={t('abFullNamePlaceholder', 'Full name')}
                       value={values.contactPerson}
-                      onChange={handleChange}
+                      onChange={(e) =>
+                        setFieldValue('contactPerson', sanitizeContactPersonInput(e.target.value), true)
+                      }
                       onBlur={handleBlur}
                     />
                     <FormFieldError message={showError('contactPerson') ? errors.contactPerson : undefined} />

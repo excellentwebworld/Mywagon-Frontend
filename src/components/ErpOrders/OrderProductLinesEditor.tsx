@@ -3,8 +3,14 @@ import { QTY_UNIT_OPTIONS, WEIGHT_UNIT_OPTIONS, normalizeQtyUnit, normalizeWeigh
 import { useSubscriptionPermission } from '../../hooks/useSubscriptionPermission';
 import { SearchableSelect } from '../ui/SearchableSelect';
 import type { SKU } from '../../context/AppContext';
-import type { ErpOrderLine, ErpOrderFormState } from '../../pages/ErpOrders/types';
+import type { ErpOrderLine } from '../../pages/ErpOrders/types';
 import { EMPTY_ORDER_LINE } from '../../pages/ErpOrders/types';
+import {
+  parseWeightNumber,
+  QTY_MAX,
+  sanitizeQtyInput,
+  sanitizeWeightInput,
+} from '../../pages/ErpOrders/validation/orderFieldValidation';
 
 type Props = {
   t: (key: string) => string;
@@ -130,11 +136,19 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
             footerAction={onAddProduct ? { label: `+ ${t('erpOrdersAddProduct')}`, onClick: () => onAddProduct(index) } : undefined}
           />
           <input
-            type="number"
+            type="text"
+            inputMode="numeric"
             className="inp"
             placeholder={t('qty')}
+            maxLength={String(QTY_MAX).length}
             value={line.quantity ?? ''}
-            onChange={(e) => updateLine(index, { quantity: e.target.value ? Number(e.target.value) : null })}
+            onKeyDown={(e) => {
+              if (['e', 'E', '+', '-', '.'].includes(e.key)) e.preventDefault();
+            }}
+            onChange={(e) => {
+              const raw = sanitizeQtyInput(e.target.value);
+              updateLine(index, { quantity: raw ? Number(raw) : null });
+            }}
           />
           <select
             className="inp"
@@ -153,11 +167,18 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
             ))}
           </select>
           <input
-            type="number"
+            type="text"
+            inputMode="decimal"
             className="inp"
             placeholder={t('weight')}
             value={line.weight ?? ''}
-            onChange={(e) => updateLine(index, { weight: e.target.value ? Number(e.target.value) : null })}
+            onKeyDown={(e) => {
+              if (['e', 'E', '+', '-'].includes(e.key)) e.preventDefault();
+            }}
+            onChange={(e) => {
+              const raw = sanitizeWeightInput(e.target.value);
+              updateLine(index, { weight: parseWeightNumber(raw) });
+            }}
           />
           <select
             className="inp"
@@ -211,5 +232,3 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
     </div>
   );
 };
-
-export type { ErpOrderFormState };

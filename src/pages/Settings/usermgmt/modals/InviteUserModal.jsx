@@ -18,6 +18,11 @@ import { SHIPPER_ROLES, localizeShipperRoleName } from '../../../../utils/shippe
 import { isDispatcherSeatLimitReached, normalizeDispatcherSeats } from '../../../../utils/dispatcherSeats';
 import { CountryCodeSelect } from '../../../Register/components/CountryCodeSelect';
 import { validateCountryCode, validatePhone } from '../../../Register/registerValidation';
+import {
+  INVITE_NAME_MAX,
+  isValidInviteName,
+  sanitizeInviteNameInput,
+} from '../inviteNameValidation';
 import '../../../Register/RegisterPage.css';
 
 const EMPTY_FORM = {
@@ -110,8 +115,20 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
 
   const validate = () => {
     const errs = {};
-    if (!form.firstName.trim()) errs.firstName = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
-    if (!form.lastName.trim()) errs.lastName = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    if (!form.firstName.trim()) {
+      errs.firstName = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    } else if (!isValidInviteName(form.firstName)) {
+      errs.firstName = t('userMgmt.invite.nameLettersOnly', {
+        defaultValue: 'Only letters and spaces allowed (max 25 characters).',
+      });
+    }
+    if (!form.lastName.trim()) {
+      errs.lastName = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
+    } else if (!isValidInviteName(form.lastName)) {
+      errs.lastName = t('userMgmt.invite.nameLettersOnly', {
+        defaultValue: 'Only letters and spaces allowed (max 25 characters).',
+      });
+    }
     if (!isEdit) {
       if (!form.email.trim()) errs.email = t('userMgmt.invite.required', { defaultValue: 'This field is required' });
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = t('userMgmt.invite.invalidEmail', { defaultValue: 'Invalid email address' });
@@ -282,14 +299,22 @@ export default function InviteUserModal({ open, onClose, onInvite, onSaved, user
 
           <div className="grid grid-cols-2 gap-3">
             <Field label={t('userMgmt.invite.firstName')} required error={errors.firstName}>
-              <input value={form.firstName} onChange={(e) => set('firstName', e.target.value)}
+              <input
+                value={form.firstName}
+                maxLength={INVITE_NAME_MAX}
+                onChange={(e) => set('firstName', sanitizeInviteNameInput(e.target.value))}
                 className="w-full px-3 py-2 rounded-lg outline-none"
-                style={{ border: `1px solid ${errors.firstName ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+                style={{ border: `1px solid ${errors.firstName ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+              />
             </Field>
             <Field label={t('userMgmt.invite.lastName')} required error={errors.lastName}>
-              <input value={form.lastName} onChange={(e) => set('lastName', e.target.value)}
+              <input
+                value={form.lastName}
+                maxLength={INVITE_NAME_MAX}
+                onChange={(e) => set('lastName', sanitizeInviteNameInput(e.target.value))}
                 className="w-full px-3 py-2 rounded-lg outline-none"
-                style={{ border: `1px solid ${errors.lastName ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }} />
+                style={{ border: `1px solid ${errors.lastName ? '#EF4444' : T.bd}`, background: T.sf, color: T.t1, fontSize: 13 }}
+              />
             </Field>
           </div>
           <Field label={t('userMgmt.invite.email')} required={!isEdit} error={errors.email}>

@@ -1,43 +1,91 @@
 import React from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
+import {
+  AlertTriangle,
+  Calendar as CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  Columns3,
+  List,
+  PanelLeft,
+} from 'lucide-react';
+import {
+  CALENDAR_RANGES,
+  cls,
+  type CalendarLayout,
+  type CalendarRange,
+} from './calendarUtils';
 
 interface CalendarToolbarProps {
-  viewPerspective: 'month' | 'day';
-  onPerspectiveChange: (p: 'month' | 'day') => void;
+  range: CalendarRange;
+  layout: CalendarLayout;
+  onRangeChange: (r: CalendarRange) => void;
+  onLayoutChange: (l: CalendarLayout) => void;
   periodLabel: string;
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
-  totalEvents: number;
-  pickupCount: number;
-  deliveryCount: number;
+  railOpen: boolean;
+  onToggleRail: () => void;
+  stopsCount: number;
+  loadsCount: number;
+  overdueCount: number;
+  onOverdueClick: (rect: DOMRect) => void;
+  filterCount: number;
   loading?: boolean;
   t: (key: string, defaultValue?: string) => string;
 }
 
+const RANGE_LABEL_KEYS: Record<CalendarRange, [string, string]> = {
+  day: ['day', 'Day'],
+  '3day': ['threeDay', 'Three Day'],
+  workweek: ['workingWeek', 'Working Week'],
+  week: ['week', 'Week'],
+  month: ['month', 'Month'],
+};
+
 export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
-  viewPerspective,
-  onPerspectiveChange,
+  range,
+  layout,
+  onRangeChange,
+  onLayoutChange,
   periodLabel,
   onPrev,
   onNext,
   onToday,
-  totalEvents,
-  pickupCount,
-  deliveryCount,
+  railOpen,
+  onToggleRail,
+  stopsCount,
+  loadsCount,
+  overdueCount,
+  onOverdueClick,
+  filterCount,
   loading = false,
   t,
 }) => {
+  const rangeName = t(...RANGE_LABEL_KEYS[range]);
+
   return (
     <div className="cal-toolbar">
       <div className="cal-toolbar-left">
         <button
           type="button"
+          className={cls('cal-icon-btn', railOpen && 'is-on')}
+          onClick={onToggleRail}
+          aria-label={railOpen ? t('hideCalendarPanel', 'Hide calendar panel') : t('showCalendarPanel', 'Show calendar panel')}
+          aria-pressed={railOpen}
+          disabled={loading}
+        >
+          <PanelLeft size={18} />
+          {filterCount > 0 && <span className="cal-tb-badge">{filterCount}</span>}
+        </button>
+
+        <button
+          type="button"
           className="cal-btn cal-btn--today"
           onClick={onToday}
           disabled={loading}
-          aria-label={t('today', 'Today')}
         >
+          <CalendarIcon size={15} />
           {t('today', 'Today')}
         </button>
 
@@ -47,7 +95,7 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
             className="cal-icon-btn"
             onClick={onPrev}
             disabled={loading}
-            aria-label={t('previous', 'Previous')}
+            aria-label={`${t('previous', 'Previous')} ${rangeName}`}
           >
             <ChevronLeft size={16} />
           </button>
@@ -56,51 +104,77 @@ export const CalendarToolbar: React.FC<CalendarToolbarProps> = ({
             className="cal-icon-btn"
             onClick={onNext}
             disabled={loading}
-            aria-label={t('next', 'Next')}
+            aria-label={`${t('next', 'Next')} ${rangeName}`}
           >
             <ChevronRight size={16} />
           </button>
         </div>
 
-        <h2 className="cal-period-title">{periodLabel}</h2>
+        <h2 className="cal-period-title" aria-live="polite">
+          {periodLabel}
+        </h2>
 
-        <div className="cal-counts-chip" title={t('calendarSummaryTooltip', 'Scheduled stops')}>
-          <span className="cal-counts-total">
-            {totalEvents} {totalEvents === 1 ? t('event', 'Event') : t('events', 'Events')}
-          </span>
-          <span className="cal-count-item cal-count-item--pickup">
-            ↑ {pickupCount} {t('pickups', 'Pickups')}
-          </span>
-          <span className="cal-count-item cal-count-item--dropoff">
-            ↓ {deliveryCount} {t('dropoffs', 'Dropoffs')}
-          </span>
-        </div>
+        <span className="cal-range-sum">
+          {stopsCount} {t('stops', 'stops')} · {loadsCount} {t('loads', 'loads')}
+        </span>
+
+        {overdueCount > 0 && (
+          <button
+            type="button"
+            className="cal-chip-alert"
+            onClick={(e) => onOverdueClick(e.currentTarget.getBoundingClientRect())}
+          >
+            <AlertTriangle size={14} />
+            {overdueCount} {t('overdue', 'overdue')}
+          </button>
+        )}
       </div>
 
       <div className="cal-toolbar-right">
-        {/* Month vs Day Perspective — Table/Calendar lives in ListToolbar only */}
-        <div className="cal-segmented" role="tablist" aria-label={t('calendarPerspective', 'Calendar Perspective')}>
+        <div className="cal-seg" role="group" aria-label={t('layout', 'Layout')}>
           <button
             type="button"
-            role="tab"
-            aria-selected={viewPerspective === 'month'}
-            className={`cal-segmented-btn ${viewPerspective === 'month' ? 'active' : ''}`}
-            onClick={() => onPerspectiveChange('month')}
+            aria-pressed={layout === 'grid'}
+            onClick={() => onLayoutChange('grid')}
           >
-            <LayoutGrid size={14} />
-            <span>{t('month', 'Month')}</span>
+            <Columns3 size={15} />
+            <span>{range === 'month' ? t('grid', 'Grid') : t('hours', 'Hours')}</span>
           </button>
           <button
             type="button"
-            role="tab"
-            aria-selected={viewPerspective === 'day'}
-            className={`cal-segmented-btn ${viewPerspective === 'day' ? 'active' : ''}`}
-            onClick={() => onPerspectiveChange('day')}
+            aria-pressed={layout === 'list'}
+            onClick={() => onLayoutChange('list')}
           >
-            <CalendarIcon size={14} />
-            <span>{t('day', 'Day')}</span>
+            <List size={15} />
+            <span>{t('list', 'List')}</span>
           </button>
         </div>
+
+        <div className="cal-seg cal-seg--range" role="group" aria-label={t('range', 'Range')}>
+          {CALENDAR_RANGES.map(([v]) => (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={range === v}
+              onClick={() => onRangeChange(v)}
+            >
+              {t(...RANGE_LABEL_KEYS[v])}
+            </button>
+          ))}
+        </div>
+
+        <select
+          className="cal-range-select"
+          value={range}
+          onChange={(e) => onRangeChange(e.target.value as CalendarRange)}
+          aria-label={t('range', 'Range')}
+        >
+          {CALENDAR_RANGES.map(([v]) => (
+            <option key={v} value={v}>
+              {t(...RANGE_LABEL_KEYS[v])}
+            </option>
+          ))}
+        </select>
       </div>
     </div>
   );

@@ -977,6 +977,7 @@ export function useManageShipments() {
     loading,
     error,
     searchQuery,
+    debouncedSearch,
     setSearchQuery: handleSearchChange,
     activeKpi,
     setActiveKpi,

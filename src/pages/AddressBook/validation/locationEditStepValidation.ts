@@ -22,8 +22,8 @@ function mapYupErrors(err: unknown): EditStepErrors {
 
 const STEP_FIELDS: Record<number, (keyof LocationFormValues)[]> = {
   1: ['type'],
-  2: ['name', 'address', 'city', 'lat', 'lng', 'role'],
-  3: ['dock', 'maxTruck', 'maxWeight', 'loadTime', 'appt', 'timeRanges'],
+  2: ['name', 'address', 'city', 'postalCode', 'code', 'lat', 'lng', 'role'],
+  3: ['dock', 'maxTruck', 'maxWeight', 'loadTime', 'appt', 'timeRanges', 'noteInternal', 'noteCarrier'],
 };
 
 export async function validateEditStep(
