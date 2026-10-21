@@ -12,7 +12,7 @@ import {
 import type { ChatMessage, Conversation } from '../types';
 import { VoicePlayer } from './VoicePlayer';
 import { useAuth } from '../../../context/AuthContext';
-import { extractInitials } from '../../../api/services/chatService';
+import { extractInitials, shipperChatIconUrl } from '../../../api/services/chatService';
 import { formatMessageTime } from '../../../utils/timezone';
 import {
   formatShipmentAutoId,
@@ -57,20 +57,10 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
   const navigate = useNavigate();
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
-  const userInitials = React.useMemo(() => {
-    const first = (user?.first_name || '').trim();
-    const last = (user?.last_name || '').trim();
-    if (first || last) {
-      const i1 = first ? Array.from(first)[0] : '';
-      const i2 = last ? Array.from(last)[0] : '';
-      const combined = `${i1}${i2}`.trim().toUpperCase();
-      if (combined) return combined;
-    }
-    if (user?.company_name?.trim()) {
-      return extractInitials(user.company_name);
-    }
-    return 'SV';
-  }, [user?.first_name, user?.last_name, user?.company_name]);
+  const sentIconUrl = React.useMemo(
+    () => shipperChatIconUrl(user),
+    [user?.account_profile_picture, user?.company_name, user?.first_name, user?.last_name]
+  );
 
   const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
     if (msgAreaRef.current) {
@@ -289,11 +279,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                 }}
               >
                 {isSent ? (
-                  user?.profile_picture ? (
-                    <img src={user.profile_picture} alt={tMsg('Messages.you', 'You')} style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }} />
-                  ) : (
-                    userInitials || m.initials || 'SV'
-                  )
+                  <img src={sentIconUrl} alt="" style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }} />
                 ) : (
                   conversation.avatarUrl ? (
                     <img src={conversation.avatarUrl} alt={conversation.name} style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }} />

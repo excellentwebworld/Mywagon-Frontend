@@ -7,6 +7,7 @@ import {
   chatService,
   QUICK_TEMPLATES,
   extractInitials,
+  shipperChatIconUrl,
 } from '../../../api/services/chatService';
 import { socketService, type SocketMessagePayload } from '../../../services/socketService';
 import type {
@@ -52,6 +53,7 @@ function buildShipperSocketChatPayload(params: {
     first_name?: string;
     last_name?: string;
     profile_picture?: string | null;
+    account_profile_picture?: string | null;
   };
   conversation: Conversation;
   partnerToken: string;
@@ -67,6 +69,7 @@ function buildShipperSocketChatPayload(params: {
     params.user.company_name ||
     `${params.user.first_name || ''} ${params.user.last_name || ''}`.trim() ||
     'Shipper';
+  const senderImg = shipperChatIconUrl(params.user);
   const cleanShipmentId = params.shipmentId != null ? extractShipmentDbId(String(params.shipmentId)) : undefined;
 
   return {
@@ -82,7 +85,7 @@ function buildShipperSocketChatPayload(params: {
       senderId: String(senderId),
       senderName,
       senderType: 'shipper',
-      senderImg: params.user.profile_picture || '',
+      senderImg,
       receiverableToken: params.partnerToken,
       senderableToken: getShipperDeviceToken(),
     }),
@@ -262,19 +265,10 @@ export function useMessages() {
   const { t, lang } = useTranslation();
 
   const userInitials = useMemo(() => {
-    const first = (user?.first_name || '').trim();
-    const last = (user?.last_name || '').trim();
-    if (first || last) {
-      const i1 = first ? Array.from(first)[0] : '';
-      const i2 = last ? Array.from(last)[0] : '';
-      const combined = `${i1}${i2}`.trim().toUpperCase();
-      if (combined) return combined;
-    }
-    if (user?.company_name?.trim()) {
-      return extractInitials(user.company_name);
-    }
-    return 'SV';
-  }, [user?.first_name, user?.last_name, user?.company_name]);
+    const company = (user?.company_name || '').trim();
+    const personal = `${user?.first_name || ''} ${user?.last_name || ''}`.trim();
+    return extractInitials(company || personal) || 'SV';
+  }, [user?.company_name, user?.first_name, user?.last_name]);
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const locationState = location.state as {

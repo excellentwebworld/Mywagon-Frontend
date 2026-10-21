@@ -27,6 +27,24 @@ export function extractInitials(name?: string | null): string {
   return (first + second).toUpperCase() || 'P';
 }
 
+/**
+ * Chat icon only. Account profile picture, otherwise initials generated from the account name.
+ * Does not use the company logo.
+ */
+export function shipperChatIconUrl(user?: {
+  company_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  account_profile_picture?: string | null;
+} | null): string {
+  const photo = (user?.account_profile_picture || '').trim();
+  if (photo) return photo;
+  const company = (user?.company_name || '').trim();
+  const personal = `${user?.first_name || ''} ${user?.last_name || ''}`.trim();
+  const name = company || personal || 'User';
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&color=9B51E0&background=EDE9FE&bold=true&size=128&length=2`;
+}
+
 export const chatService = {
   /**
    * Get total unread messages count for the authenticated shipper

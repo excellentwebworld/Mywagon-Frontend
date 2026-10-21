@@ -32,6 +32,8 @@ export interface ShipperUser {
   type: string;
   locale: string | null;
   profile_picture: string | null;
+  /** Parent account photo for the chat icon. Header profile keeps profile_picture. */
+  account_profile_picture?: string | null;
   kyc_status: string | null;
   status: string;
   is_sub_user: boolean;
