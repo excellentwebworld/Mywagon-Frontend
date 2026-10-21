@@ -160,7 +160,7 @@ export const FilterRail: React.FC<FilterRailProps> = ({
             onChange={(e) => set({ pickup: e.target.checked })}
           />
           <span className="cal-check-label">
-            <span className="cal-kindtag pickup">{t('pickups', 'Pickups')}</span>
+            <span className="cal-kindtag pickup">{t('pickup', 'Pickup')}</span>
           </span>
         </label>
         <label className="cal-check">
@@ -170,7 +170,7 @@ export const FilterRail: React.FC<FilterRailProps> = ({
             onChange={(e) => set({ delivery: e.target.checked })}
           />
           <span className="cal-check-label">
-            <span className="cal-kindtag delivery">{t('dropoffs', 'Dropoffs')}</span>
+            <span className="cal-kindtag delivery">{t('dropoff', 'Dropoff')}</span>
           </span>
         </label>
       </fieldset>
