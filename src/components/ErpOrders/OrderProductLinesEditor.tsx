@@ -229,5 +229,3 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
     </div>
   );
 };
-
-export type { ErpOrderFormState };

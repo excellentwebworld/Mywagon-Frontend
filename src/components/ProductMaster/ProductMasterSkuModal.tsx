@@ -168,10 +168,10 @@ type SkuModalFormProps = {
     submitCount: number;
     handleChange: React.ChangeEventHandler<HTMLInputElement>;
     handleBlur: React.FocusEventHandler<HTMLInputElement>;
-    setFieldValue: (field: string, value: unknown, shouldValidate?: boolean) => void | Promise<void>;
-    setFieldTouched: (field: string, touched?: boolean, shouldValidate?: boolean) => void;
+    setFieldValue: (field: string, value: unknown, shouldValidate?: boolean) => unknown;
+    setFieldTouched: (field: string, touched?: boolean, shouldValidate?: boolean) => unknown;
     setFieldError: (field: string, message: string | undefined) => void;
-    setValues: (values: NewSkuForm, shouldValidate?: boolean) => void | Promise<void>;
+    setValues: (values: NewSkuForm, shouldValidate?: boolean) => unknown;
     isSubmitting: boolean;
   };
   onClose: () => void;
