@@ -98,13 +98,22 @@ export const EventDetailPopover: React.FC<EventDetailPopoverProps> = ({
     <FloatingPanel
       anchor={anchor}
       onClose={onClose}
-      width={420}
+      width={460}
       label={`${event.sid} ${event.type}`}
     >
       <div className="cal-pop">
         <header className="cal-pop-head">
           <div className="cal-pop-tags">
-            <span className="cal-pop-status">{statusLabel}</span>
+            <span
+              className={cls(
+                'cal-pill',
+                'cal-pill--sm',
+                `cal-pill--${vs}`,
+                vs === 'bids' && 'cal-pill--ink'
+              )}
+            >
+              {statusLabel}
+            </span>
             <span className={cls('cal-kindtag', event.type)}>
               {isPickup ? <ArrowUp size={12} strokeWidth={2.5} /> : <ArrowDown size={12} strokeWidth={2.5} />}
               {isPickup ? t('pickup', 'Pickup') : t('dropoff', 'Dropoff')}
@@ -255,19 +264,15 @@ export const EventDetailPopover: React.FC<EventDetailPopoverProps> = ({
                   <li key={st.id}>
                     <button
                       type="button"
-                      className={cls(st.id === event.id && 'is-current')}
+                      className={cls('cal-route-stop', st.id === event.id && 'is-current')}
                       disabled={st.id === event.id}
                       onClick={() => onJumpStop(st)}
                     >
-                      <span className={cls('cal-r-dot', st.type)}>
-                        {(st.stopIndex ?? idx) + 1}
+                      <span className="cal-r-dot">{(st.stopIndex ?? idx) + 1}</span>
+                      <span className={cls('cal-kindtag', 'cal-kindtag--route', st.type)}>
+                        {st.type === 'pickup' ? t('pickup', 'Pickup') : t('dropoff', 'Dropoff')}
                       </span>
-                      <span className="cal-r-kind">
-                        {st.type === 'pickup' ? 'PU' : 'DL'}
-                      </span>
-                      <span className="cal-r-name">
-                        {st.locationName || st.city || '—'}
-                      </span>
+                      <span className="cal-r-name">{st.locationName || st.city || '—'}</span>
                       <span className="cal-r-time">
                         {st.allDay
                           ? `${formatDmy(st.dateYmd)} · ${t('anyTime', 'Any time')}`

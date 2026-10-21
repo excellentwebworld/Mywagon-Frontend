@@ -1408,14 +1408,15 @@
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  margin: 10px 20px 2px;
-  padding: 0;
-  border-radius: 0;
-  background: transparent;
+  margin: 12px 20px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--warning-bg, #fff6e8);
+  border: 1px solid color-mix(in srgb, var(--warning, #e9a21c) 32%, transparent);
   color: var(--cal-text);
   font-size: 13px;
-  font-weight: 400;
-  line-height: 1.4;
+  font-weight: 500;
+  line-height: 1.45;
 }
 
 .cal-pop-alert-ico {
@@ -1440,8 +1441,8 @@
 }
 
 .cal-facts dt {
-  color: var(--cal-text);
-  padding-top: 1px;
+  color: var(--cal-muted);
+  padding-top: 2px;
   margin: 0;
   display: flex;
   align-items: flex-start;
@@ -1530,17 +1531,18 @@
 
 .cal-price-col .cal-tag {
   align-self: flex-start;
-  margin-top: 2px;
-  padding: 0;
-  background: transparent;
+  margin-top: 4px;
+  padding: 2px 6px;
+  background: var(--cal-surface-2);
   color: var(--cal-muted);
   font-size: 10px;
   letter-spacing: 0.08em;
-  border-radius: 0;
+  border-radius: 999px;
+  border: 1px solid var(--cal-line);
 }
 
 .cal-pop-route {
-  padding: 12px 20px 8px;
+  padding: 14px 16px 6px;
   border-top: 1px solid var(--cal-line);
 }
 
@@ -1559,19 +1561,19 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 8px;
 }
 
-.cal-pop-route button {
+.cal-pop-route button.cal-route-stop {
   display: grid;
-  grid-template-columns: 22px 26px minmax(0, 1fr) auto;
-  gap: 8px;
+  grid-template-columns: 22px auto minmax(0, 1fr) auto;
   align-items: center;
+  gap: 8px;
   width: 100%;
-  border: 0;
-  background: transparent;
-  border-radius: 8px;
-  padding: 8px 4px;
+  border: 1px solid var(--cal-line);
+  background: var(--cal-surface);
+  border-radius: 12px;
+  padding: 8px 12px;
   font-size: 13px;
   text-align: left;
   cursor: pointer;
@@ -1579,13 +1581,22 @@
   color: var(--cal-text);
 }
 
-.cal-pop-route button:hover:not(:disabled) {
+.cal-pop-route button.cal-route-stop:hover:not(:disabled) {
   background: var(--cal-hover);
+  border-color: var(--cal-line-strong);
 }
 
-.cal-pop-route button.is-current {
-  background: var(--cal-surface-3);
+.cal-pop-route button.cal-route-stop.is-current {
+  background: var(--cal-surface-2);
+  border-color: var(--cal-line-strong);
   cursor: default;
+}
+
+.cal-route-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .cal-r-dot {
@@ -1602,11 +1613,34 @@
   flex: none;
 }
 
-.cal-r-dot.pickup,
-.cal-r-dot.delivery {
-  background: var(--cal-surface);
-  border-color: var(--cal-text);
-  color: var(--cal-text);
+/* Itinerary stop numbers stay black on a light circle in both themes */
+.cal-pop-route .cal-r-dot,
+.cal-pop-route .cal-r-dot.pickup,
+.cal-pop-route .cal-r-dot.delivery {
+  background: #fff;
+  border-color: #111;
+  color: #111;
+}
+
+.cal-pop-route .cal-kindtag--route {
+  font-size: 10px;
+  padding: 3px 8px;
+  letter-spacing: 0.03em;
+}
+
+/* Popup Pickup = white tag, Dropoff = black tag (fixed, not theme-inverted) */
+.cal-pop .cal-kindtag.pickup,
+.cal-pop-route .cal-kindtag.pickup {
+  background: #fff;
+  color: #111;
+  border-color: #111;
+}
+
+.cal-pop .cal-kindtag.delivery,
+.cal-pop-route .cal-kindtag.delivery {
+  background: #111;
+  color: #fff;
+  border-color: #111;
 }
 
 .cal-r-kind {
@@ -1617,20 +1651,24 @@
   color: var(--cal-text);
 }
 
-.cal-r-name {
+.cal-pop-route .cal-r-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 500;
+  font-weight: 600;
   min-width: 0;
   color: var(--cal-text);
+  padding-left: 0;
+  font-size: 13px;
 }
 
-.cal-r-time {
+.cal-pop-route .cal-r-time {
+  margin-left: 0;
   font-variant-numeric: tabular-nums;
   color: var(--cal-muted);
   white-space: nowrap;
   font-size: 12px;
+  font-weight: 500;
 }
 
 .cal-progress-mini {
@@ -1639,11 +1677,11 @@
 
 .cal-pop-actions {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
-  padding: 10px 20px 18px;
-  border-top: 0;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--cal-line);
   background: var(--cal-surface);
   flex: none;
   position: relative;
@@ -1653,21 +1691,24 @@
 .cal-pop-link {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   border: 0;
-  background: transparent;
-  padding: 4px 0;
+  background: var(--cal-accent);
+  padding: 9px 14px;
   margin: 0;
+  border-radius: 10px;
   font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--cal-text);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #fff;
   cursor: pointer;
-  line-height: 1.3;
+  line-height: 1.2;
 }
 
 .cal-pop-link:hover {
-  text-decoration: underline;
+  background: var(--cal-accent-hover);
+  text-decoration: none;
 }
 
 .cal-pop-actions .cal-btn {

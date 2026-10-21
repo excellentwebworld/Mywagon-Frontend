@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { shipmentsService } from '../../../api';
 import type { CalendarShipmentsParams } from '../../../api/types/shipments';
 import type { Shipment } from '../../../context/AppContext';
@@ -63,7 +63,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   appliedFilters,
   t,
 }) => {
-  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { lang } = useTranslation();
   const dateLocale = toDateLocale(lang);
@@ -261,7 +260,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   }, []);
 
   const handleNavigateToDetail = (shipmentId: number) => {
-    navigate(`/shipments/${shipmentId}`);
+    window.open(`/shipments/${shipmentId}`, '_blank', 'noopener,noreferrer');
   };
 
   useEffect(() => {
