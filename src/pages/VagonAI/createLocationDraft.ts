@@ -20,6 +20,10 @@
 import type { LocationFlowBundle, LocationFlowCompany } from '../../hooks/useChat';
 import { englishTr, type Tr } from './i18n';
 
+/** Matches shipper_addresses.load_time_minutes (unsignedSmallInteger). */
+const LOAD_TIME_MINUTES_MIN = 1;
+const LOAD_TIME_MINUTES_MAX = 65535;
+
 export const DIRECTORIES = ['my_locations', 'customers'] as const;
 export type Directory = (typeof DIRECTORIES)[number];
 
@@ -231,6 +235,21 @@ export function locationIssues(draft: LocationDraft, bundle: LocationFlowBundle,
       message: tr(
         'vagonai.addressForm.issues.coordinatesRequired',
         'Pick the address from the suggestions so the map can place it — the site cannot be saved without coordinates.',
+      ),
+    });
+  }
+
+  if (
+    draft.loadTimeMinutes !== null &&
+    (!Number.isInteger(draft.loadTimeMinutes) ||
+      draft.loadTimeMinutes < LOAD_TIME_MINUTES_MIN ||
+      draft.loadTimeMinutes > LOAD_TIME_MINUTES_MAX)
+  ) {
+    issues.push({
+      field: 'loadTimeMinutes',
+      message: tr(
+        'vagonai.addressForm.issues.loadTimeRange',
+        `Loading time must be a whole number between ${LOAD_TIME_MINUTES_MIN} and ${LOAD_TIME_MINUTES_MAX} minutes.`,
       ),
     });
   }
