@@ -3496,8 +3496,8 @@
       },
       "customization": {
         "title": "User customization",
-        "body": "Personalize navigation, language, and workspace preferences to match how you work.",
-        "cta": "Customize workspace"
+        "body": "Create custom roles and assign them to new users in your account.",
+        "cta": "Manage roles"
       }
     }
   },
