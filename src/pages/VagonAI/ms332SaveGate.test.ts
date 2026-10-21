@@ -64,6 +64,7 @@ describe('MS3-332 from-order save gate', () => {
         settlement: 'direct',
         bulk: { mode: 'single' },
         trackingOrderIds: [],
+    trackingEmails: {},
       },
       gaps: [],
       suggestions: { vehicle: null, partner: null, partnerAlternatives: [] },

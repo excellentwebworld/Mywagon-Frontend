@@ -7,6 +7,8 @@ type Props = {
   selectedCount: number;
   openCreateOrder: () => void;
   openAiWizard: () => void;
+  /** MS3-360: the import pop-up's second tab - every import the account ran. */
+  openImportHistory?: () => void;
   onExport: () => void;
   exporting?: boolean;
   onCreateLoad: () => void;
@@ -19,6 +21,7 @@ export const ErpOrdersHeader: React.FC<Props> = ({
   selectedCount,
   openCreateOrder,
   openAiWizard,
+  openImportHistory,
   onExport,
   exporting = false,
   onCreateLoad: _onCreateLoad,
@@ -39,9 +42,16 @@ export const ErpOrdersHeader: React.FC<Props> = ({
         </button>
       )}
       {canCreateOrders && (
-        <button type="button" className="btn" onClick={openAiWizard}>
-          ✨ {t('erpOrdersImport')}
-        </button>
+        <span className="btn-split" role="group" aria-label={t('erpOrdersImport')}>
+          <button type="button" className="btn" onClick={openAiWizard} data-testid="erp-orders-import">
+            ✨ {t('erpOrdersImport')}
+          </button>
+          {openImportHistory ? (
+            <button type="button" className="btn" onClick={openImportHistory} data-testid="erp-orders-import-history">
+              {t('erpOrdersImportHistory')}
+            </button>
+          ) : null}
+        </span>
       )}
       <button type="button" className="btn" onClick={onExport} disabled={exporting}>
         <ExportIcon />

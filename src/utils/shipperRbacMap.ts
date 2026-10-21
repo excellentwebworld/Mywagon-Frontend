@@ -48,6 +48,7 @@ export type ShipperRbacNavKey =
   | 'subscription'
   | 'users'
   | 'organization'
+  | 'shipmentSettings'
   | 'orders'
   | 'priceLists'
   | 'vagonAi';
@@ -62,6 +63,8 @@ export const NAV_RBAC: Record<ShipperRbacNavKey, string | string[]> = {
   subscription: SHIPPER_RBAC.manageSubscriptions,
   users: SHIPPER_RBAC.managePermissions,
   organization: SHIPPER_RBAC.viewCompanyInfo,
+  // MS3-415: admin-only, same permission PUT /settings/shipment enforces (dispatchers lack it).
+  shipmentSettings: SHIPPER_RBAC.editCompanyInfo,
   orders: SHIPPER_RBAC.viewOrders,
   priceLists: SHIPPER_RBAC.viewPriceLists,
   vagonAi: SHIPPER_RBAC.accessVagonAi,
@@ -80,6 +83,7 @@ export const ROUTE_RBAC: Array<{ prefix: string; permission: string | string[] }
   { prefix: '/settings/users', permission: SHIPPER_RBAC.managePermissions },
   { prefix: '/subscription', permission: SHIPPER_RBAC.manageSubscriptions },
   { prefix: '/settings/organization', permission: SHIPPER_RBAC.viewCompanyInfo },
+  { prefix: '/settings/shipment', permission: SHIPPER_RBAC.editCompanyInfo },
   { prefix: '/settings/compliance', permission: SHIPPER_RBAC.viewCompanyInfo },
   { prefix: '/erp-orders', permission: SHIPPER_RBAC.viewOrders },
   { prefix: '/pricing', permission: SHIPPER_RBAC.viewPriceLists },

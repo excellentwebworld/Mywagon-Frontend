@@ -48,12 +48,24 @@ import { ACTION_RBAC } from '../../utils/shipperRbacMap';
 import { useUpgradeGate } from '../../context/UpgradeGateContext';
 import { useStep3OrderDetails, EMPTY_STEP3_ORDERS } from '../../hooks/useStep3OrderDetails';
 import { useAiSuggestedPrice } from '../../hooks/useAiSuggestedPrice';
+import {
+  MAX_LOAD_COPIES,
+  MIN_LOAD_COPIES,
+  loadCopiesQuotaShortfall,
+  normalizeLoadCopies,
+} from './loadCopies';
 import { matchContractLane } from '../../api/utils/matchContractLane';
 import type { Step3Carrier } from '../../api/mappers/mapPartnerToStep3Carrier';
 import { enrichStops } from './itinerary/stopEnrichment';
 import { buildStopSummaryLabels, buildTrackingGroups } from './itinerary/buildTrackingGroups';
 import { computeTripTotals, formatDurationMin, formatWeightKg, formatWeightDisplay, formatTripQtySummary, formatQtyWithUnit, normalizeQtyUnit } from './itinerary/cargoUtils';
 import type { TrackingOrderItem } from './itinerary/buildTrackingGroups';
+import {
+  buildDeliveryStopEmailRows,
+  isValidTrackingEmail,
+  MAX_STOP_TRACKING_EMAILS,
+  type DeliveryStopEmailRow,
+} from './itinerary/stopTrackingEmails';
 import {
   extractTrackingOrderIds,
   isUninitializedTrackingEmails,
@@ -92,6 +104,8 @@ interface Step3PricingProps {
   /** Live shipment status while editing (e.g. scheduled / ready / on_trip). */
   editShipmentStatus?: string | null;
   onBackStep: () => void;
+  /** Vehicle types are chosen on Step 2; go there and scroll to the selector. */
+  onGoToVehicleStep?: () => void;
   onSubmit: () => void;
   onSaveDraft?: (values: WizardFormValues) => Promise<void>;
   isSaving?: boolean;
@@ -102,6 +116,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   isEditMode = false,
   editShipmentStatus = null,
   onBackStep,
+  onGoToVehicleStep,
   onSubmit,
   onSaveDraft,
   isSaving = false,
@@ -145,6 +160,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   const [mapType, setMapType] = useState<'roadmap' | 'satellite'>('roadmap');
   const [activeStopIndex, setActiveStopIndex] = useState<number | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [vehicleMissingShown, setVehicleMissingShown] = useState(false);
   const orderValuePrefilledRef = useRef(false);
 
   const formatDocSize = (bytes?: number | null) => {
@@ -423,6 +439,10 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     );
   }, [values.vehicleSpecs]);
 
+  useEffect(() => {
+    if (hasVehicleSelection) setVehicleMissingShown(false);
+  }, [hasVehicleSelection]);
+
   const selectedVehicleGroups = useMemo(() => {
     const specs = values.vehicleSpecs || {};
     const fromCatalog = vehicleTypes
@@ -476,7 +496,21 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
   const pricePerPallet = targetPriceVal > 0 ? (targetPriceVal / palletDivisor).toFixed(2) : '0.00';
   const publicQuotaBlocked = values.broadcastType === 'public' && publicQuota?.status === false;
   const privateQuotaBlocked = values.broadcastType === 'private' && privateQuota?.status === false;
-  const loadQuotaBlocked = publicQuotaBlocked || privateQuotaBlocked;
+  // MS3-403: "Number of copies" - N identical, independent loads in one publish.
+  // Kept in Formik as `copies` (not saved on the draft); every copy counts
+  // against the plan's load limit, which Laravel enforces as well.
+  const loadCopies = isEditMode ? 1 : normalizeLoadCopies(values.copies);
+  const copiesQuotaRemaining =
+    loadCopies > 1
+      ? loadCopiesQuotaShortfall(values.broadcastType === 'public' ? publicQuota : privateQuota, loadCopies)
+      : null;
+  const copiesLinkedToOrders =
+    loadCopies > 1 &&
+    stops.some((s: { lines?: { orderId?: unknown }[] }) => (s.lines || []).some((l) => Boolean(l.orderId)));
+  const setLoadCopies = (next: unknown) => {
+    void setFieldValue('copies', normalizeLoadCopies(next));
+  };
+  const loadQuotaBlocked = publicQuotaBlocked || privateQuotaBlocked || copiesQuotaRemaining !== null;
   const canPrivateLoads = can('private_loads');
   const canPublicLoads = can('public_loads');
   const canAiSuggestedPrice = can('ai_suggested_price');
@@ -532,8 +566,11 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     }
   }, [step3Orders, values.orderValue, setFieldValue]);
 
-  // Override status
-  const isOverride = targetPriceVal !== calculatedPrice;
+  // Override status: only when a price-list / AI value exists and the typed
+  // price differs from it (compared in cents, so 342 === 342.00).
+  const isOverride =
+    calculatedPrice > 0 &&
+    Math.round(targetPriceVal * 100) !== Math.round(calculatedPrice * 100);
 
   // Repair wizard_state that was stored as a nested array (keys "0", "1", …).
   useEffect(() => {
@@ -602,6 +639,110 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
     const cur = trackingEmailsRecord[orderId] || [''];
     const next = cur.filter((_: any, idx: number) => idx !== emailIdx);
     setTrackingEmailsForOrder(orderId, next.length ? next : ['']);
+  };
+
+  // MS3-414: receiver tracking email per delivery stop (pre-filled by Laravel from
+  // the stop's Address Book location). Removing the last address keeps an empty
+  // entry, which the server treats as "removed by the user" and never re-fills.
+  const deliveryStopEmailRows = useMemo(
+    () => buildDeliveryStopEmailRows(stops, values.stopTrackingEmails, values.stopTrackingEmailsAuto),
+    [stops, values.stopTrackingEmails, values.stopTrackingEmailsAuto]
+  );
+
+  const setStopEmails = (stopId: string, emails: string[]) => {
+    setFieldValue('stopTrackingEmails', { ...(values.stopTrackingEmails || {}), [stopId]: emails });
+  };
+
+  const updateStopEmail = (row: DeliveryStopEmailRow, emailIdx: number, val: string) => {
+    const cur = [...row.emails];
+    cur[emailIdx] = val;
+    setStopEmails(row.stopId, cur);
+  };
+
+  const addStopEmail = (row: DeliveryStopEmailRow) => {
+    if (row.emails.length >= MAX_STOP_TRACKING_EMAILS) return;
+    setStopEmails(row.stopId, [...row.emails, '']);
+  };
+
+  const removeStopEmail = (row: DeliveryStopEmailRow, emailIdx: number) => {
+    setStopEmails(
+      row.stopId,
+      row.emails.filter((_: string, idx: number) => idx !== emailIdx)
+    );
+  };
+
+  const renderDeliveryStopEmails = (row: DeliveryStopEmailRow) => {
+    const enriched = enrichedStops[row.stopIndex];
+    const place =
+      [enriched?.resolvedName, enriched?.resolvedCity].filter(Boolean).join(', ') || '—';
+    return (
+      <div key={row.stopId} className="wizard-stop-tracking-row pt-2 first:pt-0">
+        <div className="text-xs font-bold tabular-nums text-indigo-600">
+          {t('receiverTrackingStopLabel', 'Stop {{num}}', { num: row.stopIndex + 1 })}
+        </div>
+        <div className="text-[10px] text-slate-700 font-medium mt-0.5">{place}</div>
+        <div className="text-[10px] text-slate-400">
+          {row.fromAddressBook
+            ? t('receiverTrackingFromAddressBook', 'Filled in from the Address Book location')
+            : t('receiverTrackingEmailHint', 'The receiver gets the tracking link when the load goes live')}
+        </div>
+
+        <div className="space-y-1.5 mt-2">
+          {row.emails.map((em: string, emIdx: number) => {
+            const invalid = em.trim() !== '' && !isValidTrackingEmail(em);
+            return (
+              <div key={emIdx}>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    className="wizard-stop-tracking-email flex-1 p-2 border rounded-lg text-xs outline-none"
+                    placeholder={t('createShipment.emailPlaceholder', 'email@example.com')}
+                    aria-label={t('receiverTrackingEmail', 'Receiver tracking email')}
+                    aria-invalid={invalid || undefined}
+                    value={em}
+                    onChange={(e) => updateStopEmail(row, emIdx, e.target.value)}
+                    style={{
+                      background: T.sa,
+                      borderColor: invalid ? '#DC2626' : T.bd,
+                      color: T.t1,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="wizard-stop-tracking-email-remove w-8 h-8 rounded-lg border flex items-center justify-center"
+                    aria-label={t('receiverTrackingRemove', 'Remove receiver email')}
+                    style={{
+                      background: T.sf,
+                      borderColor: T.bd,
+                      color: T.t3,
+                    }}
+                    onClick={() => removeStopEmail(row, emIdx)}
+                  >
+                    ✕
+                  </button>
+                </div>
+                {invalid && (
+                  <div className="text-[10px] mt-1" style={{ color: '#DC2626' }}>
+                    {t('receiverTrackingInvalidEmail', 'Not a valid email address - it will not be saved.')}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {row.emails.length < MAX_STOP_TRACKING_EMAILS && (
+          <button
+            type="button"
+            className="wizard-stop-tracking-add-email w-full py-1.5 border border-dashed rounded-lg text-[10px] font-bold bg-transparent cursor-pointer mt-2"
+            style={{ borderColor: T.bd, color: T.ac }}
+            onClick={() => addStopEmail(row)}
+          >
+            {t('addEmail') || '+ Add email'}
+          </button>
+        )}
+      </div>
+    );
   };
 
   // 5. CARRIERS SELECTION ACTION
@@ -1047,7 +1188,17 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
 
               {showTrackingEmailSection && trackingExpanded && (
                 <>
-                  {trackingGroups.isEmpty ? (
+                  {deliveryStopEmailRows.length > 0 && (
+                    <div className="wizard-stop-tracking border rounded-lg overflow-hidden">
+                      <div className="px-3 py-2 bg-slate-50 text-xs font-bold text-slate-700">
+                        {t('receiverTrackingEmails', 'Receiver tracking emails (per delivery stop)')}
+                      </div>
+                      <div className="p-3 divide-y space-y-3">
+                        {deliveryStopEmailRows.map((row) => renderDeliveryStopEmails(row))}
+                      </div>
+                    </div>
+                  )}
+                  {trackingGroups.isEmpty && deliveryStopEmailRows.length > 0 ? null : trackingGroups.isEmpty ? (
                     <div className="text-xs text-slate-500 py-2">
                       {t('trackingLinksEmpty') || 'Add cargo lines with linked orders in Step 1 to configure tracking links.'}
                     </div>
@@ -1320,6 +1471,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                               formatted:
                                 aiPriceData.formatted?.market_price ||
                                 `€${aiPriceData.market_price}`,
+                              hint: t('aiPriceMarketHint', 'Typical market rate'),
                               iconColor: '#9B51E0',
                               bestMatch: true,
                             },
@@ -1330,6 +1482,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                               formatted:
                                 aiPriceData.formatted?.attractive_price ||
                                 `€${aiPriceData.attractive_price}`,
+                              hint: t('aiPriceAttractiveHint', 'Above market, to get bids faster'),
                               iconColor: '#10b981',
                               bestMatch: false,
                             },
@@ -1340,6 +1493,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                               formatted:
                                 aiPriceData.formatted?.conservative_price ||
                                 `€${aiPriceData.conservative_price}`,
+                              hint: t('aiPriceConservativeHint', 'Below market, may take longer'),
                               iconColor: '#6b7280',
                               bestMatch: false,
                             },
@@ -1359,6 +1513,7 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                                 color: T.t1,
                                 fontFamily: 'inherit',
                               }}
+                              title={`${opt.label}: ${opt.hint}`}
                               onClick={() => applyAiSuggestedPrice(opt.price)}
                             >
                               {opt.bestMatch && (
@@ -1387,6 +1542,9 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
                                 style={{ color: T.t1 }}
                               >
                                 {opt.formatted}
+                              </div>
+                              <div className="text-[9px] leading-tight text-slate-500 mt-0.5">
+                                {opt.hint}
                               </div>
                             </button>
                           );
@@ -2247,7 +2405,87 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               {targetPriceVal > 0 ? `€${targetPriceVal.toLocaleString()}` : '—'}
             </strong>
           </div>
+          {!isEditMode && (
+            <div className="flex items-center gap-2 text-xs" style={{ color: T.t2 }} data-testid="step3-load-copies">
+              <label htmlFor="step3-load-copies-input" title={t('loadCopiesHint', 'Each copy is a separate load, bid on individually.')}>
+                {t('loadCopiesLabel', 'Number of copies')}
+              </label>
+              <div className="inline-flex items-center rounded-lg" style={{ border: `1px solid ${T.bd}` }}>
+                <button
+                  type="button"
+                  className="px-2 py-1 border-none bg-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ color: T.t1 }}
+                  aria-label={t('loadCopiesDecrease', 'Fewer copies')}
+                  onClick={() => setLoadCopies(loadCopies - 1)}
+                  disabled={isSubmitting || loadCopies <= MIN_LOAD_COPIES}
+                >
+                  −
+                </button>
+                <input
+                  id="step3-load-copies-input"
+                  type="number"
+                  inputMode="numeric"
+                  min={MIN_LOAD_COPIES}
+                  max={MAX_LOAD_COPIES}
+                  step={1}
+                  className="w-10 text-center tabular-nums border-none bg-transparent"
+                  style={{ color: T.t1, fontFamily: 'inherit', fontWeight: 600 }}
+                  value={loadCopies}
+                  onChange={(e) => setLoadCopies(e.target.value)}
+                  disabled={isSubmitting}
+                />
+                <button
+                  type="button"
+                  className="px-2 py-1 border-none bg-transparent cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ color: T.t1 }}
+                  aria-label={t('loadCopiesIncrease', 'More copies')}
+                  onClick={() => setLoadCopies(loadCopies + 1)}
+                  disabled={isSubmitting || loadCopies >= MAX_LOAD_COPIES}
+                >
+                  +
+                </button>
+              </div>
+              {copiesQuotaRemaining !== null ? (
+                <span role="alert" style={{ color: 'var(--danger)' }} data-testid="step3-load-copies-quota">
+                  {t('loadCopiesQuotaShort', `Your plan allows ${copiesQuotaRemaining} more loads this billing cycle.`, {
+                    remaining: copiesQuotaRemaining,
+                  })}
+                </span>
+              ) : copiesLinkedToOrders ? (
+                <span style={{ color: T.t3 }}>
+                  {t('loadCopiesOrderNote', 'Each copy uses the order quantity again.')}
+                </span>
+              ) : null}
+            </div>
+          )}
         </div>
+
+        {vehicleMissingShown && !hasVehicleSelection && (
+          <div
+            role="alert"
+            data-testid="step3-vehicle-missing"
+            className="flex items-center gap-2 flex-1 min-w-0 mx-4 text-xs"
+            style={{ color: 'var(--danger)' }}
+          >
+            <span className="min-w-0">
+              {t(
+                'step3VehicleMissingOnStep2',
+                'Select at least one vehicle type on step 2 (Itinerary) before creating the shipment.'
+              )}
+            </span>
+            {onGoToVehicleStep && (
+              <button
+                type="button"
+                className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 border rounded-lg text-xs font-semibold bg-white hover:bg-slate-50 cursor-pointer"
+                style={{ color: T.ac, borderColor: T.ac }}
+                onClick={onGoToVehicleStep}
+                disabled={isSubmitting || isSaving}
+              >
+                <ArrowLeft size={13} /> {t('step3GoToVehicleStep', 'Go to step 2')}
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Buttons */}
         <div className="flex items-center gap-2">
@@ -2289,6 +2527,13 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
             disabled={isSubmitting || isSaving || loadQuotaBlocked || publicQuotaLoading || privateQuotaLoading}
             aria-busy={isSubmitting}
             onClick={() => {
+              // Vehicle types live on Step 2: say so inline (a toast here sat on
+              // top of these buttons) and offer the way back, instead of letting
+              // publish fail server-side.
+              if (!hasVehicleSelection) {
+                setVehicleMissingShown(true);
+                return;
+              }
               const isNegotiable = Boolean(values.negotiable);
               const rawPrice = String(values.targetPrice ?? '').trim();
               const price = rawPrice === '' ? NaN : parseFloat(rawPrice);
@@ -2358,6 +2603,8 @@ export const Step3Pricing: React.FC<Step3PricingProps> = ({
               </>
             ) : isEditMode ? (
               t('updateLoadBtn', 'Update Shipment')
+            ) : loadCopies > 1 ? (
+              t('createLoadsBtn', `Create ${loadCopies} Shipments`, { count: loadCopies })
             ) : (
               t('createLoadBtn', 'Create Shipment')
             )}

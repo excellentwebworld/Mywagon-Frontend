@@ -13,6 +13,8 @@ export type BatchDraftJobCreated = {
   order_reference?: string;
   draft_id?: number;
   sid?: string;
+  /** Soft gaps still open on a created draft (MS3-351 always-create). */
+  missing?: string[];
 };
 
 export type BatchDraftJobFailed = {

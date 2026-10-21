@@ -1,9 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import {
+  AlertCircle,
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Lock,
+  Mail,
+  Radar,
+  Route,
+  ShieldCheck,
+  Truck,
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { useTranslation } from '../../hooks/useTranslation';
-import { useLoginParticles } from './useLoginParticles';
 import type { ShipperUser, TwoFactorChallenge, TwoFactorMethod } from '../../api/auth';
 import { clearStoredToken, setStoredToken } from '../../api/auth';
 import fullLogo from '../../assets/logo/fullLogo.svg';
@@ -38,23 +50,40 @@ async function finishLoginNavigation(
   navigate(postAuthDestination({ ...user, preferred_ui: 'react' }, from), { replace: true });
 }
 
-const EyeIcon: React.FC<{ open: boolean }> = ({ open }) =>
-  open ? (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  ) : (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
-      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
-      <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
-  );
+/** Decorative route-network motif for the brand panel. */
+const RouteArtwork: React.FC = () => (
+  <svg
+    className="mv-auth__route"
+    viewBox="0 0 560 300"
+    preserveAspectRatio="xMidYMid meet"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <defs>
+      <linearGradient id="mvRouteGrad" x1="0" y1="1" x2="1" y2="0">
+        <stop offset="0%" stopColor="#9b51e0" />
+        <stop offset="55%" stopColor="#7b7ce6" />
+        <stop offset="100%" stopColor="#f59e0b" />
+      </linearGradient>
+    </defs>
+    <path
+      className="mv-auth__route-track"
+      d="M48 248 C 168 248, 150 150, 268 138 S 448 118, 516 44"
+    />
+    <path
+      className="mv-auth__route-progress"
+      d="M48 248 C 168 248, 150 150, 268 138 S 448 118, 516 44"
+    />
+    <circle className="mv-auth__node" cx="48" cy="248" r="9" />
+    <circle className="mv-auth__node-dot" cx="48" cy="248" r="3.2" />
+    <circle className="mv-auth__node" cx="268" cy="138" r="7" />
+    <circle className="mv-auth__node-dot" cx="268" cy="138" r="2.6" />
+    <circle className="mv-auth__node mv-auth__node--end" cx="516" cy="44" r="9" />
+    <circle className="mv-auth__node-dot mv-auth__node-dot--end" cx="516" cy="44" r="3.2" />
+  </svg>
+);
 
 export const LoginPage: React.FC = () => {
-  const particlesRef = useLoginParticles();
-
   const {
     login,
     verifyTwoFactor,
@@ -96,7 +125,6 @@ export const LoginPage: React.FC = () => {
   const from =
     (location.state as { from?: string } | null)?.from || '/dashboard';
 
-  const laravelBase = (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '') ?? '';
   const oauthParams = new URLSearchParams(location.search);
   const oauthToken = oauthParams.get('token');
   const oauthTwoFactor = oauthParams.get('two_factor') === '1';
@@ -373,299 +401,402 @@ export const LoginPage: React.FC = () => {
     setLocalError(null);
   };
 
+  const alertMessage = loginError || localError;
+
+  const otpLabel = lostAccess
+    ? t('login.twoFactor.emailLabel', {
+        email: challenge?.masked_email,
+        defaultValue: `Code sent to ${challenge?.masked_email}`,
+      })
+    : useRecovery
+      ? t('login.twoFactor.recoveryLabel', { defaultValue: 'Recovery code' })
+      : challenge?.method === 'email'
+        ? t('login.twoFactor.emailLabel', {
+            email: challenge?.masked_email,
+            defaultValue: `Code sent to ${challenge?.masked_email}`,
+          })
+        : t('login.twoFactor.authenticatorLabel', { defaultValue: 'Authenticator app code' });
+
   return (
-    <div className="shipper-login-page">
-      <div ref={particlesRef} className="shipper-login-particles" aria-hidden="true" />
+    <div className="mv-auth">
+      {/* ---------------------------------------------------------------- */}
+      {/* Brand / network panel (desktop only, decorative)                  */}
+      {/* ---------------------------------------------------------------- */}
+      <aside className="mv-auth__brand">
+        <RouteArtwork />
 
-      <div className="shipper-login-content">
-        <div className="shipper-login-card-cont">
-          <div className="shipper-login-card">
-            <div className="shipper-login-box new-login-page">
-              <div className="shipper-login-container">
-                <div className="shipper-login-topbar">
-                  <AuthThemeToggle />
-                  <label className="shipper-login-lang-switch">
-                    <input
-                      type="checkbox"
-                      checked={lang !== 'el'}
-                      onChange={(e) => handleLanguageChange(e.target.checked)}
-                      aria-label={t('Login.language', 'Language')}
-                    />
-                    <span className="shipper-login-lang-slider" />
-                  </label>
-                </div>
+        <a href="/login" className="mv-auth__brand-logo-link">
+          <img src={fullLogo} alt={t('appName')} className="mv-auth__brand-logo" />
+        </a>
 
-                <div className="shipper-login-header ">
-                  <a href="/login" className="shipper-login-logo-link mt-2">
-                    <img src={fullLogo} alt={t('appName')} className="shipper-login-logo" height={35} />
-                  </a>
-                  <p className="shipper-login-para">
-                    {challenge
-                      ? lostAccess
-                        ? t('login.twoFactor.lostAccessHint', {
-                            email: challenge.masked_email,
-                            defaultValue: `We sent a code to ${challenge.masked_email}. Enter it to reset 2FA and sign in.`,
-                          })
-                        : t('login.twoFactor.subtitle', { defaultValue: 'Enter your verification code to continue.' })
-                      : t('loginDescription')}
-                  </p>
-                </div>
+        <div className="mv-auth__brand-body">
+          <span className="mv-auth__eyebrow">
+            <span className="mv-auth__pulse" aria-hidden="true" />
+            {t('login.brand.eyebrow', { defaultValue: 'Shipper platform' })}
+          </span>
+          <h2 className="mv-auth__brand-title">
+            {t('login.brand.titleLead', { defaultValue: 'Move every load with' })}{' '}
+            <em>{t('login.brand.titleAccent', { defaultValue: 'full visibility' })}</em>
+          </h2>
+          <p className="mv-auth__brand-sub">
+            {t('login.brand.subtitle', {
+              defaultValue:
+                'Plan shipments, collect quotes from vetted carriers and forwarders, and track every leg from pickup to delivery.',
+            })}
+          </p>
+        </div>
 
-                {(loginError || localError) && (
-                  <div className="shipper-login-alert" role="alert">
-                    {loginError || localError}
-                  </div>
-                )}
-
-                {!challenge && (
-                  <ul className="shipper-login-tabs" role="tablist">
-                    <li className="shipper-login-tab-item">
-                      <span className="shipper-login-tab active" role="tab" aria-selected>
-                        {t('shipper')}
-                      </span>
-                    </li>
-                  </ul>
-                )}
-
-                <div className="shipper-login-tab-pane">
-                  {challenge ? (
-                    <form className="shipper-login-form" onSubmit={handleVerify} noValidate>
-                      <div className="shipper-login-field">
-                        <label htmlFor="otp-code">
-                          {lostAccess
-                            ? t('login.twoFactor.emailLabel', {
-                                email: challenge.masked_email,
-                                defaultValue: `Code sent to ${challenge.masked_email}`,
-                              })
-                            : useRecovery
-                              ? t('login.twoFactor.recoveryLabel', { defaultValue: 'Recovery code' })
-                              : challenge.method === 'email'
-                                ? t('login.twoFactor.emailLabel', {
-                                    email: challenge.masked_email,
-                                    defaultValue: `Code sent to ${challenge.masked_email}`,
-                                  })
-                                : t('login.twoFactor.authenticatorLabel', {
-                                    defaultValue: 'Authenticator app code',
-                                  })}
-                        </label>
-                        <input
-                          id="otp-code"
-                          name="code"
-                          type="text"
-                          inputMode={useRecovery && !lostAccess ? 'text' : 'numeric'}
-                          autoComplete="one-time-code"
-                          className="shipper-login-control"
-                          value={otpCode}
-                          onChange={(e) => {
-                            clearLoginError();
-                            setLocalError(null);
-                            setOtpCode(e.target.value);
-                          }}
-                          placeholder={useRecovery && !lostAccess ? 'XXXXXXXXXX' : '000000'}
-                          disabled={submitting}
-                          autoFocus
-                        />
-                      </div>
-
-                      {(lostAccess || (challenge.method === 'email' && !useRecovery)) && (
-                        <div className="shipper-login-forgot" style={{ marginBottom: 12 }}>
-                          <button
-                            type="button"
-                            className="shipper-login-pw-link"
-                            style={{ background: 'none', border: 'none', cursor: resendSeconds > 0 ? 'default' : 'pointer', padding: 0 }}
-                            onClick={() => void handleResend()}
-                            disabled={resendSeconds > 0 || resendBusy}
-                          >
-                            {resendSeconds > 0
-                              ? t('login.twoFactor.resendIn', {
-                                  n: resendSeconds,
-                                  defaultValue: `Resend in ${resendSeconds}s`,
-                                })
-                              : t('login.twoFactor.resend', { defaultValue: 'Resend code' })}
-                          </button>
-                        </div>
-                      )}
-
-                      {!lostAccess && (
-                        <div className="shipper-login-forgot" style={{ marginBottom: 12 }}>
-                          <button
-                            type="button"
-                            className="shipper-login-pw-link"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                            onClick={() => {
-                              setUseRecovery((v) => !v);
-                              setOtpCode('');
-                              clearLoginError();
-                              setLocalError(null);
-                            }}
-                          >
-                            {useRecovery
-                              ? t('login.twoFactor.useAppCode', { defaultValue: 'Use authenticator / email code' })
-                              : t('login.twoFactor.useRecovery', { defaultValue: 'Use a recovery code' })}
-                          </button>
-                        </div>
-                      )}
-
-                      {!lostAccess && challenge.method === 'authenticator' && (
-                        <div className="shipper-login-forgot" style={{ marginBottom: 12 }}>
-                          <button
-                            type="button"
-                            className="shipper-login-pw-link"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                            onClick={() => void startLostAccess()}
-                            disabled={resendBusy}
-                          >
-                            {t('login.twoFactor.lostAccess', {
-                              defaultValue: 'Lost access to your authenticator?',
-                            })}
-                          </button>
-                        </div>
-                      )}
-
-                      {lostAccess && (
-                        <div className="shipper-login-forgot" style={{ marginBottom: 12 }}>
-                          <button
-                            type="button"
-                            className="shipper-login-pw-link"
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                            onClick={() => {
-                              setLostAccess(false);
-                              setOtpCode('');
-                              setUseRecovery(false);
-                              clearLoginError();
-                              setLocalError(null);
-                            }}
-                          >
-                            {t('login.twoFactor.backTo2fa', {
-                              defaultValue: 'Back to authenticator / recovery code',
-                            })}
-                          </button>
-                        </div>
-                      )}
-
-                      <div className="shipper-login-submit-wrap">
-                        <button type="submit" className="shipper-login-submit-btn" disabled={submitting || !otpCode.trim()}>
-                          {submitting
-                            ? t('login.twoFactor.verifying', { defaultValue: 'Verifying…' })
-                            : lostAccess
-                              ? t('login.twoFactor.resetAndSignIn', { defaultValue: 'Reset 2FA & sign in' })
-                              : t('login.twoFactor.verify', { defaultValue: 'Verify' })}
-                        </button>
-                      </div>
-
-                      <div className="shipper-login-join-wrap">
-                        <button
-                          type="button"
-                          className="shipper-login-join"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-                          onClick={backToCredentials}
-                        >
-                          {t('login.twoFactor.back', { defaultValue: 'Back to sign in' })}
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <>
-                      <form className="shipper-login-form" onSubmit={handleSubmit} noValidate>
-                        <div className={`shipper-login-field email-input${fieldErrors.email ? ' has-error' : ''}`}>
-                          <label htmlFor="emailaddress">{t('loginEmailAddress')}</label>
-                          <input
-                            id="emailaddress"
-                            name="email"
-                            type="email"
-                            className="shipper-login-control"
-                            value={email}
-                            onChange={(e) => handleEmailChange(e.target.value)}
-                            onBlur={() => {
-                              setTouched((prev) => ({ ...prev, email: true }));
-                              const error = validateLoginEmail(email, t);
-                              setFieldErrors((prev) => ({ ...prev, email: error }));
-                            }}
-                            placeholder={t('loginEnterEmail')}
-                            autoComplete="email"
-                            maxLength={50}
-                            aria-invalid={Boolean(fieldErrors.email)}
-                            disabled={submitting}
-                          />
-                          {fieldErrors.email && (
-                            <p className="shipper-login-field-error" role="alert">
-                              {fieldErrors.email}
-                            </p>
-                          )}
-                        </div>
-
-                        <div
-                          className={`shipper-login-field shipper-login-password-div pw-input${fieldErrors.password ? ' has-error' : ''
-                            }`}
-                        >
-                          <label htmlFor="password">{t('loginPassword')}</label>
-                          <input
-                            id="password"
-                            name="password"
-                            type={showPassword ? 'text' : 'password'}
-                            className="shipper-login-control"
-                            value={password}
-                            onChange={(e) => handlePasswordChange(e.target.value)}
-                            onBlur={() => {
-                              setTouched((prev) => ({ ...prev, password: true }));
-                              const error = validateLoginPassword(password, t);
-                              setFieldErrors((prev) => ({ ...prev, password: error }));
-                            }}
-                            placeholder={t('loginEnterPassword')}
-                            autoComplete="current-password"
-                            aria-invalid={Boolean(fieldErrors.password)}
-                            disabled={submitting}
-                          />
-                          <button
-                            type="button"
-                            className="shipper-login-password-toggle"
-                            onClick={() => setShowPassword((v) => !v)}
-                            aria-label={showPassword ? t('loginHidePassword') : t('loginShowPassword')}
-                          >
-                            <EyeIcon open={showPassword} />
-                          </button>
-                          {fieldErrors.password && (
-                            <p className="shipper-login-field-error" role="alert">
-                              {fieldErrors.password}
-                            </p>
-                          )}
-                        </div>
-
-                        <div className="shipper-login-forgot">
-                          <Link
-                            to="/forgot-password"
-                            className="shipper-login-pw-link"
-                          >
-                            {t('loginForgotPassword', 'Forgot Password?')}
-                          </Link>
-                        </div>
-
-                        <div className="shipper-login-submit-wrap">
-                          <button type="submit" className="shipper-login-submit-btn" disabled={submitting}>
-                            {submitting ? t('loginSigningIn') : t('loginLogIn')}
-                          </button>
-                        </div>
-                      </form>
-
-                      <SocialAuthButtons disabled={submitting} />
-
-                      <div className="shipper-login-join-wrap">
-                        <Link
-                          to="/shipper/register"
-                          className="shipper-login-join"
-                          onClick={clearSignupDraft}
-                        >
-                          {t('loginJoinForFree')}
-                        </Link>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
+        <div className="mv-auth__stats">
+          <div className="mv-auth__stat">
+            <span className="mv-auth__stat-icon">
+              <Truck size={17} strokeWidth={1.8} aria-hidden="true" />
+            </span>
+            <span className="mv-auth__stat-label">
+              {t('login.brand.stat1', { defaultValue: 'Vetted carrier network' })}
+            </span>
+            <span className="mv-auth__stat-hint">
+              {t('login.brand.stat1Hint', { defaultValue: 'Compare quotes side by side' })}
+            </span>
+          </div>
+          <div className="mv-auth__stat">
+            <span className="mv-auth__stat-icon">
+              <Radar size={17} strokeWidth={1.8} aria-hidden="true" />
+            </span>
+            <span className="mv-auth__stat-label">
+              {t('login.brand.stat2', { defaultValue: 'Live shipment tracking' })}
+            </span>
+            <span className="mv-auth__stat-hint">
+              {t('login.brand.stat2Hint', { defaultValue: 'Status on every leg' })}
+            </span>
+          </div>
+          <div className="mv-auth__stat">
+            <span className="mv-auth__stat-icon">
+              <Route size={17} strokeWidth={1.8} aria-hidden="true" />
+            </span>
+            <span className="mv-auth__stat-label">
+              {t('login.brand.stat3', { defaultValue: 'Multi-stop itineraries' })}
+            </span>
+            <span className="mv-auth__stat-hint">
+              {t('login.brand.stat3Hint', { defaultValue: 'Built in a few clicks' })}
+            </span>
           </div>
         </div>
-      </div>
+      </aside>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* Auth panel                                                        */}
+      {/* ---------------------------------------------------------------- */}
+      <main className="mv-auth__panel">
+        <div className="mv-auth__card">
+          <div className="mv-auth__topbar">
+            <a href="/login" className="mv-auth__logo-link">
+              <img src={fullLogo} alt={t('appName')} className="mv-auth__logo" />
+            </a>
+
+            <div className="mv-auth__topbar-actions">
+              <AuthThemeToggle />
+              <label className="mv-auth__lang">
+                <input
+                  type="checkbox"
+                  checked={lang !== 'el'}
+                  onChange={(e) => handleLanguageChange(e.target.checked)}
+                  aria-label={t('login.languageLabel', { defaultValue: 'Language' })}
+                />
+                <span className="mv-auth__lang-thumb" aria-hidden="true" />
+                <span className="mv-auth__lang-opt mv-auth__lang-opt--el">EL</span>
+                <span className="mv-auth__lang-opt mv-auth__lang-opt--en">EN</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="mv-auth__head">
+            {!challenge && <span className="mv-auth__badge">{t('shipper')}</span>}
+            <h1 className="mv-auth__title">
+              {challenge
+                ? lostAccess
+                  ? t('login.twoFactor.resetTitle', { defaultValue: 'Reset two-factor access' })
+                  : t('login.twoFactor.title', { defaultValue: 'Verify it is you' })
+                : t('login.title', { defaultValue: 'Sign in to your panel' })}
+            </h1>
+            <p className="mv-auth__sub">
+              {challenge
+                ? lostAccess
+                  ? t('login.twoFactor.lostAccessHint', {
+                      email: challenge.masked_email,
+                      defaultValue: `We sent a code to ${challenge.masked_email}. Enter it to reset 2FA and sign in.`,
+                    })
+                  : t('login.twoFactor.subtitle', {
+                      defaultValue: 'Enter your verification code to continue.',
+                    })
+                : t('loginDescription')}
+            </p>
+          </div>
+
+          {alertMessage && (
+            <div className="mv-auth__alert" role="alert">
+              <AlertCircle size={17} strokeWidth={2} aria-hidden="true" />
+              <span>{alertMessage}</span>
+            </div>
+          )}
+
+          {challenge ? (
+            <form onSubmit={handleVerify} noValidate>
+              <div className="mv-auth__field mv-auth__field--otp">
+                <div className="mv-auth__label-row">
+                  <label htmlFor="otp-code">{otpLabel}</label>
+                </div>
+                <div className="mv-auth__input-wrap">
+                  <input
+                    id="otp-code"
+                    name="code"
+                    type="text"
+                    inputMode={useRecovery && !lostAccess ? 'text' : 'numeric'}
+                    autoComplete="one-time-code"
+                    className="mv-auth__control"
+                    value={otpCode}
+                    onChange={(e) => {
+                      clearLoginError();
+                      setLocalError(null);
+                      setOtpCode(e.target.value);
+                    }}
+                    placeholder={useRecovery && !lostAccess ? 'XXXXXXXXXX' : '000000'}
+                    disabled={submitting}
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <div className="mv-auth__actions">
+                {(lostAccess || (challenge.method === 'email' && !useRecovery)) && (
+                  <button
+                    type="button"
+                    className="mv-auth__link"
+                    onClick={() => void handleResend()}
+                    disabled={resendSeconds > 0 || resendBusy}
+                  >
+                    {resendSeconds > 0
+                      ? t('login.twoFactor.resendIn', {
+                          n: resendSeconds,
+                          defaultValue: `Resend in ${resendSeconds}s`,
+                        })
+                      : t('login.twoFactor.resend', { defaultValue: 'Resend code' })}
+                  </button>
+                )}
+
+                {!lostAccess && (
+                  <button
+                    type="button"
+                    className="mv-auth__link"
+                    onClick={() => {
+                      setUseRecovery((v) => !v);
+                      setOtpCode('');
+                      clearLoginError();
+                      setLocalError(null);
+                    }}
+                  >
+                    {useRecovery
+                      ? t('login.twoFactor.useAppCode', {
+                          defaultValue: 'Use authenticator / email code',
+                        })
+                      : t('login.twoFactor.useRecovery', { defaultValue: 'Use a recovery code' })}
+                  </button>
+                )}
+
+                {!lostAccess && challenge.method === 'authenticator' && (
+                  <button
+                    type="button"
+                    className="mv-auth__link"
+                    onClick={() => void startLostAccess()}
+                    disabled={resendBusy}
+                  >
+                    {t('login.twoFactor.lostAccess', {
+                      defaultValue: 'Lost access to your authenticator?',
+                    })}
+                  </button>
+                )}
+
+                {lostAccess && (
+                  <button
+                    type="button"
+                    className="mv-auth__link"
+                    onClick={() => {
+                      setLostAccess(false);
+                      setOtpCode('');
+                      setUseRecovery(false);
+                      clearLoginError();
+                      setLocalError(null);
+                    }}
+                  >
+                    {t('login.twoFactor.backTo2fa', {
+                      defaultValue: 'Back to authenticator / recovery code',
+                    })}
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                className="mv-auth__submit"
+                disabled={submitting || !otpCode.trim()}
+                aria-busy={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <span className="mv-auth__spinner" aria-hidden="true" />
+                    {t('login.twoFactor.verifying', { defaultValue: 'Verifying…' })}
+                  </>
+                ) : (
+                  <>
+                    <KeyRound size={17} strokeWidth={2} aria-hidden="true" />
+                    {lostAccess
+                      ? t('login.twoFactor.resetAndSignIn', { defaultValue: 'Reset 2FA & sign in' })
+                      : t('login.twoFactor.verify', { defaultValue: 'Verify' })}
+                  </>
+                )}
+              </button>
+
+              <div className="mv-auth__divider">
+                <span>{t('login.orLabel', { defaultValue: 'or' })}</span>
+              </div>
+
+              <button type="button" className="mv-auth__secondary" onClick={backToCredentials}>
+                <ArrowLeft size={16} strokeWidth={2} aria-hidden="true" />
+                {t('login.twoFactor.back', { defaultValue: 'Back to sign in' })}
+              </button>
+            </form>
+          ) : (
+            <>
+              <form onSubmit={handleSubmit} noValidate>
+                <div className={`mv-auth__field${fieldErrors.email ? ' has-error' : ''}`}>
+                  <div className="mv-auth__label-row">
+                    <label htmlFor="emailaddress">{t('loginEmailAddress')}</label>
+                  </div>
+                  <div className="mv-auth__input-wrap">
+                    <span className="mv-auth__input-icon">
+                      <Mail size={17} strokeWidth={1.8} aria-hidden="true" />
+                    </span>
+                    <input
+                      id="emailaddress"
+                      name="email"
+                      type="email"
+                      className="mv-auth__control"
+                      value={email}
+                      onChange={(e) => handleEmailChange(e.target.value)}
+                      onBlur={() => {
+                        setTouched((prev) => ({ ...prev, email: true }));
+                        const error = validateLoginEmail(email, t);
+                        setFieldErrors((prev) => ({ ...prev, email: error }));
+                      }}
+                      placeholder={t('loginEnterEmail')}
+                      autoComplete="email"
+                      maxLength={50}
+                      aria-invalid={Boolean(fieldErrors.email)}
+                      aria-describedby={fieldErrors.email ? 'email-error' : undefined}
+                      disabled={submitting}
+                    />
+                  </div>
+                  {fieldErrors.email && (
+                    <p className="mv-auth__error" id="email-error" role="alert">
+                      <AlertCircle size={13} strokeWidth={2.2} aria-hidden="true" />
+                      {fieldErrors.email}
+                    </p>
+                  )}
+                </div>
+
+                <div
+                  className={`mv-auth__field mv-auth__field--pw${fieldErrors.password ? ' has-error' : ''}`}
+                >
+                  <div className="mv-auth__label-row">
+                    <label htmlFor="password">{t('loginPassword')}</label>
+                    <Link to="/forgot-password" className="mv-auth__link">
+                      {t('loginForgotPassword', 'Forgot Password?')}
+                    </Link>
+                  </div>
+                  <div className="mv-auth__input-wrap">
+                    <span className="mv-auth__input-icon">
+                      <Lock size={17} strokeWidth={1.8} aria-hidden="true" />
+                    </span>
+                    <input
+                      id="password"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      className="mv-auth__control"
+                      value={password}
+                      onChange={(e) => handlePasswordChange(e.target.value)}
+                      onBlur={() => {
+                        setTouched((prev) => ({ ...prev, password: true }));
+                        const error = validateLoginPassword(password, t);
+                        setFieldErrors((prev) => ({ ...prev, password: error }));
+                      }}
+                      placeholder={t('loginEnterPassword')}
+                      autoComplete="current-password"
+                      aria-invalid={Boolean(fieldErrors.password)}
+                      aria-describedby={fieldErrors.password ? 'password-error' : undefined}
+                      disabled={submitting}
+                    />
+                    <button
+                      type="button"
+                      className="mv-auth__pw-toggle"
+                      onClick={() => setShowPassword((v) => !v)}
+                      aria-label={showPassword ? t('loginHidePassword') : t('loginShowPassword')}
+                      aria-pressed={showPassword}
+                    >
+                      {showPassword ? (
+                        <EyeOff size={17} strokeWidth={1.8} aria-hidden="true" />
+                      ) : (
+                        <Eye size={17} strokeWidth={1.8} aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
+                  {fieldErrors.password && (
+                    <p className="mv-auth__error" id="password-error" role="alert">
+                      <AlertCircle size={13} strokeWidth={2.2} aria-hidden="true" />
+                      {fieldErrors.password}
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="mv-auth__submit"
+                  disabled={submitting}
+                  aria-busy={submitting}
+                >
+                  {submitting ? (
+                    <>
+                      <span className="mv-auth__spinner" aria-hidden="true" />
+                      {t('loginSigningIn')}
+                    </>
+                  ) : (
+                    t('loginLogIn')
+                  )}
+                </button>
+              </form>
+
+              <div className="mv-auth__divider">
+                <span>{t('login.orLabel', { defaultValue: 'or' })}</span>
+              </div>
+
+              <SocialAuthButtons disabled={submitting} compact />
+
+              <div className="mv-auth__divider">
+                <span>{t('login.newHere', { defaultValue: 'New to MY VAGON?' })}</span>
+              </div>
+
+              <Link to="/shipper/register" className="mv-auth__secondary" onClick={clearSignupDraft}>
+                {t('loginJoinForFree')}
+              </Link>
+
+              <p className="mv-auth__trust">
+                <ShieldCheck size={14} strokeWidth={1.9} aria-hidden="true" />
+                {t('login.trustNote', {
+                  defaultValue: 'Encrypted sign-in with two-factor protection',
+                })}
+              </p>
+            </>
+          )}
+        </div>
+      </main>
     </div>
   );
 };

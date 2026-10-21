@@ -98,7 +98,7 @@ export const chatService = {
           initials: extractInitials('Ηώ Ddd Αποστολόπουλο'),
           type: 'company',
           avatarClass: 'carrier',
-          avatarUrl: 'https://staging.myvagon.com/storage/carrier/profile_picture/sample.jpg',
+          avatarUrl: '',
           online: false,
           unread: 0,
           lastMsg: 'hiiii',

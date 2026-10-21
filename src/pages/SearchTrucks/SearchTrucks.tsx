@@ -19,6 +19,7 @@ import '../../styles/search-trucks.css';
 import { useSearchTrucks } from './hooks/useSearchTrucks';
 import type { AvailableTruck } from './types';
 import { ContextualTutorialTrigger } from '../../components/Tutorials';
+import { LinkOrderToDispatchModal } from '../../components/ShipmentDetail/LinkOrderToDispatchPanel';
 import '../../styles/tutorials.css';
 
 export const SearchTrucks: React.FC = () => {
@@ -321,6 +322,16 @@ export const SearchTrucks: React.FC = () => {
         onClose={() => setSortOpen(false)}
         onApply={m.setSortKey}
         t={m.t}
+      />
+
+      {/* MS3-406: booking a truck needs the load to have an order — link one, then the booking is resent. */}
+      <LinkOrderToDispatchModal
+        open={m.bookingOrderGateShipmentId != null}
+        shipmentId={m.bookingOrderGateShipmentId ?? ''}
+        onLinked={m.retryBookingAfterOrderLinked}
+        onCancel={m.closeBookingOrderGate}
+        submitLabel={m.t('dispatchOrderLinkAndBook', 'Link order and send booking request')}
+        t={(key, fallback) => m.t(key, fallback)}
       />
     </div>
   );

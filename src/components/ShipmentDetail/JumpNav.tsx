@@ -39,7 +39,7 @@ export const JumpNav: React.FC<JumpNavProps> = ({
 
   return (
     <div
-      className="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1 select-none scrollbar-thin scrollbar-thumb-gray-200"
+      className="flex flex-wrap items-center gap-1.5 mb-4 pb-1 select-none"
       role="navigation"
       aria-label={t('pageSections', 'Page sections')}
     >

@@ -9,6 +9,7 @@ import {
 } from '../../pages/ErpOrders/erpOrderUiUtils';
 import { ErpOrdersFloatingSelectionBar } from './ErpOrdersFloatingSelectionBar';
 import { ListSkeleton } from '../skeletons/ListSkeleton';
+import { orderDisplayRef } from '../../utils/orderDisplayRef';
 import type { ApiListMeta } from '../../api/types/addressBook';
 
 const ST_CLS: Record<string, string> = {
@@ -203,7 +204,7 @@ export const ErpOrdersTable: React.FC<Props> = ({
                         />
                       </td>
                       <td>
-                        <div className="cell-id">{o.orderReference}</div>
+                        <div className="cell-id">{orderDisplayRef(o)}</div>
                         {o.erpReference ? <div className="cell-erp">{o.erpReference}</div> : null}
                       </td>
                       <td className="cell-cust">

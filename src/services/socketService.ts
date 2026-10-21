@@ -1,3 +1,4 @@
+import { socketUrl as deploymentSocketUrl } from '../config/deploymentEnv';
 import { io, Socket } from 'socket.io-client';
 import { normalizeSocketUserType } from '../utils/chatPartnerUtils';
 
@@ -36,10 +37,7 @@ class SocketService {
       return this.socket;
     }
 
-    const socketUrl =
-      import.meta.env.VITE_SOCKET_URL ||
-      import.meta.env.VITE_LARAVEL_URL ||
-      '';
+    const socketUrl = deploymentSocketUrl();
 
     if (!socketUrl) {
       console.warn('VITE_SOCKET_URL is not set in environment.');

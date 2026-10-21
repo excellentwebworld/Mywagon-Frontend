@@ -1,6 +1,5 @@
 import { apiGet } from '../client';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
 export type ReferralStatus = 'signedup' | 'qualified' | 'rewarded' | 'rejected';
 

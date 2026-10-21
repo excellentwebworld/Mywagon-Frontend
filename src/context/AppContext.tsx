@@ -275,6 +275,10 @@ export interface Shipment {
   shipmentType?: 'direct' | 'multiple' | string | null;
   intermediateStops?: number;
   orderIds?: string[];
+  /** MS3-406: the load has a linked order. */
+  hasOrder?: boolean;
+  /** MS3-406: dispatch (accept / counter / book a truck) is refused until an order is linked. */
+  orderRequiredForDispatch?: boolean;
   pickDtIso?: string | null;
   pickDtToIso?: string | null;
   delDtIso?: string | null;

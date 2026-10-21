@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { SelectionRequest } from '../../hooks/useChat';
+import type { ImportView } from './api/orderImportService';
 import {
-  newestCardIndex, newestSelectionIndex, resolveLiveCards, retireCards, dedupeSelections,
+  freezeImportCard, newestCardIndex, newestSelectionIndex, resolveLiveCards, retireCards, dedupeSelections,
+  type FrozenImport,
   type ThreadMessage,
 } from './threadCards';
 
@@ -194,5 +196,34 @@ describe('retireCards with a card list on the turn', () => {
     const kept = retireCards([list('', 'sel_1'), ai('Ready when you are.', 'X')], -1);
     expect(kept.some((m) => m.action)).toBe(false);
     expect(kept[0].selection?.id).toBe('sel_1');
+  });
+});
+
+describe('freezeImportCard (MS3-365)', () => {
+  const view = (status: string) => ({ importId: 'imp', status }) as unknown as ImportView;
+  const card = (key: string, frozen?: FrozenImport): ThreadMessage => ({
+    who: 'ai',
+    text: '',
+    orderImport: { key, engine: 'direct', view: view('ready'), ...(frozen ? { frozen } : {}) },
+  });
+  const frozenOf = (m: ThreadMessage) => (m.orderImport?.engine === 'direct' ? m.orderImport.frozen : undefined);
+
+  it('freezes only the card it names, with the confirmed snapshot', () => {
+    const th = [user('hi'), card('a'), card('b')];
+    const out = freezeImportCard(th, 'a', { reason: 'imported', at: '18:05' }, { view: view('ready') });
+    expect(frozenOf(out[1]!)).toEqual({ reason: 'imported', at: '18:05' });
+    expect(frozenOf(out[2]!)).toBeUndefined();
+    expect(out[0]).toBe(th[0]);
+  });
+
+  it('never lets "replaced" overwrite "imported", unless forced', () => {
+    const th = [card('a', { reason: 'imported', at: '18:05' })];
+    expect(frozenOf(freezeImportCard(th, 'a', { reason: 'replaced', at: '18:10' })[0]!)).toEqual({ reason: 'imported', at: '18:05' });
+    expect(frozenOf(freezeImportCard(th, 'a', { reason: 'replaced', at: '18:10' }, { force: true })[0]!)).toEqual({ reason: 'replaced', at: '18:10' });
+  });
+
+  it('thaws a card whose run did not start, so it can be tried again where it was', () => {
+    const th = [card('a', { reason: 'imported', at: '18:05' })];
+    expect(frozenOf(freezeImportCard(th, 'a', undefined)[0]!)).toBeUndefined();
   });
 });

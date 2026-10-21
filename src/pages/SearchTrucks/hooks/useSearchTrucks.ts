@@ -13,6 +13,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
 import { useShipperPermission } from '../../../hooks/useShipperPermission';
 import { ACTION_RBAC } from '../../../utils/shipperRbacMap';
+import { isOrderRequiredForDispatchError } from '../../../components/ShipmentDetail/linkOrderToDispatch';
 import type { SatFilterDraft } from '../../../components/SearchTrucks/SatFilterModal';
 import {
   emptySatFilterDraft,
@@ -1225,6 +1226,9 @@ export function useSearchTrucks() {
     [closeDrawer, goToCreateShipment, loadPendingMatches, selectedTruck]
   );
 
+  /** MS3-406: booking refused until the chosen load has an order — the load to link one to. */
+  const [bookingOrderGateShipmentId, setBookingOrderGateShipmentId] = useState<string | number | null>(null);
+
   const placeBidMutation = useMutation({
     mutationFn: async () => {
       if (!selectedTruck || !draft) throw new Error('missing draft');
@@ -1264,6 +1268,15 @@ export function useSearchTrucks() {
       );
     },
     onError: (err) => {
+      // MS3-406: booking a truck dispatches the load once the carrier accepts — link an order first.
+      if (isOrderRequiredForDispatchError(err)) {
+        const refusedId = (err as ApiError).data && typeof (err as ApiError).data === 'object'
+          ? ((err as ApiError).data as { shipment_id?: number }).shipment_id
+          : undefined;
+        const chosen = selectedPendingIdx != null ? pending[selectedPendingIdx]?.id : undefined;
+        setBookingOrderGateShipmentId(refusedId ?? chosen ?? null);
+        return;
+      }
       const msg =
         err instanceof ApiError
           ? err.message
@@ -1271,6 +1284,14 @@ export function useSearchTrucks() {
       showToast(msg, 'error');
     },
   });
+
+  /** MS3-406: order linked — send the booking request again on the same screen. */
+  const retryBookingAfterOrderLinked = useCallback(async () => {
+    await placeBidMutation.mutateAsync();
+    setBookingOrderGateShipmentId(null);
+  }, [placeBidMutation]);
+
+  const closeBookingOrderGate = useCallback(() => setBookingOrderGateShipmentId(null), []);
 
   const confirmBooking = useCallback(async () => {
     if (!selectedTruck) return;
@@ -1424,6 +1445,9 @@ export function useSearchTrucks() {
     fetchMorePending,
     goToPendingPage,
     confirming: confirming || placeBidMutation.isPending,
+    bookingOrderGateShipmentId,
+    retryBookingAfterOrderLinked,
+    closeBookingOrderGate,
     creatingShipment: Boolean(creatingShipmentId),
     creatingShipmentId,
     filtered,

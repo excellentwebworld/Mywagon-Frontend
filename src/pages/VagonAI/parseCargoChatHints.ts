@@ -171,6 +171,7 @@ export function applyCargoHintsToSeedDraft<T extends {
     settlement: 'direct',
     bulk: { mode: 'single' },
     trackingOrderIds: [],
+    trackingEmails: {},
   };
   const patched = applyCargoHintsToDraft(asDraft, hints);
   return {

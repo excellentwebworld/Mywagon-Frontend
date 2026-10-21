@@ -40,7 +40,7 @@ const GATEWAY_TOOLS = [
   'place_truck_bid', 'list_partners', 'suggest_shipment_price',
   'publish_shipment', 'mark_shipment_complete', 'find_order', 'list_tracking_recipients', 'prepare_shipment',
   'get_create_product_context', 'get_create_location_context', 'create_order',
-  'get_create_order_context', 'get_subscription',
+  'get_create_order_context', 'mark_order_complete', 'reopen_order', 'get_subscription',
   'list_subscription_addons', 'get_billing_summary', 'get_partner_summary', 'find_partner',
   'get_partner', 'list_partner_truck_categories', 'invite_partner', 'accept_partner_request',
   'decline_partner_request', 'remove_partner', 'set_partner_suspended', 'set_partner_preferred',
@@ -48,14 +48,18 @@ const GATEWAY_TOOLS = [
   'get_dashboard_analytics', 'get_unplanned_order_groups',
   // MS3-336 / MS3-333.
   'update_ai_draft', 'create_homogeneous_batch_drafts', 'create_oneshot_draft_from_order',
+  // Custom shipment and order reports.
+  'build_shipment_report', 'build_order_report',
+  // ERP order import (direct engine).
+  'get_order_import', 'set_order_import_mapping', 'map_import_warehouse', 'run_order_import',
 ];
 
 describe('MCP tool coverage', () => {
   // If this number moves, the mirror above was edited — which is the intended
   // way to add a tool. It fails first so the diff says "the gateway grew" rather
   // than "nine prompts are missing".
-  it('mirrors all 47 gateway tools', () => {
-    expect(GATEWAY_TOOLS).toHaveLength(47);
+  it('mirrors all 55 gateway tools', () => {
+    expect(GATEWAY_TOOLS).toHaveLength(55);
     expect(new Set(GATEWAY_TOOLS).size).toBe(GATEWAY_TOOLS.length);
   });
 

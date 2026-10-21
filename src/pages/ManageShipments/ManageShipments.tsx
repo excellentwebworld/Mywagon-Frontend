@@ -16,6 +16,7 @@ import {
 } from '../../components/ManageShipments';
 import { KpiStripSkeleton } from '../../components/skeletons/ManageShipmentsSkeleton';
 import { useManageShipments } from './hooks/useManageShipments';
+import { LinkOrderToDispatchModal } from '../../components/ShipmentDetail/LinkOrderToDispatchPanel';
 import { ContextualTutorialTrigger } from '../../components/Tutorials';
 import '../../styles/tutorials.css';
 import '../../styles/manage.css';
@@ -192,6 +193,20 @@ export const ManageShipments: React.FC = () => {
         }}
         onCancelled={m.bulkCancelIds?.length ? m.handleBulkCancelled : m.handleCancelled}
         t={m.t}
+      />
+
+      {/* MS3-406: order required before dispatch — link one, then the accept/counter is retried. */}
+      <LinkOrderToDispatchModal
+        open={Boolean(m.dispatchGate)}
+        shipmentId={m.dispatchGate?.shipment.id ?? ''}
+        onLinked={m.retryGatedDispatch}
+        onCancel={m.closeDispatchGate}
+        submitLabel={
+          m.dispatchGate?.action === 'counter'
+            ? m.t('dispatchOrderLinkAndCounter', 'Link order and send counter-offer')
+            : m.t('dispatchOrderLinkAndAccept', 'Link order and accept')
+        }
+        t={(key, fallback) => m.t(key, fallback)}
       />
     </div>
   );

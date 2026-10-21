@@ -578,6 +578,24 @@ export function useErpOrdersList() {
     setIsFormOpen(true);
   }, [requireSignupComplete]);
 
+  // `?edit=<id>` opens that order's edit form straight away. Vagon AI's batch
+  // draft table links failed orders here, so fixing a passed date is one click
+  // rather than a search. The param is dropped once read: left in, a refresh
+  // after saving would open the form again.
+  const editDeepLinkRef = useRef(searchParams.get('edit'));
+  useEffect(() => {
+    const id = editDeepLinkRef.current;
+    if (!id) return;
+    editDeepLinkRef.current = null;
+    const next = new URLSearchParams(searchParamsRef.current);
+    next.delete('edit');
+    setSearchParamsRef.current(next, { replace: true });
+    erpOrdersService
+      .getOrder(id)
+      .then(openEditOrder)
+      .catch(() => showToast(t('erpOrdersEditLinkNotFound'), 'error'));
+  }, [openEditOrder, showToast, t]);
+
   const closeForm = useCallback(() => {
     setIsFormOpen(false);
     setEditingOrderId(null);
@@ -597,6 +615,14 @@ export function useErpOrdersList() {
     setIsAiWizardOpen(true);
   }, [requireSignupComplete]);
   const closeAiWizard = useCallback(() => setIsAiWizardOpen(false), []);
+
+  // MS3-360: the import pop-up on the Vagon AI engine - a new import, or the shared history.
+  const [importModal, setImportModal] = useState<{ open: boolean; tab: 'new' | 'history' }>({ open: false, tab: 'new' });
+  const openImportModal = useCallback((tab: 'new' | 'history' = 'new') => {
+    if (tab === 'new' && !requireSignupComplete()) return;
+    setImportModal({ open: true, tab });
+  }, [requireSignupComplete]);
+  const closeImportModal = useCallback(() => setImportModal((m) => ({ ...m, open: false })), []);
 
   const handleAiWizardImportSuccess = useCallback(() => {
     invalidateOrders();
@@ -666,6 +692,9 @@ export function useErpOrdersList() {
     deletingOrder: deleteMutation.isPending,
     isAiWizardOpen,
     openAiWizard,
+    importModal,
+    openImportModal,
+    closeImportModal,
     closeAiWizard,
     handleAiWizardImportSuccess,
     downloadImportTemplate,
