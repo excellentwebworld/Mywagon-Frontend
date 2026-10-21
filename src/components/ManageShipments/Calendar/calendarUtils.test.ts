@@ -263,8 +263,8 @@ describe('calendarUtils', () => {
 
     it('getRangeDateRange covers week and month padding', () => {
       const week = getRangeDateRange('week', monday);
-      expect(week.from).toBe('2026-10-12');
-      expect(week.to).toBe('2026-10-18');
+      expect(week.from).toBe('2026-10-11');
+      expect(week.to).toBe('2026-10-19');
 
       const month = getRangeDateRange('month', monday);
       expect(month.from <= '2026-10-01').toBe(true);

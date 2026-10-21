@@ -335,16 +335,21 @@ export function rangeLabel(range: CalendarRange, days: Date[], locale = 'en-GB')
   return `${left} – ${right}`;
 }
 
-/** API from/to covering the visible calendar window (month includes padding days). */
+/** API from/to covering the visible window, plus one day each side.
+ *  Overnight ranges are drawn on the next day, and local time can sit on the previous UTC date. */
 export function getRangeDateRange(
   range: CalendarRange,
   cursor: Date
 ): { from: string; to: string } {
   if (range === 'month') {
-    return getMonthDateRange(cursor.getFullYear(), cursor.getMonth());
+    const month = getMonthDateRange(cursor.getFullYear(), cursor.getMonth());
+    return { from: getAdjacentDay(month.from, -1), to: getAdjacentDay(month.to, 1) };
   }
   const days = visibleDays(range, cursor);
-  return { from: toYmd(days[0]), to: toYmd(days[days.length - 1]) };
+  return {
+    from: getAdjacentDay(toYmd(days[0]), -1),
+    to: getAdjacentDay(toYmd(days[days.length - 1]), 1),
+  };
 }
 
 export function parseCalendarRange(raw: string | null): CalendarRange {
