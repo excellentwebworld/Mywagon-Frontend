@@ -17,6 +17,7 @@ import type {
   VisibilityFilter,
   QuickFilterKey,
 } from '../../pages/SearchTrucks/types';
+import { parseCapacityBound } from '../../components/SearchTrucks/capacityFilter';
 import { formatMoney } from '../../pages/SearchTrucks/utils/money';
 import { formatUtcToDisplayDate, formatUtcToDisplayDateTime, formatUtcToDisplayTime, parseUtcInstant } from '../../utils/timezone';
 import { pickVehicleLabel } from '../../components/CreateShipmentWizard/vehicleTypes';
@@ -533,6 +534,24 @@ export function buildListParams(input: {
   if (Number.isFinite(minPrice)) params.min_price = minPrice;
   const maxPrice = parseFloat(criteria.maxPrice || '');
   if (Number.isFinite(maxPrice)) params.max_price = maxPrice;
+
+  if (criteria.capacityMode === 'unspecified') {
+    params.capacity_scope = 'unspecified';
+  } else if (criteria.capacityMode === 'declared') {
+    params.capacity_scope = 'declared';
+    const minCapacity = parseCapacityBound(criteria.minCapacity);
+    const maxCapacity = parseCapacityBound(criteria.maxCapacity);
+    const capacityUnit = (criteria.capacityUnit || '').trim();
+    if (minCapacity != null) params.min_capacity = minCapacity;
+    if (maxCapacity != null) params.max_capacity = maxCapacity;
+    if (capacityUnit) params.capacity_unit = capacityUnit;
+    if (
+      criteria.includeUnspecifiedCapacity &&
+      (minCapacity != null || maxCapacity != null || Boolean(capacityUnit))
+    ) {
+      params.include_unspecified_capacity = true;
+    }
+  }
 
   return params;
 }

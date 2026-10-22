@@ -4,8 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import { partnersService } from '../../api';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useVehicleTypes } from '../../hooks/useVehicleTypes';
-import type { QuickFilterKey, TripFilter } from '../../pages/SearchTrucks/types';
+import { QTY_UNIT_OPTIONS, translateCargoUnit } from '../../constants/cargoUnits';
+import type { CapacityFilterMode, QuickFilterKey, TripFilter } from '../../pages/SearchTrucks/types';
 import { DatePicker, getTodayDateString } from '../ui/DatePicker';
+import { capacityRangeError, parseCapacityBound, sanitizeCapacityDigits } from './capacityFilter';
 import { SearchPlaceSuggestions, type PlaceSuggestion } from './SearchPlaceSuggestions';
 import { usePlaceSuggestions } from './usePlaceSuggestions';
 import { validateSatFilterDates } from './satFilterValidation';
@@ -27,6 +29,11 @@ export interface SatFilterDraft {
   providerNames: string[];
   minPrice: string;
   maxPrice: string;
+  capacityMode: CapacityFilterMode;
+  minCapacity: string;
+  maxCapacity: string;
+  capacityUnit: string;
+  includeUnspecifiedCapacity: boolean;
   quickFilters: QuickFilterKey[];
 }
 
@@ -49,6 +56,11 @@ export function emptySatFilterDraft(): SatFilterDraft {
     providerNames: [],
     minPrice: '',
     maxPrice: '',
+    capacityMode: 'any',
+    minCapacity: '',
+    maxCapacity: '',
+    capacityUnit: '',
+    includeUnspecifiedCapacity: false,
     quickFilters: [],
   };
 }
@@ -239,6 +251,15 @@ export const SatFilterModal: React.FC<SatFilterModalProps> = ({
     todayStr,
     t
   );
+  const hasCapacityRangeError =
+    draft.capacityMode === 'declared' && capacityRangeError(draft.minCapacity, draft.maxCapacity);
+  const hasCapacityBound =
+    parseCapacityBound(draft.minCapacity) != null ||
+    parseCapacityBound(draft.maxCapacity) != null ||
+    Boolean(draft.capacityUnit.trim());
+  const capacityError = hasCapacityRangeError
+    ? t('satFilterCapacityRangeError') || 'Max capacity must be greater than or equal to min capacity'
+    : '';
 
   return createPortal(
     <div
@@ -478,6 +499,135 @@ export const SatFilterModal: React.FC<SatFilterModalProps> = ({
           </section>
 
           <section className="sat-filter-sec">
+            <h4 className="sat-filter-sec-title" id="sat-filter-capacity-label">
+              {t('satFilterCapacity') || 'Capacity'}
+            </h4>
+            <select
+              id="sat-filter-capacity-mode"
+              className="sat-filter-input sat-filter-capacity-mode"
+              aria-labelledby="sat-filter-capacity-label"
+              value={draft.capacityMode}
+              onChange={(e) =>
+                setDraft((p) => ({
+                  ...p,
+                  capacityMode: e.target.value as CapacityFilterMode,
+                }))
+              }
+            >
+              <option value="any">{t('satFilterCapacityAny') || 'Any'}</option>
+              <option value="declared">
+                {t('satFilterCapacityDeclared') || 'Declared capacity'}
+              </option>
+              <option value="unspecified">
+                {t('satFilterCapacityUnspecified') || 'Unspecified capacity'}
+              </option>
+            </select>
+            {draft.capacityMode === 'declared' ? (
+              <>
+                <div className="sat-filter-capacity-row">
+                  <div className="sat-pop-field">
+                    <label className="sat-pop-label" htmlFor="sat-filter-min-capacity">
+                      {t('satFilterMinCapacity') || 'Min Capacity'}
+                    </label>
+                    <input
+                      id="sat-filter-min-capacity"
+                      className="sat-filter-input"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={5}
+                      placeholder={t('satFilterMinCapacity') || 'Min Capacity'}
+                      value={draft.minCapacity}
+                      aria-invalid={hasCapacityRangeError}
+                      onChange={(e) =>
+                        setDraft((p) => ({
+                          ...p,
+                          minCapacity: sanitizeCapacityDigits(e.target.value),
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="sat-pop-field">
+                    <label className="sat-pop-label" htmlFor="sat-filter-max-capacity">
+                      {t('satFilterMaxCapacity') || 'Max Capacity'}
+                    </label>
+                    <input
+                      id="sat-filter-max-capacity"
+                      className="sat-filter-input"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={5}
+                      placeholder={t('satFilterMaxCapacity') || 'Max Capacity'}
+                      value={draft.maxCapacity}
+                      aria-invalid={hasCapacityRangeError}
+                      onChange={(e) =>
+                        setDraft((p) => ({
+                          ...p,
+                          maxCapacity: sanitizeCapacityDigits(e.target.value),
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="sat-pop-field">
+                    <label className="sat-pop-label" htmlFor="sat-filter-capacity-unit">
+                      {t('satFilterCapacityUnit') || 'Unit'}
+                    </label>
+                    <select
+                      id="sat-filter-capacity-unit"
+                      className="sat-filter-input"
+                      value={draft.capacityUnit}
+                      onChange={(e) =>
+                        setDraft((p) => ({
+                          ...p,
+                          capacityUnit: e.target.value,
+                        }))
+                      }
+                    >
+                      <option value="">{t('satFilterCapacityUnitAny') || 'Any unit'}</option>
+                      {QTY_UNIT_OPTIONS.map((unit) => (
+                        <option key={unit} value={unit}>
+                          {translateCargoUnit(unit, t)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                {capacityError ? <p className="sat-field-error">{capacityError}</p> : null}
+                <label
+                  className={`sat-filter-stop sat-filter-capacity-include${hasCapacityBound ? '' : ' is-disabled'}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={draft.includeUnspecifiedCapacity}
+                    disabled={!hasCapacityBound}
+                    onChange={(e) =>
+                      setDraft((p) => ({
+                        ...p,
+                        includeUnspecifiedCapacity: e.target.checked,
+                      }))
+                    }
+                  />
+                  <span>
+                    {t('satFilterIncludeUnspecifiedCapacity') ||
+                      'Also include posts with unspecified capacity'}
+                  </span>
+                </label>
+                <p className="sat-filter-hint">
+                  {t('satFilterCapacityHint') ||
+                    'The range uses the quantity the carrier or driver entered. Choose a unit to match only that capacity type.'}
+                </p>
+              </>
+            ) : null}
+            {draft.capacityMode === 'unspecified' ? (
+              <p className="sat-filter-hint">
+                {t('satFilterCapacityUnspecifiedHint') ||
+                  'Shows availability posts that do not declare a capacity.'}
+              </p>
+            ) : null}
+          </section>
+
+          <section className="sat-filter-sec">
             <h4 className="sat-filter-sec-title">{t('satFilterPrice') || 'Price'}</h4>
             <div className="sat-filter-date-grid">
               <div className="sat-pop-field">
@@ -551,9 +701,9 @@ export const SatFilterModal: React.FC<SatFilterModalProps> = ({
             <button
               type="button"
               className="sat-btn sat-btn-pr"
-              disabled={hasDateErrors}
+              disabled={hasDateErrors || hasCapacityRangeError}
               onClick={() => {
-                if (hasDateErrors) return;
+                if (hasDateErrors || hasCapacityRangeError) return;
                 onApply(draft);
                 onClose();
               }}

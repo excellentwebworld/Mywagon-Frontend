@@ -276,6 +276,11 @@ export interface ListAvailabilitiesParams {
   provider_names?: string[];
   min_price?: number;
   max_price?: number;
+  capacity_scope?: 'declared' | 'unspecified';
+  min_capacity?: number;
+  max_capacity?: number;
+  capacity_unit?: string;
+  include_unspecified_capacity?: boolean;
 }
 
 export interface PaginatedAvailabilitiesResult {

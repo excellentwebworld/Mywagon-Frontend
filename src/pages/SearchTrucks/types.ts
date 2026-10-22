@@ -26,6 +26,9 @@ export type QuickFilterKey = 'today' | 'soon8h' | 'has_bids' | 'load_match';
 
 export type TripFilter = 'any' | 'multi_stop' | 'direct';
 
+/** Truck Availability capacity filter. `any` applies no capacity constraint. */
+export type CapacityFilterMode = 'any' | 'declared' | 'unspecified';
+
 export interface MapPickupBounds {
   neLat: number;
   neLng: number;
@@ -63,6 +66,14 @@ export interface SearchCriteria {
   providerNames?: string[];
   minPrice?: string;
   maxPrice?: string;
+  /** Filter modal — declared qty on the availability post */
+  capacityMode?: CapacityFilterMode;
+  minCapacity?: string;
+  maxCapacity?: string;
+  /** English package unit from the availability post (EUR Pallets, Boxes, …). Empty = any unit. */
+  capacityUnit?: string;
+  /** With a declared range or unit, also keep posts that have no capacity */
+  includeUnspecifiedCapacity?: boolean;
 }
 
 export interface AvailableTruck {

@@ -19,6 +19,7 @@ import {
   resolveTripType,
 } from '../../../components/SearchTrucks/SatFilterModal';
 import { toApiPickupDate } from '../../../api/mappers/availabilitiesMapper';
+import { matchesCapacityFilter } from '../../../components/SearchTrucks/capacityFilter';
 import { geocodeCityName } from '../../../components/SearchTrucks/usePlaceSuggestions';
 import { MOCK_PENDING, MOCK_TRUCKS } from '../mockData';
 import type {
@@ -110,6 +111,11 @@ function criteriaSearchSignature(c: SearchCriteria): string {
     providerNames: c.providerNames,
     minPrice: c.minPrice,
     maxPrice: c.maxPrice,
+    capacityMode: c.capacityMode,
+    minCapacity: c.minCapacity,
+    maxCapacity: c.maxCapacity,
+    capacityUnit: c.capacityUnit,
+    includeUnspecifiedCapacity: c.includeUnspecifiedCapacity,
     mapBounds: c.mapBounds,
   });
 }
@@ -177,6 +183,11 @@ export const emptyCriteria = (): SearchCriteria => ({
   providerNames: [],
   minPrice: '',
   maxPrice: '',
+  capacityMode: 'any',
+  minCapacity: '',
+  maxCapacity: '',
+  capacityUnit: '',
+  includeUnspecifiedCapacity: false,
 });
 
 function filterMockTrucks(
@@ -338,6 +349,20 @@ function filterMockTrucks(
   const maxP = parseFloat(ac.maxPrice || '');
   if (Number.isFinite(maxP)) {
     data = data.filter((x) => x.price == null || x.price <= maxP);
+  }
+
+  if ((ac.capacityMode ?? 'any') !== 'any') {
+    data = data.filter((x) =>
+      matchesCapacityFilter({
+        capVal: x.capVal,
+        capUnit: x.capUnit,
+        mode: ac.capacityMode,
+        minCapacity: ac.minCapacity,
+        maxCapacity: ac.maxCapacity,
+        capacityUnit: ac.capacityUnit,
+        includeUnspecified: ac.includeUnspecifiedCapacity,
+      })
+    );
   }
 
   // Recurring entries stay grouped (UI toggle removed).
@@ -726,6 +751,11 @@ export function useSearchTrucks() {
       providerNames: draft.providerNames,
       minPrice: draft.minPrice,
       maxPrice: draft.maxPrice,
+      capacityMode: draft.capacityMode,
+      minCapacity: draft.minCapacity,
+      maxCapacity: draft.maxCapacity,
+      capacityUnit: draft.capacityUnit,
+      includeUnspecifiedCapacity: draft.includeUnspecifiedCapacity,
     };
     setCriteria((prev) => ({ ...prev, ...patch }));
     setAppliedCriteria((prev) => ({ ...prev, ...patch }));
@@ -755,6 +785,11 @@ export function useSearchTrucks() {
       providerNames: empty.providerNames,
       minPrice: empty.minPrice,
       maxPrice: empty.maxPrice,
+      capacityMode: empty.capacityMode,
+      minCapacity: empty.minCapacity,
+      maxCapacity: empty.maxCapacity,
+      capacityUnit: empty.capacityUnit,
+      includeUnspecifiedCapacity: empty.includeUnspecifiedCapacity,
     };
     setQuickFilters(new Set(empty.quickFilters));
     setCriteria((prev) => ({ ...prev, ...patch }));

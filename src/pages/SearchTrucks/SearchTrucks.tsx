@@ -80,6 +80,11 @@ export const SearchTrucks: React.FC = () => {
       providerNames: m.criteria.providerNames ?? [],
       minPrice: m.criteria.minPrice ?? '',
       maxPrice: m.criteria.maxPrice ?? '',
+      capacityMode: m.criteria.capacityMode ?? 'any',
+      minCapacity: m.criteria.minCapacity ?? '',
+      maxCapacity: m.criteria.maxCapacity ?? '',
+      capacityUnit: m.criteria.capacityUnit ?? '',
+      includeUnspecifiedCapacity: m.criteria.includeUnspecifiedCapacity ?? false,
       quickFilters: Array.from(m.quickFilters),
     };
   }, [m.criteria, m.quickFilters]);
@@ -97,6 +102,7 @@ export const SearchTrucks: React.FC = () => {
     if (ac.providerNames?.length) n += 1;
     if (ac.minPrice?.trim()) n += 1;
     if (ac.maxPrice?.trim()) n += 1;
+    if ((ac.capacityMode ?? 'any') !== 'any') n += 1;
     return n;
   }, [m.appliedCriteria, m.quickFilters]);
 

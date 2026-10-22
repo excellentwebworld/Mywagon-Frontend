@@ -20,6 +20,11 @@ describe('Search Trucks filter reset defaults', () => {
     expect(empty.providerNames).toEqual([]);
     expect(empty.minPrice).toBe('');
     expect(empty.maxPrice).toBe('');
+    expect(empty.capacityMode).toBe('any');
+    expect(empty.minCapacity).toBe('');
+    expect(empty.maxCapacity).toBe('');
+    expect(empty.capacityUnit).toBe('');
+    expect(empty.includeUnspecifiedCapacity).toBe(false);
     expect(empty.quickFilters).toEqual([]);
   });
 

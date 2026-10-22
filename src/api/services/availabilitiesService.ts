@@ -59,6 +59,11 @@ function toQueryString(params: ListAvailabilitiesParams): string {
   set('available_from_end', params.available_from_end);
   set('min_price', params.min_price);
   set('max_price', params.max_price);
+  set('capacity_scope', params.capacity_scope);
+  set('min_capacity', params.min_capacity);
+  set('max_capacity', params.max_capacity);
+  set('capacity_unit', params.capacity_unit);
+  set('include_unspecified_capacity', params.include_unspecified_capacity);
   (params.provider_names ?? []).forEach((name) => {
     search.append('provider_names[]', name);
   });
