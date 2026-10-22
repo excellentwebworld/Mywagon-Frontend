@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { assetUrl } from '../../utils/assetUrl';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
 import { useOutsideClick } from '../../hooks/useOutsideClick';
@@ -103,6 +104,8 @@ export const Header: React.FC<HeaderProps> = ({
   const location = useLocation();
   const pastDueLocked = usePastDueLock();
   const { canNav, requirePermission } = useShipperPermission();
+  const { user } = useAuth();
+  const chatAccountId = user?.parent_shipper_id || user?.id || null;
 
   const goFeature = (route: string) => {
     if (pastDueLocked && route !== '/billing') {
@@ -125,7 +128,10 @@ export const Header: React.FC<HeaderProps> = ({
   onChatScreenRef.current = onChatScreen;
 
   // Load the badge from the API, then keep it in sync with live messages and reads.
+  // Re-runs when the account id appears after a Laravel → React switch.
   useEffect(() => {
+    if (!chatAccountId) return;
+
     const loadChatUnread = () => {
       if (onChatScreenRef.current) return;
       chatService.getUnreadCount().then((count) => {
@@ -165,7 +171,7 @@ export const Header: React.FC<HeaderProps> = ({
       window.removeEventListener(CHAT_UNREAD_REFRESH_EVENT, loadChatUnread);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, []);
+  }, [chatAccountId]);
 
   // Leaving the chat screen restores the badge from the server.
   useEffect(() => {

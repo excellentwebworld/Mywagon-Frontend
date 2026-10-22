@@ -1,8 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { clearStoredToken, setStoredToken } from '../../api/auth';
+import { clearStoredToken } from '../../api/auth';
 import { uiSwitchService } from '../../api/services/uiSwitchService';
+import { socketService } from '../../services/socketService';
+import { shipperAccountId } from '../../utils/chatPartnerUtils';
+import { CHAT_UNREAD_REFRESH_EVENT } from '../../hooks/useGlobalChatSocket';
 import { clearInfoFormReminderSkip } from '../../components/layout/InfoFormReminderModal';
 import { MyVagonBootScreen } from '../../components/ui/MyVagonLoader';
 import { useTranslation } from '../../hooks/useTranslation';
@@ -19,7 +22,7 @@ import { redirectToClassicPanelIfNeeded } from '../../utils/preferredUiRedirect'
 export const UiHandoffPage: React.FC = () => {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const { refreshUser } = useAuth();
+  const { refreshUser, establishSession } = useAuth();
   const { t } = useTranslation();
   const tRef = useRef(t);
   tRef.current = t;
@@ -44,9 +47,13 @@ export const UiHandoffPage: React.FC = () => {
       try {
         clearStoredToken();
         const { token, user } = await uiSwitchService.exchangeHandoff(code);
-        setStoredToken(token);
+        const signedIn = { ...user, preferred_ui: 'react' as const };
+        establishSession(token, signedIn);
         applyVerticalNavOnLogin();
-        const profile = (await refreshUser()) || user;
+        const accountId = shipperAccountId(signedIn);
+        if (accountId) socketService.activate(accountId);
+        window.dispatchEvent(new Event(CHAT_UNREAD_REFRESH_EVENT));
+        const profile = (await refreshUser().catch(() => null)) || signedIn;
         clearInfoFormReminderSkip(profile.id);
 
         if (await redirectToClassicPanelIfNeeded(profile)) {
@@ -77,7 +84,7 @@ export const UiHandoffPage: React.FC = () => {
       unmounted = true;
     };
     // Intentionally omit `t` — use tRef. Include code via params.
-  }, [params, navigate, refreshUser]);
+  }, [params, navigate, refreshUser, establishSession]);
 
   if (error) {
     return (

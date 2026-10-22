@@ -59,7 +59,12 @@ axiosInstance.get = ((url: string, config?: AxiosRequestConfig) => {
     localStorage.getItem('shipment-lang') ||
     localStorage.getItem('app_locale') ||
     'en';
-  return coalesceInflight(`axios-get:${url}?${params}&lang=${lang}`, () => originalAxiosGet(url, config));
+  // Include the token so a request started before UI handoff is not reused after it.
+  const auth = getStoredToken() || '';
+  return coalesceInflight(
+    `axios-get:${url}?${params}&lang=${lang}&auth=${auth.slice(-16)}`,
+    () => originalAxiosGet(url, config),
+  );
 }) as typeof axiosInstance.get;
 
 axiosInstance.interceptors.request.use((config) => {
@@ -88,6 +93,17 @@ axiosInstance.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
+      const headers = error.config?.headers as
+        | { get?: (name: string) => unknown; Authorization?: unknown; authorization?: unknown }
+        | undefined;
+      const raw = headers?.get?.('Authorization') ?? headers?.Authorization ?? headers?.authorization;
+      const used = typeof raw === 'string' ? raw.replace(/^Bearer\s+/i, '').trim() : '';
+      const current = getStoredToken();
+      // A request that left with the previous token must not wipe the session
+      // a UI switch just stored.
+      if ((used && current && used !== current) || (!used && current)) {
+        return Promise.reject(error);
+      }
       clearStoredToken();
       window.dispatchEvent(new CustomEvent('shipper:unauthorized'));
     }

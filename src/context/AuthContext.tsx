@@ -25,6 +25,8 @@ interface AuthContextValue {
   verifyTwoFactorRecovery: (challengeToken: string, code: string) => Promise<{ two_factor_reset: boolean; user: ShipperUser }>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<ShipperUser | null>;
+  /** Store a token and user together (UI switch handoff). */
+  establishSession: (token: string, user: ShipperUser) => void;
   /** Merge fields into the in-memory auth user (e.g. after locale change). */
   patchUser: (partial: Partial<ShipperUser>) => void;
   clearLoginError: () => void;
@@ -56,10 +58,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let cancelled = false;
+    const tokenAtStart = getStoredToken();
 
     (async () => {
       try {
-        if (getStoredToken()) {
+        if (tokenAtStart) {
           await Promise.race([
             refreshUser(),
             new Promise<never>((_, reject) => {
@@ -68,8 +71,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ]);
         }
       } catch {
-        clearStoredToken();
-        if (!cancelled) {
+        // Handoff may have replaced the token while this check was in flight.
+        if (!cancelled && getStoredToken() === tokenAtStart) {
+          clearStoredToken();
           setUser(null);
           setToken(null);
         }
@@ -81,6 +85,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     })();
 
     const onUnauthorized = () => {
+      // Ignore a 401 from the token this handoff already replaced.
+      if (getStoredToken()) return;
       setUser(null);
       setToken(null);
     };
@@ -265,6 +271,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearLoginError = useCallback(() => setLoginError(null), []);
 
+  const establishSession = useCallback((nextToken: string, nextUser: ShipperUser) => {
+    setStoredToken(nextToken);
+    setToken(nextToken);
+    setUser(nextUser);
+    setIsLoading(false);
+  }, []);
+
   const patchUser = useCallback((partial: Partial<ShipperUser>) => {
     setUser((prev) => (prev ? { ...prev, ...partial } : prev));
   }, []);
@@ -283,6 +296,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       verifyTwoFactorRecovery,
       logout,
       refreshUser,
+      establishSession,
       patchUser,
       clearLoginError,
     }),
@@ -298,6 +312,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       verifyTwoFactorRecovery,
       logout,
       refreshUser,
+      establishSession,
       patchUser,
       clearLoginError,
     ]

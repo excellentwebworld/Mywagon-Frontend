@@ -88,7 +88,14 @@ export function useGlobalChatSocket({
   useEffect(() => {
     if (!userId) return;
 
-    socketService.setUserId(userId);
+    socketService.activate(userId);
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        socketService.activate(userId);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
 
     const unsubscribe = socketService.onMessage((incoming: SocketMessagePayload) => {
       const shipperId = parsePartnerId(userId);
@@ -110,6 +117,9 @@ export function useGlobalChatSocket({
       onIncomingRef.current?.(notification);
     });
 
-    return unsubscribe;
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      unsubscribe();
+    };
   }, [userId, voiceLabel, photoLabel]);
 }

@@ -23,6 +23,7 @@ import { ReferralModal } from '../referral';
 import { LANGUAGES } from '../../constants/panel';
 import { assetUrl } from '../../utils/assetUrl';
 import { uiSwitchService } from '../../api/services/uiSwitchService';
+import { socketService } from '../../services/socketService';
 
 /** Inline icons matching Sidebar footer / Refer button. */
 function SubscriptionIcon({ size = 15, color }: { size?: number; color?: string }) {
@@ -116,6 +117,7 @@ export function ProfileDropdown() {
     setOpen(false);
     try {
       const { redirect_url } = await uiSwitchService.switchTo('classic');
+      socketService.disconnect();
       window.location.assign(redirect_url);
     } catch (err) {
       showToast(

@@ -24,6 +24,30 @@ class SocketService {
   /**
    * Initialize and connect Socket.IO
    */
+  private resetSocket(): void {
+    if (!this.socket) return;
+    this.socket.removeAllListeners();
+    this.socket.disconnect();
+    this.socket = null;
+  }
+
+  /**
+   * Join the shipper room. A dead connection from the previous UI is replaced
+   * so live unread updates start without a refresh.
+   */
+  public activate(userId: number | string): void {
+    const cleanId = parseInt(String(userId).replace(/\D/g, ''), 10);
+    if (!cleanId) return;
+    const sameUser = String(this.currentUserId ?? '') === String(cleanId);
+    this.currentUserId = cleanId;
+    if (sameUser && this.socket?.connected) {
+      this.socket.emit('join_shipper', { user_id: cleanId });
+      return;
+    }
+    this.resetSocket();
+    this.connect(cleanId);
+  }
+
   public connect(userId?: number | string): Socket | null {
     if (userId) {
       this.currentUserId = userId;
@@ -34,6 +58,10 @@ class SocketService {
         this.socket.emit('join_shipper', { user_id: this.currentUserId });
       }
       return this.socket;
+    }
+
+    if (this.socket) {
+      this.resetSocket();
     }
 
     const socketUrl =
@@ -50,7 +78,7 @@ class SocketService {
       this.socket = io(socketUrl, {
         transports: ['polling', 'websocket'],
         reconnection: true,
-        reconnectionAttempts: 3,
+        reconnectionAttempts: Infinity,
         reconnectionDelay: 2000,
         timeout: 10000,
       });
@@ -97,14 +125,7 @@ class SocketService {
    * Set active Shipper ID and join room
    */
   public setUserId(userId: number | string): void {
-    const cleanId = parseInt(String(userId).replace(/\D/g, ''), 10);
-    if (!cleanId) return;
-    this.currentUserId = cleanId;
-    if (this.socket && this.socket.connected) {
-      this.socket.emit('join_shipper', { user_id: cleanId });
-    } else {
-      this.connect(cleanId);
-    }
+    this.activate(userId);
   }
 
   /**
