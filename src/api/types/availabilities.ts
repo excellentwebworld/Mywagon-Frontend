@@ -31,6 +31,8 @@ export interface ApiAvailabilityListItem {
   visibility: 'public' | 'private';
   start_date_time: string | null;
   end_date_time: string | null;
+  start_delivery_date?: string | null;
+  end_delivery_date?: string | null;
   posted_at: string | null;
   pickup_city: string | null;
   pickup_address: string | null;
@@ -214,6 +216,8 @@ export interface ApiAvailabilityPrefill {
   dropoff_lng: number | null;
   start_date_time: string | null;
   end_date_time: string | null;
+  start_delivery_date?: string | null;
+  end_delivery_date?: string | null;
   truck_type: string | null;
   truck_type_detail?: ApiBilingualNameEntity | null;
   truck_type_id?: number | null;
