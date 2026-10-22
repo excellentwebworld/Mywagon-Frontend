@@ -27,6 +27,23 @@ export function extractInitials(name?: string | null): string {
   return (first + second).toUpperCase() || 'P';
 }
 
+const CHAT_NAME_SUFFIXES = new Set([
+  'ΑΕ', 'ΕΠΕ', 'ΙΚΕ', 'ΟΕ', 'ΕΕ', 'ΑΒΕΕ', 'ΑΕΒΕ', 'ΜΕΠΕ',
+  'SA', 'LTD', 'LLC', 'GMBH', 'INC', 'PLC', 'BV', 'NV', 'CO', 'CORP', 'LIMITED',
+]);
+
+/** Initials for the chat icon. Skips legal suffixes such as Α.Ε. */
+export function chatInitials(name?: string | null): string {
+  const words = String(name || '')
+    .trim()
+    .split(/\s+/)
+    .map((word) => word.replace(/[^\p{L}\p{N}]+/gu, ''))
+    .filter((word) => word && !CHAT_NAME_SUFFIXES.has(word.toUpperCase()));
+  if (words.length === 0) return 'U';
+  if (words.length === 1) return Array.from(words[0]).slice(0, 2).join('').toUpperCase();
+  return `${Array.from(words[0])[0] || ''}${Array.from(words[1])[0] || ''}`.toUpperCase();
+}
+
 /**
  * Chat icon only. Account profile picture, otherwise initials generated from the account name.
  * Does not use the company logo.
@@ -41,8 +58,8 @@ export function shipperChatIconUrl(user?: {
   if (photo) return photo;
   const company = (user?.company_name || '').trim();
   const personal = `${user?.first_name || ''} ${user?.last_name || ''}`.trim();
-  const name = company || personal || 'User';
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&color=9B51E0&background=EDE9FE&bold=true&size=128&length=2`;
+  const initials = chatInitials(company || personal || 'User');
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(initials)}&color=9B51E0&background=EDE9FE&bold=true&size=128&length=2`;
 }
 
 export const chatService = {

@@ -6,6 +6,7 @@ import { useTranslation } from '../../../hooks/useTranslation';
 import {
   chatService,
   QUICK_TEMPLATES,
+  chatInitials,
   extractInitials,
   shipperChatIconUrl,
 } from '../../../api/services/chatService';
@@ -267,7 +268,7 @@ export function useMessages() {
   const userInitials = useMemo(() => {
     const company = (user?.company_name || '').trim();
     const personal = `${user?.first_name || ''} ${user?.last_name || ''}`.trim();
-    return extractInitials(company || personal) || 'SV';
+    return chatInitials(company || personal) || 'SV';
   }, [user?.company_name, user?.first_name, user?.last_name]);
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();

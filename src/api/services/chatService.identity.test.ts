@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shipperChatIconUrl } from './chatService';
+import { chatInitials, shipperChatIconUrl } from './chatService';
 
 describe('shipperChatIconUrl', () => {
   it('uses the account profile picture when one is set', () => {
@@ -13,15 +13,15 @@ describe('shipperChatIconUrl', () => {
     ).toBe('https://cdn.example/account.jpg');
   });
 
-  it('generates initials from the company name when there is no profile picture', () => {
+  it('generates initials from the company name and skips the legal suffix', () => {
+    expect(chatInitials('ΒΙΚΟΣ- ΗΠΕΙΡΩΤΙΚΗ ΒΙΟΜΗΧΑΝΙΑ ΕΜΦΙΑΛΩΣΕΩΝ Α.Ε')).toBe('ΒΗ');
     const url = shipperChatIconUrl({
       account_profile_picture: '  ',
-      company_name: 'Aegean Transport',
-      first_name: 'Bob',
-      last_name: 'Anderson',
+      company_name: 'ΒΙΚΟΣ- ΗΠΕΙΡΩΤΙΚΗ ΒΙΟΜΗΧΑΝΙΑ ΕΜΦΙΑΛΩΣΕΩΝ Α.Ε',
+      first_name: 'ΗΡΑΚΛΗΣ',
+      last_name: 'ΣΑΚΚΑΣ',
     });
-    expect(url).toContain('ui-avatars.com');
-    expect(url).toContain(encodeURIComponent('Aegean Transport'));
-    expect(url).not.toContain('logo');
+    expect(url).toContain(encodeURIComponent('ΒΗ'));
+    expect(url).not.toContain(encodeURIComponent('Α.Ε'));
   });
 });
