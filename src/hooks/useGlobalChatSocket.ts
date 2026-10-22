@@ -13,6 +13,7 @@ import {
 import type { FcmNotificationPayload } from './useFcm';
 
 export const CHAT_MESSAGE_RECEIVED_EVENT = 'shipper:chat-message-received';
+export const CHAT_INCOMING_EVENT = 'shipper:chat-incoming';
 export const CHAT_UNREAD_REFRESH_EVENT = 'shipper:chat-unread-refresh';
 
 export interface IncomingChatNotification {
@@ -107,6 +108,11 @@ export function useGlobalChatSocket({
 
       const notification = buildIncomingChatNotification(incoming, voiceLabel, photoLabel);
       if (!notification) return;
+
+      // Always tell the open chat page, including the thread the shipper is already reading.
+      window.dispatchEvent(
+        new CustomEvent<SocketMessagePayload>(CHAT_INCOMING_EVENT, { detail: incoming })
+      );
 
       if (shouldSuppressForActiveThread(notification.senderId, notification.senderType)) {
         return;

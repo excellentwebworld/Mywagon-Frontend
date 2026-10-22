@@ -115,7 +115,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({
         ) : (
           conversations.map((c) => {
             const isActive = String(c.id) === String(activeConvId);
-            const isUnread = c.unread > 0;
+            const unreadCount = Math.max(0, Number(c.unread) || 0);
+            const isUnread = unreadCount > 0;
 
             return (
               <div
@@ -144,8 +145,8 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                   </div>
                   <div className="ci-mid">
                     <span className="ci-preview">{c.lastMsg}</span>
-                    {!isActive && c.unread > 0 && (
-                      <span className="ci-unread">{c.unread > 99 ? '99+' : c.unread}</span>
+                    {!isActive && unreadCount > 0 && (
+                      <span className="ci-unread">{unreadCount > 99 ? '99+' : unreadCount}</span>
                     )}
                   </div>
                   <div className="ci-chips">

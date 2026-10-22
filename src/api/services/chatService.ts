@@ -105,7 +105,7 @@ export const chatService = {
           avatarClass: c.avatar_class ?? c.avatarClass ?? 'carrier',
           avatarUrl: c.avatar_url ?? c.avatarUrl ?? null,
           online: c.online ?? false,
-          unread: c.unread ?? 0,
+          unread: Math.max(0, Number(c.unread ?? c.unread_count ?? 0) || 0),
           lastMsg: c.last_msg ?? c.lastMsg ?? '',
           lastTime: c.last_time ?? c.lastTime ?? '',
           lastTimestamp: c.last_timestamp ?? c.lastTimestamp,

@@ -35,6 +35,8 @@ export interface ChatMessage {
   duration?: string;
   created_at?: string | Date;
   isFailed?: boolean;
+  /** Arrived over the live socket while this thread was open. Stays visible under a shipment filter. */
+  liveIncoming?: boolean;
 }
 
 export type ChatContextMode = 'direct' | 'shipment';

@@ -21,7 +21,7 @@ import type {
 } from '../types';
 import { formatMessageTime, formatConversationTime } from '../../../utils/timezone';
 import { setActiveChatPartner } from '../../../utils/chatNotificationGuard';
-import { CHAT_UNREAD_REFRESH_EVENT } from '../../../hooks/useGlobalChatSocket';
+import { CHAT_INCOMING_EVENT, CHAT_UNREAD_REFRESH_EVENT } from '../../../hooks/useGlobalChatSocket';
 import {
   buildChatFilterSids,
   buildLaravelChatRequestData,
@@ -37,7 +37,7 @@ import {
   isChatImageMessage,
   isIncomingChatToShipper,
   shipperAccountId,
-  isMessageFromPartner,
+  normalizePartnerType,
   isShipmentAutoId,
   parsePartnerId,
   resolveActivePartnerType,
@@ -236,10 +236,8 @@ export function filterMessagesByShipmentContext(
       if (m.shipmentId && !isMatchingShipment(m, shipmentFilter, contextDbId, contextLabel)) {
         continue;
       }
-    } else {
-      if (!isMatchingShipment(m, shipmentFilter, contextDbId, contextLabel)) {
-        continue;
-      }
+    } else if (!m.liveIncoming && !isMatchingShipment(m, shipmentFilter, contextDbId, contextLabel)) {
+      continue;
     }
 
     if (currentDateSep && !hasContentForDate) {
@@ -315,6 +313,9 @@ export function useMessages() {
   const activeConvRef = useRef<Conversation | null>(null);
   const conversationsRef = useRef<Conversation[]>([]);
   const activeConvIdRef = useRef<number | string | null>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
+  const seenIncomingRef = useRef<Set<string>>(new Set());
+  const syncLiveChatRef = useRef<() => void>(() => {});
   // Latest partner device token (FCM) fetched from history endpoint
   const partnerDeviceTokenRef = useRef<string>('');
   // Pending file & voice blob caches to allow retrying failed uploads
@@ -526,8 +527,10 @@ export function useMessages() {
     activeConvRef.current = found;
     conversationsRef.current = conversations;
     activeConvIdRef.current = activeConvId;
+    messagesRef.current = messages;
     return found;
   }, [conversations, activeConvId]);
+  messagesRef.current = messages;
 
   // Track open chat so foreground FCM toasts are suppressed for the active thread
   useEffect(() => {
@@ -556,10 +559,19 @@ export function useMessages() {
         conversationsRef.current.find((c) => String(c.id) === String(activeConvIdRef.current)) ||
         null;
       const activePartnerId = parsePartnerId(active?.partnerId || active?.id);
-      const incomingSenderId = parsePartnerId(incoming.sender_id || (incoming as { senderable_id?: number }).senderable_id);
+      const incomingSenderId = parsePartnerId(
+        incoming.sender_id ||
+        (incoming as { senderable_id?: number }).senderable_id ||
+        incoming.request_data?.sender_id
+      );
       const incomingReceiverId = parsePartnerId(incoming.receiver_id || (incoming as { receiverable_id?: number }).receiverable_id);
       const myId = shipperAccountId(user);
-      const incomingSenderType = (incoming.sender_type || (incoming as { senderable_type?: string }).senderable_type || 'carrier').toLowerCase();
+      const incomingSenderType = (
+        incoming.sender_type ||
+        (incoming as { senderable_type?: string }).senderable_type ||
+        incoming.request_data?.sender_type ||
+        'carrier'
+      ).toLowerCase();
       const activePartnerType = resolveActivePartnerType(active);
       const voiceLabel = t('chatModule.voiceNote', 'Voice note');
       const photoLabel = t('chatModule.photo', 'Photo');
@@ -637,13 +649,32 @@ export function useMessages() {
         return;
       }
 
+      const incomingKey = [
+        incomingSenderId,
+        incomingSenderType,
+        incoming.id || '',
+        incoming.message || '',
+        incoming.created_at instanceof Date ? incoming.created_at.toISOString() : String(incoming.created_at || ''),
+      ].join('|');
+      if (seenIncomingRef.current.has(incomingKey)) return;
+      seenIncomingRef.current.add(incomingKey);
+      if (seenIncomingRef.current.size > 200) {
+        const oldest = seenIncomingRef.current.values().next().value;
+        if (oldest) seenIncomingRef.current.delete(oldest);
+      }
+
+      const typesAgree = (left?: string | null, right?: string | null) =>
+        normalizePartnerType(left) === normalizePartnerType(right);
+
       const isFromActivePartner =
         activePartnerId > 0 &&
-        isMessageFromPartner(incomingSenderId, incomingSenderType, activePartnerId, activePartnerType);
+        incomingSenderId === activePartnerId &&
+        (!activePartnerType || typesAgree(incomingSenderType, activePartnerType));
 
       if (isFromActivePartner) {
         const newMsg = buildReceivedMessageFromSocket(incoming, active);
         if (newMsg) {
+          newMsg.liveIncoming = true;
           setMessages((prev) => {
             if (!shouldAppendIncomingMessage(prev, newMsg)) return prev;
             return [...prev, newMsg];
@@ -661,39 +692,112 @@ export function useMessages() {
         }
       }
 
-      setConversations((prev) =>
-        prev.map((c) => {
-          const cPartnerId = parsePartnerId(c.partnerId || c.id);
-          const cPartnerType = resolveActivePartnerType(c);
+      const preview = getChatMessagePreview(incoming.message || '', incoming.messages_type, voiceLabel, photoLabel, docLabel);
+      const nowSeconds = Math.floor(Date.now() / 1000);
 
-          if (!isMessageFromPartner(incomingSenderId, incomingSenderType, cPartnerId, cPartnerType)) {
-            return c;
-          }
+      setConversations((prev) => {
+        const matches = prev
+          .map((c, index) => ({ c, index }))
+          .filter(({ c }) => parsePartnerId(c.partnerId || c.id) === incomingSenderId);
+        const typed = matches.filter(({ c }) =>
+          typesAgree(incomingSenderType, resolveActivePartnerType(c))
+        );
+        const hit = (typed[0] || (matches.length === 1 ? matches[0] : undefined));
+        if (!hit) return prev;
 
-          const isActiveChat = isMessageFromPartner(
-            incomingSenderId,
-            incomingSenderType,
-            activePartnerId,
-            activePartnerType
-          );
+        const isActiveChat =
+          activePartnerId > 0 &&
+          incomingSenderId === activePartnerId &&
+          typesAgree(incomingSenderType, activePartnerType);
 
-          return {
-            ...c,
-            lastMsg: getChatMessagePreview(incoming.message || '', incoming.messages_type, voiceLabel, photoLabel, docLabel),
-            lastTime: 'Just now',
-            lastTimestamp: Math.floor(Date.now() / 1000),
-            unread: isActiveChat ? 0 : (c.unread || 0) + 1,
-          };
-        })
+        const updated = {
+          ...hit.c,
+          lastMsg: preview,
+          lastTime: 'Just now',
+          lastTimestamp: nowSeconds,
+          unread: isActiveChat ? 0 : (Number(hit.c.unread) || 0) + 1,
+        };
+        const next = prev.filter((_, index) => index !== hit.index);
+        next.unshift(updated);
+        return next;
+      });
+
+      const alreadyListed = conversationsRef.current.some(
+        (c) => parsePartnerId(c.partnerId || c.id) === incomingSenderId
       );
+      if (!alreadyListed) {
+        syncLiveChatRef.current();
+      }
     };
 
     const unsubscribe = socketService.onMessage(processIncomingMessage);
+    const onIncomingEvent = (event: Event) => {
+      const detail = (event as CustomEvent<SocketMessagePayload>).detail;
+      if (detail) processIncomingMessage(detail);
+    };
+    window.addEventListener(CHAT_INCOMING_EVENT, onIncomingEvent);
 
     return () => {
       unsubscribe();
+      window.removeEventListener(CHAT_INCOMING_EVENT, onIncomingEvent);
     };
   }, [user?.id, user?.parent_shipper_id, t]);
+
+  // Keep the user list and the open thread aligned with the server if a socket packet is missed.
+  useEffect(() => {
+    let cancelled = false;
+
+    const sync = async () => {
+      if (document.visibilityState === 'hidden') return;
+      try {
+        const list = await chatService.getConversations('all', debouncedSearch, { noFallback: true });
+        if (cancelled) return;
+
+        setConversations((prev) => {
+          const extras = prev.filter(
+            (c) => String(c.id).startsWith('user-') && !list.some((row) => String(row.id) === String(c.id))
+          );
+          const merged = [...extras, ...list];
+          const sig = (rows: Conversation[]) =>
+            rows.map((c) => `${c.id}:${c.unread}:${c.lastMsg}:${c.lastTimestamp || 0}`).join('|');
+          return sig(prev) === sig(merged) ? prev : merged;
+        });
+
+        const activeId = activeConvIdRef.current;
+        if (!activeId) return;
+        const fresh = list.find((c) => String(c.id) === String(activeId));
+        if (!fresh?.lastTimestamp) return;
+        if (messagesRef.current.some((m) => m.status === 'sending')) return;
+
+        const localNewest = messagesRef.current.reduce((max, m) => {
+          if (!m.created_at || m.type === 'date') return max;
+          const seconds = Math.floor(new Date(m.created_at).getTime() / 1000);
+          return Number.isFinite(seconds) ? Math.max(max, seconds) : max;
+        }, 0);
+        if (fresh.lastTimestamp <= localNewest + 1) return;
+
+        const partnerId = parsePartnerId(fresh.partnerId || fresh.id);
+        const partnerType = resolveActivePartnerType(fresh);
+        const { messages: msgs } = await chatService.getMessages(partnerId, partnerType);
+        if (cancelled) return;
+        setMessages(dedupeMessages(msgs));
+      } catch {
+        // Leave the open list as it is.
+      }
+    };
+
+    syncLiveChatRef.current = () => {
+      void sync();
+    };
+    const timer = window.setInterval(() => {
+      void sync();
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [debouncedSearch]);
 
   // Load active conversation messages helper
   const loadActiveMessages = useCallback((convId: number | string, currentConv?: Conversation) => {
