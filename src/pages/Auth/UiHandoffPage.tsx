@@ -12,6 +12,7 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { postAuthDestination } from '../../hooks/postAuthDestination';
 import { applyVerticalNavOnLogin } from '../../utils/navMode';
 import { redirectToClassicPanelIfNeeded } from '../../utils/preferredUiRedirect';
+import { forgetCachedFcmToken } from '../../hooks/useFcm';
 
 /**
  * Blade → React auto-login landing: exchanges one-time handoff code for Sanctum token.
@@ -49,6 +50,8 @@ export const UiHandoffPage: React.FC = () => {
         const { token, user } = await uiSwitchService.exchangeHandoff(code);
         const signedIn = { ...user, preferred_ui: 'react' as const };
         establishSession(token, signedIn);
+        // Classic UI may have overwritten device_token. Register this browser again.
+        forgetCachedFcmToken();
         applyVerticalNavOnLogin();
         const accountId = shipperAccountId(signedIn);
         if (accountId) socketService.activate(accountId);

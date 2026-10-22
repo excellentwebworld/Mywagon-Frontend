@@ -53,6 +53,11 @@ function clearCachedToken(): void {
   try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
 }
 
+/** Drop the cached token so the next panel load posts this browser's token again. */
+export function forgetCachedFcmToken(): void {
+  clearCachedToken();
+}
+
 /**
  * Remove local FCM registration without touching the backend token list.
  */
@@ -248,9 +253,7 @@ export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = 
           return;
         }
 
-        if (shouldSuppressChatForegroundNotification(type, payload.data)) {
-          return;
-        }
+        const suppressChatToast = shouldSuppressChatForegroundNotification(type, payload.data);
 
         const chatMeta = parseChatMetaFromFcmData(payload.data);
 
@@ -271,6 +274,10 @@ export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = 
 
         // Notify topbar / notifications page to refresh counters
         window.dispatchEvent(new CustomEvent('shipper:notification-received', { detail: notifData }));
+
+        if (suppressChatToast) {
+          return;
+        }
 
         if (onForegroundMessage) {
           onForegroundMessage(notifData);

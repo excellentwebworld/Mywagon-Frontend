@@ -137,6 +137,39 @@ function resolveTargetUrl(data) {
   return '/settings/notifications';
 }
 
+function isChatScreenUrl(url) {
+  try {
+    const path = new URL(url).pathname;
+    return path.startsWith('/messages') || path.startsWith('/chat');
+  } catch (e) {
+    return false;
+  }
+}
+
+function closeMessageNotifications() {
+  return self.registration.getNotifications().then((openNotes) => {
+    openNotes.forEach((note) => {
+      const noteType = String((note.data && note.data.type) || note.tag || '').toLowerCase();
+      if (noteType === 'message' || noteType.indexOf('message') !== -1) {
+        note.close();
+      }
+    });
+  });
+}
+
+/** Hide a chat push when a visible tab is already on the messages screen. */
+function suppressMessagePushOnChatScreen(rawType) {
+  if (rawType !== 'message') return Promise.resolve(false);
+  return clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    const onChat = clientList.some((client) => client.visibilityState === 'visible' && isChatScreenUrl(client.url));
+    if (!onChat) return false;
+    return closeMessageNotifications().then(() => {
+      setTimeout(() => { void closeMessageNotifications(); }, 500);
+      return true;
+    });
+  });
+}
+
 // ── Background message handler ────────────────────────────────────────────
 messaging.onBackgroundMessage((payload) => {
   const msgId = payload.messageId || payload.data?.id || `${payload.data?.type || ''}_${payload.data?.type_id || ''}_${payload.data?.title || ''}`;
@@ -189,7 +222,8 @@ messaging.onBackgroundMessage((payload) => {
   // (common when the browser tab is backgrounded). Android/iOS are unaffected —
   // this handler only runs in the web service worker.
   // Data-only payloads still need an explicit showNotification below.
-  if (payload.notification) {
+  return suppressMessagePushOnChatScreen(rawType).then((hidden) => {
+  if (hidden || payload.notification) {
     return notifyOpenClients;
   }
 
@@ -217,6 +251,7 @@ messaging.onBackgroundMessage((payload) => {
     notifyOpenClients,
     self.registration.showNotification(title, notificationOptions),
   ]);
+  });
 });
 
 

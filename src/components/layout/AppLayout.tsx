@@ -21,6 +21,7 @@ import { SignupIncompleteGateHost } from '../auth/SignupIncompleteGateHost';
 import { PreferredUiRedirectHost } from './PreferredUiRedirectHost';
 import { WhatsNewGuideHost } from '../../whatsNew';
 import { UpgradeGateProvider } from '../../context/UpgradeGateContext';
+import { isOnChatScreen } from '../../utils/chatNotificationGuard';
 
 const SIDEBAR_COLLAPSED_KEY = 'shipper-sidebar-collapsed';
 
@@ -83,8 +84,16 @@ export const AppLayout: React.FC = () => {
   const isSideMode = navMode !== 'top';
 
   const handleChatSocketNotification = useCallback((payload: FcmNotificationPayload) => {
+    if (isOnChatScreen() && String(payload.type || '').toLowerCase() === 'message') return;
     setActivePushNotif(payload);
   }, []);
+
+  useEffect(() => {
+    if (!isOnChatScreen(location.pathname)) return;
+    setActivePushNotif((current) =>
+      current && String(current.type || '').toLowerCase() === 'message' ? null : current
+    );
+  }, [location.pathname]);
 
   // Initialize FCM for web push notifications (after auth session is ready)
   useFcm({

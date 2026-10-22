@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { socketService, type SocketMessagePayload } from '../services/socketService';
 import {
   getActiveChatPartner,
+  isOnChatScreen,
   type ActiveChatPartner,
 } from '../utils/chatNotificationGuard';
 import {
@@ -114,7 +115,7 @@ export function useGlobalChatSocket({
         new CustomEvent<SocketMessagePayload>(CHAT_INCOMING_EVENT, { detail: incoming })
       );
 
-      if (shouldSuppressForActiveThread(notification.senderId, notification.senderType)) {
+      if (isOnChatScreen() || shouldSuppressForActiveThread(notification.senderId, notification.senderType)) {
         return;
       }
 
