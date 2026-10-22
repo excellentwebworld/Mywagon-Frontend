@@ -2,7 +2,7 @@
  * Header — matches MV_Web_Panel TopBar layout:
  * [Logo?] Title | Search …… | Vagon AI | Bell | Messages | Profile | CTA
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Search,
@@ -120,10 +120,14 @@ export const Header: React.FC<HeaderProps> = ({
   const [headerNotifs, setHeaderNotifs] = useState<ApiNotification[]>([]);
   const [loadingNotifs, setLoadingNotifs] = useState<boolean>(false);
   const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
+  const onChatScreen = location.pathname.startsWith('/messages') || location.pathname.startsWith('/chat');
+  const onChatScreenRef = useRef(onChatScreen);
+  onChatScreenRef.current = onChatScreen;
 
   // Load the badge from the API, then keep it in sync with live messages and reads.
   useEffect(() => {
     const loadChatUnread = () => {
+      if (onChatScreenRef.current) return;
       chatService.getUnreadCount().then((count) => {
         setUnreadMessages(count);
       });
@@ -132,6 +136,7 @@ export const Header: React.FC<HeaderProps> = ({
     loadChatUnread();
 
     const onChatReceived = (event: Event) => {
+      if (onChatScreenRef.current) return;
       const detail = (event as CustomEvent<{ senderId: number; senderType: string }>).detail;
       if (!detail) return;
 
@@ -161,6 +166,14 @@ export const Header: React.FC<HeaderProps> = ({
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
+
+  // Leaving the chat screen restores the badge from the server.
+  useEffect(() => {
+    if (onChatScreen) return;
+    chatService.getUnreadCount().then((count) => {
+      setUnreadMessages(count);
+    });
+  }, [onChatScreen]);
 
   const loadUnreadCount = () => {
     notificationService.unreadCount()
@@ -726,7 +739,7 @@ export const Header: React.FC<HeaderProps> = ({
         }}
       >
         <MessageSquare size={18} />
-        {unreadMessages > 0 && (
+        {!onChatScreen && unreadMessages > 0 && (
           <span className="mv-topbar-count" aria-label={`${unreadMessages} unread messages`}>
             {unreadMessages > 99 ? '99+' : unreadMessages}
           </span>
