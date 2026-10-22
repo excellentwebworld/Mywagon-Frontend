@@ -6,6 +6,7 @@ import { RouteMap } from '../CreateShipmentWizard/itinerary/RouteMap';
 import { useRouteLegs } from '../CreateShipmentWizard/itinerary/useRouteLegs';
 import type { EnrichedStop } from '../CreateShipmentWizard/itinerary/types';
 import { loadGoogleMaps } from '../AddressBook/GoogleMapAddressField';
+import { StatusBadge } from '../ShipmentDetail/StatusBadge';
 import { formatDashError, translateDashMessage } from './dashErrorUtils';
 import { DashMapSkeleton } from './DashboardSkeletons';
 
@@ -139,7 +140,6 @@ export const LiveMap: React.FC<LiveMapProps> = ({ selectedShipmentId }) => {
 
   const routeLegs = useRouteLegs(enrichedStops);
   const stopCount = enrichedStops.length;
-  const statusLabel = shipment?.status ? t(shipment.status) : '—';
 
   return (
     <div className="card map-wrap">
@@ -200,8 +200,15 @@ export const LiveMap: React.FC<LiveMapProps> = ({ selectedShipmentId }) => {
             {t('mapStops')}
           </div>
           <div className="map-stat">
-            <div className="map-stat-val" style={{ color: 'var(--info)' }}>
-              {statusLabel}
+            <div className="map-stat-val map-stat-status">
+              <StatusBadge
+                status={shipment.status}
+                needsAction={shipment.needsAction}
+                awaitingResponse={shipment.awaitingResponse}
+                bidsReceived={shipment.bidsReceived}
+                bidsSent={shipment.bidsSent}
+                interestedCount={shipment.interestedCount}
+              />
             </div>
             {t('status')}
           </div>
