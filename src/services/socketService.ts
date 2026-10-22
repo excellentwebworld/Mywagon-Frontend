@@ -18,8 +18,29 @@ export interface SocketMessagePayload {
 class SocketService {
   private socket: Socket | null = null;
   private currentUserId: number | string | null = null;
+  private watchTimer: number | null = null;
   private messageListeners: Set<(msg: SocketMessagePayload) => void> = new Set();
   private badgeListeners: Set<(badge: any) => void> = new Set();
+  private connectListeners: Set<() => void> = new Set();
+
+  private joinRoom(target: Socket | null = this.socket): void {
+    const id = this.currentUserId;
+    if (!id || !target?.connected) return;
+    target.emit('join_shipper', { user_id: id });
+  }
+
+  /** Keep the shipper room joined after a UI switch, even if the first connect is slow. */
+  private ensureWatch(): void {
+    if (this.watchTimer != null) return;
+    this.watchTimer = window.setInterval(() => {
+      if (!this.currentUserId) return;
+      if (this.socket?.connected) {
+        this.joinRoom();
+        return;
+      }
+      this.connect(this.currentUserId);
+    }, 3000);
+  }
 
   /**
    * Initialize and connect Socket.IO
@@ -38,12 +59,17 @@ class SocketService {
   public activate(userId: number | string): void {
     const cleanId = parseInt(String(userId).replace(/\D/g, ''), 10);
     if (!cleanId) return;
-    const sameUser = String(this.currentUserId ?? '') === String(cleanId);
+    const userChanged = String(this.currentUserId ?? '') !== String(cleanId);
     this.currentUserId = cleanId;
-    if (sameUser && this.socket?.connected) {
-      this.socket.emit('join_shipper', { user_id: cleanId });
+    this.ensureWatch();
+
+    // A switch mounts the layout while the first socket is still connecting.
+    // Replacing it drops the room join, so keep the socket that is already working.
+    if (!userChanged && this.socket && (this.socket.connected || this.socket.active)) {
+      this.joinRoom();
       return;
     }
+
     this.resetSocket();
     this.connect(cleanId);
   }
@@ -53,10 +79,12 @@ class SocketService {
       this.currentUserId = userId;
     }
 
-    if (this.socket && this.socket.connected) {
-      if (this.currentUserId) {
-        this.socket.emit('join_shipper', { user_id: this.currentUserId });
-      }
+    if (this.socket?.connected) {
+      this.joinRoom();
+      return this.socket;
+    }
+
+    if (this.socket?.active) {
       return this.socket;
     }
 
@@ -75,26 +103,31 @@ class SocketService {
     }
 
     try {
-      this.socket = io(socketUrl, {
+      const socket = io(socketUrl, {
         transports: ['polling', 'websocket'],
         reconnection: true,
-        reconnectionAttempts: Infinity,
         reconnectionDelay: 2000,
         timeout: 10000,
       });
+      this.socket = socket;
 
-      this.socket.on('connect', () => {
+      socket.on('connect', () => {
         console.log('⚡ Socket connected to:', socketUrl);
-        if (this.currentUserId) {
-          this.socket?.emit('join_shipper', { user_id: this.currentUserId });
-        }
+        this.joinRoom(socket);
+        this.connectListeners.forEach((listener) => {
+          try {
+            listener();
+          } catch (e) {
+            console.error('Error in socket connect listener:', e);
+          }
+        });
       });
 
-      this.socket.on('connect_error', (err) => {
+      socket.on('connect_error', (err) => {
         console.warn('Socket connection note (polling/fallback active):', err.message);
       });
 
-      this.socket.on('send_message', (data: SocketMessagePayload) => {
+      socket.on('send_message', (data: SocketMessagePayload) => {
         this.messageListeners.forEach((listener) => {
           try {
             listener(data);
@@ -104,7 +137,7 @@ class SocketService {
         });
       });
 
-      this.socket.on('badge_update', (data: any) => {
+      socket.on('badge_update', (data: any) => {
         this.badgeListeners.forEach((listener) => {
           try {
             listener(data);
@@ -187,6 +220,14 @@ class SocketService {
   /**
    * Subscribe to incoming messages
    */
+  public onConnect(callback: () => void): () => void {
+    this.connectListeners.add(callback);
+    if (this.socket?.connected) callback();
+    return () => {
+      this.connectListeners.delete(callback);
+    };
+  }
+
   public onMessage(callback: (msg: SocketMessagePayload) => void): () => void {
     this.messageListeners.add(callback);
     return () => {
@@ -229,10 +270,12 @@ class SocketService {
    * Disconnect socket
    */
   public disconnect(): void {
-    if (this.socket) {
-      this.socket.disconnect();
-      this.socket = null;
+    if (this.watchTimer != null) {
+      window.clearInterval(this.watchTimer);
+      this.watchTimer = null;
     }
+    this.currentUserId = null;
+    this.resetSocket();
   }
 }
 

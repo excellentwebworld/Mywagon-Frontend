@@ -165,8 +165,11 @@ export const Header: React.FC<HeaderProps> = ({
     window.addEventListener(CHAT_MESSAGE_RECEIVED_EVENT, onChatReceived as EventListener);
     window.addEventListener(CHAT_UNREAD_REFRESH_EVENT, loadChatUnread);
     document.addEventListener('visibilitychange', onVisible);
+    // Socket join can be missed on a UI switch. The server count still fills the badge.
+    const pollTimer = window.setInterval(loadChatUnread, 5000);
 
     return () => {
+      window.clearInterval(pollTimer);
       window.removeEventListener(CHAT_MESSAGE_RECEIVED_EVENT, onChatReceived as EventListener);
       window.removeEventListener(CHAT_UNREAD_REFRESH_EVENT, loadChatUnread);
       document.removeEventListener('visibilitychange', onVisible);

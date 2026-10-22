@@ -90,6 +90,10 @@ export function useGlobalChatSocket({
 
     socketService.activate(userId);
 
+    const unsubscribeConnect = socketService.onConnect(() => {
+      window.dispatchEvent(new Event(CHAT_UNREAD_REFRESH_EVENT));
+    });
+
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
         socketService.activate(userId);
@@ -119,6 +123,7 @@ export function useGlobalChatSocket({
 
     return () => {
       document.removeEventListener('visibilitychange', onVisible);
+      unsubscribeConnect();
       unsubscribe();
     };
   }, [userId, voiceLabel, photoLabel]);
