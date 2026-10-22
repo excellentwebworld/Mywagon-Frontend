@@ -26,8 +26,7 @@ import { ProfileDropdown } from './ProfileDropdown';
 import { notificationService } from '../../api/services/notificationService';
 import type { ApiNotification } from '../../api/services/notificationService';
 import { chatService } from '../../api/services/chatService';
-import { socketService } from '../../services/socketService';
-import { CHAT_MESSAGE_RECEIVED_EVENT } from '../../hooks/useGlobalChatSocket';
+import { CHAT_MESSAGE_RECEIVED_EVENT, CHAT_UNREAD_REFRESH_EVENT } from '../../hooks/useGlobalChatSocket';
 import { getActiveChatPartner } from '../../utils/chatNotificationGuard';
 import { isMessageFromPartner } from '../../utils/chatPartnerUtils';
 import { openNotificationTarget } from '../../utils/notificationNavigation';
@@ -122,11 +121,15 @@ export const Header: React.FC<HeaderProps> = ({
   const [loadingNotifs, setLoadingNotifs] = useState<boolean>(false);
   const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
 
-  // Fetch unread messages count once; live updates come from the socket.
+  // Load the badge from the API, then keep it in sync with live messages and reads.
   useEffect(() => {
-    chatService.getUnreadCount().then((count) => {
-      setUnreadMessages(count);
-    });
+    const loadChatUnread = () => {
+      chatService.getUnreadCount().then((count) => {
+        setUnreadMessages(count);
+      });
+    };
+
+    loadChatUnread();
 
     const onChatReceived = (event: Event) => {
       const detail = (event as CustomEvent<{ senderId: number; senderType: string }>).detail;
@@ -142,15 +145,20 @@ export const Header: React.FC<HeaderProps> = ({
       }
     };
 
-    window.addEventListener(CHAT_MESSAGE_RECEIVED_EVENT, onChatReceived as EventListener);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        loadChatUnread();
+      }
+    };
 
-    const unsubscribeRead = socketService.onRead(() => {
-      setUnreadMessages(0);
-    });
+    window.addEventListener(CHAT_MESSAGE_RECEIVED_EVENT, onChatReceived as EventListener);
+    window.addEventListener(CHAT_UNREAD_REFRESH_EVENT, loadChatUnread);
+    document.addEventListener('visibilitychange', onVisible);
 
     return () => {
       window.removeEventListener(CHAT_MESSAGE_RECEIVED_EVENT, onChatReceived as EventListener);
-      unsubscribeRead();
+      window.removeEventListener(CHAT_UNREAD_REFRESH_EVENT, loadChatUnread);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);
 
@@ -719,7 +727,9 @@ export const Header: React.FC<HeaderProps> = ({
       >
         <MessageSquare size={18} />
         {unreadMessages > 0 && (
-          <span className="mv-topbar-dot" style={{ background: '#EF4444' }} />
+          <span className="mv-topbar-count" aria-label={`${unreadMessages} unread messages`}>
+            {unreadMessages > 99 ? '99+' : unreadMessages}
+          </span>
         )}
       </button>
       )}

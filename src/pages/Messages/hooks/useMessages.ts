@@ -21,6 +21,7 @@ import type {
 } from '../types';
 import { formatMessageTime, formatConversationTime } from '../../../utils/timezone';
 import { setActiveChatPartner } from '../../../utils/chatNotificationGuard';
+import { CHAT_UNREAD_REFRESH_EVENT } from '../../../hooks/useGlobalChatSocket';
 import {
   buildChatFilterSids,
   buildLaravelChatRequestData,
@@ -645,7 +646,9 @@ export function useMessages() {
             return [...prev, newMsg];
           });
 
-          void chatService.markAsRead(activePartnerId, activePartnerType);
+          void chatService.markAsRead(activePartnerId, activePartnerType).then(() => {
+            window.dispatchEvent(new Event(CHAT_UNREAD_REFRESH_EVENT));
+          });
           socketService.markAsRead({
             sender_id: user?.id || 0,
             sender_type: 'shipper',
@@ -764,7 +767,9 @@ export function useMessages() {
 
     const partnerId = parsePartnerId(currentConv.partnerId || currentConv.id);
     const partnerType = resolveActivePartnerType(currentConv);
-    void chatService.markAsRead(partnerId, partnerType);
+    void chatService.markAsRead(partnerId, partnerType).then(() => {
+      window.dispatchEvent(new Event(CHAT_UNREAD_REFRESH_EVENT));
+    });
     socketService.markAsRead({
       sender_id: user?.id || 0,
       sender_type: 'shipper',

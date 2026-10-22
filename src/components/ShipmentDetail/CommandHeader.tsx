@@ -12,6 +12,7 @@ import {
 import type { ShipmentDetailViewModel } from '../../pages/ShipmentDetail/detailViewModel';
 import { MvButton, Tag } from '../ui/mv';
 import { StatusBadge } from './StatusBadge';
+import { ChatUnreadBadge } from './ChatUnreadBadge';
 
 interface CommandHeaderProps {
   vm: ShipmentDetailViewModel;
@@ -20,6 +21,7 @@ interface CommandHeaderProps {
   onCopyId: () => void;
   onEdit?: () => void;
   onMessage?: () => void;
+  messageUnread?: number;
   onShare?: () => void;
   onPdfExport?: () => void;
   onAuditLog: () => void;
@@ -41,6 +43,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
   onCopyId,
   onEdit,
   onMessage,
+  messageUnread = 0,
   onShare,
   onPdfExport,
   onAuditLog,
@@ -244,15 +247,18 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
           )}
 
           {!readOnly && (
-            <MvButton
-              type="button"
-              variant="secondary"
-              size="sm"
-              icon={<MessageSquare size={14} />}
-              onClick={onMessage || (() => onToast(t('message', 'Message')))}
-            >
-              {t('message', 'Message')}
-            </MvButton>
+            <span className="relative inline-flex">
+              <MvButton
+                type="button"
+                variant="secondary"
+                size="sm"
+                icon={<MessageSquare size={14} />}
+                onClick={onMessage || (() => onToast(t('message', 'Message')))}
+              >
+                {t('message', 'Message')}
+              </MvButton>
+              <ChatUnreadBadge count={messageUnread} />
+            </span>
           )}
 
           {!readOnly && onShare && (

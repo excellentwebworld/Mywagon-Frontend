@@ -48,6 +48,8 @@ import {
 } from './detailViewModel';
 import { offerUsesInterestPermission } from '../../components/ShipmentDetail/BidsCard';
 import { shipmentsService } from '../../api';
+import { chatService } from '../../api/services/chatService';
+import { CHAT_MESSAGE_RECEIVED_EVENT, CHAT_UNREAD_REFRESH_EVENT } from '../../hooks/useGlobalChatSocket';
 import { CancelShipmentModal } from '../../components/ManageShipments/CancelShipmentModal';
 
 const DEFAULT_SECTIONS: Record<string, boolean> = {
@@ -151,6 +153,76 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
     () => (shipment ? buildShipmentDetailViewModel(shipment) : null),
     [shipment]
   );
+
+  const [partnerUnread, setPartnerUnread] = useState<Record<string, number>>({});
+
+  const chatPartners = useMemo(() => {
+    const list: Array<{ id: number; type: string }> = [];
+    const push = (id?: number | null, type?: string | null) => {
+      const partnerId = Number(id);
+      const partnerType = type === 'driver' ? 'driver' : type === 'admin' ? 'admin' : type ? 'carrier' : '';
+      if (!partnerId || !partnerType) return;
+      if (list.some((partner) => partner.id === partnerId && partner.type === partnerType)) return;
+      list.push({ id: partnerId, type: partnerType });
+    };
+    push(vm?.carrier?.userId, vm?.carrier?.userType || 'carrier');
+    push(vm?.assignedDriver?.userId, 'driver');
+    vm?.partners?.forEach((partner) => {
+      const isDriver =
+        partner.userType === 'driver' ||
+        partner.transporterType === 'freelancer' ||
+        partner.transporterType === 'driver';
+      push(partner.userId, isDriver ? 'driver' : 'carrier');
+    });
+    return list;
+  }, [vm]);
+
+  const loadPartnerUnread = useCallback(() => {
+    if (chatPartners.length === 0) {
+      setPartnerUnread({});
+      return;
+    }
+    chatService.getPartnerUnreadCounts(chatPartners).then(setPartnerUnread);
+  }, [chatPartners]);
+
+  useEffect(() => {
+    loadPartnerUnread();
+  }, [loadPartnerUnread]);
+
+  useEffect(() => {
+    const onIncoming = (event: Event) => {
+      const detail = (event as CustomEvent<{ senderId: number; senderType: string }>).detail;
+      if (!detail?.senderId) return;
+      const key = `${String(detail.senderType || 'carrier').toLowerCase()}:${detail.senderId}`;
+      setPartnerUnread((prev) => {
+        if (prev[key] == null && !chatPartners.some((partner) => `${partner.type}:${partner.id}` === key)) {
+          return prev;
+        }
+        return { ...prev, [key]: (prev[key] || 0) + 1 };
+      });
+    };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') loadPartnerUnread();
+    };
+    window.addEventListener(CHAT_MESSAGE_RECEIVED_EVENT, onIncoming as EventListener);
+    window.addEventListener(CHAT_UNREAD_REFRESH_EVENT, loadPartnerUnread);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener(CHAT_MESSAGE_RECEIVED_EVENT, onIncoming as EventListener);
+      window.removeEventListener(CHAT_UNREAD_REFRESH_EVENT, loadPartnerUnread);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [chatPartners, loadPartnerUnread]);
+
+  const headerChatKey = vm?.assignedDriver?.userId
+    ? `driver:${vm.assignedDriver.userId}`
+    : vm?.carrier?.userId
+      ? `${vm.carrier.userType === 'driver' ? 'driver' : 'carrier'}:${vm.carrier.userId}`
+      : '';
+  const carrierChatKey = vm?.carrier?.userId
+    ? `${vm.carrier.userType === 'driver' ? 'driver' : 'carrier'}:${vm.carrier.userId}`
+    : '';
+  const driverChatKey = vm?.assignedDriver?.userId ? `driver:${vm.assignedDriver.userId}` : '';
 
   const navigateToChat = useCallback((
     partner?: {
@@ -761,6 +833,7 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
                   }
                 }
           }
+          messageUnread={headerChatKey ? partnerUnread[headerChatKey] || 0 : 0}
           onMessage={
             readOnly
               ? undefined
@@ -958,6 +1031,7 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
                         setIsBidsHistoryOpen(true);
                       }
                 }
+                partnerUnread={partnerUnread}
                 onChat={
                   readOnly
                     ? undefined
@@ -1064,6 +1138,8 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
                         setIsRatingOpen(true);
                       }
                 }
+                carrierUnread={carrierChatKey ? partnerUnread[carrierChatKey] || 0 : 0}
+                driverUnread={driverChatKey ? partnerUnread[driverChatKey] || 0 : 0}
                 onChatCarrier={
                   readOnly
                     ? undefined

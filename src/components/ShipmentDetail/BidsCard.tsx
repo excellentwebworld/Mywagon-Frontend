@@ -3,6 +3,7 @@ import { Users, Star, ArrowRightLeft, Check, X, History, MessageSquare, Loader2,
 import { CollapsibleCard } from './CollapsibleCard';
 import { useTransporterProfileOptional } from '../TransporterProfile/TransporterProfileContext';
 import { CarrierAvatar } from '../ManageShipments/CarrierAvatar';
+import { ChatUnreadBadge } from './ChatUnreadBadge';
 
 export interface PartnerBidItem {
   id: string;
@@ -94,6 +95,7 @@ interface BidsCardProps {
   cancellingInviteId?: number | null;
   onViewHistory?: (partner: PartnerBidItem) => void;
   onChat?: (partner: PartnerBidItem) => void;
+  partnerUnread?: Record<string, number>;
   onInviteMore?: () => void;
   t: (key: string, fallback?: string) => string;
 }
@@ -117,6 +119,7 @@ export const BidsCard: React.FC<BidsCardProps> = ({
   cancellingInviteId = null,
   onViewHistory,
   onChat,
+  partnerUnread = {},
   onInviteMore,
   t,
 }) => {
@@ -338,10 +341,23 @@ export const BidsCard: React.FC<BidsCardProps> = ({
                           type="button"
                           onClick={() => onChat(item)}
                           title={t('chat', 'Chat')}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors shadow-2xs"
+                          className="relative flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors shadow-2xs"
                         >
                           <MessageSquare size={12} />
                           <span>{t('chat', 'Chat')}</span>
+                          <ChatUnreadBadge
+                            count={
+                              partnerUnread[
+                                `${
+                                  item.userType === 'driver' ||
+                                  item.transporterType === 'freelancer' ||
+                                  item.transporterType === 'driver'
+                                    ? 'driver'
+                                    : 'carrier'
+                                }:${item.userId ?? 0}`
+                              ]
+                            }
+                          />
                         </button>
                       )}
                     </div>

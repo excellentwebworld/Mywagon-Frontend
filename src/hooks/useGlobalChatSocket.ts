@@ -13,6 +13,7 @@ import {
 import type { FcmNotificationPayload } from './useFcm';
 
 export const CHAT_MESSAGE_RECEIVED_EVENT = 'shipper:chat-message-received';
+export const CHAT_UNREAD_REFRESH_EVENT = 'shipper:chat-unread-refresh';
 
 export interface IncomingChatNotification {
   incoming: SocketMessagePayload;

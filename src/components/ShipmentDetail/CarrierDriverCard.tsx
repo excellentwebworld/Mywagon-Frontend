@@ -6,6 +6,7 @@ import type {
 } from '../../pages/ShipmentDetail/detailViewModel';
 import { CollapsibleCard } from './CollapsibleCard';
 import { useTransporterProfileOptional } from '../TransporterProfile/TransporterProfileContext';
+import { ChatUnreadBadge } from './ChatUnreadBadge';
 
 interface CarrierDriverCardProps {
   carrier: CarrierDetail | null;
@@ -18,6 +19,8 @@ interface CarrierDriverCardProps {
   onRateDriver?: (driver: AssignedDriverDetail) => void;
   onChatCarrier?: (carrier: CarrierDetail) => void;
   onChatDriver?: (driver: AssignedDriverDetail) => void;
+  carrierUnread?: number;
+  driverUnread?: number;
   expanded: boolean;
   onToggle: () => void;
   onToast: (msg: string) => void;
@@ -157,6 +160,8 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
   onRateDriver,
   onChatCarrier,
   onChatDriver,
+  carrierUnread = 0,
+  driverUnread = 0,
   expanded,
   onToggle,
   onToast,
@@ -329,9 +334,10 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                       type="button"
                       onClick={() => onChatCarrier(carrier)}
                       title={t('message', 'Message')}
-                      className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+                      className="relative p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                     >
                       <MessageSquare size={14} />
+                      <ChatUnreadBadge count={carrierUnread} />
                     </button>
                   )}
 
@@ -422,9 +428,10 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                         type="button"
                         onClick={() => onChatCarrier(carrier)}
                         title={t('message', 'Message')}
-                        className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+                        className="relative p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                       >
                         <MessageSquare size={14} />
+                        <ChatUnreadBadge count={carrierUnread} />
                       </button>
                     )}
 
@@ -512,9 +519,10 @@ export const CarrierDriverCard: React.FC<CarrierDriverCardProps> = ({
                     type="button"
                     onClick={() => onChatDriver(driver)}
                     title={t('message', 'Message')}
-                    className="p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
+                    className="relative p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white active:scale-95 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50"
                   >
                     <MessageSquare size={14} />
+                    <ChatUnreadBadge count={driverUnread} />
                   </button>
                 )}
 

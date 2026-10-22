@@ -427,6 +427,32 @@ export const chatService = {
   },
 
   /**
+   * Unread counts for the chat buttons on a load.
+   * Key is `${type}:${id}`.
+   */
+  async getPartnerUnreadCounts(
+    partners: Array<{ id: number; type: string }>
+  ): Promise<Record<string, number>> {
+    const unique = partners.filter((partner) => partner.id > 0 && partner.type);
+    if (unique.length === 0) return {};
+
+    try {
+      const res = await axiosInstance.post<{
+        status: boolean;
+        data?: { partners?: Array<{ id: number; type: string; count: number }> };
+      }>('/chat/partner-unread', { partners: unique });
+      const rows = res.data?.data?.partners ?? [];
+      const counts: Record<string, number> = {};
+      rows.forEach((row) => {
+        counts[`${String(row.type).toLowerCase()}:${row.id}`] = Number(row.count) || 0;
+      });
+      return counts;
+    } catch {
+      return {};
+    }
+  },
+
+  /**
    * Mark messages as read dynamically
    */
   async markAsRead(receiverId: number | string, receiverType: string): Promise<void> {
