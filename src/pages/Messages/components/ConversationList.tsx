@@ -144,7 +144,9 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                   </div>
                   <div className="ci-mid">
                     <span className="ci-preview">{c.lastMsg}</span>
-                    {c.unread > 0 && <span className="ci-unread">{c.unread}</span>}
+                    {!isActive && c.unread > 0 && (
+                      <span className="ci-unread">{c.unread > 99 ? '99+' : c.unread}</span>
+                    )}
                   </div>
                   <div className="ci-chips">
                     <span className={`ci-chip-role ${c.type}`}>

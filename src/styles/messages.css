@@ -336,10 +336,11 @@
 }
 
 .ci-unread {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--ac, #9B51E0);
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #EF4444;
   color: #fff;
   font-size: 10px;
   font-weight: 700;
