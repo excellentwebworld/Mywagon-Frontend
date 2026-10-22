@@ -36,6 +36,7 @@ import {
   isChatDocumentUrl,
   isChatImageMessage,
   isIncomingChatToShipper,
+  shipperAccountId,
   isMessageFromPartner,
   isShipmentAutoId,
   parsePartnerId,
@@ -51,6 +52,7 @@ import {
 function buildShipperSocketChatPayload(params: {
   user: {
     id?: number | string;
+    parent_shipper_id?: number | string | null;
     company_name?: string;
     first_name?: string;
     last_name?: string;
@@ -66,7 +68,7 @@ function buildShipperSocketChatPayload(params: {
 }): SocketMessagePayload {
   const receiverId = parsePartnerId(params.conversation.partnerId || params.conversation.id);
   const receiverType = resolveSocketReceiverType(params.conversation);
-  const senderId = parsePartnerId(params.user.id);
+  const senderId = shipperAccountId(params.user);
   const senderName =
     params.user.company_name ||
     `${params.user.first_name || ''} ${params.user.last_name || ''}`.trim() ||
@@ -329,10 +331,11 @@ export function useMessages() {
 
   // Connect Socket.IO when on messages page (global connect also runs from AppLayout)
   useEffect(() => {
-    if (user?.id) {
-      socketService.setUserId(user.id);
+    const accountId = shipperAccountId(user);
+    if (accountId) {
+      socketService.setUserId(accountId);
     }
-  }, [user?.id]);
+  }, [user?.id, user?.parent_shipper_id]);
 
   // Load conversations from backend
   const loadConversations = useCallback(async () => {
@@ -555,7 +558,7 @@ export function useMessages() {
       const activePartnerId = parsePartnerId(active?.partnerId || active?.id);
       const incomingSenderId = parsePartnerId(incoming.sender_id || (incoming as { senderable_id?: number }).senderable_id);
       const incomingReceiverId = parsePartnerId(incoming.receiver_id || (incoming as { receiverable_id?: number }).receiverable_id);
-      const myId = parsePartnerId(user?.id);
+      const myId = shipperAccountId(user);
       const incomingSenderType = (incoming.sender_type || (incoming as { senderable_type?: string }).senderable_type || 'carrier').toLowerCase();
       const activePartnerType = resolveActivePartnerType(active);
       const voiceLabel = t('chatModule.voiceNote', 'Voice note');
@@ -650,7 +653,7 @@ export function useMessages() {
             window.dispatchEvent(new Event(CHAT_UNREAD_REFRESH_EVENT));
           });
           socketService.markAsRead({
-            sender_id: user?.id || 0,
+            sender_id: shipperAccountId(user) || 0,
             sender_type: 'shipper',
             receiver_id: activePartnerId,
             receiver_type: activePartnerType,
@@ -690,7 +693,7 @@ export function useMessages() {
     return () => {
       unsubscribe();
     };
-  }, [user?.id, t]);
+  }, [user?.id, user?.parent_shipper_id, t]);
 
   // Load active conversation messages helper
   const loadActiveMessages = useCallback((convId: number | string, currentConv?: Conversation) => {
@@ -771,12 +774,12 @@ export function useMessages() {
       window.dispatchEvent(new Event(CHAT_UNREAD_REFRESH_EVENT));
     });
     socketService.markAsRead({
-      sender_id: user?.id || 0,
+      sender_id: shipperAccountId(user) || 0,
       sender_type: 'shipper',
       receiver_id: partnerId,
       receiver_type: partnerType,
     });
-  }, [activeConvId, loadActiveMessages, user?.id]);
+  }, [activeConvId, loadActiveMessages, user?.id, user?.parent_shipper_id]);
 
   // Fetch shipment context for the SID the user picked in this chat.
   // Depend on the selected label/filter only — filling shipmentDbId after fetch must not skip a swap.

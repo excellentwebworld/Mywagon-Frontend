@@ -96,7 +96,7 @@ export const AppLayout: React.FC = () => {
 
   // Global socket room + in-app chat toasts (same socket server as Laravel panel)
   useGlobalChatSocket({
-    userId: user?.id,
+    userId: user?.parent_shipper_id || user?.id,
     voiceLabel: t('chatModule.voiceNote') || 'Voice note',
     photoLabel: t('chatModule.photo') || 'Photo',
     onIncomingMessage: (notification) => {

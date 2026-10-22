@@ -177,6 +177,14 @@ export function getShipperDeviceToken(): string {
   }
 }
 
+/** Company inbox id. Sub-users share the parent shipper account. */
+export function shipperAccountId(user?: {
+  id?: number | string | null;
+  parent_shipper_id?: number | string | null;
+} | null): number {
+  return parsePartnerId(user?.parent_shipper_id || user?.id);
+}
+
 export function isIncomingChatToShipper(
   incoming: { receiver_id?: number | string; receiver_type?: string; sender_type?: string },
   shipperId: number
