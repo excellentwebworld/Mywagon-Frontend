@@ -9,6 +9,7 @@ import {
   initOrderPreviewRows,
   type OrderPreviewRow,
 } from './OrdersAiWizardPreviewPanel';
+import { findInvalidAcceptedRow } from './ordersAiWizardUtils';
 import '../../styles/ai-wizard.css';
 
 type Props = {
@@ -120,16 +121,8 @@ export const OrdersAiWizardModal: React.FC<Props> = ({
       return null;
     }
 
-    const invalid = rows.find(
-      (r) =>
-        r.status === 'accepted' &&
-        (!r.order.order_reference?.trim() ||
-          r.order.company_entity_id == null ||
-          !r.order.customer_name?.trim() ||
-          !r.order.delivery_date?.trim())
-    );
-
-    if (invalid) {
+    // MS3-403: order number and customer are optional on import.
+    if (findInvalidAcceptedRow(rows, { customerRequired: false })) {
       showToast(t('ordersAiWizardValidationError'), 'error');
       return null;
     }

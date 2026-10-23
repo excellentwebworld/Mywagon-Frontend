@@ -4,6 +4,7 @@ import type { ApiResponse } from './types/addressBook';
 import { getBrowserTimezone } from '../utils/timezone';
 import { safeLocalGet, safeLocalRemove, safeLocalSet } from '../utils/safeStorage';
 import { downloadBlob } from '../utils/webviewDownload';
+import { apiBaseUrl } from '../config/deploymentEnv';
 
 export const AUTH_TOKEN_KEY = 'shipper_auth_token';
 
@@ -29,7 +30,7 @@ export function getAcceptLanguage(): 'el' | 'en' {
   return currentLang.toLowerCase().startsWith('el') ? 'el' : 'en';
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
+export const API_BASE = apiBaseUrl();
 
 export const axiosInstance = axios.create({
   baseURL: API_BASE,

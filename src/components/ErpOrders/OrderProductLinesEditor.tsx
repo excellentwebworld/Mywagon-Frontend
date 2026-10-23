@@ -92,8 +92,11 @@ export const OrderProductLinesEditor: React.FC<Props> = ({
     onChange(next);
   };
 
+  // MS3-400: removing the last line leaves one empty line, never none - the
+  // product is required and a form with no line on it hides that.
   const removeLine = (index: number) => {
-    onChange(lines.filter((_, i) => i !== index));
+    const next = lines.filter((_, i) => i !== index);
+    onChange(next.length > 0 ? next : [{ ...EMPTY_ORDER_LINE }]);
   };
 
   const addLine = () => {

@@ -86,7 +86,8 @@ export function looksLikeOrderTable(text: string): boolean {
   return hasIdentity && hasLine;
 }
 
-export const ORDER_INTAKE_ACCEPT = '.xlsx,.xls,.csv,.tsv,text/csv,text/tab-separated-values';
+/** `.txt` too: Excel's "Text (Tab delimited)" export, which the ERP Orders import also reads. */
+export const ORDER_INTAKE_ACCEPT = '.xlsx,.xls,.csv,.tsv,.txt,text/csv,text/tab-separated-values';
 
 /**
  * Does a dropped file look like something intake can actually read?

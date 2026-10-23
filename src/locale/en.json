@@ -301,6 +301,7 @@
   "erpOrdersCreateOrder": "Create Order",
   "erpOrdersEditOrder": "Edit Order",
   "erpOrdersImport": "Import",
+  "erpOrdersImportHistory": "Import history",
   "erpOrdersExport": "Export",
   "erpOrdersExporting": "Exporting...",
   "erpOrdersCreateLoad": "Create Load",
@@ -382,7 +383,7 @@
   "erpOrdersTotalWeight": "total",
   "erpOrdersEditLocked": "Only unplanned orders can be edited.",
   "erpOrdersErpId": "Software ERP ID",
-  "erpOrdersShipDate": "Ship Date",
+  "erpOrdersShipDate": "Pickup / ship date",
   "erpOrdersSelectCustomer": "Select customer",
   "erpOrdersSelectLocation": "Select address",
   "erpOrdersSelectProduct": "Select product",
@@ -427,7 +428,7 @@
   "erpOrdersNotesMax": "Notes must be at most 200 characters.",
   "erpOrdersCustomerRequired": "Customer is required.",
   "erpOrdersDeliveryDateRequired": "Delivery date is required.",
-  "erpOrdersShipDateInvalid": "Ship date cannot be greater than the delivery date.",
+  "erpOrdersShipDateInvalid": "Pickup/ship date cannot be after the delivery date.",
   "erpOrdersDuplicateProduct": "Each product can only be added once per order.",
   "erpOrdersLineFieldLabel": "Product line {{line}}: {{field}}",
   "erpOrdersFieldRequired": "{{field}} is required.",
@@ -714,6 +715,13 @@
   "cargoColWeight": "Weight",
   "cargoColWeightUnit": "W.Unit",
   "trackingLinksEmpty": "Add cargo lines with linked orders in Step 1 to configure tracking links.",
+  "receiverTrackingEmails": "Receiver tracking emails (per delivery stop)",
+  "receiverTrackingEmail": "Receiver tracking email",
+  "receiverTrackingStopLabel": "Stop {{num}}",
+  "receiverTrackingFromAddressBook": "Filled in from the Address Book location",
+  "receiverTrackingEmailHint": "The receiver gets the tracking link when the load goes live",
+  "receiverTrackingRemove": "Remove receiver email",
+  "receiverTrackingInvalidEmail": "Not a valid email address - it will not be saved.",
   "step3EnterTargetPrice": "Enter a target price below, or open AI Insights for a suggested spot price.",
   "step3EnterTargetPriceNegotiable": "Enter an optional target price below, or leave blank for carriers to bid.",
   "orderValuePlaceholder": "Optional",
@@ -1556,6 +1564,34 @@
     },
     "accountType": "Account type",
     "usersRoles": "Users & roles",
+    "shipmentSettings": "Shipment settings",
+    "shipmentSettingsSection": {
+      "subtitle": "Company defaults for every new load: Create Shipment, loads from orders and Vagon AI. Each load can still override them.",
+      "liveNavigation": "Live navigation",
+      "liveNavigationDesc": "Require live GPS navigation from the carrier on new loads.",
+      "on": "On",
+      "off": "Off",
+      "channel": "Default channel",
+      "channelDesc": "Who receives a new load.",
+      "private": "Private",
+      "privateDesc": "Only the partners you select",
+      "public": "Public",
+      "publicDesc": "All carriers on the marketplace",
+      "priceType": "Default price type",
+      "priceTypeDesc": "Whether carriers can counter your price.",
+      "negotiable": "Negotiable",
+      "negotiableDesc": "Carriers can submit counteroffers",
+      "fixed": "Fixed",
+      "fixedDesc": "Carriers accept your price",
+      "note": "Changes apply to loads created afterwards. Existing loads and drafts keep their values.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Shipment settings saved.",
+      "saveError": "Could not save shipment settings.",
+      "loading": "Loading shipment settings…",
+      "loadError": "Could not load shipment settings.",
+      "retry": "Try again"
+    },
     "security": "Security",
     "billingSettings": "Billing",
     "integrations": "Integrations",
@@ -1925,6 +1961,17 @@
   "vehiclePricingSub": "Select carriers and set your shipment price.",
   "createBulkShipments": "Create {{count}} Shipments",
   "shipmentCreatedSuccess": "Shipment created successfully!",
+  "shipmentCopiesCreatedSuccess": "{{count}} shipments created successfully!",
+  "loadCopiesLabel": "Number of copies",
+  "loadCopiesHint": "Each copy is a separate load, bid on individually.",
+  "loadCopiesDecrease": "Fewer copies",
+  "loadCopiesIncrease": "More copies",
+  "loadCopiesQuotaShort": "Your plan allows {{remaining}} more loads this billing cycle.",
+  "loadCopiesOrderNote": "Each copy uses the order quantity again.",
+  "publishedCopiesTitle": "{{count}} shipments created",
+  "publishedCopiesBody": "Each load was posted separately and receives its own bids.",
+  "publishedCopiesOpen": "Open",
+  "publishedCopiesViewAll": "Go to shipments",
   "shipmentUpdatedSuccess": "Shipment updated successfully!",
   "documentUploadFailed": "Failed to upload document.",
   "createNewLocation": "Create New Location",
@@ -2839,7 +2886,26 @@
       "resendFailed": "Could not resend code",
       "verify": "Verify",
       "verifying": "Verifying…",
-      "back": "Back to sign in"
+      "back": "Back to sign in",
+      "title": "Verify it is you",
+      "resetTitle": "Reset two-factor access"
+    },
+    "title": "Sign in to your panel",
+    "orLabel": "or",
+    "newHere": "New to MY VAGON?",
+    "languageLabel": "Language",
+    "trustNote": "Encrypted sign-in with two-factor protection",
+    "brand": {
+      "eyebrow": "Shipper platform",
+      "titleLead": "Move every load with",
+      "titleAccent": "full visibility",
+      "subtitle": "Plan shipments, collect quotes from vetted carriers and forwarders, and track every leg from pickup to delivery.",
+      "stat1": "Vetted carrier network",
+      "stat1Hint": "Compare quotes side by side",
+      "stat2": "Live shipment tracking",
+      "stat2Hint": "Status on every leg",
+      "stat3": "Multi-stop itineraries",
+      "stat3Hint": "Built in a few clicks"
     }
   },
   "abBelongsTo": "Who does this location belong to?",
@@ -5501,7 +5567,11 @@
       "titleNamed": "Hi {{name}}, how can I help you today?",
       "subtitle": "Ask about your shipments, partners and documents — Vagon AI reads your live operational data.",
       "actionsLabel": "What I can do",
-      "questionsLabel": "Or ask about MYVAGON"
+      "questionsLabel": "Or ask about MYVAGON",
+      "resumeTitle": "Continue your unfinished shipment",
+      "resumeUnnamed": "You started creating a shipment and did not finish it.",
+      "resumeContinue": "Continue",
+      "resumeDismiss": "Not now"
     },
     "composerPh": "Ask anything…",
     "shortcutHint": "Enter to send · Shift + Enter for a new line",
@@ -5564,6 +5634,11 @@
     },
     "live": {
       "error": "Something went wrong:",
+      "timeout": "That took too long to answer, so it was stopped - nothing was changed. Please try again in a moment.",
+      "network": "The connection to Vagon AI was interrupted before the reply arrived. Please try again.",
+      "stalled": "Vagon AI stopped responding, so this request was stopped. Please check whether anything was created before trying again.",
+      "alreadyInProgress": "This is already being saved. Wait a moment, then check before trying again.",
+      "retry": "Try again",
       "gatewayError": "Vagon AI is temporarily unavailable. Please try again shortly.",
       "gatewayUnauthorized": "Your session has expired. Please sign in again to use Vagon AI.",
       "copy": "Copy",
@@ -5576,9 +5651,14 @@
       "newChat": "New chat",
       "open": "Open chat history",
       "close": "Close chat history",
-      "searchPlaceholder": "Search conversations",
-      "noResults": "No conversations match that search.",
       "empty": "No conversations yet — start a new chat to see it here.",
+      "recentCaption": "Showing your {{count}} most recent chats.",
+      "viewing": "Viewing",
+      "readOnly": {
+        "title": "You're viewing a past chat",
+        "body": "Past chats are read-only. Start a new chat to ask something else.",
+        "placeholder": "This chat is read-only"
+      },
       "untitled": "New conversation",
       "delete": "Delete",
       "deleteConfirmTitle": "Delete this chat?",
@@ -5613,7 +5693,9 @@
       "create_order": "Preparing the new order…",
       "get_create_order_context": "Opening the create-order form…",
       "get_shipment_from_order_context": "Building the load from your order…",
-      "mark_shipment_complete": "Marking the shipment complete…"
+      "mark_shipment_complete": "Marking the shipment complete…",
+      "mark_order_complete": "Marking the order complete…",
+      "reopen_order": "Reopening the order…"
     },
     "confirm": {
       "reference": "Reference: {{ref}}",
@@ -5652,6 +5734,111 @@
         "title": "Confirm this action?",
         "confirm": "Confirm"
       },
+      "partner": {
+        "title": "Update this partner?",
+        "confirm": "Confirm",
+        "none": "(none)",
+        "actions": {
+          "invite": {
+            "title": "Send this partner invitation?",
+            "confirm": "Send invitation"
+          },
+          "accept": {
+            "title": "Accept this partner request?",
+            "confirm": "Accept"
+          },
+          "decline": {
+            "title": "Decline this partner request?",
+            "confirm": "Decline"
+          },
+          "remove": {
+            "title": "Remove this partner?",
+            "confirm": "Remove partner"
+          },
+          "suspend": {
+            "title": "Suspend this partner?",
+            "confirm": "Suspend"
+          },
+          "reactivate": {
+            "title": "Reactivate this partner?",
+            "confirm": "Reactivate"
+          },
+          "prefer": {
+            "title": "Mark this partner as preferred?",
+            "confirm": "Mark preferred"
+          },
+          "unprefer": {
+            "title": "Move this partner back to standard?",
+            "confirm": "Set to standard"
+          },
+          "notes": {
+            "title": "Save this note on the partner?",
+            "confirm": "Save note"
+          },
+          "tags": {
+            "title": "Update this partner's tags?",
+            "confirm": "Save tags"
+          },
+          "addLane": {
+            "title": "Add this agreed rate?",
+            "confirm": "Add rate"
+          },
+          "deleteLane": {
+            "title": "Delete this agreed rate?",
+            "confirm": "Delete rate"
+          }
+        },
+        "fields": {
+          "type": "Partner type",
+          "status": "Status",
+          "region": "Region",
+          "relationship": "Relationship",
+          "newNote": "New note",
+          "previousNote": "Current note (will be replaced)",
+          "tagsNow": "Current tags",
+          "tagsAdded": "Adding",
+          "tagsRemoved": "Removing",
+          "tagsResulting": "Tags after saving",
+          "route": "Route",
+          "rate": "Rate",
+          "tripType": "Trip type",
+          "effective": "Valid",
+          "lanesLost": "Agreed rates removed",
+          "tagsLost": "Tags removed",
+          "noteLost": "Private note removed"
+        },
+        "types": {
+          "carrier_company": "Carrier company",
+          "freelancer_driver": "Freelance driver",
+          "supplier": "Supplier / customer company"
+        },
+        "statuses": {
+          "active": "Active",
+          "inv_sent": "Invitation sent",
+          "inv_recv": "Invitation received",
+          "suspended": "Suspended"
+        },
+        "relationships": {
+          "preferred": "Preferred",
+          "standard": "Standard"
+        },
+        "tripTypes": {
+          "direct": "One way",
+          "roundtrip": "Round trip"
+        },
+        "units": {
+          "load": "per load",
+          "pallet": "per pallet"
+        },
+        "warnings": {
+          "decline": "This cannot be undone from here. Only they can send you a new invitation.",
+          "remove": "This cannot be undone. The partnership ends together with its notes, tags and agreed rates, and working with them again needs a new invitation.",
+          "deleteLane": "This cannot be undone. Future loads on this route will be priced from a suggestion instead of this agreement.",
+          "suspend": "They stay in your Partners list, but cannot be given loads until you reactivate them.",
+          "notes": "This replaces the current note. It is not added to it.",
+          "tagsReplace": "Tags that are not in the new list will be removed."
+        }
+      },
       "route": "{{from}} → {{to}}",
       "stopsCount": "{{count}} stops",
       "stopPickup": "Pickup",
@@ -5676,7 +5863,26 @@
         "negotiableRow": "Counter-offers",
         "negotiableYes": "Carriers can send counter-offers",
         "negotiableNo": "Fixed price",
-        "schedule": "Schedule copies instead"
+        "schedule": "Schedule copies instead",
+        "anySubtype": "any subtype"
+      },
+      "bid": {
+        "title": "Send this offer to the carrier?",
+        "confirm": "Send offer",
+        "truck": "Truck",
+        "carrier": "Carrier",
+        "truckAvailable": "Truck available",
+        "load": "Load",
+        "loadPickup": "Load pickup",
+        "price": "Offer",
+        "askingPrice": "the carrier's asking price",
+        "yourOffer": "your offer",
+        "priceNotShown": "The carrier's asking price - the amount was not shown. Check the truck's price before you send this offer.",
+        "match": "Fit",
+        "exactYes": "Exact match: capacity, route and timing fit",
+        "exactNo": "Partial match: check capacity, route and timing",
+        "notes": "Note to carrier",
+        "warning": "Once you confirm, the carrier sees this offer straight away. It is an offer, not a booking: nothing is booked until the carrier accepts it, and you can't take it back from the chat."
       },
       "order": "Order {{ref}}",
       "forCustomer": "for {{name}}",
@@ -5701,6 +5907,36 @@
         "status": "Current status",
         "result": "Will become",
         "sid": "Shipment"
+      },
+      "orderImport": {
+        "title": "Import these orders?",
+        "confirm": "Import orders",
+        "warning": "Creates the orders in ERP Orders, and any receiver company, drop-off address and product that does not exist yet - each marked auto-created, to review. Orders already in your account are skipped."
+      },
+      "markOrderComplete": {
+        "title": "Mark this order as complete?",
+        "confirm": "Mark as complete",
+        "warning": "For an order delivered outside MYVAGON. Vagon AI will stop offering it for drafts and load planning, and it leaves the sticky Orders Unplanned list. The ERP Orders page still shows it as Unplanned. You can reopen it from the orders toolbar.",
+        "customer": "Customer",
+        "status": "Current status",
+        "result": "Will become",
+        "reason": "Reason"
+      },
+      "reopenOrder": {
+        "title": "Reopen this order?",
+        "confirm": "Reopen",
+        "warning": "The order goes back to the status MYVAGON calculates for it, and Vagon AI will offer it for drafts and load planning again.",
+        "customer": "Customer",
+        "status": "Current status",
+        "result": "Will become"
+      },
+      "orderStatus": {
+        "unplanned": "Unplanned",
+        "partially_planned": "Partially planned",
+        "planned": "Planned",
+        "on_trip": "On trip",
+        "completed": "Completed",
+        "canceled": "Canceled"
       }
     },
     "draft": {
@@ -5709,14 +5945,49 @@
     "records": {
       "matchedOn": "Matched on “{{query}}”"
     },
+    "report": {
+      "chart": "Chart",
+      "table": "Table",
+      "view": "Report view",
+      "download": "Download as CSV",
+      "showAll": "Show all {{count}}",
+      "showLess": "Show less"
+    },
     "select": {
       "matchedOn": "Matched on “{{query}}”",
       "typeInstead": "Or just type your answer instead.",
       "chosen": "Chosen",
-      "confirmMany": "Continue with {{count}}"
+      "confirmMany": "Continue with {{count}}",
+      "filter": "Filter this list…",
+      "show": {
+        "location_one": "Show {{count}} site",
+        "location_other": "Show {{count}} sites",
+        "product_one": "Show {{count}} product",
+        "product_other": "Show {{count}} products",
+        "truck_match_one": "Show {{count}} load",
+        "truck_match_other": "Show {{count}} loads",
+        "shipment_channel_one": "Show {{count}} option",
+        "shipment_channel_other": "Show {{count}} options",
+        "vehicle_type_one": "Show {{count}} truck type",
+        "vehicle_type_other": "Show {{count}} truck types",
+        "partner_one": "Show {{count}} partner",
+        "partner_other": "Show {{count}} partners",
+        "price_option_one": "Show {{count}} price option",
+        "price_option_other": "Show {{count}} price options",
+        "erp_order_one": "Show {{count}} order",
+        "erp_order_other": "Show {{count}} orders",
+        "tracking_recipient_one": "Show {{count}} recipient",
+        "tracking_recipient_other": "Show {{count}} recipients",
+        "option_one": "Show {{count}} option",
+        "option_other": "Show {{count}} options"
+      },
+      "hide": "Hide list"
     },
     "published": {
       "open": "Open {{id}}"
+    },
+    "continueBuild": {
+      "prompt": "Continue creating the shipment."
     },
     "finishing": {
       "prompt": "Let's finish this shipment and send it to carriers."
@@ -5833,8 +6104,914 @@
       "durationMinutes": "{{m}}m",
       "responseHours": "{{n}}h"
     },
+    "destinations": {
+      "subscription": "Open Subscription",
+      "billing": "Open Billing",
+      "partners": "Open Partners",
+      "orders": "Open Orders",
+      "addressBook": "Open Address Book",
+      "products": "Open Product Registry"
+    },
+    "shipment": {
+      "intake": {
+        "number": {
+          "decimal": "."
+        },
+        "location": {
+          "best": "Best matches",
+          "bestOf": "Best matches ({{shown}} of {{total}})",
+          "pickup": {
+            "prompt": "Where is it picked up?"
+          },
+          "dropoff": {
+            "prompt": "Where is it dropped off?"
+          },
+          "near": "Sites near \"{{query}}\"",
+          "noExact": "I couldn't find an exact match for \"{{query}}\". Pick the closest site, or add a new one.",
+          "add": "+ Add a new site",
+          "roleMismatch": "This site is marked for the other leg of a trip. You can still use it.",
+          "browse": "Browse all my sites",
+          "search": "Search by name, company or address",
+          "tab": {
+            "mine": "My sites",
+            "customers": "Customers"
+          }
+        },
+        "cargo": {
+          "qtyInvalidFormat": "Enter a number above 0, for example 12 or 2.5.",
+          "weightInvalidFormat": "Enter a weight above 0, for example 1,500 or 2.5.",
+          "prompt": "What are we moving, and how much?",
+          "ambiguous": "\"{{query}}\" matches several products. Pick one, or keep it general.",
+          "none": "I couldn't find \"{{query}}\" in your products. Browse the list or add it.",
+          "weight": {
+            "derived": "Weight: {{kg}} kg (from the product)",
+            "ask": "How much does the load weigh in total?",
+            "pendingUnit": "Is {{value}} in kilograms or tonnes?",
+            "unitUnknown": "I don't know the weight unit \"{{unit}}\". Please enter the weight in kg or tonnes.",
+            "checkLow": "That is only {{perUnit}} kg per pallet. Did you mean {{suggest}} kg?",
+            "checkHigh": "That is {{perUnit}} kg per pallet, more than a pallet can hold. Did you mean {{suggest}} kg?",
+            "checkOdd": "{{total}} kg looks unusual for this line. Did you mean {{suggest}} kg?",
+            "checkOddNoSuggest": "{{total}} kg looks unusual for this line. Please check it."
+          },
+          "unit": {
+            "ask": "What unit is \"{{qty}}\" in?"
+          },
+          "units": {
+            "eurPallets": "EUR pallets",
+            "usPallets": "US pallets",
+            "boxes": "Boxes",
+            "units": "Units",
+            "bigBags": "Big bags"
+          },
+          "change": "Change",
+          "browse": "Browse my products",
+          "search": "Search by name or SKU",
+          "add": "+ Add a new product",
+          "continue": "Continue",
+          "qty": "Quantity",
+          "unitField": "Unit",
+          "weightField": "Weight",
+          "weightUnit": "Weight unit",
+          "weightFromProduct": "The weight comes from the product.",
+          "kg": "kg",
+          "tonnes": "tonnes",
+          "qtyInvalid": "Enter a number greater than 0.",
+          "weightInvalid": "Enter a weight greater than 0.",
+          "useSuggested": "Use {{kg}} kg instead",
+          "anyOfType": "Any product of this type",
+          "productCount": "{{count}} products"
+        },
+        "window": {
+          "anyTime": "Any time",
+          "anyTimeHint": "No fixed slot: the whole day is open.",
+          "pickup": {
+            "prompt": "When can the truck load?"
+          },
+          "dropoff": {
+            "prompt": "When should it be delivered?"
+          },
+          "pastDate": "This date is in the past. You can save a draft, but to publish choose a new date.",
+          "timeOrder": "The end time must be after the start time.",
+          "dropBeforePickup": "Move the drop-off to after {{pickupEnd}}.",
+          "date": "Date",
+          "from": "From",
+          "to": "To",
+          "presets": "Common times",
+          "continue": "Continue"
+        },
+        "split": {
+          "combined": "Group all into one load",
+          "perOrder": "Create one load per order"
+        },
+        "orderNumber": {
+          "placeholder": "Order number",
+          "save": "Add order number",
+          "skip": "Skip, no order"
+        },
+        "create": {
+          "failed": "That form could not be opened.",
+          "useNow": "Use it right away"
+        },
+        "pickOrders": {
+          "loading": "Loading your orders…",
+          "loadingHint": "This can take a moment. You can also start the load manually.",
+          "empty": "No orders found.",
+          "emptyHint": "There is nothing to choose from yet. Add your orders first, or start the load manually.",
+          "error": "I couldn't load your orders.",
+          "errorHint": "Try again, or start the load manually.",
+          "retry": "Try again",
+          "checkAgain": "Check again",
+          "manual": "Start manually instead",
+          "total": "{{count}} orders",
+          "search": "Search by order, customer or city",
+          "continue": "Use {{count}} selected"
+        },
+        "pick": {
+          "loadMore": "Show more ({{shown}} of {{total}})",
+          "searching": "Searching…",
+          "loading": "Loading…",
+          "error": "The list could not be loaded. Try again.",
+          "search": "Search",
+          "noMatch": "Nothing matches.",
+          "partial": "Showing the first {{count}}. Type to narrow the list.",
+          "useType": "Use this type",
+          "selectAll": "Select all",
+          "clear": "Clear"
+        },
+        "choice": {
+          "suggested": "Suggested"
+        },
+        "channel": {
+          "sendTo": "Send to {{count}} partners",
+          "sendToAll": "Send to all {{count}} partners",
+          "private": {
+            "pick": "Private · choose partners",
+            "all": "Private · all my partners ({{count}})",
+            "label": "Private · my partners ({{count}})"
+          },
+          "public": "Public marketplace",
+          "publicWarn": "A public load is visible to every carrier on MYVAGON.",
+          "noPartners": "You have no partners yet. Choose Public, or add a partner first.",
+          "only": "Only {{name}}",
+          "publicConfirm": "Yes, make it public",
+          "back": "Back",
+          "quota": "Public loads used: {{used}} of {{limit}}"
+        },
+        "vehicle": {
+          "noFitSuggestion": "No truck is suggested for this load: the closest type is too small. You can still pick one below.",
+          "tight": "Nearly full for this load.",
+          "oversized": "Bigger than this load needs.",
+          "tooBig": "This load is too heavy for one truck. Split it, or check the weight.",
+          "narrow": "Or choose only:",
+          "recommended": "Recommended for {{kg}} kg: {{truck}}",
+          "more": "More options",
+          "less": "Fewer options",
+          "tooSmall": "This truck type is too small for the load."
+        },
+        "gate": {
+          "prompt": "How do you want to start?",
+          "orders": "From my orders",
+          "manual": "Manually"
+        },
+        "upload": {
+          "imported": "Adding your imported orders ({{count}}) to this load…",
+          "capped": "A load can carry up to {{max}} orders, so I added the first {{max}}. You can add the rest on another load.",
+          "none": "No orders came out of that file, so nothing was added. Attach another file, or tell me about the load instead.",
+          "prompt": "Do you have the orders in a file (Excel or CSV)?",
+          "yes": "Yes, upload the file",
+          "no": "No, continue"
+        },
+        "describe": {
+          "prompt": "Tell me about the load in your own words: where it's picked up and dropped off, the products and quantities, and when. Anything you skip, I'll ask.",
+          "example": "e.g. 10 pallets of toilet paper, Athens to Ioannina, pickup tomorrow 3–5 pm",
+          "stepByStep": "I'd rather go step by step",
+          "retry": "I didn't catch that. Try something like: \"10 pallets of toilet paper, Athens to Ioannina, tomorrow 3–5 pm\" — or go step by step.",
+          "placeholder": "Describe the load…",
+          "send": "Send"
+        },
+        "morePickups": {
+          "prompt": "Anything else to pick up?",
+          "same": "More from this site",
+          "other": "Another site",
+          "no": "No, that's all"
+        },
+        "tracking": {
+          "hint": "The driver has to run the job in the app, so the carrier can't mark it delivered by hand.",
+          "yes": "Yes, track it",
+          "no": "No"
+        },
+        "negotiable": {
+          "yes": "Yes, negotiable",
+          "no": "No, fixed price"
+        },
+        "price": {
+          "invalidFormat": "Enter an amount above 0 with up to 2 decimals, for example 1,234.50 or 12.5.",
+          "suggested": "Suggested: €{{price}}",
+          "set": "Set price",
+          "placeholder": "Amount",
+          "invalid": "Enter an amount above zero, with up to 2 decimals.",
+          "requiredFixed": "A fixed price needs an amount.",
+          "later": "Decide later"
+        },
+        "orderValue": {
+          "invalidFormat": "Enter an amount from 0 to 99,999,999.99 with up to 2 decimals, for example 1,234.50 or 12.5.",
+          "auto": "Total of your orders: €{{value}}",
+          "set": "Set value",
+          "placeholder": "Amount",
+          "invalid": "Enter an amount from 0 to 99,999,999.99, with up to 2 decimals.",
+          "skip": "Skip"
+        },
+        "express": {
+          "label": "Use defaults for the rest",
+          "needs": "I can't choose this one for you.",
+          "toSummary": "Go to summary"
+        },
+        "summary": {
+          "title": "Check your load",
+          "missing": "To publish, add: {{fields}}",
+          "saveDraft": "Save as draft",
+          "publish": "Publish now",
+          "edit": "Edit",
+          "cancelEdit": "Cancel edit",
+          "wantedPublish": "You asked to publish. Check the details, then press Publish now.",
+          "fromOrder": "from your order",
+          "default": "default",
+          "youSaid": "you said",
+          "notSet": "Not set — needed to publish",
+          "notSetOptional": "Not set (optional)",
+          "discard": "Discard this load",
+          "routeNoPosition": "A site on this load has no map position, so the route can’t be measured. You can save a draft now.",
+          "routeEstimate": "≈ {{km}} km (estimate)",
+          "routeNeeded": "Publishing needs the route distance, which isn’t available here yet. You can save a draft now.",
+          "tracking": {
+            "default": {
+              "on": "Live navigation is on by default. Tap Edit to change it.",
+              "off": "Live navigation is off, like on your last load. Tap Edit to change it."
+            }
+          }
+        },
+        "done": {
+          "draft": "Saved as draft {{autoId}}. You'll find it in Manage Shipments.",
+          "published": "Published {{autoId}}. Carriers can see it now.",
+          "unknown": "MYVAGON didn't answer in time, so it's not clear whether this load went out. Open Manage Shipments and check before trying again.",
+          "open": "Open shipment",
+          "new": "Create another"
+        },
+        "undo": {
+          "label": "Undo",
+          "done": "The draft was removed. You can change it and save again.",
+          "published": "A published load can't be undone from the chat. Open Manage Shipments to cancel it.",
+          "already": "That was already undone.",
+          "failed": "I couldn't remove the draft, so it is still in Manage Shipments.",
+          "failedFix": "Try again in a moment. If it keeps failing, delete it from Manage Shipments.",
+          "notDraft": "This load is no longer a draft, so it can't be undone here.",
+          "notDraftFix": "Open Manage Shipments to change it."
+        },
+        "cancel": {
+          "confirm": "Discard this load?",
+          "yes": "Yes, discard",
+          "no": "No, keep going",
+          "done": "Discarded. Nothing was saved.",
+          "confirmNew": "Discard the current load and start a new one?",
+          "yesNew": "Yes, start the new one",
+          "noKeep": "No, keep the current one"
+        },
+        "error": {
+          "stale": "That step was already answered. Here is where we are.",
+          "staleFix": "Continue from here.",
+          "unavailable": "Creating shipments in the chat isn't available right now.",
+          "unavailableFix": "Use the Create shipment form instead.",
+          "upstream": "MYVAGON couldn't be reached, so nothing was saved.",
+          "upstreamFix": "Try again in a moment. Your answers are kept."
+        },
+        "history": {
+          "gate": {
+            "orders": "Starting from my orders",
+            "manual": "Entering it manually"
+          },
+          "upload": {
+            "upload": "Uploading the orders file",
+            "continue": "No file, continuing"
+          },
+          "more": {
+            "same": "More from the same site",
+            "other": "Another pickup site",
+            "no": "Nothing else to pick up"
+          },
+          "split": {
+            "combined": "One load for all orders",
+            "perOrder": "One load per order"
+          },
+          "discard": {
+            "no": "Kept the load"
+          },
+          "describe": "Going step by step",
+          "tracking": "Live navigation: {{value}}",
+          "negotiable": "Negotiable: {{value}}",
+          "priceLater": "Price: decide later",
+          "orderValueSkip": "Order value: skipped",
+          "summary": "Went to the summary",
+          "windowAnyTime": "When: any time",
+          "windowAnyTimeOn": "When: {{date}}, any time",
+          "orderNumber": "Order number: {{number}}",
+          "orderNumberLink": "Linked to order {{number}}",
+          "orderNumberSkip": "No order number",
+          "orders": "Orders: {{count}}",
+          "location": "Site: {{name}}",
+          "cargo": "Cargo: {{summary}}",
+          "window": "When: {{when}}",
+          "vehicle": "Truck: {{name}}",
+          "channel": "Send to: {{who}}",
+          "price": "Price: €{{price}}",
+          "orderValue": "Order value: €{{value}}",
+          "express": "Used defaults for the rest"
+        },
+        "retry": "Try again"
+      }
+    },
     "intake": {
       "unsupportedFile": "Unsupported file. Drop an Excel or CSV of orders."
+    },
+    "erpImport": {
+      "title": "Import {{file}}",
+      "sheet": "Sheet",
+      "error": "Something went wrong with the import.",
+      "retry": "Try again",
+      "confirmHint": "Nothing is saved until you press Import.",
+      "import_one": "Import {{count}} order",
+      "import_other": "Import {{count}} orders",
+      "lineIssues_one": "{{count}} line was skipped:",
+      "lineIssues_other": "{{count}} lines were skipped:",
+      "lineIssue": "Row {{row}}: {{message}}",
+      "analyzing": {
+        "title": "Reading your file",
+        "note": "Matching it against your customers, products and locations. Nothing is saved yet.",
+        "step": {
+          "reading": "Reading file",
+          "customers": "Matching customers",
+          "products": "Matching products",
+          "locations": "Matching locations"
+        }
+      },
+      "analysisFailed": "This file could not be read",
+      "result": {
+        "count": {
+          "created": "{{count}} imported",
+          "updated": "{{count}} updated",
+          "flagged": "{{count}} to check",
+          "pickup_one": "{{count}} pickup to set",
+          "pickup_other": "{{count}} pickups to set"
+        },
+        "status": {
+          "created": "Imported",
+          "updated": "Updated",
+          "planned": "Already planned"
+        },
+        "reused_one": "{{count}} existing one from your master data was used.",
+        "reused_other": "{{count}} existing ones from your master data were used.",
+        "none": "Nothing from this file landed here.",
+        "noOrders": "No order was written."
+      },
+      "review": {
+        "orders": "Orders",
+        "customers": "Customers / Receivers",
+        "products": "Products",
+        "locations": "Locations",
+        "count": {
+          "orders_one": "{{count}} order",
+          "orders_other": "{{count}} orders",
+          "customers_one": "{{count}} customer",
+          "customers_other": "{{count}} customers",
+          "products_one": "{{count}} product",
+          "products_other": "{{count}} products",
+          "locations_one": "{{count}} location",
+          "locations_other": "{{count}} locations",
+          "new": "{{count}} new",
+          "existing": "{{count}} existing",
+          "duplicates": "{{count}} already imported",
+          "updated": "{{count}} will be updated",
+          "planned": "{{count}} already planned",
+          "possible_one": "{{count}} possible match",
+          "possible_other": "{{count}} possible matches",
+          "skipped": "{{count}} skipped",
+          "failed": "{{count}} with errors",
+          "incomplete": "{{count}} incomplete",
+          "input_one": "{{count}} needs your input",
+          "input_other": "{{count}} need your input",
+          "missing": "{{count}} missing",
+          "check": "{{count}} to check"
+        },
+        "status": {
+          "new": "New",
+          "existing": "Existing",
+          "input": "Needs input",
+          "skipped": "Skipped"
+        },
+        "usedBy_one": "{{count}} order",
+        "usedBy_other": "{{count}} orders",
+        "truncated": "Showing the first {{count}}.",
+        "role": {
+          "pickup": "Pickup",
+          "dropoff": "Drop-off"
+        },
+        "noOrders": "No order in this file will be created, so nothing is matched here.",
+        "skipped_one": "{{count}} line skipped",
+        "skipped_other": "{{count}} lines skipped"
+      },
+      "incomplete": {
+        "label": "Incomplete: {{reasons}}",
+        "weight": "no weight",
+        "weightSome_one": "no weight on {{count}} of {{of}} lines",
+        "weightSome_other": "no weight on {{count}} of {{of}} lines",
+        "weightUnit": "unknown weight unit \"{{unit}}\" - weight left empty",
+        "deliveryDate": "no delivery date (ship date used)"
+      },
+      "running": {
+        "title": "Importing {{file}}…",
+        "progress": "{{done}} of {{total}} orders",
+        "starting": "Starting the import…"
+      },
+      "plan": {
+        "orders_one": "{{count}} order ready to import",
+        "orders_other": "{{count}} orders ready to import",
+        "duplicates": "{{count}} already imported",
+        "failed": "{{count}} with errors",
+        "creates": "Will create {{companies}} companies, {{addresses}} drop-off addresses and {{products}} products",
+        "matches": "Matched {{companies}} companies, {{addresses}} addresses and {{products}} products you already have",
+        "duplicatesSkipped_one": "{{count}} order is already in your account and will be skipped",
+        "duplicatesSkipped_other": "{{count}} orders are already in your account and will be skipped",
+        "failedSkipped_one": "{{count}} order can't be imported (see Orders below)",
+        "failedSkipped_other": "{{count}} orders can't be imported (see Orders below)",
+        "adds": "New in your master data, marked for you to review: {{list}}.",
+        "reuses": "Already in your master data: {{list}}.",
+        "perUnitWeight": "\"{{header}}\" is a per-unit weight, so each line's weight is multiplied by its quantity."
+      },
+      "questions": {
+        "title": "Which of your sites is each warehouse?",
+        "titleAfter": "Pickup not set yet - which of your sites is each warehouse?",
+        "ask_one": "\"{{value}}\" ({{count}} order)",
+        "ask_other": "\"{{value}}\" ({{count}} orders)",
+        "pick": "Choose a site…",
+        "noSites": "Add your own warehouses and plants as internal locations first:"
+      },
+      "flag": {
+        "customer_pickup_one": "Customer pickup",
+        "customer_pickup_other": "{{count}} customer pickup",
+        "own_fleet_one": "Own fleet",
+        "own_fleet_other": "{{count}} own fleet",
+        "blocked_one": "Blocked",
+        "blocked_other": "{{count}} blocked",
+        "adr_one": "ADR",
+        "adr_other": "{{count}} ADR",
+        "incomplete_one": "Incomplete",
+        "incomplete_other": "{{count}} incomplete",
+        "needs_pin_one": "Needs map pin",
+        "needs_pin_other": "{{count}} need a map pin",
+        "no_pickup_one": "No pickup",
+        "no_pickup_other": "{{count}} without pickup",
+        "no_dropoff_one": "No drop-off",
+        "no_dropoff_other": "{{count}} without drop-off"
+      },
+      "mapping": {
+        "title_one": "Column mapping ({{count}} column)",
+        "title_other": "Column mapping ({{count}} columns)",
+        "none": "- not in the file -",
+        "high": "Sure",
+        "check": "Check",
+        "remembered": "Some columns use the layout remembered from your last import of this file.",
+        "reset": "Reset to standard columns",
+        "resetDone": "Standard columns restored; the remembered layout is forgotten."
+      },
+      "orders": {
+        "title_one": "{{count}} order in the file",
+        "title_other": "{{count}} orders in the file",
+        "newCompany": "new company",
+        "duplicate": "already imported",
+        "truncated": "the file is long - the first part is shown",
+        "col": {
+          "number": "Order no.",
+          "customer": "Customer",
+          "date": "Deliv. date",
+          "value": "Order value",
+          "status": "Status"
+        },
+        "status": {
+          "create": "New",
+          "update": "Will be updated",
+          "planned": "Already planned",
+          "failed": "Not imported"
+        },
+        "plannedHint": "Already on a shipment - this order is not changed.",
+        "pickupHint": "Your customer arranges the transport for this order.",
+        "newLine_one": "{{count}} new order will be created.",
+        "newLine_other": "{{count}} new orders will be created.",
+        "updateLine_one": "{{count}} order already exists and will be updated. Any field in your file overwrites the same field in the existing order.",
+        "updateLine_other": "{{count}} orders already exist and will be updated. Any field in your file overwrites the same field in the existing order.",
+        "plannedLine_one": "{{count}} order is already planned on a shipment and will not be changed.",
+        "plannedLine_other": "{{count}} orders are already planned on a shipment and will not be changed.",
+        "search": "Search by order number",
+        "noMatch": "No order number matches \"{{query}}\"."
+      },
+      "possible": {
+        "chip": "Possible match",
+        "hint": "Matched by name only - confirm it is the same company.",
+        "note": "Matched by name only to your saved customer \"{{name}}\" - no VAT or customer code confirms it.",
+        "savedVat": "(Saved with VAT {{vat}}.)",
+        "splitNote": "Will be created as a new customer, not your saved \"{{name}}\".",
+        "question": "Is this your saved customer {{name}}?",
+        "same": "Same company",
+        "new": "Create as new"
+      },
+      "productType": {
+        "intro": "New products get the product type shown. Check it, and change any with the pencil - the category follows from the type.",
+        "label": "Type:",
+        "none": "Not set yet - one is picked at import",
+        "pick": "Product type for {{name}}",
+        "choose": "Choose a type…",
+        "loading": "Loading types…",
+        "loadFailed": "The list of types could not be loaded.",
+        "cancel": "Cancel",
+        "fallback": "Best guess - check",
+        "fallbackHint": "The name does not say what the goods are, so the general-cargo type is used. Pick the right one if you know it.",
+        "ai": "Suggested",
+        "aiHint": "Suggested by Vagon AI from the product name.",
+        "user": "Your choice",
+        "change": "Change the type of {{name}}",
+        "search": "Search products by name or code",
+        "noMatch": "No product matches \"{{query}}\"."
+      },
+      "location": {
+        "open": {
+          "pickup_one": "Pickup code \"{{code}}\" is not one of your sites ({{count}} order).",
+          "pickup_other": "Pickup code \"{{code}}\" is not one of your sites ({{count}} orders).",
+          "dropoff_one": "Drop-off code \"{{code}}\" came without an address ({{count}} order).",
+          "dropoff_other": "Drop-off code \"{{code}}\" came without an address ({{count}} orders)."
+        },
+        "mapped": "Mapped to {{name}}.",
+        "willCreate": "Will be created at import: {{name}}, {{address}}.",
+        "skipped": {
+          "pickup": "Skipped - these orders import without a pickup.",
+          "dropoff": "Skipped - these orders import without a drop-off."
+        },
+        "question": "What is {{code}}?",
+        "mapTo": {
+          "pickup": "Map to one of your sites…",
+          "dropoff": "Map to a saved address…"
+        },
+        "create": "Create new",
+        "skip": "Skip",
+        "name": "Site name",
+        "save": "Use this address",
+        "pickHint": "Pick the address from the suggestions."
+      },
+      "frozen": {
+        "imported": "Imported",
+        "replaced": "Replaced",
+        "importedNote": "Imported as reviewed here - the result is below.",
+        "replacedNote": "Replaced by another file - nothing from this one was imported."
+      },
+      "blocker": {
+        "mapping": "Map the missing columns to continue.",
+        "duplicates": "Nothing to import - every order is already planned on a shipment.",
+        "allFailed": "No order can be imported - each one has an error, listed below.",
+        "allFailedReason": "No order can be imported: {{reason}} Check the columns below."
+      },
+      "done": {
+        "title": "Imported {{file}}",
+        "created_one": "{{count}} order created",
+        "created_other": "{{count}} orders created",
+        "duplicates": "{{count}} already imported",
+        "failed": "{{count}} failed",
+        "incomplete": "{{count}} incomplete",
+        "mastersTitle": "Created in your master data",
+        "masters": {
+          "companies_one": "{{count}} company",
+          "companies_other": "{{count}} companies",
+          "addresses_one": "{{count}} drop-off address",
+          "addresses_other": "{{count}} drop-off addresses",
+          "products_one": "{{count}} product",
+          "products_other": "{{count}} products"
+        },
+        "review": "Each one is marked auto-created, to review - open it to check it.",
+        "flaggedTitle": "Flagged orders",
+        "failures": "Not imported",
+        "next": "The orders are unplanned in ERP Orders. Ask me to create loads from them - for example \"one load per order\".",
+        "headline_one": "{{count}} order imported",
+        "headline_other": "{{count}} orders imported",
+        "none": "No orders were imported",
+        "flaggedSummary_one": "{{count}} order worth a look",
+        "flaggedSummary_other": "{{count}} orders worth a look",
+        "more": "and {{count}} more",
+        "plan_one": "Plan this order",
+        "plan_other": "Plan these {{count}} orders",
+        "planHint": "Turn the imported orders into shipment drafts from the Orders panel."
+      },
+      "links": {
+        "addressBook": "Address book"
+      },
+      "field": {
+        "order_number": "Order / delivery no.",
+        "erp_reference": "ERP sales order",
+        "customer_po": "Customer PO",
+        "ship_date": "Ship date",
+        "delivery_date": "Delivery date",
+        "customer_code": "Customer code",
+        "customer_name": "Receiver company",
+        "vat": "VAT number",
+        "ship_to_code": "Ship-to code",
+        "ship_to_name": "Ship-to name",
+        "street": "Street",
+        "postcode": "Postcode",
+        "city": "City",
+        "country": "Country",
+        "full_address": "Full address",
+        "warehouse": "Warehouse / plant",
+        "line_number": "Line no.",
+        "sku": "Product code (SKU)",
+        "product_name": "Product name",
+        "quantity": "Quantity",
+        "unit": "Unit",
+        "weight": "Weight",
+        "weight_unit": "Weight unit",
+        "volume": "Volume",
+        "incoterms": "Incoterms",
+        "shipping_method": "Shipping method",
+        "delivery_block": "Delivery block",
+        "notes": "Notes"
+      },
+      "and": "and",
+      "failedTitle": "The import stopped before it finished",
+      "verdict": {
+        "ready_one": "{{count}} order is ready to import.",
+        "ready_other": "{{count}} orders are ready to import.",
+        "review_one": "{{count}} order is ready - a quick check below first.",
+        "review_other": "{{count}} orders are ready - a quick check below first.",
+        "needsColumns_one": "One answer is needed before you can import.",
+        "needsColumns_other": "{{count}} answers are needed before you can import."
+      },
+      "needs": {
+        "column": {
+          "order_number": "Which column has the order number?",
+          "customer_name": "Which column has the company you deliver to?",
+          "quantity": "Which column has the quantity?",
+          "receiver_id": "Which column identifies the customer? A VAT number or a customer code is enough.",
+          "address": "Which column has the delivery address? A full address or just the city is enough.",
+          "sku": "Which column names the product? A product code or a name is enough.",
+          "delivery_date": "Which column has the delivery date? A ship date works too.",
+          "other": "Which column has the {{field}}?"
+        },
+        "or": "or",
+        "pickColumn": "Choose a column…",
+        "guess": "{{field}} is read from the column \"{{header}}\". Is that right?",
+        "looksRight": "Looks right",
+        "useInstead": "Use a different column for {{field}}",
+        "warehouse_one": "Which of your sites is \"{{value}}\"? ({{count}} order)",
+        "warehouse_other": "Which of your sites is \"{{value}}\"? ({{count}} orders)",
+        "warehouseHint": "Optional - skip it and these orders import without a pickup. You can set it later.",
+        "unusedColumns": "Not used yet",
+        "usedColumns": "Already used",
+        "orUse": "or use"
+      },
+      "flagHint": {
+        "customer_pickup": "Your customer arranges the transport for these orders - they probably need no load.",
+        "own_fleet": "Moved by your own trucks - probably not a marketplace load.",
+        "blocked": "Marked do-not-ship in your ERP.",
+        "adr": "Dangerous goods - the load needs an ADR carrier.",
+        "incomplete": "A weight or delivery date is missing - add it on the order before planning.",
+        "needs_pin": "The drop-off address needs a map pin before a load can use it.",
+        "no_pickup": "No pickup site yet - you can set it later.",
+        "no_dropoff": "The ship-to code came without an address - set the drop-off on the order before planning."
+      },
+      "columns": {
+        "title": "Columns",
+        "summary_one": "{{count}} matched automatically",
+        "summary_other": "{{count}} matched automatically"
+      },
+      "section": {
+        "answer": {
+          "title": "Answer before importing",
+          "note": "Import stays switched off until each question below has an answer."
+        },
+        "check": {
+          "title": "Please check",
+          "note": "These don't stop the import. A quick check now avoids wrong data on your orders."
+        },
+        "summary": {
+          "title": "What will be imported",
+          "waiting": "Answer the question above and this shows what Import will create."
+        },
+        "headsUp": {
+          "title": "Good to know",
+          "note": "These orders will import, but may need your attention before you plan them."
+        },
+        "details": {
+          "title": "Details",
+          "note": "Open these to check every order or column in the file. You don't have to."
+        },
+        "running": {
+          "title": "Importing your orders",
+          "note": "Large files take a moment. This card updates by itself; you can keep chatting."
+        },
+        "result": {
+          "title": "Result"
+        },
+        "failures": {
+          "note": "These rows were skipped. Fix them in your file and import it again - the other orders are already saved."
+        },
+        "pickupAfter": {
+          "title": "Set the pickup site",
+          "note": "Choose which of your sites each warehouse code means, so these orders get a pickup. You can also do it later on each order."
+        },
+        "flagged": {
+          "note": "Imported, but check these before you plan them."
+        },
+        "masters": {
+          "note": "Created automatically from your file and marked for you to review."
+        },
+        "next": {
+          "title": "Next step",
+          "noteNoPlan": "Your orders are in ERP Orders, waiting to be planned."
+        }
+      },
+      "badge": {
+        "required": "Required",
+        "recommended": "Recommended",
+        "optional": "Optional",
+        "actionNeeded": "Action needed",
+        "nothingSaved": "Nothing saved"
+      },
+      "stat": {
+        "toImport": "Orders to import",
+        "skipped": "Already planned (not changed)",
+        "failed": "Can't be imported",
+        "imported": "Orders imported",
+        "updated": "Orders updated",
+        "customers": "Customers created",
+        "locations": "Locations created",
+        "products": "Products created",
+        "notImported": "Not imported"
+      },
+      "closed": "Import closed. Nothing was saved.",
+      "closedDone_one": "Import closed - {{count}} order was imported.",
+      "closedDone_other": "Import closed - {{count}} orders were imported.",
+      "closedPlain": "Import closed."
+    },
+    "orderImport": {
+      "offer": {
+        "text": "That looks like an order table. Import it into ERP Orders?",
+        "import": "Import orders",
+        "sendAsChat": "Send as chat",
+        "cancel": "Cancel"
+      },
+      "attach": "Attach an Excel or CSV file to import orders",
+      "tooLarge": "That file is over the 10 MB import limit. Split it into smaller files.",
+      "title": "Import orders",
+      "dismiss": "Close",
+      "chooseAnother": "Choose another file",
+      "openOrders": "Open ERP Orders",
+      "analyzing": {
+        "title": "Reading {{file}}…",
+        "rows_one": "{{count}} row",
+        "rows_other": "{{count}} rows",
+        "hint": "Matching columns, locations and products. Large files can take a minute."
+      },
+      "missing": {
+        "title": "This file is missing required columns",
+        "body": "Every order needs an Order ID and a Delivery Date column. Add them, or start from the template.",
+        "found": "Found",
+        "missing": "Missing",
+        "downloadTemplate": "Download template",
+        "foundHeaders": "Columns in your file: {{headers}}"
+      },
+      "rejected": {
+        "title": "This file couldn't be imported"
+      },
+      "unavailable": {
+        "title": "Order mapping isn't available right now",
+        "body": "Nothing was imported. Try again in a moment, or use Import on the ERP Orders page.",
+        "retry": "Try again"
+      },
+      "col": {
+        "order_id": "Order ID",
+        "delivery_date": "Delivery Date"
+      },
+      "review": {
+        "title_one": "{{count}} order found in {{file}}",
+        "title_other": "{{count}} orders found in {{file}}",
+        "subtitle": "Pick the customer, check the rows, then import. Nothing is saved until you press Import.",
+        "customerForAll": "Customer for all selected orders",
+        "selectCustomer": "Select customer",
+        "searchCustomer": "Search customers…",
+        "selectLocation": "Select location",
+        "selectAll": "Select all",
+        "clearAll": "Clear all",
+        "from": "From",
+        "to": "To",
+        "shipDate": "Ship",
+        "deliveryDate": "Delivery",
+        "highPriority": "High priority",
+        "notInFile": "Not in file",
+        "matchedByName": "Matched by name, check it",
+        "noLines": "Product lines aren't imported. Add them on each order afterwards.",
+        "selected": "{{accepted}} of {{total}} selected",
+        "updates_one": "{{count}} will update an existing order",
+        "updates_other": "{{count}} will update existing orders",
+        "willFail_one": "{{count}} is already planned and will be skipped",
+        "willFail_other": "{{count}} are already planned and will be skipped",
+        "uncheckedExisting": "Couldn't check which orders already exist. Existing unplanned orders will be updated.",
+        "import_one": "Import {{count}} order",
+        "import_other": "Import {{count}} orders",
+        "importing": "Importing…"
+      },
+      "badge": {
+        "new": "New",
+        "updates": "Updates existing: its product lines will be cleared",
+        "will_fail": "Already planned: will be skipped",
+        "unknown": "Not checked"
+      },
+      "blocker": {
+        "none_accepted": "Select at least one order to import.",
+        "customer_one": "{{count}} selected order has no customer.",
+        "customer_other": "{{count}} selected orders have no customer.",
+        "delivery_date_one": "{{count}} selected order has no delivery date.",
+        "delivery_date_other": "{{count}} selected orders have no delivery date.",
+        "order_reference_one": "{{count}} selected order has no Order ID.",
+        "order_reference_other": "{{count}} selected orders have no Order ID."
+      },
+      "done": {
+        "title": "Import finished",
+        "created": "{{count}} created",
+        "updated": "{{count}} updated",
+        "failed": "{{count}} failed",
+        "failures": "Rows that weren't imported",
+        "next": "These orders are unplanned. Ask me to plan loads for them when you're ready.",
+        "disabledTitle": "Import not sent"
+      },
+      "error": "The import didn't go through. Nothing was saved.",
+      "pastedTable_one": "Pasted order table ({{count}} row)",
+      "pastedTable_other": "Pasted order table ({{count}} rows)",
+      "notePlaceholder": "Say what to do with the file - for example: import these orders, the delivery date is in \"Req. Delivery\".",
+      "removeFile": "Remove {{file}}",
+      "fileReady": "Ready to import - add a note or press Enter"
+    },
+    "compose": {
+      "importChip_one": "Import orders",
+      "importChip_other": "Import orders from {{count}} files",
+      "importChipPrompt": "Import these orders",
+      "needsPrompt_one": "Say what to do with this file, or:",
+      "needsPrompt_other": "Say what to do with these files, or:",
+      "tooMany": "Up to {{max}} files at a time.",
+      "offer": {
+        "question_one": "Do you want me to import the orders in this file?",
+        "question_other": "Do you want me to import the orders in these {{count}} files?",
+        "why": "I can import orders from Excel and CSV files. Reading a file to answer other questions isn't available yet.",
+        "import_one": "Import",
+        "import_other": "Import all {{count}}",
+        "notNow": "Not now",
+        "accepted_one": "Importing it - check the review below before anything is saved.",
+        "accepted_other": "Importing them - each file gets its own review below.",
+        "declined_one": "OK - the file was not imported.",
+        "declined_other": "OK - the files were not imported.",
+        "expired_one": "This file is no longer attached. Attach it again to import it.",
+        "expired_other": "These files are no longer attached. Attach them again to import them."
+      }
+    },
+    "orderImportModal": {
+      "title": "Import orders",
+      "newTab": "New import",
+      "close": "Close",
+      "dropTitle": "Drop your ERP export here",
+      "dropHint": "Excel or CSV, any ERP layout - up to 10 MB.",
+      "browse": "Choose a file",
+      "nothingSaved": "Nothing is saved until you review it and press Import.",
+      "cancel": "Cancel",
+      "start": "Read the file"
+    },
+    "importHistory": {
+      "title": "Import history",
+      "loading": "Loading imports…",
+      "loadFailed": "The import history could not be loaded.",
+      "empty": "No imports yet.",
+      "download": "Download file",
+      "downloadTitle": "Download {{file}} as it was uploaded",
+      "downloadFailed": "The file could not be downloaded. Try again.",
+      "source": {
+        "chat": "Vagon AI",
+        "orders_page": "Orders page"
+      },
+      "status": {
+        "failed": "Failed",
+        "running": "Running"
+      },
+      "by": "by {{name}}",
+      "count": {
+        "created_one": "{{count}} order created",
+        "created_other": "{{count}} orders created",
+        "updated": "{{count}} updated",
+        "planned": "{{count}} already planned",
+        "failed": "{{count}} failed"
+      },
+      "more": "Show {{count}} more"
     },
     "stickyOrders": {
       "title": "Orders",
@@ -5843,8 +7020,11 @@
       "selectAll": "Select all unplanned orders",
       "all": "All",
       "refresh": "Refresh orders",
+      "seeAll": "See all orders",
+      "seeAllTitle": "See all orders in ERP Orders",
       "createDraft": "Create draft",
       "createDraftsSelected": "Create drafts for selected ({{n}})",
+      "heteroRefuse": "These orders are on different lanes. Create drafts one lane at a time, or select orders with the same pickup and delivery.",
       "empty": "No unplanned orders yet. Import via chat or open ERP Orders.",
       "planned": "Planned",
       "noDue": "No due date",
@@ -5855,7 +7035,37 @@
       "unitMinute": "m",
       "selectOrder": "Select {{ref}}",
       "deliveryDate": "Delivery date {{date}}",
-      "loadFailed": "Could not load orders."
+      "loadFailed": "Could not load orders.",
+      "viewsAria": "Show unplanned or completed orders",
+      "tabUnplanned": "To plan",
+      "tabCompleted": "Completed ({{n}})",
+      "markComplete": "Mark complete",
+      "markCompleteAria": "Mark {{ref}} as complete (delivered outside MYVAGON)",
+      "markCompletePrompt": "Mark order {{ref}} as complete — it was delivered outside MYVAGON.",
+      "reopen": "Reopen",
+      "reopenAria": "Reopen {{ref}}",
+      "reopenPrompt": "Reopen order {{ref}}.",
+      "completedOn": "Completed {{date}}",
+      "emptyCompleted": "No orders marked complete. Use Mark complete on an order delivered outside MYVAGON.",
+      "completedLoadFailed": "Could not load completed orders.",
+      "searchPlaceholder": "Search order #, customer, destination",
+      "searchAria": "Search orders",
+      "searchClear": "Clear search",
+      "searchNoMatch": "No orders match \"{{term}}\".",
+      "toPlan": "{{n}} to plan",
+      "overdueCount": "{{n}} overdue",
+      "selectedCount": "{{n}} selected",
+      "clearSelection": "Clear",
+      "pickupNotSet": "Pickup not set",
+      "dropoffNotSet": "Drop-off not set",
+      "close": "Close orders",
+      "field": {
+        "order": "ERP order no.",
+        "customer": "Customer",
+        "location": "Deliv. location",
+        "date": "Deliv. date"
+      },
+      "drafting": "Drafting…"
     },
     "review": {
       "sections": {
@@ -5882,10 +7092,12 @@
         "noCarriers": "You have no active carriers yet. Invite one on the Partners page — the load saves as a draft in the meantime.",
         "searchPlaceholder": "Search carriers by name or id",
         "noMatch": "No carriers match \"{{term}}\".",
+        "remove": "Remove {{name}}",
         "chipContract": "Contract price",
         "chipFavorite": "Favorite",
         "chipHistory_one": "{{count}} past load with you",
-        "chipHistory_other": "{{count}} past loads with you"
+        "chipHistory_other": "{{count}} past loads with you",
+        "choose": "Choose carriers to send it to"
       },
       "badge": {
         "suggested": "SUGGESTED",
@@ -5905,7 +7117,16 @@
         "asking": "Asking price ({{currency}})",
         "negotiable": "Open to counter-offers",
         "required": "Price is required to send this load to carriers.",
-        "optional": "A price is not needed to save this as a draft — only to send it to the carrier."
+        "optional": "A price is not needed to save this as a draft — only to send it to the carrier.",
+        "suggestedTitle": "AI suggested transport price",
+        "suggestedHint": "Suggested ask for the haul — not the order value. Built from your price lists and lane history on this route.",
+        "suggestedNotOrderValue": "Not order value",
+        "applyAttractive": "Attractive",
+        "applyMarket": "Market",
+        "applyConservative": "Conservative",
+        "apply": "Use {{label}}",
+        "noSuggestion": "No lane prices yet for this route — type an ask or pick a contracted carrier.",
+        "orderValueNote": "Order value (records only)"
       },
       "scheduleCopies": "Schedule copies",
       "schedulePublicBlocked": "Copies of a public load cannot be scheduled yet. Switch to Private and choose carriers to schedule copies.",
@@ -5938,10 +7159,13 @@
         "reference": "Ref {{ref}}"
       },
       "saveFailed": "That could not be saved.",
+      "outcomeUnknown": "We could not confirm whether this load was sent. Check Manage Shipments before trying again.",
       "done": {
         "publishedTitle": "{{id}} sent to your carrier",
         "draftTitle": "{{id}} saved as a draft",
         "publishedHint": "It has not been booked — the carrier still has to accept it.",
+        "publicTitle": "{{id}} posted to the marketplace",
+        "publicHint": "Carriers can now see it and bid. Nothing is booked until you accept a bid.",
         "draftHint": "Nobody can see it yet. Open it to send it out, or ask me to.",
         "open": "Open the shipment"
       },
@@ -5951,24 +7175,34 @@
         "toSend": "TO SEND"
       },
       "route": {
-        "collection": "Collection",
-        "delivery": "Delivery",
+        "collection": "Pickup",
+        "delivery": "Drop-off (Delivery)",
         "stopN": "Stop {{n}}",
-        "dropsAndCollects": "drops & collects",
+        "dropsAndCollects": "drops & picks up",
         "remove": "Remove",
         "orderSays": "The order says “{{hint}}” — pick the matching saved site.",
-        "searchSites": "Search your sites",
+        "searchSites": "Search locations",
         "addSite": "Add a new site",
         "addSiteHint": "It is saved to your Address Book",
         "opens": "Opens",
         "closes": "Closes (optional)",
         "addStop": "Add a stop in between",
-        "addStopHint": "For a load that collects or delivers on the way"
+        "addStopHint": "For a load that collects or delivers on the way",
+        "pickup": "Pickup",
+        "dropoff": "Drop-off (Delivery)",
+        "myLocations": "My locations",
+        "customerLocations": "Customer locations",
+        "noLocationsInTab": "No locations in this list",
+        "expandCompanies": "Expand",
+        "collapseCompanies": "Collapse",
+        "choosePickup": "Choose the pickup site",
+        "chooseDelivery": "Choose the delivery site",
+        "chooseStop": "Choose a site for this stop"
       },
       "change": "Change",
       "cargo": {
-        "collectedAt": "Collected at stop {{n}}",
-        "deliveredAt": "Delivered at stop {{n}}",
+        "collectedAt": "Pickup at stop {{n}}",
+        "deliveredAt": "Drop-off at stop {{n}}",
         "notInProductMaster": "“{{hint}}” is not in your Product Master yet — pick it or add it.",
         "searchProducts": "Search your products",
         "addProduct": "Add a new product",
@@ -5980,7 +7214,8 @@
         "weight": "Weight",
         "weightUnit": "Weight unit",
         "unitKg": "Kg",
-        "unitTonnes": "Tonnes"
+        "unitTonnes": "Tonnes",
+        "chooseProduct": "Choose a product"
       },
       "warnings": {
         "samePickupDelivery": "Pickup and delivery are the same location.",
@@ -6025,6 +7260,17 @@
         "setPrice": "Set an asking price.",
         "chooseTruckAtLeastOne": "Choose at least one truck type.",
         "publicNotSchedulable": "Copies of a public load cannot be scheduled yet. Switch to Private and choose carriers, or post this one load publicly now."
+      },
+      "saveAsDraft": "Save draft",
+      "savingWorks": "Saving works now. To send it you still need: {{needs}}",
+      "extras": {
+        "liveNav": "Live navigation required",
+        "liveNavHint": "Require live GPS navigation for this shipment. The carrier must execute the trip in the app.",
+        "receiverLinks": "Receiver tracking link(s)",
+        "receiverLinksHint": "Send a tracking link to the receiver. Sync from drop-off / order, or add more emails.",
+        "syncFromDropoff": "Sync from drop-off",
+        "addEmail": "+ Add email",
+        "noReceivers": "Link cargo to an order to configure receiver tracking links."
       }
     },
     "batchJob": {
@@ -6032,13 +7278,42 @@
       "running": "Creating drafts…",
       "completed": "Drafts ready",
       "partial": "Drafts ready — some could not be created",
+      "savedNeedDetails": "Drafts saved — some need details",
       "failed": "Draft creation failed",
+      "needsAttention": "Drafts not created — orders need updating",
       "progress": "{{done}} of {{total}} done",
       "waiting": "Waiting for progress…",
       "lostTitle": "Check your drafts",
       "lost": "This background job is no longer being tracked — Vagon AI was restarted. Any drafts it saved are in Drafts.",
-      "created": "Created: {{sids}}",
-      "notCreated": "Not created: {{list}}",
+      "columns": {
+        "order": "Order",
+        "status": "Status",
+        "details": "Details"
+      },
+      "rowStatus": {
+        "success": "Created",
+        "warning": "Needs attention",
+        "danger": "Failed"
+      },
+      "savedAs": "Saved as {{sid}}",
+      "reasons": {
+        "datesPassedOn": "Dates have passed ({{dates}}). Set new collection and delivery dates.",
+        "datesPassed": "The order's dates have passed. Set new collection and delivery dates.",
+        "missing": "Missing: {{fields}}.",
+        "timeout": "The server took too long. Try this order again.",
+        "unknown": "Could not be created."
+      },
+      "missingField": {
+        "dates": "collection / delivery date",
+        "address": "address",
+        "product": "product",
+        "quantity": "quantity",
+        "weight": "weight",
+        "stops": "pickup and delivery stops"
+      },
+      "fixHint": "Click the pencil next to an order to fix it in a new tab, or ask me to create them again with new dates.",
+      "fixHintSaved": "Each draft is saved. Open it from Drafts to add what's missing, or click the pencil to fix the order itself.",
+      "editOrder": "Edit order {{ref}} in a new tab",
       "openDrafts": "Open Drafts"
     },
     "bubble": {
@@ -6110,6 +7385,10 @@
         "shipAnOrder": {
           "title": "Ship an order",
           "prompt": "Turn one of my orders into a shipment."
+        },
+        "importOrders": {
+          "title": "Import orders from your ERP",
+          "prompt": "How do I import orders from my ERP export?"
         },
         "unplannedOrders": {
           "title": "Unplanned orders",
@@ -6222,6 +7501,14 @@
         "howAmIDoing": {
           "title": "How am I doing?",
           "prompt": "Give me a summary of how my operations are performing."
+        },
+        "customReport": {
+          "title": "Build a report",
+          "prompt": "Show me my spend and loads by carrier for last month."
+        },
+        "orderReport": {
+          "title": "Order report",
+          "prompt": "Show me my orders by status, with their value and weight."
         }
       }
     },
@@ -6330,22 +7617,26 @@
       "fields": {
         "orderId": "Order ID",
         "deliveryDate": "Delivery date",
-        "shipDate": "Ship date",
-        "hint": "Your own order ID — it has to be one you have not used before. The ship date is optional, and a date in the past is fine."
+        "shipDate": "Pickup date",
+        "hint": "Your own order ID — it has to be one you have not used before. Delivery date is required; pickup/ship date is optional. A date in the past is fine."
       },
       "customer": {
         "label": "Customer",
         "search": "Search your customers…",
         "partnerBadge": "Partner",
         "typeName": "Or type a customer name",
-        "name": "Customer name"
+        "name": "Customer name",
+        "newLocation": "New customer / location",
+        "subFormFailed": "That form could not be opened.",
+        "choose": "Choose a customer"
       },
       "product": {
         "search": "Search your products…",
         "noMatch": "Nothing matched. You can type the product name below instead.",
         "typeName": "Or type a product name",
         "name": "Product name",
-        "namePlaceholder": "Frozen Peas 2kg"
+        "namePlaceholder": "Frozen Peas 2kg",
+        "choose": "Choose a product"
       },
       "lines": {
         "heading": "Products on this order",
@@ -6376,7 +7667,8 @@
         "erpPlaceholder": "The ID this order has in your own system",
         "orderValue": "Order value",
         "notes": "Notes",
-        "highPriority": "Flag this order as high priority"
+        "highPriority": "Flag this order as high priority",
+        "chooseSite": "Choose a site"
       },
       "blocking": {
         "referenceInUse": "That order ID is already in use. Change it before filing."
@@ -6403,7 +7695,7 @@
         "orderReferenceRequired": "Give this order your own order ID.",
         "customerRequired": "Choose the customer, or type their name.",
         "deliveryDateRequired": "Set the delivery date.",
-        "shipAfterDelivery": "The ship date is after the delivery date. Goods cannot arrive before they leave.",
+        "shipAfterDelivery": "The pickup/ship date is after the delivery date. Goods cannot arrive before they leave.",
         "orderValueNegative": "An order value cannot be negative.",
         "linesRequired": "Add at least one product line.",
         "lineProductRequired": "Line {{line}} needs a product.",
@@ -6431,7 +7723,8 @@
         "search": "Search categories and types…",
         "typeCount_one": "{{count}} type",
         "typeCount_other": "{{count}} types",
-        "noTypes": "No product types yet — set one up in the Product Master"
+        "noTypes": "No product types yet — set one up in the Product Master",
+        "choose": "Choose a category and type"
       },
       "more": {
         "toggle": "More details (all optional)",
@@ -6508,11 +7801,28 @@
       }
     },
     "page": {
-      "attachIntake": "Attach Excel/CSV for order intake"
+      "attachIntake": "Attach an Excel or CSV file to import orders"
     },
     "errors": {
       "emptyGatewayResponse": "The gateway returned an empty response.",
       "loadHistoryFailed": "Failed to load chat history."
+    },
+    "picker": {
+      "available_one": "{{count}} available",
+      "available_other": "{{count}} available",
+      "search": "Search…",
+      "clear": "Clear selection",
+      "clearSearch": "Clear search",
+      "noMatch": "Nothing matches “{{term}}”",
+      "empty": "Nothing to choose from here yet",
+      "showing": "Showing {{shown}} of {{total}}",
+      "showMore": "Show {{count}} more",
+      "matches_one": "{{count}} match",
+      "matches_other": "{{count}} matches",
+      "total_one": "{{count}} result",
+      "total_other": "{{count}} results",
+      "done": "Done",
+      "otherGroup": "Other"
     }
   },
   "subscriptionPage": {
@@ -7559,6 +8869,31 @@
   "attached": "Attached",
   "auditLogTimeline": "Audit log / activity timeline",
   "bidAcceptFailed": "Failed to accept bid",
+  "dispatchOrderRequiredTitle": "Link an order to dispatch this load",
+  "dispatchOrderRequiredBody": "This load has no order yet. Choose an existing order or enter a new order number (the order is created from this load), then dispatch.",
+  "dispatchOrderReminder": "This load has no order. Link an order before you accept an offer.",
+  "dispatchOrderExistingTab": "Existing order",
+  "dispatchOrderNewTab": "New order number",
+  "dispatchOrderSearchPlaceholder": "Search orders by number or customer",
+  "dispatchOrderSearching": "Searching…",
+  "dispatchOrderNoResults": "No available orders found.",
+  "dispatchOrderNumberLabel": "Order number",
+  "dispatchOrderNumberPlaceholder": "e.g. SO-10234",
+  "dispatchOrderCustomerLabel": "Customer (optional)",
+  "dispatchOrderLinkAndDispatch": "Link order and dispatch",
+  "dispatchOrderLinkAndAccept": "Link order and accept",
+  "dispatchOrderLinkAndCounter": "Link order and send counter-offer",
+  "dispatchOrderLinkAndBook": "Link order and send booking request",
+  "dispatchOrderLinkOnly": "Link order",
+  "dispatchOrderDispatchNow": "Dispatch now",
+  "dispatchOrderLinked": "Order linked to the load.",
+  "dispatchOrderInUse": "This order ID is already in use.",
+  "dispatchOrderUseExisting": "Link the existing order",
+  "dispatchOrderNotAvailable": "This order is already planned on another load.",
+  "dispatchOrderNotLinkable": "An order can only be linked to a load that has not been dispatched yet.",
+  "dispatchOrderChooseOne": "Choose an order or enter an order number.",
+  "dispatchOrderLinkFailed": "Could not link the order.",
+  "dispatchOrderDispatchFailed": "The order is linked, but the dispatch failed.",
   "bidAccepted": "Bid accepted from",
   "bidDeclined": "Bid declined for",
   "bidPlaced": "Bid Placed",
@@ -8121,5 +9456,14 @@
   "pmBulkUnarchivedToast": "{{count}} unarchived",
   "referral.toastOpeningEmail": "Opening Email…",
   "referral.toastOpeningWhatsApp": "Opening WhatsApp…",
-  "referral.toastOpeningLinkedIn": "Opening LinkedIn…"
+  "referral.toastOpeningLinkedIn": "Opening LinkedIn…",
+  "erpOrdersEditLinkNotFound": "That order could not be opened for editing. It may have been deleted.",
+  "createLoadProductNotInMaster": "“{{name}}” from the order isn't in your Product Master.",
+  "createLoadProductNotInMasterPlaceholder": "{{name}} — not in Product Master",
+  "createLoadUseProductMatch": "Use {{match}}",
+  "createLoadCreateProductNamed": "+ Create “{{name}}”",
+  "validationConflictC12": "Stop {{stop}}, line {{line}}: “{{product}}” from the order isn't in your Product Master — pick a match or create it.",
+  "validationResolutionC12": "Pick a matching product or create it in your Product Master.",
+  "erpOrdersShipDateOptional": "optional",
+  "erpOrdersAddCustomerLocation": "New customer / location"
 }

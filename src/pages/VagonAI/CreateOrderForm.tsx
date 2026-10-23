@@ -39,19 +39,24 @@
  * records up is exactly the data entry this form is for. Nothing here refuses the
  * past, and `orderIssues` deliberately does not check it.
  */
-import { useMemo, useState } from 'react';
-import { ClipboardList, CircleCheck, Save, Plus, Trash2, ChevronDown, ChevronRight, Truck } from 'lucide-react';
-import type { FlowContextEvent, OrderFlowBundle, OrderFlowProduct } from '../../hooks/useChat';
+import { useMemo, useRef, useState } from 'react';
+import { ClipboardList, CircleCheck, Save, Plus, Trash2, ChevronDown, ChevronRight, Truck, UserPlus } from 'lucide-react';
+import type { FlowContextEvent, OrderFlowBundle, OrderFlowCustomer, OrderFlowLocation, OrderFlowProduct } from '../../hooks/useChat';
 import type { ThemeTokens } from '../../utils/themes';
 import { useTranslation } from '../../hooks/useTranslation';
-import { Button, Field, Heading, Notes, PickRow, Shell } from './flowPrimitives';
-import { inputStyle, useFilter } from './flowHelpers';
+import { Button, Field, Heading, Notes, Shell } from './flowPrimitives';
+import { inputStyle } from './flowHelpers';
+import PickerDropdown from './PickerDropdown';
+import type { PickerOption } from './pickerModel';
 import {
-  ORDER_QTY_UNITS, ORDER_WEIGHT_UNITS, emptyOrderDraft, emptyOrderLine, orderIssues,
+  ORDER_QTY_UNITS, ORDER_WEIGHT_UNITS, emptyOrderDraft, emptyOrderLine, orderIssues, removeOrderLine, withOrderLines,
   orderWarnings, referenceClashOf, serializeOrderDraft, setLineProduct,
   type OrderDraft, type OrderDraftLine, type OrderQtyUnit, type OrderWeightUnit,
 } from './createOrderDraft';
 import { useTr } from './i18n';
+import CreateAddressForm, { type AddressSubmitResult, type SavedAddress } from './CreateAddressForm';
+import { fetchFlowContext, type SubFlowBundle } from './api/flowContextService';
+import { ensureDraftRunId } from './api/shipmentDraftService';
 
 /**
  * Locale keys for the two unit pickers. The option VALUE stays the English unit
@@ -87,7 +92,7 @@ interface Props {
   /** Narrowed to this flow's own event, exactly as the other three forms are. */
   event: Extract<FlowContextEvent, { flow: 'create_order' }>;
   T: ThemeTokens;
-  onSubmit: (draft: Record<string, unknown>) => Promise<OrderSubmitResult>;
+  onSubmit: (draft: Record<string, unknown>, runId?: string) => Promise<OrderSubmitResult>;
   /**
    * Called with the filed order when the shipper answers YES to "create a
    * shipment from this order?" on the success card.
@@ -99,15 +104,20 @@ interface Props {
    * the order.
    */
   onCreateShipment?: (orderId: string, reference: string | null) => void;
+  /**
+   * MS3-355 — saves a new Address Book customer site mid-order (entity + ≥1 address).
+   * Same endpoint the standalone create-location form uses.
+   */
+  onSubmitAddress?: (draft: Record<string, unknown>, runId?: string) => Promise<AddressSubmitResult>;
   /** True while a turn is streaming — the form stays readable, just not editable. */
   disabled?: boolean;
 }
 
 /**
- * A collapsible picker over the bundle's sites. Used for both optional legs.
+ * A dropdown over the bundle's sites. Used for both optional legs.
  *
- * Tapping the chosen row clears it, because both sites are optional on an order
- * and a picker with no way back would make a stray tap permanent.
+ * Clearable, because both sites are optional on an order and a picker with no
+ * way back would make a stray tap permanent.
  */
 function SitePicker({
   T, label, rows, chosenId, disabled, onPick,
@@ -120,44 +130,32 @@ function SitePicker({
   onPick: (id: string | null) => void;
 }) {
   const { t } = useTranslation();
-  const [search, setSearch] = useState('');
-  const filtered = useFilter(
-    rows,
-    search,
-    (row, needle) =>
-      row.name.toLowerCase().includes(needle) ||
-      (row.city ?? '').toLowerCase().includes(needle) ||
-      (row.company ?? '').toLowerCase().includes(needle),
+  const options = useMemo(
+    (): PickerOption[] =>
+      rows.map((row) => ({
+        id: row.id,
+        title: row.name,
+        subtitle: [row.company, row.city].filter(Boolean).join(' · ') || null,
+      })),
+    [rows],
   );
 
   return (
     <div style={{ flex: '1 1 100%' }}>
       <span style={{ fontSize: 11, color: T.t3, fontWeight: 600 }}>{label}</span>
       <span style={{ fontSize: 10.5, color: T.t3, marginLeft: 6 }}>{t('vagonai.orderForm.more.optional', 'optional')}</span>
-      {rows.length > 6 && (
-        <input
-          value={search}
+      <div style={{ marginTop: 5 }}>
+        <PickerDropdown
+          T={T}
+          options={options}
+          selectedIds={chosenId ? [chosenId] : []}
+          onSelect={(id) => onPick(id)}
+          onClear={() => onPick(null)}
+          placeholder={t('vagonai.orderForm.more.chooseSite', 'Choose a site')}
+          searchPlaceholder={t('vagonai.orderForm.more.siteSearch', 'Search your sites…')}
           disabled={disabled}
-          placeholder={t('vagonai.orderForm.more.siteSearch', 'Search your sites…')}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{ ...inputStyle(T), marginTop: 5 }}
+          ariaLabel={label}
         />
-      )}
-      <div className="flex flex-col" style={{ gap: 4, marginTop: 6, maxHeight: 160, overflowY: 'auto' }}>
-        {filtered.map((row) => {
-          const on = chosenId === row.id;
-          return (
-            <PickRow
-              key={row.id}
-              T={T}
-              title={row.name}
-              subtitle={[row.company, row.city].filter(Boolean).join(' · ') || null}
-              selected={on}
-              disabled={disabled}
-              onClick={() => onPick(on ? null : row.id)}
-            />
-          );
-        })}
       </div>
     </div>
   );
@@ -172,9 +170,9 @@ function SitePicker({
  * accepts a bare `product_name`, and an order for something not in the catalog is
  * real — so the typed case is warned about by `orderWarnings` rather than blocked.
  *
- * The result list only appears once something has been typed into the search box.
- * A hundred products under every one of an order's lines is a scroll, not a
- * picker, and the lines are the part of this form there can be fifty of.
+ * A closed dropdown until it is opened. A hundred products laid out under every
+ * one of an order's lines is a scroll, not a picker, and the lines are the part
+ * of this form there can be fifty of.
  */
 function LineProductPicker({
   T, bundle, line, disabled, invalid, onPick, onType,
@@ -188,103 +186,91 @@ function LineProductPicker({
   onType: (name: string) => void;
 }) {
   const { t } = useTranslation();
-  const [search, setSearch] = useState('');
-  const filtered = useFilter(
-    bundle.products,
-    search,
-    (row, needle) => row.name.toLowerCase().includes(needle) || (row.sku ?? '').toLowerCase().includes(needle),
+  const options = useMemo(
+    (): PickerOption[] =>
+      bundle.products.map((row) => ({
+        id: row.id,
+        title: row.name,
+        subtitle: [row.sku, row.category].filter(Boolean).join(' · ') || null,
+      })),
+    [bundle.products],
   );
-  const chosen = useMemo(
-    () => (line.productId ? bundle.products.find((row) => row.id === line.productId) ?? null : null),
-    [bundle.products, line.productId],
-  );
-
-  if (chosen) {
-    return (
-      <PickRow
-        T={T}
-        title={chosen.name}
-        subtitle={[chosen.sku, chosen.category].filter(Boolean).join(' · ') || null}
-        selected
-        disabled={disabled}
-        onClick={() => onType('')}
-      />
-    );
-  }
 
   return (
     <div>
       {bundle.products.length > 0 && (
-        <>
-          <input
-            value={search}
-            disabled={disabled}
-            placeholder={t('vagonai.orderForm.product.search', 'Search your products…')}
-            onChange={(e) => setSearch(e.target.value)}
-            style={inputStyle(T)}
-          />
-          {search.trim().length > 0 && (
-            <div className="flex flex-col" style={{ gap: 4, marginTop: 6, maxHeight: 150, overflowY: 'auto' }}>
-              {filtered.map((product) => (
-                <PickRow
-                  key={product.id}
-                  T={T}
-                  title={product.name}
-                  subtitle={[product.sku, product.category].filter(Boolean).join(' · ') || null}
-                  selected={false}
-                  disabled={disabled}
-                  onClick={() => {
-                    setSearch('');
-                    onPick(product);
-                  }}
-                />
-              ))}
-              {filtered.length === 0 && (
-                <span style={{ fontSize: 11, color: T.t3 }}>
-                  {t('vagonai.orderForm.product.noMatch', 'Nothing matched. You can type the product name below instead.')}
-                </span>
-              )}
-            </div>
-          )}
-        </>
-      )}
-      <Field
-        T={T}
-        label={
-          bundle.products.length > 0
-            ? t('vagonai.orderForm.product.typeName', 'Or type a product name')
-            : t('vagonai.orderForm.product.name', 'Product name')
-        }
-      >
-        <input
-          value={line.productName}
+        <PickerDropdown
+          T={T}
+          options={options}
+          selectedIds={line.productId ? [line.productId] : []}
+          onSelect={(id) => {
+            const product = bundle.products.find((row) => row.id === id);
+            if (product) onPick(product);
+          }}
+          onClear={() => onType('')}
+          placeholder={t('vagonai.orderForm.product.choose', 'Choose a product')}
+          searchPlaceholder={t('vagonai.orderForm.product.search', 'Search your products…')}
+          emptyLabel={t('vagonai.orderForm.product.noMatch', 'Nothing matched. You can type the product name below instead.')}
           disabled={disabled}
-          placeholder={t('vagonai.orderForm.product.namePlaceholder', 'Frozen Peas 2kg')}
-          onChange={(e) => onType(e.target.value)}
-          style={{ ...inputStyle(T), borderColor: invalid ? '#DC2626' : T.bd }}
         />
-      </Field>
+      )}
+      {/* The typed name is the fallback for a product not in the catalog, so it
+          only shows while nothing is picked. */}
+      {!line.productId && (
+        <div style={{ marginTop: bundle.products.length > 0 ? 8 : 0 }}>
+          <Field
+            T={T}
+            label={
+              bundle.products.length > 0
+                ? t('vagonai.orderForm.product.typeName', 'Or type a product name')
+                : t('vagonai.orderForm.product.name', 'Product name')
+            }
+          >
+            <input
+              value={line.productName}
+              disabled={disabled}
+              placeholder={t('vagonai.orderForm.product.namePlaceholder', 'Frozen Peas 2kg')}
+              onChange={(e) => onType(e.target.value)}
+              style={{ ...inputStyle(T), borderColor: invalid ? '#DC2626' : T.bd }}
+            />
+          </Field>
+        </div>
+      )}
     </div>
   );
 }
 
-export default function CreateOrderForm({ event, T, onSubmit, onCreateShipment, disabled }: Props) {
+export default function CreateOrderForm({ event, T, onSubmit, onCreateShipment, onSubmitAddress, disabled }: Props) {
   const { t } = useTranslation();
   const tr = useTr();
   const bundle: OrderFlowBundle = event.bundle;
   const [draft, setDraft] = useState<OrderDraft>(() => emptyOrderDraft(bundle));
-  const [customerSearch, setCustomerSearch] = useState('');
   const [more, setMore] = useState(false);
   const [busy, setBusy] = useState(false);
   const [refusal, setRefusal] = useState<{ reason: string; missing: string[] } | null>(null);
   const [saved, setSaved] = useState<OrderSubmitResult['done'] | null>(null);
+  /** BL-04: minted on the first save, reused for every retry of this form. */
+  const runIdRef = useRef<string | null>(null);
   /** The shipper's answer to "create a shipment from this order?" — null until they pick. */
   const [shipmentChoice, setShipmentChoice] = useState<'yes' | 'no' | null>(null);
+  /** MS3-355 — Address Book create mid-order (new customer entity + ≥1 address). */
+  const [subForm, setSubForm] = useState<Extract<SubFlowBundle, { flow: 'create_location' }> | null>(null);
+  const [subError, setSubError] = useState<string | null>(null);
+  const [addedCustomers, setAddedCustomers] = useState<OrderFlowCustomer[]>([]);
+  const [addedLocations, setAddedLocations] = useState<OrderFlowLocation[]>([]);
+  /** Company name captured from the address sub-form submit payload. */
+  const [pendingCompanyName, setPendingCompanyName] = useState<string | null>(null);
 
   const locked = disabled || busy || saved !== null;
 
+  // Every write to the lines goes through `withOrderLines`, so the form can never
+  // end up with no product line on screen (MS3-400).
   const patch = (next: Partial<OrderDraft>) => {
-    setDraft((current) => ({ ...current, ...next }));
+    setDraft((current) => ({
+      ...current,
+      ...next,
+      lines: withOrderLines(next.lines ?? current.lines, bundle),
+    }));
     setRefusal(null);
   };
 
@@ -296,11 +282,48 @@ export default function CreateOrderForm({ event, T, onSubmit, onCreateShipment, 
     setRefusal(null);
   };
 
-  const customers = useFilter(
-    bundle.customers,
-    customerSearch,
-    (row, needle) => row.name.toLowerCase().includes(needle) || (row.vat ?? '').toLowerCase().includes(needle),
+  const allCustomers = useMemo(() => {
+    const seen = new Set(bundle.customers.map((c) => c.id));
+    return [...bundle.customers, ...addedCustomers.filter((c) => !seen.has(c.id))];
+  }, [bundle.customers, addedCustomers]);
+  const allLocations = useMemo(() => {
+    const seen = new Set(bundle.locations.map((l) => l.id));
+    return [...bundle.locations, ...addedLocations.filter((l) => !seen.has(l.id))];
+  }, [bundle.locations, addedLocations]);
+  const customerOptions = useMemo(
+    (): PickerOption[] =>
+      allCustomers.map((customer) => ({
+        id: customer.id,
+        title: customer.name,
+        subtitle: [customer.vat, customer.email].filter(Boolean).join(' · ') || null,
+        badge: customer.isPartner ? t('vagonai.orderForm.customer.partnerBadge', 'Partner') : undefined,
+      })),
+    [allCustomers, t],
   );
+  // A customer added mid-order has no record id yet, so it is matched by name.
+  const chosenCustomerId =
+    draft.customerId ??
+    allCustomers.find((row) => row.id.startsWith('local:') && row.name === draft.customerName)?.id ??
+    null;
+
+  const openNewCustomerLocation = async () => {
+    if (!onSubmitAddress) return;
+    setSubError(null);
+    try {
+      const ctx = await fetchFlowContext('location');
+      if (ctx.flow !== 'create_location') {
+        setSubError(t('vagonai.orderForm.customer.subFormFailed', 'That form could not be opened.'));
+        return;
+      }
+      setSubForm(ctx);
+    } catch (err) {
+      setSubError(
+        err instanceof Error
+          ? err.message
+          : t('vagonai.orderForm.customer.subFormFailed', 'That form could not be opened.'),
+      );
+    }
+  };
 
   const issues = orderIssues(draft, tr);
   const warnings = orderWarnings(draft, bundle, tr);
@@ -314,13 +337,14 @@ export default function CreateOrderForm({ event, T, onSubmit, onCreateShipment, 
     ? t('vagonai.orderForm.blocking.referenceInUse', 'That order ID is already in use. Change it before filing.')
     : (issues[0]?.message ?? null);
 
-  const invalid = (field: string) => refusal?.missing.includes(field) ?? false;
+  const invalid = (field: string) =>
+    (refusal?.missing.includes(field) ?? false) || issues.some((issue) => issue.field === field);
 
   const save = async () => {
     setBusy(true);
     setRefusal(null);
     try {
-      const result = await onSubmit(serializeOrderDraft(draft));
+      const result = await onSubmit(serializeOrderDraft(draft), ensureDraftRunId(runIdRef));
       if (!result.ok) {
         setRefusal({
           reason: result.reason ?? t('vagonai.orderForm.refusalFallback', 'This order could not be filed yet.'),
@@ -416,6 +440,61 @@ export default function CreateOrderForm({ event, T, onSubmit, onCreateShipment, 
     );
   }
 
+  // MS3-355 — create customer + address without leaving the order form.
+  if (subForm && onSubmitAddress) {
+    return (
+      <CreateAddressForm
+        event={{ id: `${event.id}-location`, flow: 'create_location', bundle: subForm.bundle }}
+        T={T}
+        initialDirectory="customers"
+        onSubmit={async (locationDraft, runId) => {
+          const company =
+            typeof locationDraft.companyName === 'string' && locationDraft.companyName.trim()
+              ? locationDraft.companyName.trim()
+              : typeof locationDraft.company === 'string' && locationDraft.company.trim()
+                ? String(locationDraft.company).trim()
+                : null;
+          if (company) setPendingCompanyName(company);
+          return onSubmitAddress(locationDraft, runId);
+        }}
+        onSaved={(site: SavedAddress) => {
+          const companyName = pendingCompanyName?.trim() || site.name;
+          const location: OrderFlowLocation = {
+            id: site.id,
+            name: site.name,
+            company: companyName,
+            city: site.city,
+            role: site.role,
+          };
+          setAddedLocations((current) => [...current.filter((l) => l.id !== site.id), location]);
+          // Do not invent company_entity_id — Laravel exists: would reject a fake id.
+          // Name-only customer is valid on create_order (CUSTOMER_RULES.idOptional).
+          setAddedCustomers((current) => {
+            if (current.some((c) => c.name.toLowerCase() === companyName.toLowerCase())) return current;
+            return [
+              ...current,
+              { id: `local:${site.id}`, name: companyName, vat: null, email: null, isPartner: false },
+            ];
+          });
+          patch({
+            customerId: null,
+            customerName: companyName,
+            ...(site.role === 'pickup' || site.role === 'both' ? { originLocationId: site.id } : {}),
+            ...(site.role === 'delivery' || site.role === 'both' ? { destLocationId: site.id } : {}),
+          });
+          setPendingCompanyName(null);
+          setSubForm(null);
+          setMore(true);
+        }}
+        onCancel={() => {
+          setPendingCompanyName(null);
+          setSubForm(null);
+        }}
+        disabled={disabled}
+      />
+    );
+  }
+
   return (
     <Shell T={T}>
       <Heading
@@ -441,16 +520,13 @@ export default function CreateOrderForm({ event, T, onSubmit, onCreateShipment, 
             }}
           />
         </Field>
-        <Field T={T} label={t('vagonai.orderForm.fields.deliveryDate', 'Delivery date')}>
-          <input
-            type="date"
-            value={draft.deliveryDate}
-            disabled={locked}
-            onChange={(e) => patch({ deliveryDate: e.target.value })}
-            style={{ ...inputStyle(T), borderColor: invalid('deliveryDate') ? '#DC2626' : T.bd }}
-          />
-        </Field>
-        <Field T={T} label={t('vagonai.orderForm.fields.shipDate', 'Ship date')}>
+        {/* Pickup/ship FIRST (optional), delivery SECOND (required).
+            MS3-355: Delivery-before-ship led chronological fill to swap values and
+            fire a false "receipt after delivery" error. */}
+        <Field
+          T={T}
+          label={`${t('vagonai.orderForm.fields.shipDate', 'Pickup date')} (${t('vagonai.orderForm.more.optional', 'optional')})`}
+        >
           <input
             type="date"
             value={draft.shipDate ?? ''}
@@ -459,11 +535,20 @@ export default function CreateOrderForm({ event, T, onSubmit, onCreateShipment, 
             style={{ ...inputStyle(T), borderColor: invalid('shipDate') ? '#DC2626' : T.bd }}
           />
         </Field>
+        <Field T={T} label={`${t('vagonai.orderForm.fields.deliveryDate', 'Delivery date')} *`}>
+          <input
+            type="date"
+            value={draft.deliveryDate}
+            disabled={locked}
+            onChange={(e) => patch({ deliveryDate: e.target.value })}
+            style={{ ...inputStyle(T), borderColor: invalid('deliveryDate') ? '#DC2626' : T.bd }}
+          />
+        </Field>
       </div>
       <span style={{ display: 'block', fontSize: 10.5, color: T.t3, marginTop: 4 }}>
         {t(
           'vagonai.orderForm.fields.hint',
-          'Your own order ID — it has to be one you have not used before. The ship date is optional, and a date in the past is fine.',
+          'Your own order ID — it has to be one you have not used before. Delivery date is required; pickup/ship date is optional. A date in the past is fine.',
         )}
       </span>
 
@@ -471,53 +556,76 @@ export default function CreateOrderForm({ event, T, onSubmit, onCreateShipment, 
           fallback: MYVAGON requires only the name, so an order for a one-off
           buyer with no company record is perfectly valid. */}
       <div style={{ marginTop: 12 }}>
-        <span style={{ fontSize: 11, color: T.t3, fontWeight: 600 }}>{t('vagonai.orderForm.customer.label', 'Customer')}</span>
-        {bundle.customers.length > 6 && (
-          <input
-            value={customerSearch}
-            disabled={locked}
-            placeholder={t('vagonai.orderForm.customer.search', 'Search your customers…')}
-            onChange={(e) => setCustomerSearch(e.target.value)}
-            style={{ ...inputStyle(T), marginTop: 5 }}
-          />
-        )}
-        <div className="flex flex-col" style={{ gap: 4, marginTop: 6, maxHeight: 180, overflowY: 'auto' }}>
-          {customers.map((customer) => (
-            <PickRow
-              key={customer.id}
-              T={T}
-              title={customer.name}
-              subtitle={[customer.vat, customer.email].filter(Boolean).join(' · ') || null}
-              badge={customer.isPartner ? t('vagonai.orderForm.customer.partnerBadge', 'Partner') : undefined}
-              selected={draft.customerId === customer.id}
+        <div className="flex items-center justify-between" style={{ gap: 8 }}>
+          <span style={{ fontSize: 11, color: T.t3, fontWeight: 600 }}>{t('vagonai.orderForm.customer.label', 'Customer')}</span>
+          {onSubmitAddress && (
+            <button
+              type="button"
               disabled={locked}
+              onClick={() => void openNewCustomerLocation()}
+              className="inline-flex items-center"
+              style={{
+                gap: 4, fontSize: 11, fontWeight: 650, color: T.ac,
+                background: 'none', border: 0, cursor: locked ? 'not-allowed' : 'pointer', padding: 0,
+                opacity: locked ? 0.45 : 1,
+              }}
+            >
+              <UserPlus size={12} />
+              {t('vagonai.orderForm.customer.newLocation', 'New customer / location')}
+            </button>
+          )}
+        </div>
+        {subError && (
+          <span style={{ display: 'block', fontSize: 11, color: '#DC2626', marginTop: 4 }}>{subError}</span>
+        )}
+        {allCustomers.length > 0 && (
+          <div style={{ marginTop: 5 }}>
+            <PickerDropdown
+              T={T}
+              options={customerOptions}
+              selectedIds={chosenCustomerId ? [chosenCustomerId] : []}
+              selectedLabel={draft.customerName ? { title: draft.customerName } : null}
               /* The name travels with the id. Sending an id alongside somebody
                  else's name is the one way this form can file an order against
                  the wrong company and still look right. */
-              onClick={() =>
-                draft.customerId === customer.id
-                  ? patch({ customerId: null, customerName: '' })
-                  : patch({ customerId: customer.id, customerName: customer.name })
-              }
+              onSelect={(id) => {
+                const customer = allCustomers.find((row) => row.id === id);
+                if (!customer) return;
+                // MS3-355: mid-order creates have no company_entity_id yet — never
+                // send a synthetic local: id (Laravel exists: would 422).
+                patch({
+                  customerId: customer.id.startsWith('local:') ? null : customer.id,
+                  customerName: customer.name,
+                });
+              }}
+              onClear={() => patch({ customerId: null, customerName: '' })}
+              placeholder={t('vagonai.orderForm.customer.choose', 'Choose a customer')}
+              searchPlaceholder={t('vagonai.orderForm.customer.search', 'Search your customers…')}
+              invalid={invalid('customerName')}
+              disabled={locked}
             />
-          ))}
-        </div>
-        <Field
-          T={T}
-          label={
-            bundle.customers.length > 0
-              ? t('vagonai.orderForm.customer.typeName', 'Or type a customer name')
-              : t('vagonai.orderForm.customer.name', 'Customer name')
-          }
-        >
-          <input
-            value={draft.customerId ? '' : draft.customerName}
-            disabled={locked || draft.customerId !== null}
-            placeholder="Alphavita SA"
-            onChange={(e) => patch({ customerName: e.target.value, customerId: null })}
-            style={{ ...inputStyle(T), borderColor: invalid('customerName') ? '#DC2626' : T.bd }}
-          />
-        </Field>
+          </div>
+        )}
+        {!chosenCustomerId && (
+          <div style={{ marginTop: allCustomers.length > 0 ? 8 : 5 }}>
+            <Field
+              T={T}
+              label={
+                allCustomers.length > 0
+                  ? t('vagonai.orderForm.customer.typeName', 'Or type a customer name')
+                  : t('vagonai.orderForm.customer.name', 'Customer name')
+              }
+            >
+              <input
+                value={draft.customerId ? '' : draft.customerName}
+                disabled={locked || draft.customerId !== null}
+                placeholder="Alphavita SA"
+                onChange={(e) => patch({ customerName: e.target.value, customerId: null })}
+                style={{ ...inputStyle(T), borderColor: invalid('customerName') ? '#DC2626' : T.bd }}
+              />
+            </Field>
+          </div>
+        )}
       </div>
 
       {/* The lines. Each needs a product, a quantity and a weight — the three
@@ -535,7 +643,7 @@ export default function CreateOrderForm({ event, T, onSubmit, onCreateShipment, 
                   <button
                     type="button"
                     disabled={locked}
-                    onClick={() => patch({ lines: draft.lines.filter((_, j) => j !== i) })}
+                    onClick={() => patch({ lines: removeOrderLine(draft.lines, i, bundle) })}
                     aria-label={t('vagonai.orderForm.lines.remove', 'Remove line {{line}}', { line: i + 1 })}
                     style={{
                       background: 'none', border: 0, color: '#DC2626', padding: 0,
@@ -643,12 +751,12 @@ export default function CreateOrderForm({ event, T, onSubmit, onCreateShipment, 
 
       {more && (
         <div className="flex flex-wrap" style={{ gap: 10, marginTop: 9 }}>
-          {bundle.locations.length > 0 && (
+          {allLocations.length > 0 && (
             <>
               <SitePicker
                 T={T}
                 label={t('vagonai.orderForm.more.shipFrom', 'Ship from')}
-                rows={bundle.locations.filter((row) => row.role !== 'delivery')}
+                rows={allLocations.filter((row) => row.role !== 'delivery')}
                 chosenId={draft.originLocationId}
                 disabled={locked}
                 onPick={(id) => patch({ originLocationId: id })}
@@ -656,7 +764,7 @@ export default function CreateOrderForm({ event, T, onSubmit, onCreateShipment, 
               <SitePicker
                 T={T}
                 label={t('vagonai.orderForm.more.shipTo', 'Ship to')}
-                rows={bundle.locations.filter((row) => row.role !== 'pickup')}
+                rows={allLocations.filter((row) => row.role !== 'pickup')}
                 chosenId={draft.destLocationId}
                 disabled={locked}
                 onPick={(id) => patch({ destLocationId: id })}

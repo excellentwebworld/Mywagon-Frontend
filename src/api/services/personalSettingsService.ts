@@ -1,6 +1,5 @@
-import { apiGet, apiPut, ApiError, AUTH_TOKEN_KEY } from '../client';
+import { API_BASE, apiGet, apiPut, ApiError, AUTH_TOKEN_KEY } from '../client';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
 export type PersonalMainUseOption = {
   value: string;

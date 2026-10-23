@@ -62,10 +62,10 @@ import {
   CircleCheck,
   ExternalLink,
   CalendarClock,
-  Search,
+  Loader2,
+  X,
   } from 'lucide-react'; import type { FlowContextEvent,
   FlowLocation,
-  FlowProduct,
   FlowPartner,
   FlowVehicleType } from '../../hooks/useChat'; import { canMeasureRoute,
   measureRoute,
@@ -77,6 +77,7 @@ import {
   gapHints,
   loadTotals,
   mergeSeedIntoDraft,
+  openingProductPicker,
   openingSection,
   pickupStop,
   removeStopAt,
@@ -92,6 +93,8 @@ import {
   setBroadcastChannel,
   toggleTrackingOrder,
   trackingCandidates,
+  setTrackingEmailsForOrder,
+  syncTrackingEmailFromOrder,
   SECTIONS,
   type DraftLine,
   type SectionId,
@@ -99,12 +102,17 @@ import {
   describeSaveBlockers,
 } from './createShipmentDraft'
 import { pickContractPrice, rankCarriers, type RankingChip } from './carrierRanking';
+import { suggestTransportPriceFromRanking } from './suggestedTransportPrice';
+import { useApp } from '../../context/AppContext';
 import { ensureStopSchedules } from './applyLocationChoiceToDraft';
 import { AddNewRow, Button, Field, Notes, PickRow, Shell } from './flowPrimitives';
+import PickerDropdown from './PickerDropdown';
+import type { PickerOption } from './pickerModel';
 import CreateProductForm, { type ProductSubmitResult } from './CreateProductForm';
 import CreateAddressForm, { type AddressSubmitResult, type SavedAddress } from './CreateAddressForm';
 import { fetchFlowContext, type SubFlowBundle } from './api/flowContextService';
 import { postDraftFieldEdits } from './api/learningEventsService';
+import { ensureDraftRunId } from './api/shipmentDraftService';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ProductDraft } from './createProductDraft';
 import { inputStyle } from './flowHelpers';
@@ -116,6 +124,13 @@ export interface FlowSubmitResult {
   missing?: string[];
   reason?: string;
   unsupported?: string[];
+  /**
+   * BL-17 — the publish timed out and the gateway could not confirm the result.
+   * The server's sentence (check Manage Shipments before retrying). Neither a
+   * success nor a refusal: the card shows it and locks, so there is no one-click
+   * republish of a load that may already be live.
+   */
+  unknown?: string;
   /** Set when the load was actually written. Drives the success card. */
   done?: {
     outcome: 'draft' | 'published';
@@ -138,15 +153,17 @@ interface Props {
   /**
    * Sends the load. `save_draft` ends with a draft; `publish` runs the full gate
    * and sends it to the carrier. Resolves to the gateway's verdict so a refusal
-   * can open the row that owns the missing value.
+   * can open the row that owns the missing value. `runId` (BL-04) is this card's
+   * one id, the same on every retry and on save-then-publish.
    */
   onSubmit: (
     draft: ShipmentDraft,
     intent: 'save_draft' | 'publish',
     routeSummary?: { total_dist_km: number; total_drive_min?: number },
+    runId?: string,
   ) => Promise<FlowSubmitResult>;
-  onSubmitProduct: (draft: ProductDraft) => Promise<ProductSubmitResult>;
-  onSubmitAddress: (draft: Record<string, unknown>) => Promise<AddressSubmitResult>;
+  onSubmitProduct: (draft: ProductDraft, runId?: string) => Promise<ProductSubmitResult>;
+  onSubmitAddress: (draft: Record<string, unknown>, runId?: string) => Promise<AddressSubmitResult>;
   /** Arms a bulk batch from this load instead of sending it once. */
   onSchedule?: (
     draft: ShipmentDraft,
@@ -274,29 +291,58 @@ function SectionRow({
   );
 }
 
-/** A search box over a picker's own list. */
-function SearchBox({ T, value, onChange, placeholder }: { T: ThemeTokens; value: string; onChange: (v: string) => void; placeholder: string }) {
-  return (
-    <div className="flex items-center rounded-lg" style={{ border: `1px solid ${T.bd}`, padding: '0 8px', gap: 6, marginBottom: 6 }}>
-      <Search size={13} style={{ color: T.t3, flexShrink: 0 }} />
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        style={{ ...inputStyle(T), border: 'none', background: 'transparent', padding: '7px 0' }}
-      />
-    </div>
-  );
-}
-
-/** The scroll box every picker sits in, so no list can take over the card. */
+/**
+ * The column every picker list sits in.
+ *
+ * Not a scroll box any more: a fixed-height list inside the card inside the
+ * chat was three nested scrollbars (QA 2026-10-08). Long lists are cut to a
+ * preview with a "Show all" toggle instead - see `PICK_PREVIEW`.
+ */
 function PickList({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col" style={{ gap: 5, maxHeight: 220, overflowY: 'auto' }}>
+    <div className="flex flex-col" style={{ gap: 5 }}>
       {children}
     </div>
   );
 }
+
+/** How many rows a picker list shows before "Show all". Chosen rows are always shown. */
+const PICK_PREVIEW = 5;
+
+function ShowAllToggle({
+  T, expanded, total, disabled, onToggle, showAllLabel, showFewerLabel,
+}: {
+  T: ThemeTokens;
+  expanded: boolean;
+  total: number;
+  disabled?: boolean;
+  onToggle: () => void;
+  showAllLabel: string;
+  showFewerLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={disabled}
+      aria-expanded={expanded}
+      className="inline-flex items-center self-start"
+      style={{ gap: 4, fontSize: 11, fontWeight: 700, color: T.ac, padding: '2px 0', background: 'transparent' }}
+      data-total={total}
+    >
+      <ChevronDown size={12} style={{ transform: expanded ? 'rotate(180deg)' : undefined }} />
+      {expanded ? showFewerLabel : showAllLabel}
+    </button>
+  );
+}
+
+/**
+ * Gateway notes about carriers, which stop being true once the load is posted
+ * publicly ("You have no active carriers... saved as a draft"). The notes are
+ * free text from the gateway, so they are matched on the word in both
+ * languages the gateway writes them in.
+ */
+const CARRIER_NOTE = /carrier|μεταφορ[έε]/iu;
 
 /* -------------------------------------------------------------------------- *
  * The card
@@ -310,12 +356,19 @@ export default function ShipmentReviewCard({
   const queryClient = useQueryClient();
   const { t } = useTranslation();
   const tr = useTr();
+  const { locations: addressBook } = useApp();
 
   const seeded = useMemo(() => draftFromSeed(bundle), [bundle]);
   const [draft, setDraft] = useState<ShipmentDraft>(() => ensureStopSchedules(seeded));
   // Opens on the first row with something missing, or closed when the load is
   // ready - which is the ordinary case, and the one the card is designed around.
-  const [open, setOpen] = useState<SectionId | null>(() => openingSection(seeded));
+  // MS3-409: a private load opens on its Carrier row, so who receives it is on screen without a tap - unless
+  // something that blocks Save comes first.
+  const [open, setOpen] = useState<SectionId | null>(
+    () => openingSection(seeded) ?? (seeded.broadcast.channels.includes('public') ? null : 'carrier'),
+  );
+  // And when that row is Cargo for want of a product, its picker opens too.
+  const [autoProduct] = useState(() => openingProductPicker(seeded));
 
   /**
    * Chat answers to outstanding gaps re-emit `flow_context` with an updated
@@ -346,6 +399,22 @@ export default function ShipmentReviewCard({
   const [error, setError] = useState<string | null>(null);
   const [unsupported, setUnsupported] = useState<string[]>([]);
   const [done, setDone] = useState<FlowSubmitResult['done'] | null>(null);
+  /** BL-17: the gateway could not confirm the publish - its sentence, and the card stays locked. */
+  const [unresolved, setUnresolved] = useState<string | null>(null);
+  /** BL-04: minted on the first submit, reused for every retry of this card. */
+  const runIdRef = useRef<string | null>(null);
+  /** Which button is working, so that one shows a spinner rather than every button just greying out. */
+  const [pending, setPending] = useState<'save_draft' | 'publish' | 'schedule' | null>(null);
+  /**
+   * The price field only turns red once the shipper has been in it or tried to
+   * send - a card that opens with an error on a field nobody has touched reads
+   * as a mistake they already made (QA 2026-10-08).
+   */
+  const [priceTouched, setPriceTouched] = useState(false);
+  const [showAllTrucks, setShowAllTrucks] = useState(false);
+  const [showAllSubtypes, setShowAllSubtypes] = useState(false);
+  /** The posted load's summary under the success message, collapsed by default. */
+  const [showPosted, setShowPosted] = useState(false);
 
   /**
    * The sub-form a gap can open: a product or a site the shipper does not have.
@@ -370,11 +439,8 @@ export default function ShipmentReviewCard({
    */
   const [addedLocations, setAddedLocations] = useState<FlowLocation[]>([]);
 
-  const [locationTerm, setLocationTerm] = useState('');
-  const [productTerm, setProductTerm] = useState('');
-  const [carrierTerm, setCarrierTerm] = useState('');
 
-  const locked = Boolean(disabled) || busy || done !== null;
+  const locked = Boolean(disabled) || busy || done !== null || unresolved !== null;
 
   const hints = useMemo(() => gapHints(bundle), [bundle]);
   const blocking = useMemo(() => saveIssues(draft, undefined, tr), [draft, tr]);
@@ -396,10 +462,19 @@ export default function ShipmentReviewCard({
   const outstanding = useMemo(() => sendIssues(draft, tr), [draft, tr]);
   const warnings = useMemo(() => draftWarnings(draft, tr), [draft, tr]);
 
-  const locations = useMemo(
-    () => [...bundle.locations, ...addedLocations],
-    [bundle.locations, addedLocations],
-  );
+  const locations = useMemo(() => {
+    const bookById = new Map((addressBook ?? []).map((l) => [String(l.id), l]));
+    const enrich = (loc: FlowLocation): FlowLocation => {
+      const book = bookById.get(String(loc.id));
+      if (!book) return loc;
+      return {
+        ...loc,
+        group: loc.group ?? book.group ?? null,
+        company: loc.company ?? book.company ?? null,
+      };
+    };
+    return [...bundle.locations.map(enrich), ...addedLocations.map(enrich)];
+  }, [bundle.locations, addedLocations, addressBook]);
   const locationById = useMemo(() => new Map(locations.map((l) => [l.id, l])), [locations]);
   const productById = useMemo(
     () => new Map(bundle.products.map((p) => [p.id, p])),
@@ -408,6 +483,16 @@ export default function ShipmentReviewCard({
   const partnerById = useMemo(
     () => new Map(bundle.partners.map((p) => [p.id, p])),
     [bundle.partners],
+  );
+  const productOptions = useMemo(
+    (): PickerOption[] =>
+      bundle.products.map((p) => ({
+        id: p.id,
+        title: p.name,
+        subtitle: [p.sku, p.category].filter(Boolean).join(' · ') || null,
+        keywords: [p.type],
+      })),
+    [bundle.products],
   );
 
   const patch = (next: ShipmentDraft) => {
@@ -443,7 +528,13 @@ export default function ShipmentReviewCard({
     const ends = `${from?.locationId ? nameOf(from.locationId) : t('vagonai.review.summary.pickupNeeded', 'Pickup needed')} → ${
       to?.locationId ? nameOf(to.locationId) : t('vagonai.review.summary.deliveryNeeded', 'Delivery needed')
     }`;
-    const when = from?.from ? ` · ${displayDate(from.from, tr)}` : '';
+    // Both ends' dates, not just the pickup's (QA 2026-10-08).
+    const pickupWhen = from?.from ? displayDate(from.from, tr) : '';
+    const deliveryWhen = to?.from ? displayDate(to.from, tr) : '';
+    const dates = pickupWhen && deliveryWhen
+      ? `${pickupWhen} → ${deliveryWhen}`
+      : pickupWhen || (deliveryWhen ? `→ ${deliveryWhen}` : '');
+    const when = dates ? ` · ${dates}` : '';
     const extra = middle > 0 ? ` · ${t('vagonai.review.summary.extraStops', '+{{count}} stops', { count: middle })}` : '';
     return `${ends}${extra}${when}`;
   })();
@@ -556,12 +647,22 @@ export default function ShipmentReviewCard({
   }
 
   async function submit(intent: 'save_draft' | 'publish') {
+    // The clicked button stays enabled to show its spinner, so a second click
+    // has to be refused here instead.
+    if (busy || pending || unresolved !== null) return;
     setBusy(true);
+    setPending(intent);
+    if (intent === 'publish') setPriceTouched(true);
     setError(null);
     try {
       const measured = intent === 'publish' ? await routeSummaryFor() : undefined;
-      const result = await onSubmit(draft, intent, measured);
+      const result = await onSubmit(draft, intent, measured, ensureDraftRunId(runIdRef));
       setUnsupported(result.unsupported ?? []);
+
+      if (result.unknown !== undefined) {
+        setUnresolved(result.unknown);
+        return;
+      }
 
       if (!result.ok) {
         setError(result.reason ?? t('vagonai.review.saveFailed', 'That could not be saved.'));
@@ -570,6 +671,7 @@ export default function ShipmentReviewCard({
         // this mapping exists to prevent.
         const first = result.missing?.[0];
         if (first) setOpen(sectionForField(first));
+        if (result.missing?.includes('pricing.startingPrice')) setPriceTouched(true);
         return;
       }
       if (result.done) {
@@ -577,16 +679,20 @@ export default function ShipmentReviewCard({
       }
     } finally {
       setBusy(false);
+      setPending(null);
     }
   }
 
   async function schedule() {
-    if (!onSchedule) return;
+    if (!onSchedule || busy || pending) return;
     setBusy(true);
+    setPending('schedule');
+    setPriceTouched(true);
     try {
       onSchedule(draft, await routeSummaryFor());
     } finally {
       setBusy(false);
+      setPending(null);
     }
   }
 
@@ -599,14 +705,18 @@ export default function ShipmentReviewCard({
           <CircleCheck size={18} style={{ color: T.ac, flexShrink: 0, marginTop: 1 }} />
           <div className="min-w-0">
             <p style={{ fontSize: 14, fontWeight: 650, color: T.t1 }}>
-              {done.outcome === 'published'
-                ? t('vagonai.review.done.publishedTitle', '{{id}} sent to your carrier', { id: done.autoId })
-                : t('vagonai.review.done.draftTitle', '{{id}} saved as a draft', { id: done.autoId })}
+              {done.outcome !== 'published'
+                ? t('vagonai.review.done.draftTitle', '{{id}} saved as a draft', { id: done.autoId })
+                : isPublic
+                  ? t('vagonai.review.done.publicTitle', '{{id}} posted to the marketplace', { id: done.autoId })
+                  : t('vagonai.review.done.publishedTitle', '{{id}} sent to your carrier', { id: done.autoId })}
             </p>
             <p style={{ fontSize: 12, color: T.t3, marginTop: 3 }}>
-              {done.outcome === 'published'
-                ? t('vagonai.review.done.publishedHint', 'It has not been booked — the carrier still has to accept it.')
-                : t('vagonai.review.done.draftHint', 'Nobody can see it yet. Open it to send it out, or ask me to.')}
+              {done.outcome !== 'published'
+                ? t('vagonai.review.done.draftHint', 'Nobody can see it yet. Open it to send it out, or ask me to.')
+                : isPublic
+                  ? t('vagonai.review.done.publicHint', 'Carriers can now see it and bid. Nothing is booked until you accept a bid.')
+                  : t('vagonai.review.done.publishedHint', 'It has not been booked — the carrier still has to accept it.')}
             </p>
             <a
               href={done.url}
@@ -617,6 +727,49 @@ export default function ShipmentReviewCard({
             >
               {t('vagonai.review.done.open', 'Open the shipment')} <ExternalLink size={12} />
             </a>
+            {/* What went out, so the transcript still says what was posted
+                once the review is gone (QA 2026-10-08). Collapsed: the success
+                line is the news, this is the receipt. */}
+            <div style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={() => setShowPosted((v) => !v)}
+                aria-expanded={showPosted}
+                className="inline-flex items-center"
+                data-testid="review-done-summary-toggle"
+                style={{ gap: 4, fontSize: 11, fontWeight: 700, color: T.t3, background: 'transparent', padding: 0 }}
+              >
+                <ChevronDown
+                  size={12}
+                  style={{ transform: showPosted ? 'rotate(180deg)' : undefined, transition: 'transform .15s' }}
+                />
+                {showPosted
+                  ? t('vagonai.review.done.hideSummary', 'Hide details')
+                  : t('vagonai.review.done.showSummary', 'Show details')}
+              </button>
+              {showPosted && (
+                <dl
+                  data-testid="review-done-summary"
+                  style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 10, rowGap: 3, marginTop: 6, fontSize: 12 }}
+                >
+                  {([
+                    [t('vagonai.review.sections.route', 'Route'), routeSummary],
+                    [t('vagonai.review.sections.cargo', 'Cargo'), cargoSummary],
+                    [t('vagonai.review.sections.truck', 'Truck'), truckSummary],
+                    [
+                      isPublic ? t('vagonai.review.visibility.label', 'Visibility') : t('vagonai.review.sections.carrier', 'Carrier'),
+                      carrierSummary,
+                    ],
+                    [t('vagonai.review.sections.price', 'Price'), priceSummary],
+                  ] as const).map(([label, value]) => (
+                    <div key={label} style={{ display: 'contents' }}>
+                      <dt style={{ color: T.t3, fontWeight: 600 }}>{label}</dt>
+                      <dd style={{ color: T.t1, margin: 0, wordBreak: 'break-word' }}>{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+            </div>
           </div>
         </div>
         <Notes T={T} notes={unsupported} tone="warn" />
@@ -659,7 +812,7 @@ export default function ShipmentReviewCard({
           // route and it needs a coordinate per stop.
           setAddedLocations((current) => [
             ...current,
-            { id: site.id, name: site.name, city: site.city, country: site.region, role: site.role, lat: site.lat, lng: site.lng },
+            { id: site.id, name: site.name, city: site.city, country: site.region, role: site.role, group: 'my', company: site.name, lat: site.lat, lng: site.lng },
           ]);
           patch(setStopAt(draft, bindTo.stop, { locationId: site.id }));
           setSubForm(null);
@@ -692,9 +845,9 @@ export default function ShipmentReviewCard({
           const leg = stopRole(stop);
           const legLabel =
             index === 0
-              ? t('vagonai.review.route.collection', 'Collection')
+              ? t('vagonai.review.route.pickup', 'Pickup')
               : index === draft.stops.length - 1
-                ? t('vagonai.review.route.delivery', 'Delivery')
+                ? t('vagonai.review.route.dropoff', 'Drop-off (Delivery)')
                 : t('vagonai.review.route.stopN', 'Stop {{n}}', { n: index + 1 });
           const chosen = stop.locationId ? locationById.get(stop.locationId) : null;
           const hint = hints[`stops[${index}].locationId`];
@@ -718,61 +871,52 @@ export default function ShipmentReviewCard({
                 )}
               </div>
 
-              {chosen ? (
-                <div className="flex items-center justify-between rounded-lg" style={{ border: `1px solid ${T.bd}`, padding: '7px 9px', gap: 8 }}>
-                  <span className="min-w-0">
-                    <span className="block" style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{chosen.name}</span>
-                    <span className="block" style={{ fontSize: 11, color: T.t3 }}>
-                      {[chosen.city, chosen.country].filter(Boolean).join(', ')}
-                    </span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => patch(setStopAt(draft, index, { locationId: '' }))}
-                    disabled={locked}
-                    style={{ fontSize: 11, fontWeight: 600, color: T.ac, flexShrink: 0 }}
-                  >
-                    {t('vagonai.review.change', 'Change')}
-                  </button>
-                </div>
-              ) : (
-                <>
-                  {hint && (
-                    <p style={{ fontSize: 11, color: '#B45309', marginBottom: 6 }}>
-                      {t('vagonai.review.route.orderSays', 'The order says “{{hint}}” — pick the matching saved site.', { hint })}
-                    </p>
-                  )}
-                  <SearchBox
-                    T={T}
-                    value={locationTerm}
-                    onChange={setLocationTerm}
-                    placeholder={hint ?? t('vagonai.review.route.searchSites', 'Search your sites')}
-                  />
-                  <PickList>
-                    {useableLocations(locations, locationTerm, hint).map((location) => (
-                      <PickRow
-                        key={location.id}
-                        T={T}
-                        title={location.name}
-                        subtitle={[location.city, location.country].filter(Boolean).join(', ') || null}
-                        selected={false}
-                        disabled={locked}
-                        onClick={() => {
-                          patch(setStopAt(draft, index, { locationId: location.id }));
-                          setLocationTerm('');
-                        }}
-                      />
-                    ))}
-                    <AddNewRow
-                      T={T}
-                      label={t('vagonai.review.route.addSite', 'Add a new site')}
-                      hint={t('vagonai.review.route.addSiteHint', 'It is saved to your Address Book')}
-                      disabled={locked}
-                      onClick={() => void openSubForm('location', { kind: 'location', stop: index })}
-                    />
-                  </PickList>
-                </>
+              {hint && !chosen && (
+                <p style={{ fontSize: 11, color: '#B45309', marginBottom: 6 }}>
+                  {t('vagonai.review.route.orderSays', 'The order says "{{hint}}" — pick the matching saved site.', { hint })}
+                </p>
               )}
+              <PickerDropdown
+                T={T}
+                testId={`ms354-location-picker-${index}`}
+                options={locationOptions(
+                  locations,
+                  index === 0 ? 'pickup' : index === draft.stops.length - 1 ? 'delivery' : null,
+                  t('vagonai.picker.otherGroup', 'Other'),
+                )}
+                selectedIds={stop.locationId ? [stop.locationId] : []}
+                selectedLabel={
+                  chosen
+                    ? { title: chosen.name, subtitle: [chosen.city, chosen.country].filter(Boolean).join(', ') || null }
+                    : null
+                }
+                onSelect={(id) => patch(setStopAt(draft, index, { locationId: id }))}
+                placeholder={
+                  index === 0
+                    ? t('vagonai.review.route.choosePickup', 'Choose the pickup site')
+                    : index === draft.stops.length - 1
+                      ? t('vagonai.review.route.chooseDelivery', 'Choose the delivery site')
+                      : t('vagonai.review.route.chooseStop', 'Choose a site for this stop')
+                }
+                searchPlaceholder={t('vagonai.review.route.searchSites', 'Search locations')}
+                initialQuery={hint}
+                tabs={[
+                  { id: 'my', label: t('vagonai.review.route.myLocations', 'My locations'), testId: 'ms354-location-tab-my' },
+                  { id: 'customer', label: t('vagonai.review.route.customerLocations', 'Customer locations'), testId: 'ms354-location-tab-customer' },
+                ]}
+                emptyLabel={t('vagonai.review.route.noLocationsInTab', 'No locations in this list')}
+                invalid={blocking.some((issue) => issue.field === `stops[${index}].locationId`)}
+                disabled={locked}
+                footer={(
+                  <AddNewRow
+                    T={T}
+                    label={t('vagonai.review.route.addSite', 'Add a new site')}
+                    hint={t('vagonai.review.route.addSiteHint', 'It is saved to your Address Book')}
+                    disabled={locked}
+                    onClick={() => void openSubForm('location', { kind: 'location', stop: index })}
+                  />
+                )}
+              />
 
               <div className="flex flex-wrap" style={{ gap: 8, marginTop: 8 }}>
                 <Field T={T} label={t('vagonai.review.route.opens', 'Opens')}>
@@ -818,8 +962,8 @@ export default function ShipmentReviewCard({
             const hint = hints[`stops[${stopIndex}].lines[${lineIndex}].productId`];
             const where =
               stopIndex === 0
-                ? t('vagonai.review.cargo.collectedAt', 'Collected at stop {{n}}', { n: stopIndex + 1 })
-                : t('vagonai.review.cargo.deliveredAt', 'Delivered at stop {{n}}', { n: stopIndex + 1 });
+                ? t('vagonai.review.cargo.collectedAt', 'Pickup at stop {{n}}', { n: stopIndex + 1 })
+                : t('vagonai.review.cargo.deliveredAt', 'Drop-off at stop {{n}}', { n: stopIndex + 1 });
 
             return (
               <div key={`${stopIndex}-${lineIndex}`} className="rounded-lg" style={{ border: `1px solid ${T.bd}`, padding: 9 }}>
@@ -827,63 +971,37 @@ export default function ShipmentReviewCard({
                   {where}
                 </span>
 
-                {product ? (
-                  <div className="flex items-center justify-between rounded-lg" style={{ border: `1px solid ${T.bd}`, padding: '7px 9px', gap: 8 }}>
-                    <span className="min-w-0">
-                      <span className="block" style={{ fontSize: 13, fontWeight: 600, color: T.t1 }}>{product.name}</span>
-                      {product.sku && <span className="block" style={{ fontSize: 11, color: T.t3 }}>{product.sku}</span>}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => patch(setLine(draft, stopIndex, lineIndex, { productId: '' }))}
-                      disabled={locked}
-                      style={{ fontSize: 11, fontWeight: 600, color: T.ac, flexShrink: 0 }}
-                    >
-                      {t('vagonai.review.change', 'Change')}
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    {hint && (
-                      <p style={{ fontSize: 11, color: '#B45309', marginBottom: 6 }}>
-                        {t(
-                          'vagonai.review.cargo.notInProductMaster',
-                          '“{{hint}}” is not in your Product Master yet — pick it or add it.',
-                          { hint },
-                        )}
-                      </p>
+                {hint && !product && (
+                  <p style={{ fontSize: 11, color: '#B45309', marginBottom: 6 }}>
+                    {t(
+                      'vagonai.review.cargo.notInProductMaster',
+                      '“{{hint}}” is not in your Product Master yet — pick it or add it.',
+                      { hint },
                     )}
-                    <SearchBox
-                      T={T}
-                      value={productTerm}
-                      onChange={setProductTerm}
-                      placeholder={hint ?? t('vagonai.review.cargo.searchProducts', 'Search your products')}
-                    />
-                    <PickList>
-                      {useableProducts(bundle.products, productTerm, hint).map((candidate) => (
-                        <PickRow
-                          key={candidate.id}
-                          T={T}
-                          title={candidate.name}
-                          subtitle={[candidate.sku, candidate.category].filter(Boolean).join(' · ') || null}
-                          selected={false}
-                          disabled={locked}
-                          onClick={() => {
-                            patch(setLine(draft, stopIndex, lineIndex, { productId: candidate.id }));
-                            setProductTerm('');
-                          }}
-                        />
-                      ))}
-                      <AddNewRow
-                        T={T}
-                        label={t('vagonai.review.cargo.addProduct', 'Add a new product')}
-                        hint={t('vagonai.review.cargo.addProductHint', 'It is saved to your Product Master')}
-                        disabled={locked}
-                        onClick={() => void openSubForm('product', { kind: 'product', stop: stopIndex, line: lineIndex })}
-                      />
-                    </PickList>
-                  </>
+                  </p>
                 )}
+                <PickerDropdown
+                  T={T}
+                  testId={`ms354-product-picker-${stopIndex}-${lineIndex}`}
+                  options={productOptions}
+                  selectedIds={line.productId ? [line.productId] : []}
+                  onSelect={(id) => patch(setLine(draft, stopIndex, lineIndex, { productId: id }))}
+                  placeholder={t('vagonai.review.cargo.chooseProduct', 'Choose a product')}
+                  searchPlaceholder={t('vagonai.review.cargo.searchProducts', 'Search your products')}
+                  initialQuery={hint}
+                  invalid={Boolean(hint) && !product}
+                  autoOpen={autoProduct?.stop === stopIndex && autoProduct.line === lineIndex}
+                  disabled={locked}
+                  footer={(
+                    <AddNewRow
+                      T={T}
+                      label={t('vagonai.review.cargo.addProduct', 'Add a new product')}
+                      hint={t('vagonai.review.cargo.addProductHint', 'It is saved to your Product Master')}
+                      disabled={locked}
+                      onClick={() => void openSubForm('product', { kind: 'product', stop: stopIndex, line: lineIndex })}
+                    />
+                  )}
+                />
 
                 <div className="flex flex-wrap" style={{ gap: 8, marginTop: 8 }}>
                   <Field T={T} label={t('vagonai.review.cargo.quantity', 'Quantity')}>
@@ -941,6 +1059,21 @@ export default function ShipmentReviewCard({
   function renderTruck() {
     const weightKg = totalKg(draft);
     const suggested = bundle.suggestions.vehicle;
+    // A preview rather than a scroll box; the chosen and the suggested type are
+    // never hidden behind "Show all".
+    const previewTypes = bundle.vehicleTypes.filter(
+      (type, i) => i < PICK_PREVIEW || draft.vehicleTypeIds.includes(type.id) || suggested?.vehicleTypeId === type.id,
+    );
+    const shownTypes = showAllTrucks ? bundle.vehicleTypes : previewTypes;
+    const subtypeRows = bundle.vehicleTypes.flatMap((type) =>
+      draft.vehicleTypeIds.includes(type.id) ? subtypeOptionsOf(type).map((opt) => ({ type, opt })) : [],
+    );
+    const previewSubtypes = subtypeRows.filter(
+      ({ opt }, i) => i < PICK_PREVIEW || draft.vehicleCategoryIds.includes(opt.id),
+    );
+    const shownSubtypes = showAllSubtypes ? subtypeRows : previewSubtypes;
+    const showAllLabel = (count: number) => t('vagonai.review.showAll', 'Show all ({{count}})', { count });
+    const showFewerLabel = t('vagonai.review.showFewer', 'Show fewer');
 
     return (
       <div className="flex flex-col" style={{ gap: 8 }}>
@@ -952,7 +1085,7 @@ export default function ShipmentReviewCard({
           </p>
         )}
         <PickList>
-          {bundle.vehicleTypes.map((type) => {
+          {shownTypes.map((type) => {
             const chosen = draft.vehicleTypeIds.includes(type.id);
             const isSuggested = suggested?.vehicleTypeId === type.id;
             return (
@@ -977,32 +1110,49 @@ export default function ShipmentReviewCard({
             );
           })}
         </PickList>
-        {bundle.vehicleTypes.some(
-          (type) => draft.vehicleTypeIds.includes(type.id) && subtypeOptionsOf(type).length > 0,
-        ) && (
+        {previewTypes.length < bundle.vehicleTypes.length && (
+          <ShowAllToggle
+            T={T}
+            expanded={showAllTrucks}
+            total={bundle.vehicleTypes.length}
+            onToggle={() => setShowAllTrucks((v) => !v)}
+            showAllLabel={showAllLabel(bundle.vehicleTypes.length)}
+            showFewerLabel={showFewerLabel}
+          />
+        )}
+        {subtypeRows.length > 0 && (
           <div style={{ marginTop: 4 }}>
             <span className="block" style={{ fontSize: 11, fontWeight: 700, color: T.t3, marginBottom: 6 }}>
               {t('vagonai.review.truck.subtypesHeading')}
             </span>
             <PickList>
-              {bundle.vehicleTypes.flatMap((type) => {
-                if (!draft.vehicleTypeIds.includes(type.id)) return [];
-                return subtypeOptionsOf(type).map((opt) => {
-                  const chosen = draft.vehicleCategoryIds.includes(opt.id);
-                  return (
-                    <PickRow
-                      key={`${type.id}-${opt.id}`}
-                      T={T}
-                      title={opt.label}
-                      subtitle={type.label}
-                      selected={chosen}
-                      disabled={locked}
-                      onClick={() => patch(toggleVehicleCategory(draft, opt.id))}
-                    />
-                  );
-                });
+              {shownSubtypes.map(({ type, opt }) => {
+                const chosen = draft.vehicleCategoryIds.includes(opt.id);
+                return (
+                  <PickRow
+                    key={`${type.id}-${opt.id}`}
+                    T={T}
+                    title={opt.label}
+                    subtitle={type.label}
+                    selected={chosen}
+                    disabled={locked}
+                    onClick={() => patch(toggleVehicleCategory(draft, opt.id))}
+                  />
+                );
               })}
             </PickList>
+            {previewSubtypes.length < subtypeRows.length && (
+              <div style={{ marginTop: 5 }}>
+                <ShowAllToggle
+                  T={T}
+                  expanded={showAllSubtypes}
+                  total={subtypeRows.length}
+                  onToggle={() => setShowAllSubtypes((v) => !v)}
+                  showAllLabel={showAllLabel(subtypeRows.length)}
+                  showFewerLabel={showFewerLabel}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1035,11 +1185,6 @@ export default function ShipmentReviewCard({
     const ordered = ranked
       .map((r) => bundle.partners.find((p) => p.id === r.partner.id))
       .filter((p): p is FlowPartner => Boolean(p));
-
-    const needle = carrierTerm.trim().toLowerCase();
-    const filtered = needle
-      ? ordered.filter((p) => [p.name, p.uniqueId].some((v) => v?.toLowerCase().includes(needle)))
-      : ordered;
 
     const selectedIds = draft.broadcast.carrierPartnerIds;
 
@@ -1104,88 +1249,81 @@ export default function ShipmentReviewCard({
           </p>
         ) : null}
         {selectedIds.length > 0 && (
-          <div className="flex items-center" style={{ gap: 8, fontSize: 11.5, color: T.t3 }}>
-            <span data-testid="ms3-carrier-count">
-              {t('vagonai.review.carrier.selectedCount', { count: selectedIds.length })}
-            </span>
-            {!locked && (
-              <button
-                type="button"
-                onClick={() =>
-                  patch({ ...draft, broadcast: { ...draft.broadcast, carrierPartnerIds: [] } })
-                }
-                style={{
-                  border: 0,
-                  background: "transparent",
-                  padding: 0,
-                  font: "inherit",
-                  color: T.t3,
-                  textDecoration: "underline",
-                  cursor: "pointer",
-                }}
-              >
-                {t('vagonai.review.carrier.clear')}
-              </button>
-            )}
-          </div>
+          <span data-testid="ms3-carrier-count" style={{ fontSize: 11.5, color: T.t3 }}>
+            {t('vagonai.review.carrier.selectedCount', { count: selectedIds.length })}
+          </span>
         )}
         {bundle.partners.length === 0 ? (
           <p style={{ fontSize: 12, color: "#B45309" }}>{t('vagonai.review.carrier.noCarriers')}</p>
         ) : (
-          <>
-            <SearchBox
-              T={T}
-              value={carrierTerm}
-              onChange={setCarrierTerm}
-              placeholder={t('vagonai.review.carrier.searchPlaceholder')}
-            />
-            <PickList>
-              {needle && filtered.length === 0 ? (
-                <p
-                  style={{ fontSize: 12, color: T.t3, padding: "8px 2px" }}
-                  data-testid="ms348-carrier-empty"
-                >
-                  {t('vagonai.review.carrier.noMatch', { term: carrierTerm.trim() })}
-                </p>
-              ) : null}
-              {filtered.map((partner: FlowPartner, index: number) => {
-                const chosen = selectedIds.includes(partner.id);
-                const rankedRow = rankedById.get(partner.id);
-                const chips = rankedRow?.chips ?? [];
-                // The gateway's own reason, when it picked this carrier. The
-                // ranker's `reason` is not used here: it restates the name and
-                // would crowd out the id and rating a shipper scans for.
-                const reason = suggestion?.partnerId === partner.id ? suggestion.reason : null;
-                const isTop = index === 0 && !needle && (rankedRow?.score ?? 0) > 0;
-                return (
-                  <PickRow
-                    key={partner.id}
-                    T={T}
-                    title={partner.name}
-                    subtitle={
-                      chipText(chips, partner.trips) ??
-                      reason ??
-                      ([partner.uniqueId, partner.rating ? `★ ${partner.rating}` : null]
-                        .filter(Boolean)
-                        .join(" · ") || null)
-                    }
-                    badge={
-                      suggestion?.partnerId === partner.id
-                        ? suggestion.named
-                          ? t('vagonai.review.badge.youAskedFor')
-                          : t('vagonai.review.badge.suggested')
-                        : isTop
-                          ? t('vagonai.review.badge.topMatch')
-                          : undefined
-                    }
-                    selected={chosen}
+          <PickerDropdown
+            T={T}
+            testId="ms348-carrier-picker"
+            multiple
+            options={ordered.map((partner: FlowPartner, index: number): PickerOption => {
+              const rankedRow = rankedById.get(partner.id);
+              const chips = rankedRow?.chips ?? [];
+              // The gateway's own reason, when it picked this carrier. The
+              // ranker's `reason` is not used here: it restates the name and
+              // would crowd out the id and rating a shipper scans for.
+              const reason = suggestion?.partnerId === partner.id ? suggestion.reason : null;
+              const isTop = index === 0 && (rankedRow?.score ?? 0) > 0;
+              return {
+                id: partner.id,
+                title: partner.name,
+                subtitle:
+                  chipText(chips, partner.trips) ??
+                  reason ??
+                  ([partner.uniqueId, partner.rating ? `★ ${partner.rating}` : null]
+                    .filter(Boolean)
+                    .join(' · ') || null),
+                badge:
+                  suggestion?.partnerId === partner.id
+                    ? suggestion.named
+                      ? t('vagonai.review.badge.youAskedFor')
+                      : t('vagonai.review.badge.suggested')
+                    : isTop
+                      ? t('vagonai.review.badge.topMatch')
+                      : undefined,
+                keywords: [partner.uniqueId],
+              };
+            })}
+            selectedIds={selectedIds}
+            onSelect={selectCarrier}
+            onClear={() => patch({ ...draft, broadcast: { ...draft.broadcast, carrierPartnerIds: [] } })}
+            placeholder={t('vagonai.review.carrier.choose', 'Choose carriers to send it to')}
+            searchPlaceholder={t('vagonai.review.carrier.searchPlaceholder')}
+            invalid={outstanding.some((issue) => issue.field === 'broadcast.carrierPartnerIds')}
+            disabled={locked}
+          />
+        )}
+        {/* MS3-409: who receives the load, listed under the picker - each one removable, no need to open it. */}
+        {selectedIds.length > 0 && (
+          <ul className="flex flex-wrap" style={{ gap: 6, listStyle: 'none', margin: 0, padding: 0 }} data-testid="ms409-carrier-chips">
+            {selectedIds.map((id) => {
+              const partner = bundle.partners.find((p) => p.id === id);
+              const name = partner?.name ?? id;
+              return (
+                <li key={id}>
+                  <button
+                    type="button"
                     disabled={locked}
-                    onClick={() => selectCarrier(partner.id)}
-                  />
-                );
-              })}
-            </PickList>
-          </>
+                    data-testid={`ms409-carrier-chip-${id}`}
+                    aria-label={t('vagonai.review.carrier.remove', 'Remove {{name}}', { name })}
+                    onClick={() => selectCarrier(id)}
+                    className="inline-flex items-center"
+                    style={{
+                      gap: 4, minHeight: 32, padding: '4px 10px', fontSize: 12, borderRadius: 999,
+                      border: `1px solid ${T.bd}`, background: T.al, color: T.t1, cursor: locked ? 'default' : 'pointer',
+                    }}
+                  >
+                    <span>{name}</span>
+                    {!locked && <X size={12} aria-hidden="true" />}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </div>
     );
@@ -1194,27 +1332,122 @@ export default function ShipmentReviewCard({
   function renderPrice() {
     const priceMissing = !(draft.pricing.startingPrice && draft.pricing.startingPrice > 0);
     const priceRequiredForSend = outstanding.some((i) => i.field === 'pricing.startingPrice');
-    const showRequired = priceMissing && (priceRequiredForSend || !draft.pricing.negotiable);
+    const needsPrice = priceMissing && (priceRequiredForSend || !draft.pricing.negotiable);
+    // Red only once the shipper has been in the field or tried to send.
+    const showRequired = needsPrice && priceTouched;
+
+    const originLoc = locations.find((l) => l.id === draft.stops[0]?.locationId);
+    const destLoc = locations.find((l) => l.id === draft.stops[draft.stops.length - 1]?.locationId);
+    const rankedForPrice = rankCarriers(
+      bundle.partners.map((p) => ({
+        id: p.id,
+        name: p.name,
+        preferred: p.preferred,
+        trips: p.trips,
+        rating: p.rating,
+        contractLanes: p.contractLanes,
+      })),
+      originLoc?.city ?? null,
+      destLoc?.city ?? null,
+    );
+    const suggestion = suggestTransportPriceFromRanking(rankedForPrice.map((r) => r.lanePrice));
+    const orderValueSum = (bundle.orders ?? []).reduce((acc, o) => {
+      const v = (o as { orderValue?: number | null }).orderValue;
+      return acc + (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+    }, 0);
+
+    const applySuggested = (price: number | null) => {
+      if (price == null || locked) return;
+      patch({
+        ...draft,
+        pricing: { ...draft.pricing, startingPrice: price },
+      });
+    };
 
     return (
       <div className="flex flex-col" style={{ gap: 8 }} data-testid="ms347-price-section">
+        <div
+          className="rounded-lg"
+          data-testid="ms354-ai-transport-price"
+          style={{ border: `1px solid ${T.bd}`, padding: 9, background: 'rgba(14,165,233,0.06)' }}
+        >
+          <div className="flex items-center justify-between" style={{ gap: 8, marginBottom: 4 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: T.t1 }}>
+              {t('vagonai.review.price.suggestedTitle', 'AI suggested transport price')}
+            </span>
+            <span
+              data-testid="ms354-not-order-value"
+              style={{ fontSize: 9, fontWeight: 700, color: '#0369A1', letterSpacing: 0.3 }}
+            >
+              {t('vagonai.review.price.suggestedNotOrderValue', 'Not order value')}
+            </span>
+          </div>
+          <p style={{ fontSize: 11, color: T.t3, marginBottom: 8 }}>
+            {t(
+              'vagonai.review.price.suggestedHint',
+              'Suggested ask for the haul — not the order value. Built from your price lists and lane history on this route.',
+            )}
+          </p>
+          {suggestion.sampleSize === 0 ? (
+            <p style={{ fontSize: 11, color: T.t3 }}>
+              {t(
+                'vagonai.review.price.noSuggestion',
+                'No lane prices yet for this route — type an ask or pick a contracted carrier.',
+              )}
+            </p>
+          ) : (
+            <div className="flex flex-wrap" style={{ gap: 6 }} data-testid="ms354-ai-price-chips">
+              {(
+                [
+                  { key: 'attractive', label: t('vagonai.review.price.applyAttractive', 'Attractive'), price: suggestion.attractive },
+                  { key: 'market', label: t('vagonai.review.price.applyMarket', 'Market'), price: suggestion.market },
+                  { key: 'conservative', label: t('vagonai.review.price.applyConservative', 'Conservative'), price: suggestion.conservative },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  disabled={locked || opt.price == null}
+                  data-testid={`ms354-ai-price-${opt.key}`}
+                  onClick={() => applySuggested(opt.price)}
+                  style={{
+                    fontSize: 11, fontWeight: 700, padding: '5px 9px', borderRadius: 6,
+                    border: `1px solid ${T.bd}`, background: T.sf, color: T.t1,
+                    cursor: locked ? 'default' : 'pointer',
+                  }}
+                >
+                  {opt.label}: {opt.price} {draft.pricing.currency}
+                </button>
+              ))}
+            </div>
+          )}
+          <p style={{ fontSize: 10, color: T.t3, marginTop: 6 }}>{suggestion.sourceLabel}</p>
+          {orderValueSum > 0 && (
+            <p style={{ fontSize: 10, color: T.t3, marginTop: 4 }} data-testid="ms354-order-value-note">
+              {t('vagonai.review.price.orderValueNote', 'Order value (records only)')}: {orderValueSum} {draft.pricing.currency}
+            </p>
+          )}
+        </div>
+
         <div className="flex flex-wrap" style={{ gap: 8 }}>
           <Field
             T={T}
             label={t('vagonai.review.price.asking', { currency: draft.pricing.currency })}
-            required={showRequired}
+            required={needsPrice}
             invalid={showRequired}
           >
             <input
               type="number"
               min={0}
               value={draft.pricing.startingPrice ?? ''}
-              onChange={(e) =>
+              onChange={(e) => {
+                setPriceTouched(true);
                 patch({
                   ...draft,
                   pricing: { ...draft.pricing, startingPrice: e.target.value === '' ? null : Number(e.target.value) },
-                })
-              }
+                });
+              }}
+              onBlur={() => setPriceTouched(true)}
               disabled={locked}
               aria-invalid={showRequired}
               data-testid="ms347-price-input"
@@ -1232,7 +1465,7 @@ export default function ShipmentReviewCard({
           {t('vagonai.review.price.negotiable')}
         </label>
         <p style={{ fontSize: 11, color: showRequired ? '#DC2626' : T.t3 }}>
-          {showRequired ? t('vagonai.review.price.required') : t('vagonai.review.price.optional')}
+          {needsPrice ? t('vagonai.review.price.required') : t('vagonai.review.price.optional')}
         </p>
       </div>
     );
@@ -1241,52 +1474,125 @@ export default function ShipmentReviewCard({
   function renderExtras() {
     const candidates = trackingCandidates(draft, bundle);
     return (
-      <div className="flex flex-col" style={{ gap: 10 }}>
-        <Field T={T} label={t('vagonai.review.referenceOptional', 'Your reference (optional)')}>
-          <input
-            value={draft.customerReference ?? ''}
-            onChange={(e) => patch({ ...draft, customerReference: e.target.value || null })}
-            disabled={locked}
-            style={inputStyle(T)}
-          />
-        </Field>
-
-        <label className="flex items-start" style={{ gap: 7, fontSize: 12, color: T.t2 }}>
-          <input
-            type="checkbox"
-            checked={draft.requireTracking}
-            onChange={(e) => patch({ ...draft, requireTracking: e.target.checked })}
-            disabled={locked}
-            style={{ marginTop: 2 }}
-          />
-          <span>
-            Require live tracking
-            <span className="block" style={{ fontSize: 11, color: T.t3 }}>
-              The carrier then has to execute the trip in the app — they cannot mark it delivered by hand.
+      <div className="flex flex-col" style={{ gap: 10 }} data-testid="ms354-tracking-section">
+        <div
+          className="rounded-lg"
+          data-testid="ms354-live-nav"
+          style={{ border: `1px solid ${T.bd}`, padding: 9 }}
+        >
+          <label className="flex items-start" style={{ gap: 7, fontSize: 12, color: T.t2 }}>
+            <input
+              type="checkbox"
+              checked={draft.requireTracking}
+              onChange={(e) => patch({ ...draft, requireTracking: e.target.checked })}
+              disabled={locked}
+              style={{ marginTop: 2 }}
+              data-testid="ms354-live-nav-toggle"
+            />
+            <span>
+              {t('vagonai.review.extras.liveNav', 'Live navigation required')}
+              <span className="block" style={{ fontSize: 11, color: T.t3 }}>
+                {t(
+                  'vagonai.review.extras.liveNavHint',
+                  'Require live GPS navigation for this shipment. The carrier must execute the trip in the app.',
+                )}
+              </span>
             </span>
+          </label>
+        </div>
+
+        <div
+          className="rounded-lg"
+          data-testid="ms354-receiver-tracking"
+          style={{ border: `1px solid ${T.bd}`, padding: 9 }}
+        >
+          <span className="block" style={{ fontSize: 11, fontWeight: 700, color: T.t3, marginBottom: 4 }}>
+            {t('vagonai.review.extras.receiverLinks', 'Receiver tracking link(s)')}
           </span>
-        </label>
-
-        {candidates.length > 0 && (
-          <div>
-            <span className="block" style={{ fontSize: 11, fontWeight: 700, color: T.t3, marginBottom: 6 }}>
-              Send a tracking link to
-            </span>
-            <PickList>
-              {candidates.map((candidate) => (
-                <PickRow
-                  key={candidate.orderId}
-                  T={T}
-                  title={candidate.customerName}
-                  subtitle={candidate.email ?? t('vagonai.review.noAddressOnFile', 'No address on file — cannot be sent')}
-                  selected={draft.trackingOrderIds.includes(candidate.orderId)}
-                  disabled={locked || !candidate.email}
-                  onClick={() => patch(toggleTrackingOrder(draft, candidate.orderId))}
-                />
-              ))}
-            </PickList>
-          </div>
-        )}
+          <p style={{ fontSize: 11, color: T.t3, marginBottom: 8 }}>
+            {t(
+              'vagonai.review.extras.receiverLinksHint',
+              'Send a tracking link to the receiver. Sync from drop-off / order, or add more emails.',
+            )}
+          </p>
+          {candidates.length === 0 ? (
+            <p style={{ fontSize: 11, color: T.t3 }}>
+              {t('vagonai.review.extras.noReceivers', 'Link cargo to an order to configure receiver tracking links.')}
+            </p>
+          ) : (
+            <div className="flex flex-col" style={{ gap: 10 }}>
+              {candidates.map((candidate) => {
+                const emails = draft.trackingEmails[candidate.orderId] ?? (candidate.email ? [candidate.email] : ['']);
+                return (
+                  <div key={candidate.orderId} style={{ borderTop: `1px solid ${T.bd}`, paddingTop: 8 }}>
+                    <div className="flex items-center justify-between" style={{ gap: 8, marginBottom: 6 }}>
+                      <span className="min-w-0">
+                        <span className="block" style={{ fontSize: 12, fontWeight: 600, color: T.t1 }}>
+                          {candidate.customerName}
+                        </span>
+                        <span className="block" style={{ fontSize: 10, color: T.t3 }}>{candidate.reference}</span>
+                      </span>
+                      <button
+                        type="button"
+                        disabled={locked || !candidate.email}
+                        data-testid={`ms354-sync-dropoff-${candidate.orderId}`}
+                        onClick={() => patch(syncTrackingEmailFromOrder(draft, bundle, candidate.orderId))}
+                        style={{ fontSize: 10, fontWeight: 700, color: T.ac, flexShrink: 0 }}
+                      >
+                        {t('vagonai.review.extras.syncFromDropoff', 'Sync from drop-off')}
+                      </button>
+                    </div>
+                    <div className="flex flex-col" style={{ gap: 6 }}>
+                      {emails.map((em, emIdx) => (
+                        <div key={emIdx} className="flex" style={{ gap: 6 }}>
+                          <input
+                            type="email"
+                            value={em}
+                            disabled={locked}
+                            placeholder="email@example.com"
+                            data-testid={`ms354-tracking-email-${candidate.orderId}-${emIdx}`}
+                            onChange={(e) => {
+                              const next = [...emails];
+                              next[emIdx] = e.target.value;
+                              patch(setTrackingEmailsForOrder(draft, candidate.orderId, next));
+                            }}
+                            style={{ ...inputStyle(T), flex: 1 }}
+                          />
+                          <button
+                            type="button"
+                            disabled={locked}
+                            onClick={() => {
+                              const next = emails.filter((_, i) => i !== emIdx);
+                              patch(setTrackingEmailsForOrder(draft, candidate.orderId, next.length ? next : ['']));
+                            }}
+                            style={{ fontSize: 12, color: '#DC2626', padding: '0 6px' }}
+                            aria-label="Remove email"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={locked}
+                      data-testid={`ms354-add-email-${candidate.orderId}`}
+                      onClick={() =>
+                        patch(setTrackingEmailsForOrder(draft, candidate.orderId, [...emails, '']))
+                      }
+                      style={{
+                        marginTop: 6, width: '100%', fontSize: 10, fontWeight: 700, color: T.ac,
+                        border: `1px dashed ${T.bd}`, borderRadius: 6, padding: '6px 0', background: 'transparent',
+                      }}
+                    >
+                      {t('vagonai.review.extras.addEmail', '+ Add email')}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -1340,7 +1646,10 @@ export default function ShipmentReviewCard({
                 disabled={locked}
                 aria-pressed={on}
                 data-testid={`ms347-visibility-${ch}`}
-                onClick={() => patch(setBroadcastChannel(draft, ch))}
+                onClick={() => {
+                  patch(setBroadcastChannel(draft, ch));
+                  if (ch === 'private') setOpen('carrier');
+                }}
                 style={{
                   fontSize: 10, fontWeight: 700, padding: '3px 8px', border: 0, cursor: locked ? 'default' : 'pointer',
                   background: on ? (ch === 'public' ? 'rgba(14,165,233,0.18)' : 'rgba(34,197,94,0.18)') : 'transparent',
@@ -1376,13 +1685,27 @@ export default function ShipmentReviewCard({
         );
       })}
 
-      <Notes T={T} notes={bundle.notes} />
+      {/* A public post goes to no carrier of theirs, so notes about their
+          carriers ("no active carriers... saved as a draft") are hidden with
+          the Carrier row (QA 2026-10-08). */}
+      <Notes T={T} notes={isPublic ? bundle.notes.filter((note) => !CARRIER_NOTE.test(note)) : bundle.notes} />
       <Notes T={T} notes={warnings} tone="warn" />
       {subError && <Notes T={T} notes={[subError]} tone="warn" />}
       {error && (
         <p className="flex items-start" style={{ gap: 5, fontSize: 12, color: '#B45309', marginTop: 8 }}>
           <AlertTriangle size={12} style={{ flexShrink: 0, marginTop: 2 }} />
           <span>{error}</span>
+        </p>
+      )}
+      {unresolved !== null && (
+        <p
+          role="status"
+          data-testid="review-outcome-unknown"
+          className="flex items-start"
+          style={{ gap: 5, fontSize: 12, color: '#B45309', marginTop: 8 }}
+        >
+          <AlertTriangle size={12} style={{ flexShrink: 0, marginTop: 2 }} />
+          <span>{unresolved}</span>
         </p>
       )}
 
@@ -1392,32 +1715,44 @@ export default function ShipmentReviewCard({
           data-testid="ms332-save-blockers"
           style={{ fontSize: 11, color: '#B45309', marginTop: 8, paddingLeft: 16 }}
         >
+          {/* The message alone, in the shipper's language - it already names the
+              stop and line. The validator path ("stops[0].locationId") meant
+              nothing to a shipper (QA 2026-10-10); it is still the key and the
+              data-field for tests and the console. */}
           {saveBlockers.map((b) => (
-            <li key={b.field}>
-              <code style={{ fontSize: 10 }}>{b.field}</code>: {b.message}
+            <li key={b.field} data-field={b.field}>
+              {b.message}
             </li>
           ))}
         </ul>
       )}
 <div className="flex flex-wrap items-center" style={{ gap: 8, marginTop: 12 }}>
+        {/* The working button keeps its colour and shows a spinner; the others
+            grey out. `submit` refuses a second click while one is pending. */}
         <Button
           T={T}
           onClick={() => submit('save_draft')}
-          disabled={locked || blocking.length > 0}
+          disabled={pending !== 'save_draft' && (locked || blocking.length > 0)}
+          aria-busy={pending === 'save_draft'}
           data-save-blockers={saveBlockers.map((b) => b.field).join(',')}
           data-testid="ms332-save-draft"
-          icon={<Save size={13} />}
+          icon={pending === 'save_draft' ? <Loader2 size={13} className="vai-spin" /> : <Save size={13} />}
         >
-          Save as draft
+          {pending === 'save_draft' ? t('vagonai.review.saving', 'Saving…') : t('vagonai.review.saveAsDraft', 'Save draft')}
         </Button>
         <Button
           T={T}
           variant="ghost"
           onClick={() => submit('publish')}
-          disabled={locked || blocking.length > 0 || outstanding.length > 0}
-          icon={<Send size={13} />}
+          disabled={pending !== 'publish' && (locked || blocking.length > 0 || outstanding.length > 0)}
+          aria-busy={pending === 'publish'}
+          icon={pending === 'publish' ? <Loader2 size={13} className="vai-spin" /> : <Send size={13} />}
         >
-          {sendLabel}
+          {pending === 'publish'
+            ? isPublic
+              ? t('vagonai.review.posting', 'Posting…')
+              : t('vagonai.review.sending', 'Sending…')
+            : sendLabel}
         </Button>
         {onSchedule && (
           <Button
@@ -1426,9 +1761,10 @@ export default function ShipmentReviewCard({
             onClick={schedule}
             // A batch posts from the queue to named carriers only - the gateway
             // refuses copies of a public load, so the button says so up front.
-            disabled={locked || blocking.length > 0 || outstanding.length > 0 || isPublic}
+            disabled={pending !== 'schedule' && (locked || blocking.length > 0 || outstanding.length > 0 || isPublic)}
+            aria-busy={pending === 'schedule'}
             title={isPublic ? t('vagonai.review.schedulePublicBlocked') : undefined}
-            icon={<CalendarClock size={13} />}
+            icon={pending === 'schedule' ? <Loader2 size={13} className="vai-spin" /> : <CalendarClock size={13} />}
           >
             {t('vagonai.review.scheduleCopies')}
           </Button>
@@ -1437,7 +1773,9 @@ export default function ShipmentReviewCard({
 
       {blocking.length === 0 && outstanding.length > 0 && (
         <p style={{ fontSize: 11, color: T.t3, marginTop: 8 }}>
-          Saving works now. To send it you still need: {outstanding.map((issue) => issue.message).join(' ')}
+          {t('vagonai.review.savingWorks', 'Saving works now. To send it you still need: {{needs}}', {
+            needs: outstanding.map((issue) => issue.message).join(' '),
+          })}
         </p>
       )}
       {onSchedule && isPublic && blocking.length === 0 && outstanding.length === 0 && (
@@ -1469,25 +1807,26 @@ function setLine(
 }
 
 /**
- * The sites a picker offers, pre-searched on the order's own words.
+ * The sites a stop's picker offers, as dropdown rows.
  *
- * The hint is used as the opening search term rather than as a filter that
- * sticks: a shipper whose order says "Athens Depot" and whose Address Book calls
- * it "ATH-1" has to be able to reach it, and a list that only ever matched the
- * order's spelling would hide the very site they are looking for.
+ * Grouped under their company and split across the My / Customer tabs. A site
+ * whose role rules it out of this leg (a delivery-only site at the pickup) is
+ * left out. Nothing else is: every remaining site is reachable, however many
+ * there are.
  */
-function useableLocations(rows: FlowLocation[], term: string, hint?: string): FlowLocation[] {
-  const needle = (term || hint || '').trim().toLowerCase();
-  const filtered = needle
-    ? rows.filter((row) => [row.name, row.city, row.country].some((v) => v?.toLowerCase().includes(needle)))
-    : rows;
-  return (filtered.length > 0 ? filtered : rows).slice(0, 40);
-}
-
-function useableProducts(rows: FlowProduct[], term: string, hint?: string): FlowProduct[] {
-  const needle = (term || hint || '').trim().toLowerCase();
-  const filtered = needle
-    ? rows.filter((row) => [row.name, row.sku, row.category, row.type].some((v) => v?.toLowerCase().includes(needle)))
-    : rows;
-  return (filtered.length > 0 ? filtered : rows).slice(0, 40);
+function locationOptions(
+  rows: FlowLocation[],
+  leg: 'pickup' | 'delivery' | null,
+  otherGroup: string,
+): PickerOption[] {
+  return rows
+    .filter((row) => !(leg === 'pickup' && row.role === 'delivery') && !(leg === 'delivery' && row.role === 'pickup'))
+    .map((row) => ({
+      id: row.id,
+      title: row.name,
+      subtitle: [row.city, row.country].filter(Boolean).join(', ') || null,
+      group: (row.company ?? '').trim() || otherGroup,
+      tab: row.group === 'customer' ? 'customer' : 'my',
+    }))
+    .sort((a, b) => a.group.localeCompare(b.group) || a.title.localeCompare(b.title));
 }

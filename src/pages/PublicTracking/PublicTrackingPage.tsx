@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { io, type Socket } from 'socket.io-client';
+import { explicitSocketUrl } from '../../config/deploymentEnv';
 import {
   CheckCircle2,
   ChevronDown,
@@ -1062,7 +1063,7 @@ export const PublicTrackingPage: React.FC = () => {
       return;
     }
 
-    const socketUrl = (import.meta.env.VITE_SOCKET_URL as string | undefined) || '';
+    const socketUrl = explicitSocketUrl();
     if (!socketUrl) {
       setSocketStatus('error');
       if (import.meta.env.DEV) {

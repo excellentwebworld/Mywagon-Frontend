@@ -1,3 +1,4 @@
+import { apiBaseUrl, laravelOrigin } from '../../config/deploymentEnv';
 import React from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import { clearStoredToken } from '../../api/auth';
@@ -14,9 +15,9 @@ type SocialAuthButtonsProps = {
 
 function socialRedirectUrl(provider: SocialProvider): string {
   const configured =
-    (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ||
+    apiBaseUrl().replace(/\/$/, "") ||
     '/api/shipper/v1';
-  const laravel = (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '');
+  const laravel = laravelOrigin();
   // Full-page OAuth must hit Laravel absolutely. Relative `/api/...` stays on the SPA
   // origin (Amplify/Vite) and can be cancelled by force-logout → lands on /login.
   const apiBase = configured.startsWith('http')

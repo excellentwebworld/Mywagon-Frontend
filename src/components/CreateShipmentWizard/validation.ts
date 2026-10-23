@@ -29,7 +29,7 @@ export function getConflictAnchor(conflict: Conflict): string {
     return lineIndex >= 0 ? `stop-${stopIndex}-line-${lineIndex}-order` : `stop-${stopIndex}-cargo`;
   }
 
-  if (code === 'C2' || code === 'C5') {
+  if (code === 'C2' || code === 'C5' || code === 'C12') {
     return lineIndex >= 0 ? `stop-${stopIndex}-line-${lineIndex}-product` : `stop-${stopIndex}-cargo`;
   }
 
@@ -63,6 +63,7 @@ export function sortConflictsForFocus(conflicts: Conflict[]): Conflict[] {
       C1: 30,
       O4: 30,
       C2: 31,
+      C12: 31,
       C3: 32,
       O5: 32,
       C10: 33,
@@ -82,7 +83,7 @@ export function translateConflict(conflict: Conflict, t: TranslateFn): string {
   const params: Record<string, unknown> = {
     stop: conflict.stopIndex >= 0 ? conflict.stopIndex + 1 : undefined,
     line: conflict.lineIndex >= 0 ? conflict.lineIndex + 1 : undefined,
-    product: conflict.message.match(/:\s*(.+?)\s+(has|dropped)/)?.[1],
+    product: conflict.product ?? conflict.message.match(/:\s*(.+?)\s+(has|dropped)/)?.[1],
     defaultValue: conflict.message,
   };
   const translated = t(key, params);

@@ -4,6 +4,7 @@ import type { ApiShipmentsSummary, ListShipmentsParams } from '../api/types/ship
 import type { Shipment } from '../context/AppContext';
 import type { ApiListMeta } from '../api/types/addressBook';
 import { EMPTY_KPI_COUNTS } from '../pages/ManageShipments/utils/listingUtils';
+import { privateLoadMissingCarriers, SHIPMENT_PUBLISHED_EVENT } from '../utils/shipmentRefresh';
 
 export function useShipment(id?: string) {
   const [shipment, setShipment] = useState<Shipment | null>(null);
@@ -46,6 +47,29 @@ export function useShipment(id?: string) {
       cancelled = true;
     };
   }, [id, reloadKey]);
+
+  const syncAttempts = useRef<{ id: string; n: number }>({ id: '', n: 0 });
+
+  useEffect(() => {
+    const onPublished = (event: Event) => {
+      const detail = (event as CustomEvent<{ shipmentId?: string | number }>).detail;
+      const publishedId = detail?.shipmentId != null ? String(detail.shipmentId) : '';
+      if (!id || !publishedId || publishedId === id) refetch();
+    };
+    window.addEventListener(SHIPMENT_PUBLISHED_EVENT, onPublished);
+    return () => window.removeEventListener(SHIPMENT_PUBLISHED_EVENT, onPublished);
+  }, [id, refetch]);
+
+  useEffect(() => {
+    if (!shipment || !id) return;
+    if (syncAttempts.current.id !== id) syncAttempts.current = { id, n: 0 };
+    if (!privateLoadMissingCarriers(shipment)) return;
+    if (syncAttempts.current.n >= 3) return;
+    const delay = [700, 1800, 4000][syncAttempts.current.n] ?? 4000;
+    syncAttempts.current.n += 1;
+    const timer = window.setTimeout(() => refetch(), delay);
+    return () => window.clearTimeout(timer);
+  }, [shipment, id, refetch]);
 
   return { shipment, loading, error, refetch };
 }

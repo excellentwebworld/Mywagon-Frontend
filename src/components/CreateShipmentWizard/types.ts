@@ -59,6 +59,8 @@ export function buildDefaultWizardValues(loadId = 'SID-NEW') {
     targetPrice: '',
     negotiable: true,
     trackingEmails: {} as Record<string, string[]>,
+    stopTrackingEmails: {} as Record<string, string[]>,
+    stopTrackingEmailsAuto: {} as Record<string, { locationId: string; emails: string[] }>,
     driverNotes: '',
     notesList: [] as Array<{ id: string | number; text: string; visibility: 'internal' | 'carrier'; date: string }>,
     gpsRequired: true,

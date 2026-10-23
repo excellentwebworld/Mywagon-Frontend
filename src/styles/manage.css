@@ -466,6 +466,8 @@
 /* ── Status tabs ── */
 .stabs {
   display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -479,6 +481,26 @@
   z-index: 1;
   max-width: 100%;
   min-width: 0;
+}
+/* Edge fades while more tabs are hidden that way (classes set in StatusTabs).
+   Sticky pseudo-elements stay pinned to the visible edge as the row scrolls. */
+.stabs.more-left::before,
+.stabs.more-right::after {
+  content: '';
+  position: sticky;
+  flex: 0 0 40px;
+  z-index: 1;
+  pointer-events: none;
+}
+.stabs.more-left::before {
+  left: 0;
+  margin-right: -48px;
+  background: linear-gradient(to left, transparent, var(--surface));
+}
+.stabs.more-right::after {
+  right: 0;
+  margin-left: -48px;
+  background: linear-gradient(to right, transparent, var(--surface));
 }
 .stabs::-webkit-scrollbar {
   height: 6px;
@@ -498,6 +520,7 @@
   border-bottom: 2px solid transparent;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -645,7 +668,7 @@ html.dark .stab .cnt.cw,
 .mgmt-page table.mgmt-t {
   display: table;
   width: 100%;
-  min-width: 1480px;
+  /* No fixed min-width: content sizes the table (QA 2026-10-08, ~1150px). */
   border-collapse: separate;
   border-spacing: 0;
   table-layout: auto;
@@ -711,6 +734,25 @@ html.dark .stab .cnt.cw,
 .mgmt-t .col-date-created {
   min-width: 110px;
   padding-right: 8px;
+}
+/* Wide secondary cells may wrap so fewer columns slide under the pinned Actions column. */
+.mgmt-t tbody td.col-transporter,
+.mgmt-t tbody td.col-price,
+.mgmt-t tbody td.col-last-update,
+.mgmt-t tbody td.col-date-created {
+  white-space: normal;
+}
+.mgmt-t tbody td.col-transporter {
+  min-width: 120px;
+}
+.mgmt-t tbody td.col-price {
+  min-width: 96px;
+}
+.mgmt-t tbody td.col-price .price {
+  white-space: nowrap;
+}
+.mgmt-t .col-actions {
+  border-left: 1px solid var(--border);
 }
 .mgmt-t thead th {
   padding: 10px 12px;

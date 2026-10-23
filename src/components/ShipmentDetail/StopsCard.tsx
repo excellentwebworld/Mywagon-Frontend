@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { MapPin, Copy, CheckCircle2, FileText, ChevronDown, ChevronUp, Loader2, X, AlertTriangle } from 'lucide-react';
 import type { ShipmentStop } from '../../context/AppContext';
 import { productLineVisual, formatReason, type ProductLineVisual } from '../../pages/ManageShipments/utils/listingUtils';
+import { localizedText } from '../../utils/localizedText';
 import { StopTag } from '../ui/mv';
 import { CollapsibleCard } from './CollapsibleCard';
 import { formatDisplayDate, formatDisplayTime } from '../../utils/dateDisplay';
@@ -428,7 +429,7 @@ function groupPhysicalStops(stops: ShipmentStop[]): PhysicalStop[] {
       }
     } else {
       customers.forEach((cust) => {
-        const custName = cust.name && cust.name !== '—' && cust.name.toLowerCase() !== stop.location.toLowerCase() ? cust.name : '';
+        const custName = cust.name && cust.name !== '—' && localizedText(cust.name).toLowerCase() !== localizedText(stop.location).toLowerCase() ? cust.name : '';
         (cust.orders || []).forEach((orderItem) => {
           const ordObj =
             typeof orderItem === 'string'
@@ -696,7 +697,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                       className="text-[14px] font-bold leading-tight transition-colors text-slate-900 dark:text-white"
                       style={{ color: diffColor(stopHl?.location) }}
                     >
-                      {stop.location}
+                      {localizedText(stop.location)}
                     </div>
 
                     <div className="flex items-center gap-2 flex-wrap shrink-0">
@@ -782,7 +783,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                         fontWeight: stopHl?.address ? 600 : undefined,
                       }}
                     >
-                      {stop.address}
+                      {localizedText(stop.address)}
                     </div>
                   )}
 
@@ -881,7 +882,7 @@ export const StopsCard: React.FC<StopsCardProps> = ({
                                           fontWeight: prodHl?.name ? 600 : undefined,
                                         }}
                                       >
-                                        {prod.name}
+                                        {localizedText(prod.name)}
                                       </span>
                                     )}
                                     {(Boolean(prod.qty) || Boolean(prod.weight)) && (
