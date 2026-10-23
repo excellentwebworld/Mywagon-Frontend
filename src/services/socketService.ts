@@ -164,42 +164,72 @@ class SocketService {
   /**
    * Send real-time message through socket
    */
+  private buildOutgoingPayload(payload: SocketMessagePayload): SocketMessagePayload {
+    const parsedSender = parseInt(String(payload.sender_id || '').replace(/\D/g, ''), 10) || 0;
+    const joinedSender = parseInt(String(this.currentUserId || '').replace(/\D/g, ''), 10) || 0;
+    const cleanSenderId = String(parsedSender || joinedSender || 0);
+    const cleanReceiverId = String(
+      parseInt(String(payload.receiver_id || '0').replace(/\D/g, ''), 10) || 0
+    );
+    const fullPayload: SocketMessagePayload = {
+      ...payload,
+      sender_id: cleanSenderId,
+      sender_type: (payload.sender_type || 'shipper').toLowerCase(),
+      receiver_id: cleanReceiverId,
+      receiver_type: normalizeSocketUserType(payload.receiver_type),
+      request_data: payload.request_data || {},
+    };
+
+    if (fullPayload.messages_type === 'text') {
+      delete fullPayload.messages_type;
+    }
+
+    return fullPayload;
+  }
+
   public sendMessage(payload: SocketMessagePayload): Promise<any> {
-    return new Promise((resolve) => {
-      if (!this.socket || !this.socket.connected) {
-        this.connect(this.currentUserId || undefined);
-      }
+    const fullPayload = this.buildOutgoingPayload(payload);
 
-      const cleanSenderId = String(
-        parseInt(String(payload.sender_id || this.currentUserId || '0').replace(/\D/g, ''), 10) || 0
-      );
-      const cleanReceiverId = String(
-        parseInt(String(payload.receiver_id || '0').replace(/\D/g, ''), 10) || 0
-      );
-      const cleanSenderType = (payload.sender_type || 'shipper').toLowerCase();
-      const cleanReceiverType = normalizeSocketUserType(payload.receiver_type);
-
-      const fullPayload: SocketMessagePayload = {
-        ...payload,
-        sender_id: cleanSenderId,
-        sender_type: cleanSenderType,
-        receiver_id: cleanReceiverId,
-        receiver_type: cleanReceiverType,
-        request_data: payload.request_data || {},
-      };
-
-      // Laravel text chat omits messages_type on the socket payload.
-      if (fullPayload.messages_type === 'text') {
-        delete fullPayload.messages_type;
-      }
-
-      if (this.socket && this.socket.connected) {
-        this.socket.emit('send_message', fullPayload, (response: any) => {
-          resolve(response);
+    const emit = (socket: Socket) =>
+      new Promise((resolve) => {
+        let settled = false;
+        const timer = window.setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          // The packet already left. Keep this truthy so the UI does not save it again.
+          resolve({ ok: true });
+        }, 8000);
+        socket.emit('send_message', fullPayload, (response: any) => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          resolve(response ?? { ok: true });
         });
-      } else {
+      });
+
+    if (this.socket?.connected) {
+      return emit(this.socket);
+    }
+
+    this.connect(this.currentUserId || undefined);
+    const socket = this.socket;
+    if (!socket) {
+      return Promise.resolve(null);
+    }
+    if (socket.connected) {
+      return emit(socket);
+    }
+
+    return new Promise((resolve) => {
+      const giveUp = window.setTimeout(() => {
+        socket.off('connect', onConnect);
         resolve(null);
-      }
+      }, 8000);
+      const onConnect = () => {
+        window.clearTimeout(giveUp);
+        void emit(socket).then(resolve);
+      };
+      socket.once('connect', onConnect);
     });
   }
 

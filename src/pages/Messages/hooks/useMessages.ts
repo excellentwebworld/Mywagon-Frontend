@@ -1182,18 +1182,23 @@ export function useMessages() {
       const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
 
       try {
-        const response = await socketService.sendMessage(
-          buildShipperSocketChatPayload({
-            user: user || {},
-            conversation: activeConversation,
-            partnerToken,
-            message: text,
-            shipmentId: activeSidDb,
-          })
-        );
+        const socketPayload = buildShipperSocketChatPayload({
+          user: user || {},
+          conversation: activeConversation,
+          partnerToken,
+          message: text,
+          shipmentId: activeSidDb,
+        });
+        const response = await socketService.sendMessage(socketPayload);
 
         if (!response) {
-          throw new Error('Socket not connected');
+          await chatService.sendMessage({
+            receiver_id: socketPayload.receiver_id,
+            receiver_type: socketPayload.receiver_type,
+            message: text,
+            messages_type: 'text',
+            shipment_id: activeSidDb ? String(activeSidDb) : undefined,
+          });
         }
 
         // Only update conversation last message after successful send
@@ -1295,7 +1300,23 @@ export function useMessages() {
         );
 
         if (!response) {
-          throw new Error('Socket not connected');
+          const socketPayload = buildShipperSocketChatPayload({
+            user: user || {},
+            conversation: activeConversation,
+            partnerToken,
+            message: uploadedUrl,
+            messagesType: 'voice',
+            duration: durationMsSend,
+            shipmentId: activeSidDb,
+          });
+          await chatService.sendMessage({
+            receiver_id: socketPayload.receiver_id,
+            receiver_type: socketPayload.receiver_type,
+            message: uploadedUrl,
+            messages_type: 'voice',
+            duration: durationMsSend,
+            shipment_id: activeSidDb ? String(activeSidDb) : undefined,
+          });
         }
 
         setMessages((prev) =>
@@ -1424,7 +1445,21 @@ export function useMessages() {
         );
 
         if (!response) {
-          throw new Error('Socket not connected');
+          const socketPayload = buildShipperSocketChatPayload({
+            user: user || {},
+            conversation: activeConversation,
+            partnerToken,
+            message: uploadedUrl,
+            messagesType: msgType,
+            shipmentId: activeSidDb,
+          });
+          await chatService.sendMessage({
+            receiver_id: socketPayload.receiver_id,
+            receiver_type: socketPayload.receiver_type,
+            message: uploadedUrl,
+            messages_type: msgType,
+            shipment_id: activeSidDb ? String(activeSidDb) : undefined,
+          });
         }
 
         setMessages((prev) =>
@@ -1564,7 +1599,25 @@ export function useMessages() {
         );
 
         if (!response) {
-          throw new Error('Socket not connected');
+          const socketPayload = buildShipperSocketChatPayload({
+            user: user || {},
+            conversation: activeConversation,
+            partnerToken,
+            message: retryPayload,
+            ...(isVoice ? { messagesType: 'voice' as const, duration: failedMsg.duration } : {}),
+            ...(failedMsg.messages_type === 'media' ? { messagesType: 'media' as const } : {}),
+            ...(isImage ? { messagesType: 'image' as const } : {}),
+            ...(isDoc ? { messagesType: 'document' as const } : {}),
+            shipmentId: retrySidDb,
+          });
+          await chatService.sendMessage({
+            receiver_id: socketPayload.receiver_id,
+            receiver_type: socketPayload.receiver_type,
+            message: retryPayload,
+            messages_type: isVoice ? 'voice' : isImage ? 'image' : isDoc ? 'document' : 'text',
+            duration: isVoice ? failedMsg.duration : undefined,
+            shipment_id: retrySidDb ? String(retrySidDb) : undefined,
+          });
         }
 
         pendingFilesRef.current.delete(failedMsgId);

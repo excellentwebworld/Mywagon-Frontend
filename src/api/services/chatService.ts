@@ -315,13 +315,10 @@ export const chatService = {
     receiver_id: number | string;
     receiver_type: string;
     message: string;
-    messages_type?: 'text' | 'voice' | 'media' | 'image' | 'system';
+    messages_type?: 'text' | 'voice' | 'media' | 'image' | 'document' | 'system';
     duration?: string;
     shipment_id?: string;
   }): Promise<ChatMessage> {
-    const now = new Date();
-    const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-
     const cleanReceiverId = typeof payload.receiver_id === 'number'
       ? payload.receiver_id
       : parseInt(String(payload.receiver_id).replace(/\D/g, '') || '0', 10);
@@ -351,24 +348,11 @@ export const chatService = {
           imageUrl: d.messages_type === 'image' ? (d.imageUrl || d.text) : d.imageUrl,
         };
       }
-    } catch {
-      // If V1 route is not present on remote server, socket handles real-time delivery
-    }
 
-    return {
-      id: Date.now(),
-      type: 'sent',
-      sender: 'You',
-      initials: 'SV',
-      time: formatMessageTime(new Date()),
-      created_at: new Date().toISOString(),
-      text: payload.message,
-      messages_type: payload.messages_type || 'text',
-      voiceUrl: payload.messages_type === 'voice' ? payload.message : undefined,
-      imageUrl: payload.messages_type === 'image' ? payload.message : undefined,
-      duration: payload.duration,
-      shipmentId: payload.shipment_id,
-    };
+      throw new Error('Message was not saved');
+    } catch (error) {
+      throw error;
+    }
   },
 
   /**
