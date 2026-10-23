@@ -18,7 +18,6 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { getToken, onMessage, deleteToken } from 'firebase/messaging';
 import { getMessagingOrNull, vapidKey, isFirebaseConfigured } from '../config/firebase';
 import { notificationService } from '../api/services/notificationService';
@@ -170,7 +169,6 @@ interface UseFcmOptions {
 }
 
 export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = {}): void {
-  const navigate = useNavigate();
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
@@ -213,11 +211,29 @@ export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = 
       navigator.serviceWorker.addEventListener('message', handleSwMessage);
     }
 
+    let swRegistration: ServiceWorkerRegistration | undefined;
+
+    async function saveCurrentToken() {
+      if (cancelled || !swRegistration || Notification.permission !== 'granted') return;
+      const messaging = getMessagingOrNull();
+      if (!messaging) return;
+      try {
+        const token = await getToken(messaging, {
+          vapidKey,
+          serviceWorkerRegistration: swRegistration,
+        });
+        if (!token || cancelled) return;
+        await notificationService.updateDeviceToken(token);
+        setCachedToken(token);
+      } catch (err) {
+        console.warn('[FCM] Device token registration failed:', err);
+      }
+    }
+
     async function init() {
       // ── 1. Service Worker registration ──────────────────────────────
       if (!('serviceWorker' in navigator)) return;
 
-      let swRegistration: ServiceWorkerRegistration | undefined;
       try {
         swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
           scope: '/',
@@ -232,45 +248,21 @@ export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = 
       // ── 2. Notification permission ───────────────────────────────────
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
+        // Do not clear the account token. This origin may not have permission
+        // yet, and wiping it would stop pushes on the other panel too.
         clearCachedToken();
-        await notificationService.updateDeviceToken(null).catch(() => {});
         return;
       }
 
       if (cancelled) return;
 
-      // ── 3. FCM token retrieval ───────────────────────────────────────
+      // ── 3–4. Save this panel's token so the other panel stops receiving ─
+      await saveCurrentToken();
+
+      if (cancelled || unsubscribeRef.current) return;
+
       const messaging = getMessagingOrNull();
       if (!messaging) return;
-
-      let token: string;
-      try {
-        token = await getToken(messaging, {
-          vapidKey,
-          serviceWorkerRegistration: swRegistration,
-        });
-      } catch (err) {
-        console.warn('[FCM] getToken failed:', err);
-        return;
-      }
-
-      if (cancelled) return;
-
-      // ── 4. Register this panel's token ────────────────────────────────
-      // Always post. A previous Classic visit can leave its token on the
-      // account while this browser still has the React token cached, and
-      // pushes would keep opening on staging.myvagon.com.
-      if (token) {
-        try {
-          await notificationService.updateDeviceToken(token);
-          setCachedToken(token);
-          console.log('[FCM] Device token registered with backend successfully.');
-        } catch (err) {
-          console.warn('[FCM] Device token registration failed:', err);
-        }
-      }
-
-      if (cancelled) return;
 
       // ── 5. Foreground message listener ───────────────────────────────
       const unsubscribe = onMessage(messaging, (payload) => {
@@ -324,24 +316,37 @@ export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = 
           return;
         }
 
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try {
+            const n = new Notification(title, { body, icon: '/favicon.ico' });
+            n.onclick = () => {
+              window.focus();
+              n.close();
+            };
+          } catch {
+            /* in-app toast below still shows */
+          }
+        }
+
         if (onForegroundMessage) {
           onForegroundMessage(notifData);
-        } else if ('Notification' in window && Notification.permission === 'granted') {
-          const n = new Notification(title, { body, icon: '/favicon.ico' });
-          n.onclick = () => {
-            window.focus();
-            navigate('/settings/notifications');
-          };
         }
       });
 
       unsubscribeRef.current = unsubscribe;
     }
 
+    const saveTokenForThisPanel = () => {
+      if (document.visibilityState !== 'visible') return;
+      void saveCurrentToken();
+    };
+    document.addEventListener('visibilitychange', saveTokenForThisPanel);
+
     void init();
 
     return () => {
       cancelled = true;
+      document.removeEventListener('visibilitychange', saveTokenForThisPanel);
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.removeEventListener('message', handleSwMessage);
       }

@@ -217,13 +217,11 @@ messaging.onBackgroundMessage((payload) => {
     });
   });
 
-  // When the FCM payload includes a `notification` block, the Firebase SDK already
-  // displays a system tray notification. Calling showNotification again doubles it
-  // (common when the browser tab is backgrounded). Android/iOS are unaffected —
-  // this handler only runs in the web service worker.
-  // Data-only payloads still need an explicit showNotification below.
+  // onBackgroundMessage replaces the SDK's automatic popup, so this worker
+  // must show the notification itself. Chat messages stay hidden only while
+  // a visible tab is already on the messages screen.
   return suppressMessagePushOnChatScreen(rawType).then((hidden) => {
-  if (hidden || payload.notification) {
+  if (hidden) {
     return notifyOpenClients;
   }
 
