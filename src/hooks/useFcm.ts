@@ -214,8 +214,11 @@ export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = 
 
       if (cancelled) return;
 
-      // ── 4. Register token with backend (deduplicated) ─────────────────
-      if (token && token !== getCachedToken()) {
+      // ── 4. Register this panel's token ────────────────────────────────
+      // Always post. A previous Classic visit can leave its token on the
+      // account while this browser still has the React token cached, and
+      // pushes would keep opening on staging.myvagon.com.
+      if (token) {
         try {
           await notificationService.updateDeviceToken(token);
           setCachedToken(token);
