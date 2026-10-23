@@ -93,6 +93,10 @@ export interface ApiShipmentListItem {
   customers?: string[];
   order_ids?: string[];
   orders_count?: number;
+  /** MS3-406: the load has a linked order (location order_id or an ERP order pointing at it). */
+  has_order?: boolean;
+  /** MS3-406: true when Laravel would refuse a dispatch until an order is linked. */
+  order_required_for_dispatch?: boolean;
   updated_at?: string | null;
   created_at?: string | null;
   /** MS3-344/338 provenance — `vagon_ai` for AI one-shot drafts. */
@@ -507,3 +511,21 @@ export interface ApiCoOwnersResponse {
   available_users: ApiShipmentCoOwner[];
 }
 
+
+/** MS3-406: POST shipments/{id}/link-order response `data`. */
+export interface ApiLinkOrderResult {
+  shipment_id: number;
+  created: boolean;
+  has_order: boolean;
+  order_required_for_dispatch: boolean;
+  order: {
+    id: number;
+    order_reference: string | null;
+    label: string;
+    customer_name: string | null;
+    status: string;
+    order_value: number | null;
+    delivery_date: string | null;
+    lines_count: number;
+  };
+}

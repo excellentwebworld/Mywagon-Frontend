@@ -1,3 +1,4 @@
+import { laravelOrigin } from '../config/deploymentEnv';
 /** Resolve API media paths to a browser-loadable URL. */
 export function resolveMediaUrl(url: string | null | undefined): string | null {
   if (!url?.trim()) {
@@ -14,7 +15,7 @@ export function resolveMediaUrl(url: string | null | undefined): string | null {
     return `${window.location.protocol}${trimmed}`;
   }
 
-  const base = (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '') ?? '';
+  const base = laravelOrigin();
 
   if (trimmed.startsWith('/')) {
     return base ? `${base}${trimmed}` : trimmed;

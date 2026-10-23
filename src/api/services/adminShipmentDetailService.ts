@@ -1,10 +1,12 @@
+import { apiBaseUrl } from '../../config/deploymentEnv';
 import axios from 'axios';
 import type { ApiShipmentDetail } from '../types/shipments';
 import { mapApiDetailToShipment } from '../mappers/shipmentsMapper';
 import type { Shipment } from '../../context/AppContext';
 
 function publicApiBase(): string {
-  const shipperBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api/shipper/v1';
+  const shipperBase = apiBaseUrl();
+  
   const replaced = shipperBase.replace(/\/shipper\/v1\/?$/, '/public/v1');
   if (replaced !== shipperBase) return replaced.replace(/\/$/, '');
   try {

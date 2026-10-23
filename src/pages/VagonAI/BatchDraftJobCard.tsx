@@ -8,30 +8,50 @@
  * shipper's eyes — the same class of leak as the internal prompt text MS3-347
  * took out of the chat bubble.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { Pencil } from 'lucide-react';
 import {
   batchDraftJobsService,
   type BatchDraftJob,
 } from '../../api/services/batchDraftJobsService';
 import { useTranslation } from '../../hooks/useTranslation';
+import {
+  batchJobHeadingKey, batchJobHintKey, batchJobRows, batchJobTone, type BatchRowTone,
+} from './batchJobRows';
 
 const POLL_MS = 1500;
 /** A blip is retried more slowly, so a gateway that is down is not hammered. */
 const RETRY_MS = POLL_MS * 2;
+
+/** Translucent fills so the pills read on both the light and dark surface. */
+const TONE: Record<BatchRowTone, { fg: string; bg: string }> = {
+  success: { fg: '#059669', bg: 'rgba(16,185,129,0.14)' },
+  warning: { fg: '#D97706', bg: 'rgba(245,158,11,0.16)' },
+  danger: { fg: '#DC2626', bg: 'rgba(239,68,68,0.14)' },
+};
 
 export type BatchDraftJobCardProps = {
   jobId: string;
   locale?: string;
   /** Theme tokens from VagonAIPage (minimal ThemeTokens slice). */
   T: { sf: string; bd: string; t1: string; t2: string; ac: string };
+  /**
+   * Called once when the job reaches `completed` or `failed`, so the page can
+   * refresh what the drafts changed - the orders panel's unplanned count
+   * stayed at "9 unplanned" after the drafts were made (QA 2026-10-08).
+   */
+  onFinished?: (job: BatchDraftJob) => void;
 };
 
-export default function BatchDraftJobCard({ jobId, locale, T }: BatchDraftJobCardProps) {
+export default function BatchDraftJobCard({ jobId, locale, T, onFinished }: BatchDraftJobCardProps) {
   const { t } = useTranslation();
   const [job, setJob] = useState<BatchDraftJob | null>(null);
   const [waiting, setWaiting] = useState(false);
   const [lost, setLost] = useState(false);
+  // Read through a ref so a new callback identity does not restart the polling.
+  const onFinishedRef = useRef(onFinished);
+  onFinishedRef.current = onFinished;
 
   useEffect(() => {
     let cancelled = false;
@@ -54,6 +74,8 @@ export default function BatchDraftJobCard({ jobId, locale, T }: BatchDraftJobCar
       setJob(poll.job);
       if (poll.job.status === 'queued' || poll.job.status === 'running') {
         timer = setTimeout(tick, POLL_MS);
+      } else if (poll.job.status === 'completed' || poll.job.status === 'failed') {
+        onFinishedRef.current?.(poll.job);
       }
     };
 
@@ -69,19 +91,15 @@ export default function BatchDraftJobCard({ jobId, locale, T }: BatchDraftJobCar
   const total = job?.total ?? job?.requested ?? 0;
   const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : status === 'completed' ? 100 : 0;
   const draftsPath = job?.drafts_path || '/shipments?status=drafts';
-  const sids = (job?.created ?? []).map((c) => c.sid).filter(Boolean) as string[];
   const failCount = job?.failed?.length ?? 0;
   const finished = lost || status === 'completed' || status === 'failed';
+  const rows = finished && job ? batchJobRows(job, t) : [];
+  // A job with no rows that still failed did so as a whole (job.error).
+  const tone: BatchRowTone = status === 'failed' && rows.length === 0 ? 'danger' : batchJobTone(rows);
+  const needsAction = rows.some((r) => r.tone === 'warning');
 
-  const heading = lost
-    ? t('vagonai.batchJob.lostTitle')
-    : status === 'queued'
-      ? t('vagonai.batchJob.queued')
-      : status === 'running'
-        ? t('vagonai.batchJob.running')
-        : status === 'completed'
-          ? (failCount > 0 ? t('vagonai.batchJob.partial') : t('vagonai.batchJob.completed'))
-          : t('vagonai.batchJob.failed');
+  const heading = t(batchJobHeadingKey({ lost, status, rows, tone }));
+  const hintKey = batchJobHintKey(rows);
 
   return (
     <div
@@ -124,7 +142,7 @@ export default function BatchDraftJobCard({ jobId, locale, T }: BatchDraftJobCar
             style={{
               width: `${pct}%`,
               height: '100%',
-              background: status === 'failed' ? '#c44' : T.ac,
+              background: finished && tone !== 'success' ? TONE[tone].fg : T.ac,
               transition: 'width 0.3s ease',
             }}
           />
@@ -137,22 +155,102 @@ export default function BatchDraftJobCard({ jobId, locale, T }: BatchDraftJobCar
       )}
       {/* A whole-job failure has no per-order rows to show, so its reason is the only explanation there is. */}
       {status === 'failed' && failCount === 0 && job?.error && (
-        <p style={{ margin: '8px 0 0', fontSize: 12, color: '#c44' }}>{job.error}</p>
+        <p style={{ margin: '8px 0 0', fontSize: 12, color: TONE.danger.fg }}>{job.error}</p>
       )}
 
       {finished && (
         <div style={{ marginTop: 10, fontSize: 12 }}>
-          {sids.length > 0 && (
-            <p style={{ margin: '0 0 8px', color: T.t2 }}>{t('vagonai.batchJob.created', { sids: sids.join(', ') })}</p>
+          {rows.length > 0 && (
+            <div
+              style={{
+                maxHeight: 280,
+                overflowY: 'auto',
+                border: `1px solid ${T.bd}`,
+                borderRadius: 8,
+                marginBottom: 10,
+              }}
+            >
+              <table
+                data-testid="batch-job-table"
+                style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, lineHeight: 1.4 }}
+              >
+                <thead>
+                  <tr style={{ color: T.t2, textAlign: 'left' }}>
+                    {(['order', 'status', 'details'] as const).map((col) => (
+                      <th
+                        key={col}
+                        scope="col"
+                        style={{
+                          position: 'sticky',
+                          top: 0,
+                          background: T.sf,
+                          padding: '6px 10px',
+                          fontWeight: 600,
+                          borderBottom: `1px solid ${T.bd}`,
+                        }}
+                      >
+                        {t(`vagonai.batchJob.columns.${col}`)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, i) => (
+                    <tr
+                      key={row.key}
+                      data-tone={row.tone}
+                      style={{ borderTop: i === 0 ? undefined : `1px solid ${T.bd}`, verticalAlign: 'top' }}
+                    >
+                      {/* Not nowrap: a reference like MS342-SBX-ORD-HIST-01 pushed past the
+                          card's edge, into a sideways scroll nobody noticed. It wraps at its hyphens. */}
+                      <td style={{ padding: '6px 10px', fontWeight: 600, minWidth: 96 }} title={row.order}>
+                        {row.order}
+                        {row.editOrderId && (
+                          // A new tab, so the table stays here to work down the list.
+                          <Link
+                            to={`/erp-orders?edit=${encodeURIComponent(row.editOrderId)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-testid="batch-job-edit-order"
+                            aria-label={t('vagonai.batchJob.editOrder', { ref: row.order })}
+                            title={t('vagonai.batchJob.editOrder', { ref: row.order })}
+                            style={{
+                              display: 'inline-flex',
+                              verticalAlign: 'middle',
+                              marginLeft: 6,
+                              padding: 2,
+                              borderRadius: 4,
+                              color: T.ac,
+                            }}
+                          >
+                            <Pencil size={13} aria-hidden="true" />
+                          </Link>
+                        )}
+                      </td>
+                      <td style={{ padding: '6px 10px', whiteSpace: 'nowrap' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '1px 8px',
+                            borderRadius: 999,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: TONE[row.tone].fg,
+                            background: TONE[row.tone].bg,
+                          }}
+                        >
+                          {t(`vagonai.batchJob.rowStatus.${row.tone}`)}
+                        </span>
+                      </td>
+                      <td style={{ padding: '6px 10px', color: T.t2 }}>{row.detail}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-          {failCount > 0 && (
-            <p style={{ margin: '0 0 8px', color: '#c44' }}>
-              {t('vagonai.batchJob.notCreated', {
-                list: (job?.failed ?? [])
-                  .map((f) => `${f.order_reference || f.order_id || '?'}${f.reason ? ` (${f.reason})` : ''}`)
-                  .join('; '),
-              })}
-            </p>
+          {needsAction && hintKey && (
+            <p style={{ margin: '0 0 8px', color: T.t2 }}>{t(hintKey)}</p>
           )}
           <Link
             to={draftsPath}

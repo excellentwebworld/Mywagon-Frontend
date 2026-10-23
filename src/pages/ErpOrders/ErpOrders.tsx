@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import '../../styles/erp-orders.css';
 import '../../styles/ai-wizard.css';
 import { useErpOrdersList } from './hooks/useErpOrdersList';
+import { OrderImportModal } from '../VagonAI/OrderImportModal';
 import { useApp } from '../../context/AppContext';
 import { ApiError } from '../../api';
 import { productMasterService } from '../../api/services/productMasterService';
@@ -35,6 +36,7 @@ import type { LocationItem } from '../../context/AppContext';
 import { EMPTY_ORDER_LINE } from './types';
 import type { ErpOrder } from './types';
 import type { SKU } from '../../context/AppContext';
+import { orderDisplayRef } from '../../utils/orderDisplayRef';
 
 type LocationTarget = 'origin' | 'dest';
 
@@ -317,8 +319,9 @@ export const ErpOrders: React.FC = () => {
         }}
         openAiWizard={() => {
           if (!requirePermission('create_orders')) return;
-          state.openAiWizard();
+          state.openImportModal('new');
         }}
+        openImportHistory={() => state.openImportModal('history')}
         onExport={state.handleExport}
         exporting={state.exporting}
         onCreateLoad={() => handleCreateLoad()}
@@ -400,7 +403,7 @@ export const ErpOrders: React.FC = () => {
         message={t(
           'erpOrdersDeleteConfirmMessage',
           'Delete order {{ref}}? This cannot be undone.',
-        ).replace('{{ref}}', orderPendingDelete?.orderReference || '')}
+        ).replace('{{ref}}', orderDisplayRef(orderPendingDelete))}
         confirmLabel={t('erpOrdersDelete', 'Delete')}
         variant="danger"
         onConfirm={() => {
@@ -464,6 +467,15 @@ export const ErpOrders: React.FC = () => {
         onSubmit={handleCreateSku}
         saving={skuSaving}
         title={state.t('erpOrdersAddProduct')}
+      />
+
+      {/* MS3-360: imports run on the Vagon AI engine; the classic wizard stays only for a server still on Laravel's. */}
+      <OrderImportModal
+        open={state.importModal.open}
+        initialTab={state.importModal.tab}
+        onClose={state.closeImportModal}
+        onImported={state.handleAiWizardImportSuccess}
+        onLegacy={state.openAiWizard}
       />
 
       <OrdersAiWizardModal

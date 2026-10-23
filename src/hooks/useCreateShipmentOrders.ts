@@ -5,6 +5,7 @@ import { mapApiListItemToOrder } from '../api/mappers/erpOrdersMapper';
 import type { ErpOrder, ErpOrderLine } from '../pages/ErpOrders/types';
 import { wizardQueryKeys } from '../pages/CreateShipmentWizard/hooks/wizardQueryKeys';
 import { isOrderEligibleForCreateLoad } from '../pages/CreateShipmentWizard/hooks/erpOrdersPrefill';
+import { orderDisplayRef } from '../utils/orderDisplayRef';
 
 type StopLineLike = {
   orderId?: string;
@@ -268,7 +269,7 @@ export function useCreateShipmentOrders(options?: {
 
   const orderOptions = orders.map((order) => ({
     value: order.id,
-    label: order.orderReference,
+    label: orderDisplayRef(order),
     sublabel: [
       order.customerName,
       order.erpReference ? order.erpReference : null,
@@ -364,6 +365,30 @@ export function getProductOptionsForCargoLine(
   options?: GetProductOptionsForOrderOptions,
 ) {
   return getProductOptionsForOrder(order, options);
+}
+
+/**
+ * MS3-403: a cargo line does not need an order. Without one, the product
+ * picker offers the active Product Master instead of the order's lines.
+ */
+export function getProductMasterOptionsForCargoLine(
+  skus: ReadonlyArray<{ id: string | number; name?: string | null; number?: string | null; active?: boolean; archived?: boolean }> | null | undefined,
+): { value: string; label: string; sublabel?: string }[] {
+  const seen = new Set<string>();
+  const out: { value: string; label: string; sublabel?: string }[] = [];
+  for (const sku of skus ?? []) {
+    if (!sku || sku.active === false || sku.archived) continue;
+    const value = String(sku.id ?? '').trim();
+    if (!value || seen.has(value)) continue;
+    seen.add(value);
+    const number = String(sku.number ?? '').trim();
+    out.push({
+      value,
+      label: String(sku.name ?? '').trim() || number || value,
+      sublabel: number || undefined,
+    });
+  }
+  return out;
 }
 
 export function findOrderLineForProduct(order: ErpOrder | null | undefined, productId: string) {

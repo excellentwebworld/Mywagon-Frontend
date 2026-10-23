@@ -16,8 +16,9 @@
  *
  * Two shapes carry that intent and should not be "simplified" away:
  *
- *   - The type picker is a CASCADE, not a text input. A category with no types is
- *     shown and disabled, because a product cannot be filed without a type and a
+ *   - The type picker is a list of the catalog's own types, grouped under their
+ *     categories, never a text input. A category with no types is shown and
+ *     disabled, because a product cannot be filed without a type and a
  *     silently-missing option reads as a missing category.
  *   - Weight is a NUMBER and a UNIT, never a string. The API takes "12.5 kg" and
  *     refuses a bare number, because 12.5 could be kilos or tonnes and reading it
@@ -32,19 +33,22 @@
  * filling in the wrong one produces a record that looks correct and gets the load
  * carried wrong.
  */
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Package, CircleCheck, Save, ChevronDown, ChevronRight } from 'lucide-react';
 import type { FlowContextEvent, ProductFlowBundle } from '../../hooks/useChat';
 import type { ThemeTokens } from '../../utils/themes';
 import { useTranslation } from '../../hooks/useTranslation';
-import { Button, Field, Heading, Notes, PickRow, Shell } from './flowPrimitives';
-import { inputStyle, useFilter } from './flowHelpers';
+import { Button, Field, Heading, Notes, Shell } from './flowPrimitives';
+import { inputStyle } from './flowHelpers';
+import PickerDropdown from './PickerDropdown';
+import type { PickerOption } from './pickerModel';
 import {
-  WEIGHT_UNITS, categoryOfType, duplicateMessage, duplicateOf, emptyProductDraft,
+  WEIGHT_UNITS, duplicateMessage, duplicateOf, emptyProductDraft,
   productIssues, productWarnings, selectableCategories, serializeProductDraft, skuClashOf,
   type ProductDraft, type ProductWeightUnit,
 } from './createProductDraft';
 import { useTr } from './i18n';
+import { ensureDraftRunId } from './api/shipmentDraftService';
 
 /**
  * The datalist suggestions, each with the locale key for the label the shipper
@@ -86,7 +90,7 @@ interface Props {
    */
   event: Extract<FlowContextEvent, { flow: 'create_product' }>;
   T: ThemeTokens;
-  onSubmit: (draft: ProductDraft) => Promise<ProductSubmitResult>;
+  onSubmit: (draft: ProductDraft, runId?: string) => Promise<ProductSubmitResult>;
   /**
    * Called with the new product's id once it is saved.
    *
@@ -149,12 +153,12 @@ export default function CreateProductForm({ event, T, onSubmit, onSaved, disable
   const tr = useTr();
   const bundle: ProductFlowBundle = event.bundle;
   const [draft, setDraft] = useState<ProductDraft>(emptyProductDraft);
-  const [categoryId, setCategoryId] = useState<string>('');
-  const [search, setSearch] = useState('');
   const [more, setMore] = useState(false);
   const [busy, setBusy] = useState(false);
   const [refusal, setRefusal] = useState<{ reason: string; missing: string[] } | null>(null);
   const [saved, setSaved] = useState<ProductSubmitResult['done'] | null>(null);
+  /** BL-04: minted on the first save, reused for every retry of this form. */
+  const runIdRef = useRef<string | null>(null);
   const [tagText, setTagText] = useState('');
 
   const locked = disabled || busy || saved !== null;
@@ -170,17 +174,26 @@ export default function CreateProductForm({ event, T, onSubmit, onSaved, disable
   };
 
   const categories = useMemo(() => selectableCategories(bundle), [bundle]);
-  const filtered = useFilter(
-    categories,
-    search,
-    (category, needle) =>
-      category.name.toLowerCase().includes(needle) ||
-      category.types.some((type) => type.name.toLowerCase().includes(needle)),
-  );
-
-  const chosenCategory = categoryId
-    ? (bundle.categories.find((c) => c.id === categoryId) ?? null)
-    : categoryOfType(bundle, draft.typeId);
+  /**
+   * Every type, under its category. Picking a type is picking the pair, so a
+   * type can never be saved under the wrong category.
+   *
+   * A category with no types is listed and disabled rather than left out: a
+   * category that silently vanished reads to the shipper as one they have lost.
+   */
+  const typeOptions = useMemo((): PickerOption[] => [
+    ...categories.flatMap((category) =>
+      category.types.map((type) => ({ id: type.id, title: type.name, group: category.name })),
+    ),
+    ...bundle.categories
+      .filter((category) => category.types.length === 0)
+      .map((category) => ({
+        id: `empty:${category.id}`,
+        title: t('vagonai.productForm.category.noTypes', 'No product types yet — set one up in the Product Master'),
+        group: category.name,
+        disabled: true,
+      })),
+  ], [categories, bundle.categories, t]);
 
   const issues = productIssues(draft, tr);
   const clash = duplicateOf(draft, bundle);
@@ -197,7 +210,7 @@ export default function CreateProductForm({ event, T, onSubmit, onSaved, disable
     setBusy(true);
     setRefusal(null);
     try {
-      const result = await onSubmit(serializeProductDraft(draft));
+      const result = await onSubmit(serializeProductDraft(draft), ensureDraftRunId(runIdRef));
       if (!result.ok) {
         setRefusal({
           reason: result.reason ?? t('vagonai.productForm.refusalFallback', 'This product could not be saved yet.'),
@@ -298,73 +311,18 @@ export default function CreateProductForm({ event, T, onSubmit, onSaved, disable
             <span style={{ fontSize: 11, color: T.t3, fontWeight: 600 }}>
               {t('vagonai.productForm.category.label', 'Category and type')}
             </span>
-            {categories.length > 6 && (
-              <input
-                value={search}
+            <div style={{ marginTop: 5 }}>
+              <PickerDropdown
+                T={T}
+                testId="product-type-picker"
+                options={typeOptions}
+                selectedIds={draft.typeId ? [draft.typeId] : []}
+                onSelect={(typeId) => patch({ typeId })}
+                placeholder={t('vagonai.productForm.category.choose', 'Choose a category and type')}
+                searchPlaceholder={t('vagonai.productForm.category.search', 'Search categories and types…')}
+                invalid={refusal?.missing.includes('typeId') ?? false}
                 disabled={locked}
-                placeholder={t('vagonai.productForm.category.search', 'Search categories and types…')}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{ ...inputStyle(T), marginTop: 5 }}
               />
-            )}
-            <div className="flex flex-col" style={{ gap: 5, marginTop: 6, maxHeight: 210, overflowY: 'auto' }}>
-              {filtered.map((category) => {
-                const open = chosenCategory?.id === category.id;
-                return (
-                  <div key={category.id}>
-                    <PickRow
-                      T={T}
-                      title={category.name}
-                      subtitle={t(
-                        'vagonai.productForm.category.typeCount',
-                        category.types.length === 1 ? '{{count}} type' : '{{count}} types',
-                        { count: category.types.length },
-                      )}
-                      selected={open}
-                      disabled={locked}
-                      onClick={() => {
-                        setCategoryId(open ? '' : category.id);
-                        // Choosing a different category invalidates the type under
-                        // the old one — cleared rather than left to save a
-                        // mismatched pair.
-                        if (!open && categoryOfType(bundle, draft.typeId)?.id !== category.id) patch({ typeId: '' });
-                      }}
-                    />
-                    {open && (
-                      <div className="flex flex-col" style={{ gap: 4, marginTop: 4, paddingLeft: 14 }}>
-                        {category.types.map((type) => (
-                          <PickRow
-                            key={type.id}
-                            T={T}
-                            title={type.name}
-                            selected={draft.typeId === type.id}
-                            disabled={locked}
-                            onClick={() => patch({ typeId: type.id })}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              {/* Shown, and shown disabled: a category that silently vanished
-                  reads to the shipper as a category they have lost. */}
-              {bundle.categories
-                .filter((category) => category.types.length === 0)
-                .map((category) => (
-                  <PickRow
-                    key={category.id}
-                    T={T}
-                    title={category.name}
-                    subtitle={t(
-                      'vagonai.productForm.category.noTypes',
-                      'No product types yet — set one up in the Product Master',
-                    )}
-                    selected={false}
-                    disabled
-                    onClick={() => undefined}
-                  />
-                ))}
             </div>
           </div>
 

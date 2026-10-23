@@ -176,6 +176,10 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
   // Bids / interest only matter while loads are still open for bidding.
   const showBidsCol = activeTab === 'active' || activeTab === 'pending';
   const colCount = BASE_COL_COUNT + (showBidsCol ? 1 : 0);
+  // Backend rule (ShipmentStatusFlags::compute): pending + no transporter + pickup today or tomorrow.
+  const atRiskHint = `${t('atRiskLate')}: ${t('atRiskReasonHint', {
+    defaultValue: 'Pending, no transporter assigned, pickup today or tomorrow',
+  })}`;
 
   const emptyMessage =
     emptyReason === 'unsupported'
@@ -297,7 +301,10 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                   </td>
                   <td className="col-status">
                     <div className="status-cell">
-                      <span className={`status-box-wrap${row.at_risk ? ' is-at-risk' : ''}`}>
+                      <span
+                        className={`status-box-wrap${row.at_risk ? ' is-at-risk' : ''}`}
+                        title={row.at_risk ? atRiskHint : undefined}
+                      >
                         <LoadStatus
                           status={row.status}
                           bids={
@@ -320,8 +327,8 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                         {row.at_risk ? (
                           <span
                             className="status-at-risk-warn"
-                            aria-label={t('atRiskLate')}
-                            title={t('atRiskLate')}
+                            aria-label={atRiskHint}
+                            title={atRiskHint}
                           >
                             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                               <path d="M12 3L22 21H2L12 3z" />
@@ -356,7 +363,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                       <BidsCell shipment={row} t={t} />
                     </td>
                   ) : null}
-                  <td>
+                  <td className="col-transporter">
                     {row.carrier ? (
                       <div className="carrier-cell">
                         <CarrierAvatar
@@ -374,7 +381,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                       <span className="sub">—</span>
                     )}
                   </td>
-                  <td>
+                  <td className="col-price">
                     {quoted ? (
                       <>
                         <span className="price">{quoted}</span>
@@ -386,7 +393,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                       <span className="sub">—</span>
                     )}
                   </td>
-                  <td>
+                  <td className="col-price">
                     {agreed ? (
                       <>
                         <span className="price agreed-price">{agreed}</span>

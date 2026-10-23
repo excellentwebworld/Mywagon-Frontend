@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { localizedText } from '../../utils/localizedText';
 import type { Shipment } from '../../context/AppContext';
 import {
   buildLaravelProgressSteps,
@@ -112,9 +113,9 @@ export const MilestonesBar: React.FC<MilestonesBarProps> = ({
                     className={`text-[13px] leading-snug break-words max-w-full ${labelClass} ${
                       isCur || isRed ? 'font-bold' : 'font-semibold'
                     }`}
-                    title={step.label}
+                    title={localizedText(step.label)}
                   >
-                    {step.label}
+                    {localizedText(step.label)}
                   </span>
 
                   {reasonLabel && (

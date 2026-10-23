@@ -13,6 +13,7 @@ import {
 } from '../../pages/ErpOrders/erpOrderUiUtils';
 import { shipmentStatusLabel } from '../ShipmentDetail/StatusBadge';
 import { translateCargoUnit } from '../../constants/cargoUnits';
+import { orderDisplayRef } from '../../utils/orderDisplayRef';
 
 const ST_CLS: Record<string, string> = {
   unplanned: 'st-new',
@@ -98,7 +99,7 @@ export const OrderDetailDrawer: React.FC<Props> = ({
               <div className="erp-order-drawer-head-top">
                 <div className="erp-order-drawer-head-main">
                   <div className="erp-order-drawer-title" id="erp-order-drawer-title">
-                    <span className="erp-order-drawer-id">{order?.orderReference ?? t('erpOrdersDetail')}</span>
+                    <span className="erp-order-drawer-id">{order ? orderDisplayRef(order) : t('erpOrdersDetail')}</span>
                     {order && <span className={`st ${ST_CLS[order.status] || ''}`}>{statusLabel(order.status)}</span>}
                     {order?.highPriority && (
                       <span className="erp-order-drawer-priority">⚡ {t('erpOrdersPriorityUrgent')}</span>

@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDownload, AUTH_TOKEN_KEY, ApiError } from '../client';
+import { API_BASE, apiGet, apiPost, apiDownload, AUTH_TOKEN_KEY, ApiError } from '../client';
 import type {
   Invoice,
   InvoicePrintPayload,
@@ -8,7 +8,6 @@ import type {
   StatementPayload,
 } from '../types/billing';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
 export type ListInvoicesParams = {
   status?: string;

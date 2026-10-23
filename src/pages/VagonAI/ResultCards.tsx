@@ -42,11 +42,14 @@ import {
   Package,
   Search,
   Truck,
+  Users,
 } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { ResultAction, ResultCard, ResultCardSet, ResultStop, ResultTone } from '../../hooks/useChat';
 import type { ThemeTokens } from '../../utils/themes';
+import ReportView from './ReportView';
+import { toUpperGreek } from '../../utils/greekUppercase';
 
 interface Props {
   set: ResultCardSet;
@@ -86,7 +89,8 @@ function KindIcon({ kind, size = 13 }: { kind: ResultCardSet['kind']; size?: num
   // without this an available truck drew the Package icon and read as a product.
   if (kind === 'shipment' || kind === 'truck') return <Truck size={size} />;
   if (kind === 'location') return <MapPin size={size} />;
-  if (kind === 'analytics') return <BarChart3 size={size} />;
+  if (kind === 'analytics' || kind === 'report') return <BarChart3 size={size} />;
+  if (kind === 'partner') return <Users size={size} />;
   return <Package size={size} />;
 }
 
@@ -173,12 +177,11 @@ function StopRow({ stop, T, t }: { stop: ResultStop; T: ThemeTokens; t: (k: stri
               fontSize: 10,
               fontWeight: 700,
               letterSpacing: '0.05em',
-              textTransform: 'uppercase',
               color: T.t3,
               marginRight: 5,
             }}
           >
-            {t(collecting ? 'vagonai.confirm.stopPickup' : 'vagonai.confirm.stopDelivery')}
+            {toUpperGreek(t(collecting ? 'vagonai.confirm.stopPickup' : 'vagonai.confirm.stopDelivery'))}
           </span>
           {stop.label}
           {stop.place && stop.place !== stop.label ? (
@@ -374,7 +377,6 @@ function RecordCard({ card, kind, T, isDark, t, onFollowUp }: {
               fontSize: 10.5,
               fontWeight: 700,
               letterSpacing: '0.04em',
-              textTransform: 'uppercase',
               padding: '2px 7px',
               borderRadius: 999,
               whiteSpace: 'nowrap',
@@ -386,7 +388,7 @@ function RecordCard({ card, kind, T, isDark, t, onFollowUp }: {
               here and another on the shipments page. The gateway's `label` is the
               fallback for a status this build has no key for.
             */}
-            {t(card.status.code, { defaultValue: card.status.label })}
+            {toUpperGreek(t(card.status.code, { defaultValue: card.status.label }))}
           </span>
         )}
       </div>
@@ -466,9 +468,10 @@ function RecordCard({ card, kind, T, isDark, t, onFollowUp }: {
         follow-up asks the assistant. Wrapped so they wrap rather than overflow on
         a narrow screen.
       */}
-      {(card.action || (card.followUp && onFollowUp)) && (
+      {(card.action || card.secondaryAction || (card.followUp && onFollowUp)) && (
         <div className="flex flex-wrap items-center" style={{ gap: 6, marginTop: 10 }}>
           {card.action && <ActionLink action={card.action} T={T} />}
+          {card.secondaryAction && <ActionLink action={card.secondaryAction} T={T} />}
           {card.followUp && onFollowUp && (
             <FollowUpButton followUp={card.followUp} T={T} onFollowUp={onFollowUp} />
           )}
@@ -483,7 +486,7 @@ export default function ResultCards({ set, T, onFollowUp }: Props) {
   const { t } = useTranslation();
 
   return (
-    <div style={{ marginTop: 10, maxWidth: 560 }}>
+    <div style={{ marginTop: 10, maxWidth: set.kind === 'report' ? 640 : 560 }}>
       <div className="flex items-center gap-1.5" style={{ fontSize: 13.5, fontWeight: 700, color: T.t1 }}>
         <span className="flex-shrink-0" style={{ color: T.t3 }}>
           <KindIcon kind={set.kind} />
@@ -499,26 +502,33 @@ export default function ResultCards({ set, T, onFollowUp }: Props) {
         </div>
       )}
 
-      <div className="flex flex-col" style={{ gap: 6, marginTop: 8 }}>
-        {set.cards.map((card) =>
-          // The kind decides the layout, because the two are different shapes of
-          // answer rather than two skins on one: records are things to open and
-          // read down, dashboard groups are numbers to scan across.
-          set.kind === 'analytics' ? (
-            <MetricCard key={card.id} card={card} T={T} isDark={isDark} />
-          ) : (
-            <RecordCard
-              key={card.id}
-              card={card}
-              kind={set.kind}
-              T={T}
-              isDark={isDark}
-              t={t}
-              onFollowUp={onFollowUp}
-            />
-          ),
-        )}
-      </div>
+      {/* A report is a table, not a list of cards: its own layout, start to finish. */}
+      {set.kind === 'report' && set.table ? (
+        <div style={{ marginTop: 8 }}>
+          <ReportView set={set} T={T} t={t} />
+        </div>
+      ) : (
+        <div className="flex flex-col" style={{ gap: 6, marginTop: 8 }}>
+          {set.cards.map((card) =>
+            // The kind decides the layout, because the two are different shapes of
+            // answer rather than two skins on one: records are things to open and
+            // read down, dashboard groups are numbers to scan across.
+            set.kind === 'analytics' ? (
+              <MetricCard key={card.id} card={card} T={T} isDark={isDark} />
+            ) : (
+              <RecordCard
+                key={card.id}
+                card={card}
+                kind={set.kind}
+                T={T}
+                isDark={isDark}
+                t={t}
+                onFollowUp={onFollowUp}
+              />
+            ),
+          )}
+        </div>
+      )}
 
       {/*
         Said plainly rather than left to be inferred from a short list: a shipper

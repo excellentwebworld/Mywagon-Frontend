@@ -2,6 +2,7 @@ import axios from 'axios';
 import i18n from '../utils/i18n';
 import { getBrowserTimezone } from '../utils/timezone';
 import { safeSessionGet, safeSessionSet } from '../utils/safeStorage';
+import { laravelOrigin as deploymentLaravelOrigin } from '../config/deploymentEnv';
 
 export type WebViewRole = 'carrier' | 'driver';
 
@@ -19,19 +20,7 @@ export function setStoredWebViewUserId(role: WebViewRole, userId: string): void 
 }
 
 function laravelOrigin(): string {
-  const fromLaravel = (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '');
-  if (fromLaravel) return fromLaravel;
-
-  const shipperBase = import.meta.env.VITE_API_BASE_URL as string | undefined;
-  if (shipperBase?.startsWith('http')) {
-    try {
-      return new URL(shipperBase).origin;
-    } catch {
-      // ignore malformed env
-    }
-  }
-
-  return '';
+  return deploymentLaravelOrigin();
 }
 
 export function createWebViewApi(role: WebViewRole, userId: string) {
