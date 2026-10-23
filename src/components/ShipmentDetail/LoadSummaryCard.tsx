@@ -15,7 +15,6 @@ import {
 import type { DetailNote } from '../../pages/ShipmentDetail/detailViewModel';
 import { parseSpecialInstructions, formatUtcToDisplayDateTime, type ParsedInstructionNote } from '../../utils/timezone';
 import { CollapsibleCard } from './CollapsibleCard';
-import { localizedText } from '../../utils/localizedText';
 
 export interface LoadSummaryData {
   vehicleTypes: string[];
@@ -183,7 +182,7 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
                   key={`vt-${i}`}
                   className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)]"
                 >
-                  {localizedText(v)}
+                  {v}
                 </span>
               ))}
               {!vehicleTypesExpanded && vehicleTypes.length > 2 && (
@@ -238,7 +237,7 @@ export const LoadSummaryCard: React.FC<LoadSummaryCardProps> = ({
                   key={`cs-${i}`}
                   className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800"
                 >
-                  {localizedText(c)}
+                  {c}
                 </span>
               ))}
               {!cargoSpecsExpanded && cargoSpecs.length > 2 && (

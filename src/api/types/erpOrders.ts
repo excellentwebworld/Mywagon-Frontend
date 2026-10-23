@@ -35,13 +35,9 @@ export interface ApiErpOrderLine {
 
 export interface ApiErpOrderListItem {
   id: number;
-  /** MS3-403: null when the order was created without an order number. */
-  order_reference: string | null;
-  /** Order number, or "#<id>" when there is none (Laravel OrderListResource). */
-  display_reference?: string;
+  order_reference: string;
   erp_reference?: string | null;
-  /** MS3-403 / MS3-405: the customer is optional. */
-  customer_name: string | null;
+  customer_name: string;
   ship_from?: string | null;
   ship_to?: string | null;
   ship_date?: string | null;
@@ -117,11 +113,7 @@ export interface AiMappedOrderLine {
 }
 
 export interface AiMappedOrder {
-  /**
-   * MS3-403: optional - Laravel may now send null for a row without one (imported
-   * as a new order).
-   */
-  order_reference: string | null;
+  order_reference: string;
   erp_reference?: string | null;
   customer_name?: string | null;
   company_entity_id?: number | null;

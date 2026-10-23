@@ -6,7 +6,6 @@ import {
   utcToLocalParts,
 } from '../../utils/timezone';
 import { groupItineraryStops } from '../../pages/ManageShipments/utils/listingUtils';
-import { localizedList, localizedText } from '../../utils/localizedText';
 import i18n from 'i18next';
 
 type BilingualLabel = { en?: string; el?: string; label?: string };
@@ -63,13 +62,8 @@ function cleanPerformanceStatusText(text?: string | null): string {
     .trim();
 }
 
-function textOf(value: unknown, fallback = ''): string {
-  const text = localizedText(value).trim();
-  return text || fallback;
-}
-
-function mapApiStatus(status: unknown): Shipment['status'] {
-  const norm = textOf(status).toLowerCase().trim().replace(/[\s-]+/g, '_');
+function mapApiStatus(status: string): Shipment['status'] {
+  const norm = (status || '').toLowerCase().trim().replace(/[\s-]+/g, '_');
   switch (norm) {
     case 'pending':
       return 'pending';
@@ -182,7 +176,7 @@ function stopUtcInstant(date?: string | null, time?: string | null): string | nu
 }
 
 function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | null): ShipmentStop {
-  const name = textOf(stop.company_name) || textOf(customerName);
+  const name = stop.company_name || customerName || '';
   const rawDate = (stop.date || '').trim();
   const isEpochOrZero =
     !rawDate ||
@@ -213,8 +207,8 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
   return {
     id: Number(stop.id) || index + 1,
     type: stop.type === 'pickup' ? 'pickup' : 'delivery',
-    location: textOf(stop.location) || textOf(stop.city) || '—',
-    address: textOf(stop.address) || textOf(stop.city),
+    location: stop.location || stop.city || '—',
+    address: stop.address || stop.city || '',
     lat: stop.lat != null ? Number(stop.lat) : null,
     lng: stop.lng != null ? Number(stop.lng) : null,
     date: finalDate,
@@ -255,7 +249,7 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
               orders: [
                 {
                   id: stop.order_id || '',
-                  products: textOf(stop.product_name, '—'),
+                  products: stop.product_name || '—',
                   qty: parseFloat(String(stop.qty ?? 0)) || 0,
                   qtyUnit: String(stop.qty_unit ?? ''),
                   weight: parseFloat(String(stop.weight ?? 0)) || 0,
@@ -288,7 +282,7 @@ function customersFromStops(detail: ApiShipmentDetail): Shipment['customer'] {
   const byName = new Map<string, string[]>();
   stops.forEach((stop) => {
     if (!stop.order_id) return;
-    const name = textOf(stop.company_name) || textOf(detail.customer_reference, '—');
+    const name = stop.company_name || detail.customer_reference || '—';
     const list = byName.get(name) || [];
     if (!list.includes(stop.order_id)) list.push(stop.order_id);
     byName.set(name, list);
@@ -371,16 +365,14 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
       (item.intermediate_stops ?? 0) > 0 || (item.stop_count ?? 0) > 2
         ? 'multiple'
         : item.shipment_type ?? null,
-    origin: textOf(item.origin, '—'),
-    dest: textOf(item.dest, '—'),
+    origin: item.origin || '—',
+    dest: item.dest || '—',
     via: viaStops.length ? viaStops.join(', ') : item.via ?? null,
     viaStops,
     stopCount: item.stop_count ?? (viaStops.length > 0 ? viaStops.length + 2 : 2),
     intermediateStops: item.intermediate_stops ?? Math.max((item.stop_count ?? 2) - 2, 0),
     ordersCount: item.orders_count ?? (item.customer_reference ? 1 : 0),
     orderIds: item.order_ids ?? [],
-    hasOrder: item.has_order === true,
-    orderRequiredForDispatch: item.order_required_for_dispatch === true,
     invited: item.invited_count ?? 0,
     interestedCount: item.interested_count ?? 0,
     customer: mapCustomers(item),
@@ -501,7 +493,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     journeyDistanceKm: journeyKm,
     journeyTime: detail.journey_time ?? null,
     cargoValue: detail.cargo_value ?? null,
-    truckTypes: localizedList(detail.truck_types),
+    truckTypes: detail.truck_types ?? [],
     totalWeight: detail.total_weight ?? null,
     totalQty: detail.total_qty ?? null,
     weightUnit: detail.weight_unit ?? null,
@@ -600,8 +592,8 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
           duration: detail.trip_summary.duration || '—',
           stops: detail.trip_summary.stops_count || 0,
           weight: detail.trip_summary.total_weight || '—',
-          customers: detail.trip_summary.customers_count ?? 0,
-          orders: detail.trip_summary.orders_count ?? 0,
+          customers: detail.trip_summary.customers_count || 1,
+          orders: detail.trip_summary.orders_count || 1,
         }
       : null,
     auditEntries: detail.audit_entries
@@ -716,7 +708,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
     ).map((r) => ({
       type: r.type,
       locationId: Number(r.location_id),
-      locationLabel: textOf(r.location_label, '—'),
+      locationLabel: r.location_label || '—',
       stopType: r.stop_type === 'delivery' ? 'delivery' : 'pickup',
       summary: cleanPerformanceStatusText(r.summary) || '—',
       wasOnTime: r.was_on_time ?? null,
@@ -735,7 +727,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
               : null,
           pickupStops: (detail.trip_performance.pickup_stops || []).map((s) => ({
             locationId: Number(s.location_id),
-            label: textOf(s.label) || textOf(s.company_name) || textOf(s.location_name) || 'Pickup',
+            label: s.label || s.company_name || s.location_name || 'Pickup',
             locationName: s.location_name ?? null,
             companyName: s.company_name ?? null,
             pickupDelayText:
@@ -750,7 +742,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
           })),
           dropoffStops: ((detail.trip_performance as any).dropoff_stops || []).map((s: any) => ({
             locationId: Number(s.location_id),
-            label: textOf(s.label) || textOf(s.company_name) || textOf(s.location_name) || 'Dropoff',
+            label: s.label || s.company_name || s.location_name || 'Dropoff',
             locationName: s.location_name ?? null,
             companyName: s.company_name ?? null,
             loadingWaitText:
@@ -764,7 +756,7 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
           reports: (detail.trip_performance.reports || []).map((r) => ({
             type: r.type,
             locationId: Number(r.location_id),
-            locationLabel: textOf(r.location_label, '—'),
+            locationLabel: r.location_label || '—',
             stopType: r.stop_type === 'delivery' ? 'delivery' : 'pickup',
             summary: cleanPerformanceStatusText(r.summary) || '—',
             wasOnTime: r.was_on_time ?? null,

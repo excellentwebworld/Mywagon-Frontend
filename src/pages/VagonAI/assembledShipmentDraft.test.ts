@@ -59,7 +59,6 @@ function seed(overrides: Partial<FlowDraftSeed> = {}): FlowDraftSeed {
     settlement: 'direct',
     bulk: { mode: 'single' },
     trackingOrderIds: [],
-    trackingEmails: {},
     ...overrides,
   };
 }

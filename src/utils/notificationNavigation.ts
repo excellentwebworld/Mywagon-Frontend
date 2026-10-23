@@ -245,12 +245,9 @@ export function resolveLaravelStylePushRoute(data: {
     case 'billing':
     case 'payment':
       return id ? `/billing?invoice=${encodeURIComponent(id)}` : '/billing';
-    case 'kyc': // test-fix: the toast already styles any type containing 'kyc' as Compliance; route it there too
     case 'kyc_accepted':
     case 'kyc_rejected':
       return '/settings/compliance';
-    case 'product': // test-fix: the toast has a Products category, so a plain 'product' push deep-links to the registry
-      return '/products';
     case 'message':
       return '/messages';
     case 'partner':

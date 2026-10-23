@@ -318,11 +318,6 @@ export function wizardValuesToDraft(
   }
 
   const startingPrice = toNumber(values.targetPrice);
-  const trackingEmails: Record<string, string[]> = Object.fromEntries(
-    Object.entries(values.trackingEmails ?? {}).filter(
-      ([, emails]) => Array.isArray(emails) && emails.length > 0,
-    ),
-  );
 
   const draft: ShipmentDraft = {
     customerReference: values.custRef?.trim() ? values.custRef.trim() : null,
@@ -351,8 +346,9 @@ export function wizardValuesToDraft(
     // Each queued load is one ordinary single-load create+publish. The batch
     // lives in the gateway's queue, not in a bulk mode the core API refuses.
     bulk: { mode: 'single' },
-    trackingOrderIds: Object.keys(trackingEmails),
-    trackingEmails,
+    trackingOrderIds: Object.entries(values.trackingEmails ?? {})
+      .filter(([, emails]) => Array.isArray(emails) && emails.length > 0)
+      .map(([orderId]) => orderId),
   };
 
   const measured = values.routeSummary;

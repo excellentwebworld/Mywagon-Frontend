@@ -96,12 +96,6 @@ export interface ShipmentDraft {
   settlement: string;
   bulk: { mode: string };
   trackingOrderIds: string[];
-  /**
-   * Receiver tracking link emails keyed by ERP order id (MS3-354).
-   * Multi-email per order; seeded from the order/customer address and editable
-   * on the draft card. Distinct from requireTracking (live navigation).
-   */
-  trackingEmails: Record<string, string[]>;
 }
 
 /**
@@ -162,7 +156,6 @@ export function draftFromSeed(bundle: FlowBundle): ShipmentDraft {
     settlement: seed.settlement ?? bundle.defaults.settlement ?? 'direct',
     bulk: { mode: seed.bulk?.mode ?? bundle.defaults.bulkMode ?? 'single' },
     trackingOrderIds: [...(seed.trackingOrderIds ?? [])],
-    trackingEmails: seedTrackingEmails(bundle, seed.trackingOrderIds ?? []),
   };
   return ensureStopSchedules(seeded);
 
@@ -329,10 +322,6 @@ export function mergeSeedIntoDraft(
     bulk: { mode: current.bulk.mode || incoming.bulk.mode },
     trackingOrderIds:
       current.trackingOrderIds.length > 0 ? current.trackingOrderIds : [...incoming.trackingOrderIds],
-    trackingEmails:
-      Object.keys(current.trackingEmails ?? {}).length > 0
-        ? current.trackingEmails
-        : { ...(incoming.trackingEmails ?? {}) },
   };
 }
 
@@ -369,51 +358,6 @@ export function trackingCandidates(
       customerName: order.customerName,
       email: order.trackingEmail,
     }));
-}
-
-
-/** Seed receiver emails from order.trackingEmail for every trackable order (MS3-354). */
-export function seedTrackingEmails(
-  bundle: FlowBundle,
-  trackingOrderIds: string[] = [],
-): Record<string, string[]> {
-  const out: Record<string, string[]> = {};
-  for (const order of bundle.orders ?? []) {
-    const email = (order.trackingEmail ?? '').trim();
-    if (email) out[order.orderId] = [email];
-    else if (trackingOrderIds.includes(order.orderId)) out[order.orderId] = [''];
-  }
-  return out;
-}
-
-/** Replace the email list for one order; keeps trackingOrderIds in sync when any email is non-empty. */
-export function setTrackingEmailsForOrder(
-  draft: ShipmentDraft,
-  orderId: string,
-  emails: string[],
-): ShipmentDraft {
-  const cleaned = emails.length > 0 ? emails : [''];
-  const trackingEmails = { ...draft.trackingEmails, [orderId]: cleaned };
-  const hasAny = cleaned.some((e) => e.trim().length > 0);
-  const on = draft.trackingOrderIds.includes(orderId);
-  let trackingOrderIds = draft.trackingOrderIds;
-  if (hasAny && !on) trackingOrderIds = [...trackingOrderIds, orderId];
-  if (!hasAny && on) trackingOrderIds = trackingOrderIds.filter((id) => id !== orderId);
-  return { ...draft, trackingEmails, trackingOrderIds };
-}
-
-/** Re-sync one order's first email from the order/customer tracking address (drop-off sync). */
-export function syncTrackingEmailFromOrder(
-  draft: ShipmentDraft,
-  bundle: FlowBundle,
-  orderId: string,
-): ShipmentDraft {
-  const order = (bundle.orders ?? []).find((o) => o.orderId === orderId);
-  const email = (order?.trackingEmail ?? '').trim();
-  if (!email) return draft;
-  const current = draft.trackingEmails[orderId] ?? [''];
-  const next = [email, ...current.slice(1)];
-  return setTrackingEmailsForOrder(draft, orderId, next);
 }
 
 /** Adds or removes one order from the tracking-link list. */
@@ -703,27 +647,6 @@ export function openingSection(draft: ShipmentDraft, now: number = Date.now()): 
   const blocking = saveIssues(draft, now);
   if (blocking.length === 0) return null;
   return SECTIONS.find((section) => blocking.some((issue) => sectionForField(issue.field) === section)) ?? null;
-}
-
-/**
- * The product picker the card is waiting on, or null.
- *
- * Set only when the card opens on Cargo because a line has no product: the
- * sites and dates are answered, and choosing the product is the one thing left
- * to do first. The card opens that picker by itself rather than leaving a
- * closed "Choose a product" behind one more click - the step that, in the
- * one-by-one interview, came up as a list already showing.
- */
-export function openingProductPicker(
-  draft: ShipmentDraft,
-  now: number = Date.now(),
-): { stop: number; line: number } | null {
-  if (openingSection(draft, now) !== 'cargo') return null;
-  for (const issue of saveIssues(draft, now)) {
-    const m = issue.field.match(/^stops\[(\d+)\]\.lines\[(\d+)\]\.productId$/);
-    if (m) return { stop: Number(m[1]), line: Number(m[2]) };
-  }
-  return null;
 }
 
 function broadcastIssues(draft: ShipmentDraft, tr: Tr): DraftIssue[] {

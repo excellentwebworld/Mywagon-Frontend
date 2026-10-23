@@ -16,14 +16,7 @@ const ACCENT_MAP = {
   'ΐ': 'Ϊ', 'ΰ': 'Ϋ',
 };
 
-// Rule 4 exception: the disambiguating words keep their accent in ALL CAPS.
-const KEEP_ACCENT = new Set(['ή', 'πού', 'πώς']);
-
 export function toUpperGreek(str) {
   if (!str) return '';
-  return str.replace(/[\p{L}\p{M}]+/gu, (word) => (
-    KEEP_ACCENT.has(word.toLowerCase())
-      ? word.toUpperCase()
-      : word.toUpperCase().replace(/[ΆΈΉΊΌΎΏ]/g, (ch) => ACCENT_MAP[ch] || ch)
-  ));
+  return str.toUpperCase().replace(/[ΆΈΉΊΌΎΏ]/g, (ch) => ACCENT_MAP[ch] || ch);
 }

@@ -1,16 +1,12 @@
 /**
- * Left-side panel on the VagonAI page: the shipper's most recent chats
- * (HISTORY_LIMIT of them) — grouped by recency, openable read-only, deletable
- * one-at-a-time or all at once. VagonAI always opens on a blank new chat (see
- * VagonAIPage) — this panel is purely an explicit "look back at an old chat"
- * affordance, never an auto-restore.
- *
- * No search box: with only a handful of rows it is one more control and no
- * faster than reading the list.
+ * Left-side panel on the VagonAI page: past-conversation history — grouped
+ * by recency, resumable, deletable one-at-a-time or all at once. VagonAI
+ * always opens on a blank new chat (see VagonAIPage) — this panel is purely
+ * an explicit "go back to an old chat" affordance, never an auto-restore.
  */
 import { useEffect, useState } from 'react';
 import {
-  MessageSquarePlus, Trash2, PanelLeftClose, PanelLeftOpen, MessagesSquare, Eye,
+  MessageSquarePlus, Trash2, PanelLeftClose, PanelLeftOpen, MessagesSquare, Search,
 } from 'lucide-react';
 import Skeleton from 'react-loading-skeleton';
 import ConfirmDialog from '../../components/ui/ConfirmDialog';
@@ -19,7 +15,6 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { useMediaQuery, DESKTOP_SIDEBAR_QUERY } from '../../hooks/useMediaQuery';
 import { groupConversationsByRecency, formatConversationTimestamp, type HistoryGroupLabel } from './historyGrouping';
 import type { ConversationSummary } from './api/conversationsService';
-import { toUpperGreek } from '../../utils/greekUppercase';
 
 const GROUP_LABEL_KEY: Record<HistoryGroupLabel, string> = {
   today: 'vagonai.history.groups.today',
@@ -31,15 +26,10 @@ const GROUP_LABEL_KEY: Record<HistoryGroupLabel, string> = {
 const DESKTOP_COLLAPSED_KEY = 'vagonai-history-collapsed';
 
 interface HistorySidebarProps {
-  /** Already cut to the most recent HISTORY_LIMIT, newest first. */
   conversations: ConversationSummary[];
-  /** Older chats that exist but are not listed. */
-  hiddenCount: number;
   loading: boolean;
   error: string | null;
   activeId: string | null;
-  /** The active row was opened from history, so it is shown read-only. */
-  activeIsReadOnly: boolean;
   onSelect: (id: string) => void;
   onNewChat: () => void;
   onDelete: (id: string) => void;
@@ -47,7 +37,7 @@ interface HistorySidebarProps {
 }
 
 export default function HistorySidebar({
-  conversations, hiddenCount, loading, error, activeId, activeIsReadOnly, onSelect, onNewChat, onDelete, onClearAll,
+  conversations, loading, error, activeId, onSelect, onNewChat, onDelete, onClearAll,
 }: HistorySidebarProps) {
   const { T } = useTheme();
   const { t } = useTranslation();
@@ -58,13 +48,18 @@ export default function HistorySidebar({
   );
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [confirmingClearAll, setConfirmingClearAll] = useState(false);
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     localStorage.setItem(DESKTOP_COLLAPSED_KEY, collapsedOnDesktop ? '1' : '0');
   }, [collapsedOnDesktop]);
 
   const open = isDesktop ? !collapsedOnDesktop : expandedOnMobile;
-  const groups = groupConversationsByRecency(conversations);
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? conversations.filter((c) => (c.title || t('vagonai.history.untitled')).toLowerCase().includes(q))
+    : conversations;
+  const groups = groupConversationsByRecency(filtered);
   const pendingDeleteTitle = conversations.find((c) => c.id === pendingDeleteId)?.title;
 
   return (
@@ -117,7 +112,7 @@ export default function HistorySidebar({
           <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-2">
             <div className="flex items-center gap-1.5 min-w-0" style={{ color: T.t2 }}>
               <MessagesSquare size={14} />
-              <span className="text-[11px] font-semibold tracking-wide truncate">{toUpperGreek(t('vagonai.history.title'))}</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide truncate">{t('vagonai.history.title')}</span>
             </div>
             <button
               type="button"
@@ -130,7 +125,7 @@ export default function HistorySidebar({
             </button>
           </div>
 
-          <div className="px-3 pt-1 pb-2">
+          <div className="px-3 pt-1 pb-2 flex flex-col gap-2.5">
             <button
               type="button"
               onClick={() => { onNewChat(); if (!isDesktop) setExpandedOnMobile(false); }}
@@ -145,6 +140,23 @@ export default function HistorySidebar({
               <MessageSquarePlus size={15} />
               {t('vagonai.history.newChat')}
             </button>
+
+            {conversations.length > 0 && (
+              <div className="relative">
+                <Search size={14} className="absolute" style={{ left: 10, top: 10, color: T.t3 }} />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={t('vagonai.history.searchPlaceholder')}
+                  aria-label={t('vagonai.history.searchPlaceholder')}
+                  className="w-full outline-none"
+                  style={{
+                    height: 34, borderRadius: 10, border: `1px solid ${T.bd}`, background: T.sf,
+                    padding: '0 10px 0 30px', fontSize: 12.5, color: T.t1,
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto min-h-0 px-2 pb-2">
@@ -162,14 +174,17 @@ export default function HistorySidebar({
               <p className="px-2 py-4 text-[12px] text-center" style={{ color: T.t3 }}>{t('vagonai.history.empty')}</p>
             )}
 
+            {!loading && !error && conversations.length > 0 && groups.length === 0 && (
+              <p className="px-2 py-4 text-[12px] text-center" style={{ color: T.t3 }}>{t('vagonai.history.noResults')}</p>
+            )}
+
             {!loading && !error && groups.map((group) => (
               <div key={group.label} className="mb-2">
-                <div className="px-2 pt-2 pb-1 text-[10.5px] font-semibold tracking-wide" style={{ color: T.t3 }}>
-                  {toUpperGreek(t(GROUP_LABEL_KEY[group.label]))}
+                <div className="px-2 pt-2 pb-1 text-[10.5px] font-semibold uppercase tracking-wide" style={{ color: T.t3 }}>
+                  {t(GROUP_LABEL_KEY[group.label])}
                 </div>
                 {group.items.map((c) => {
                   const active = c.id === activeId;
-                  const viewing = active && activeIsReadOnly;
                   return (
                     <div
                       key={c.id}
@@ -185,18 +200,10 @@ export default function HistorySidebar({
                           color: active ? T.ac : T.t1,
                         }}
                         title={c.title ?? t('vagonai.history.untitled')}
-                        aria-current={active ? 'true' : undefined}
                       >
                         <div className="truncate text-[12.5px] font-medium">{c.title || t('vagonai.history.untitled')}</div>
-                        <div className="flex items-center gap-1 truncate text-[10.5px] mt-0.5" style={{ color: active ? T.ac : T.t3 }}>
-                          {viewing && (
-                            <>
-                              <Eye size={11} aria-hidden="true" className="flex-shrink-0" />
-                              <span className="font-semibold">{t('vagonai.history.viewing')}</span>
-                              <span aria-hidden="true">·</span>
-                            </>
-                          )}
-                          <span className="truncate">{formatConversationTimestamp(c.updatedAt)}</span>
+                        <div className="truncate text-[10.5px] mt-0.5" style={{ color: active ? T.ac : T.t3 }}>
+                          {formatConversationTimestamp(c.updatedAt)}
                         </div>
                       </button>
                       <button
@@ -215,13 +222,6 @@ export default function HistorySidebar({
                 })}
               </div>
             ))}
-
-            {/* Says why older chats are missing, rather than letting them look deleted. */}
-            {!loading && !error && hiddenCount > 0 && (
-              <p className="px-2 pt-1 text-[10.5px] leading-snug" style={{ color: T.t3 }}>
-                {t('vagonai.history.recentCaption', { count: conversations.length })}
-              </p>
-            )}
           </div>
 
           {conversations.length > 0 && (

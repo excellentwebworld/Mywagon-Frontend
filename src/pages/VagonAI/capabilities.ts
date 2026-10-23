@@ -81,9 +81,6 @@ export const CAPABILITY_MODULES: CapabilityModule[] = [
       // because the two are different questions: one ships a named order, this
       // asks what is left and how it groups.
       { key: 'unplannedOrders', tools: ['get_unplanned_order_groups'] },
-      // Any ERP export, any layout: the file goes in with the paperclip, the
-      // chip asks how - and the answer points there and then reads the upload.
-      { key: 'importOrders', tools: ['get_order_import', 'run_order_import'] },
     ],
   },
   {
@@ -150,14 +147,6 @@ export const CAPABILITY_MODULES: CapabilityModule[] = [
     icon: BarChart3,
     items: [
       { key: 'howAmIDoing', tools: ['get_dashboard_analytics'] },
-      // The custom report: any period, any breakdown. The prompt is a concrete
-      // example rather than "build me a report", so the shipper sees the kind of
-      // question it answers and the first tap produces a real table.
-      { key: 'customReport', tools: ['build_shipment_report'] },
-      // The same engine over the Orders Master. A chip of its own: "report" alone
-      // reads as loads, and without one the only way to an order report was to
-      // guess that the assistant could make one.
-      { key: 'orderReport', tools: ['build_order_report'] },
     ],
   },
 ];
@@ -176,11 +165,6 @@ export const MID_FLOW_TOOLS: Record<string, string> = {
   create_oneshot_draft_from_order: 'Sticky / oneshot draft create from a selected order, not a welcome chip.',
   // MS3-350 — offered from shipment result-card follow-up / chat intent, not a welcome chip.
   mark_shipment_complete: 'Reached from an in-progress shipment card follow-up or an explicit Mark as Complete request, not an opening catalogue chip.',
-  // Closing an order delivered outside MYVAGON, and undoing it. Each acts on one
-  // order the shipper is already looking at, so they live on the orders
-  // toolbar's rows rather than as opening chips.
-  mark_order_complete: 'The Mark complete button on an unplanned row of the orders toolbar, or an explicit request about one order.',
-  reopen_order: 'The Reopen button in the orders toolbar Completed list, or an explicit request about one closed order.',
   // The carrier picker behind a publish. `find_partner` is the entry point for
   // looking partners up; this one exists to fill that one step.
   list_partners: 'The carrier picker inside publish_shipment, not a way to browse partners.',
@@ -190,11 +174,6 @@ export const MID_FLOW_TOOLS: Record<string, string> = {
   // MS3-336 - reached by editing a draft that is already on screen, never as an
   // opening request, so it is not something to advertise in the catalogue.
   update_ai_draft: 'Applies an edit to an AI draft already under review, not a way to start one.',
-  // The ERP import's two corrections. Each answers a question an uploaded file
-  // raised - a column mapped wrong, a warehouse code nobody knows - so they only
-  // exist once there is an import on screen.
-  set_order_import_mapping: 'Corrects the column mapping of a file already uploaded for import, from the import card or the chat about it.',
-  map_import_warehouse: 'Answers the "which of your sites is WH01?" question an uploaded import asks, never an opening request.',
 };
 
 /** Every tool the catalogue claims to reach, flattened. */

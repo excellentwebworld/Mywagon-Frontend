@@ -51,7 +51,6 @@ function draftWithGap(): ShipmentDraft {
     settlement: 'direct',
     bulk: { mode: 'single' },
     trackingOrderIds: [],
-    trackingEmails: {},
   };
 }
 

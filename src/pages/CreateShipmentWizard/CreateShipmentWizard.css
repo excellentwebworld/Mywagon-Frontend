@@ -2494,78 +2494,16 @@ html.dark .wizard-availability-bar__sk-line,
   background-size: 200% 100%;
 }
 
-/* Expanded stop card: Location / Time / Cargo get stepped backgrounds so
-   they read as separate pieces (MS3-362). Inputs keep the surface colour. */
-.cs-stop-sec--location {
-  background: var(--app-surface, #ffffff);
-}
-/* Light: white -> #F4F4F5 -> ~#EDEDEF. The first step used --app-hover
-   (#FAFAFB), which QA found too faint against white. */
-.cs-stop-sec--time {
-  background: var(--app-surface-sunken, #f4f4f5);
-}
-.cs-stop-sec--cargo {
-  background: #ededef;
-  background: color-mix(in srgb, var(--app-border, #e6e6e8) 55%, var(--app-surface-sunken, #f4f4f5));
-}
-/* Dark: navy -> lifted -> sunken, from the dark token set. */
-html.dark .cs-stop-sec--time,
-.dark .cs-stop-sec--time,
-[data-theme='dark'] .cs-stop-sec--time {
-  background: var(--app-hover, #26264d);
-}
-html.dark .cs-stop-sec--cargo,
-.dark .cs-stop-sec--cargo,
-[data-theme='dark'] .cs-stop-sec--cargo {
-  background: var(--app-surface-sunken, #1a1a38);
-}
-
-/* Stop card "Done": navy on the white card; the same navy is the dark card
-   itself, so dark mode uses the accent (it was invisible, QA W0-1013). */
-.cs-stop-done {
-  background: #1f1f41;
-}
-html.dark .cs-stop-done,
-.dark .cs-stop-done,
-[data-theme='dark'] .cs-stop-done {
-  background: var(--accent, #9b51e0);
-}
-
-/* Cargo line Pick / Drop toggle — same coding as the stop header tags
-   (MS3-363): PICKUP is white with black text, DROPOFF is black with white.
-   The unselected side is greyed so a selected white Pick still reads as on. */
-.wiz-line-action__btn {
-  background: var(--surface-alt, #f4f4f6);
-  color: var(--text-tertiary, #8b8a99);
-}
-.wiz-line-action__btn--pickup.is-on {
-  background: #ffffff;
-  color: #000001;
-  box-shadow: inset 0 0 0 1.5px #000001;
-}
-.wiz-line-action__btn--dropoff.is-on {
+/* Cargo line Pick / Drop toggle — black in light, primary in dark */
+.wiz-line-action__btn.is-on {
   background: #000001;
-  color: #ffffff;
+  color: #fff;
 }
-html.dark .wiz-line-action__btn,
-.dark .wiz-line-action__btn,
-[data-theme='dark'] .wiz-line-action__btn {
-  background: transparent;
-  color: var(--text-tertiary, #8b8a99);
-}
-html.dark .wiz-line-action__btn--pickup.is-on,
-.dark .wiz-line-action__btn--pickup.is-on,
-[data-theme='dark'] .wiz-line-action__btn--pickup.is-on {
-  background: #ffffff;
-  color: #000001;
-  box-shadow: none;
-}
-html.dark .wiz-line-action__btn--dropoff.is-on,
-.dark .wiz-line-action__btn--dropoff.is-on,
-[data-theme='dark'] .wiz-line-action__btn--dropoff.is-on {
-  background: #0a0a12;
-  color: #ffffff;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+html.dark .wiz-line-action__btn.is-on,
+.dark .wiz-line-action__btn.is-on,
+[data-theme='dark'] .wiz-line-action__btn.is-on {
+  background: var(--accent, #9B51E0);
+  color: #fff;
 }
 
 /* Load Balance pickup / dropoff chips */
@@ -2592,23 +2530,12 @@ html.dark .wiz-line-action__btn--dropoff.is-on,
   background: #d1fae5;
   color: #059669;
 }
-/* Pickup stays white in dark mode too, like the PICKUP stop tag (MS3-363). */
 html.dark .wiz-bal-chip--pk,
 .dark .wiz-bal-chip--pk,
 [data-theme='dark'] .wiz-bal-chip--pk {
-  background: #ffffff;
-  color: #000001;
-  border-color: var(--app-border-strong, #3d3d6e);
-}
-/* Load Balance pickup bar: navy on the light track, white on the dark one
-   (navy on the #1A1A38 track was all but invisible). */
-.wiz-bal-bar--pk {
-  background: #1f1f41;
-}
-html.dark .wiz-bal-bar--pk,
-.dark .wiz-bal-bar--pk,
-[data-theme='dark'] .wiz-bal-bar--pk {
-  background: #ffffff;
+  background: var(--surface-alt, #1a1a38);
+  color: var(--text-primary, #fff);
+  border-color: var(--border, #2e2e58);
 }
 html.dark .wiz-bal-chip--do,
 .dark .wiz-bal-chip--do,

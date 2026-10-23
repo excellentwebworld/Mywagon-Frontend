@@ -57,8 +57,6 @@ export function matchLocationByName(
     })
     .filter((x) => x.score > 0)
     .sort((a, b) => b.score - a.score);
-  // MS3-413: two sites that fit the wording equally well are a question for the shipper, never a silent pick.
-  if (scored.length > 1 && scored[1]!.score === scored[0]!.score) return null;
   return scored[0]?.l ?? null;
 }
 
@@ -134,10 +132,6 @@ export function buildEnrichedDraftPrompt(seeds: ErpDraftLocationSeed[]): string 
   if (seeds.length === 1) {
     const s = seeds[0]!;
     // REGATE7-fail: sticky single must short-circuit to oneshot (no Save-as-draft UI).
-    // SEC-09: what triggers it is the `forceTool` the caller sends with this
-    // text (`buildStickyCreateForceTool` -> create_oneshot_draft_from_order,
-    // order_id as a string); the gateway stops honouring the marker/sentence.
-    // They stay only for gateways that have not deployed that change yet.
     return (
       `[[VAGON_STICKY_ONESHOT:${s.orderId}]] ` +
       one(s) +
@@ -145,7 +139,7 @@ export function buildEnrichedDraftPrompt(seeds: ErpDraftLocationSeed[]): string 
       `Do not call prepare_shipment or create_shipment. Do not ask for confirmation.`
     );
   }
-  return seeds.map(one).join('\n') + '\nFor 2+ orders call create_homogeneous_batch_drafts once with all of these order ids, whatever lanes they are on (fire-and-forget batch). It creates one draft per lane: orders with the same pickup and delivery share one draft and one SID, and each other lane gets its own.';
+  return seeds.map(one).join('\n') + '\nCreate exactly one draft and one SID per order — never merge into a single load, even on the same lane. For 2+ orders call create_homogeneous_batch_drafts with these order ids (homogeneous fire-and-forget batch).';
 }
 
 export function applyErpSeedToFlowDraft(
@@ -153,13 +147,8 @@ export function applyErpSeedToFlowDraft(
   seed: ErpDraftLocationSeed,
   now: Date = new Date(),
 ): FlowDraftSeed {
-  // Fills only what the gateway left blank. The gateway built this draft from
-  // the order itself, so a site it already set is the order's own; the seed is
-  // there to close a gap, never to replace a site (QA retest #2, 2026-10-10).
   let next = draft;
-  const first = next.stops[0];
-  const last = next.stops.length > 1 ? next.stops[next.stops.length - 1] : undefined;
-  if (seed.pickup?.locationId && !(first?.locationId ?? '').trim()) {
+  if (seed.pickup?.locationId) {
     next = applyLocationChoiceToDraft(
       next,
       'pickup',
@@ -168,7 +157,7 @@ export function applyErpSeedToFlowDraft(
       now,
     );
   }
-  if (seed.delivery?.locationId && !(last?.locationId ?? '').trim()) {
+  if (seed.delivery?.locationId) {
     next = applyLocationChoiceToDraft(
       next,
       'delivery',
@@ -184,41 +173,16 @@ export function applyErpSeedToFlowDraft(
   return next;
 }
 
-/** The ERP order ids on a draft's cargo lines. */
-function draftOrderIds(draft: FlowDraftSeed): Set<string> {
-  const ids = new Set<string>();
-  for (const stop of draft.stops ?? []) {
-    for (const line of stop.lines ?? []) {
-      if (line.orderId != null && String(line.orderId).trim()) ids.add(String(line.orderId).trim());
-    }
-  }
-  return ids;
-}
-
-/**
- * The sticky-panel seed that belongs to THIS draft, or null.
- *
- * QA retest #2 (2026-10-10, HIGH): "Create a shipment from my order
- * QARET2-1010-ORD5" typed in chat built a card delivering to Sindos Industrial
- * Warehouse with Ref QARET-1010-ORD1. The seeds from an earlier sticky "Create
- * drafts" (ORD1 + ORD2) were still held, and this used to fall back to
- * `seeds[0]` whenever nothing matched - so ORD1's delivery and reference were
- * written onto ORD5's card. A seed now applies only to a draft carrying that
- * seed's own order (by id on the cargo lines, or by the exact reference); no
- * match means no seed.
- */
 export function pickSeedForDraft(
   seeds: ErpDraftLocationSeed[],
   draft: FlowDraftSeed,
 ): ErpDraftLocationSeed | null {
   if (!seeds.length) return null;
-  const ids = draftOrderIds(draft);
-  if (ids.size > 0) {
-    return seeds.find((s) => ids.has(String(s.orderId).trim())) ?? null;
-  }
   const ref = (draft.customerReference || '').trim().toLowerCase();
   if (ref) {
-    return seeds.find((s) => s.orderReference.trim().toLowerCase() === ref) ?? null;
+    const hit = seeds.find((s) => s.orderReference.toLowerCase() === ref);
+    if (hit) return hit;
   }
-  return null;
+  return seeds[0] ?? null;
 }
+

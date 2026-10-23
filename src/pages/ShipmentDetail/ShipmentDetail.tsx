@@ -47,11 +47,6 @@ import {
   type PartnerBidItem,
 } from './detailViewModel';
 import { offerUsesInterestPermission } from '../../components/ShipmentDetail/BidsCard';
-import { LinkOrderToDispatchPanel } from '../../components/ShipmentDetail/LinkOrderToDispatchPanel';
-import {
-  isOrderRequiredForDispatchError,
-  shipmentNeedsOrderBeforeDispatch,
-} from '../../components/ShipmentDetail/linkOrderToDispatch';
 import { shipmentsService } from '../../api';
 import { chatService } from '../../api/services/chatService';
 import { CHAT_MESSAGE_RECEIVED_EVENT, CHAT_UNREAD_REFRESH_EVENT } from '../../hooks/useGlobalChatSocket';
@@ -134,13 +129,6 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
     company_name?: string | null;
   } | null>(null);
   const [pendingCounterBid, setPendingCounterBid] = useState<PartnerBidItem | null>(null);
-  /** MS3-406: dispatch refused until an order is linked — the action to retry afterwards. */
-  const [dispatchGate, setDispatchGate] = useState<
-    | { action: 'accept'; bid: PartnerBidItem }
-    | { action: 'counter'; bid: PartnerBidItem; amount: number; notes?: string }
-    | { action: 'link' }
-    | null
-  >(null);
   const [counterSubmitting, setCounterSubmitting] = useState(false);
   const [reportablePickups, setReportablePickups] = useState<
     Array<{
@@ -665,14 +653,6 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
     [id, ratingTarget, refetch, showToast, t, vm?.carrier]
   );
 
-  /** Accept an offer (dispatch). Throws so callers can react to MS3-406 refusals. */
-  const performAcceptBid = useCallback(async (bid: PartnerBidItem) => {
-    if (!id) return;
-    await shipmentsService.acceptOffer(id, bid.id);
-    showToast(`${t('bidAccepted', 'Bid accepted from')} ${bid.name}`, 'success');
-    refetch?.();
-  }, [id, refetch, showToast, t]);
-
   const handleAcceptBid = useCallback(async (bid: PartnerBidItem) => {
     if (!id) return;
     const negotiable = vm?.isNegotiable !== false;
@@ -685,24 +665,17 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
     ) {
       return;
     }
-    // MS3-406: the payload already says this load needs an order — ask for it first.
-    if (shipmentNeedsOrderBeforeDispatch(shipment)) {
-      setDispatchGate({ action: 'accept', bid });
-      return;
-    }
     setAcceptingBidId(bid.id);
     try {
-      await performAcceptBid(bid);
+      await shipmentsService.acceptOffer(id, bid.id);
+      showToast(`${t('bidAccepted', 'Bid accepted from')} ${bid.name}`, 'success');
+      refetch?.();
     } catch (err) {
-      if (isOrderRequiredForDispatchError(err)) {
-        setDispatchGate({ action: 'accept', bid });
-      } else {
-        showToast(err instanceof Error ? err.message : t('bidAcceptFailed', 'Failed to accept bid'), 'error');
-      }
+      showToast(err instanceof Error ? err.message : t('bidAcceptFailed', 'Failed to accept bid'), 'error');
     } finally {
       setAcceptingBidId(null);
     }
-  }, [id, performAcceptBid, requireRbac, shipment, showToast, t, vm?.isNegotiable]);
+  }, [id, refetch, requireRbac, showToast, t, vm?.isNegotiable]);
 
   const handleRejectBid = useCallback(async (bid: PartnerBidItem) => {
     if (!id) return;
@@ -731,12 +704,6 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
   const handleSendCounterBid = useCallback(
     async (amount: number, notes?: string) => {
       if (!id || !pendingCounterBid) return;
-      // MS3-406: a carrier accepting the counter dispatches the load, so it needs an order too.
-      if (shipmentNeedsOrderBeforeDispatch(shipment)) {
-        setDispatchGate({ action: 'counter', bid: pendingCounterBid, amount, notes });
-        setPendingCounterBid(null);
-        return;
-      }
       setCounterSubmitting(true);
       try {
         await shipmentsService.counterOffer(id, pendingCounterBid.id, { amount, notes });
@@ -747,41 +714,16 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
         setPendingCounterBid(null);
         refetch?.();
       } catch (err) {
-        if (isOrderRequiredForDispatchError(err)) {
-          setDispatchGate({ action: 'counter', bid: pendingCounterBid, amount, notes });
-          setPendingCounterBid(null);
-        } else {
-          showToast(
-            err instanceof Error ? err.message : t('counterOfferFailed', 'Failed to send counter offer'),
-            'error'
-          );
-        }
+        showToast(
+          err instanceof Error ? err.message : t('counterOfferFailed', 'Failed to send counter offer'),
+          'error'
+        );
       } finally {
         setCounterSubmitting(false);
       }
     },
-    [id, pendingCounterBid, refetch, shipment, showToast, t]
+    [id, pendingCounterBid, refetch, showToast, t]
   );
-
-  /** MS3-406: after an order is linked, run the refused action again on this screen. */
-  const retryGatedDispatch = useCallback(async () => {
-    const gate = dispatchGate;
-    if (!id || !gate) return;
-    if (gate.action === 'accept') {
-      await performAcceptBid(gate.bid);
-    } else if (gate.action === 'counter') {
-      await shipmentsService.counterOffer(id, gate.bid.id, { amount: gate.amount, notes: gate.notes });
-      showToast(
-        `${t('counterBidSentSuccess', 'Counter-bid sent successfully to')} ${gate.bid.name}`,
-        'success'
-      );
-      refetch?.();
-    } else {
-      showToast(t('dispatchOrderLinked', 'Order linked to the load.'), 'success');
-      refetch?.();
-    }
-    setDispatchGate(null);
-  }, [dispatchGate, id, performAcceptBid, refetch, showToast, t]);
 
   const handleCancelInvite = useCallback(async (partner: PartnerBidItem) => {
     if (!id || !partner.userId) return;
@@ -1063,41 +1005,6 @@ export const ShipmentDetail: React.FC<ShipmentDetailProps> = ({
           {/* Left Column (flex-1 min-w-0) */}
           <div className="flex-1 min-w-0 w-full flex flex-col gap-0">
             {/* 1. Bids Section (Pending status only) */}
-            {/* MS3-406: order required before dispatch — inline link panel / reminder */}
-            {isPending && !readOnly && dispatchGate && (
-              <LinkOrderToDispatchPanel
-                className="mb-3"
-                shipmentId={id ?? ''}
-                onLinked={retryGatedDispatch}
-                onCancel={() => {
-                  setDispatchGate(null);
-                  refetch?.();
-                }}
-                submitLabel={
-                  dispatchGate.action === 'accept'
-                    ? t('dispatchOrderLinkAndAccept', 'Link order and accept')
-                    : dispatchGate.action === 'counter'
-                      ? t('dispatchOrderLinkAndCounter', 'Link order and send counter-offer')
-                      : t('dispatchOrderLinkOnly', 'Link order')
-                }
-                t={t}
-              />
-            )}
-            {isPending && !readOnly && !dispatchGate && shipmentNeedsOrderBeforeDispatch(shipment) && (
-              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-amber-300 dark:border-amber-800/70 bg-amber-50/70 dark:bg-amber-950/30 px-4 py-2.5 text-[12px] text-slate-700 dark:text-slate-200">
-                <AlertTriangle size={15} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                <span className="flex-1 min-w-0">
-                  {t('dispatchOrderReminder', 'This load has no order. Link an order before you accept an offer.')}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setDispatchGate({ action: 'link' })}
-                  className="px-3 py-1 rounded-lg text-[11px] font-semibold text-white bg-[var(--mv-purple)] hover:bg-[var(--app-primary-hover)] border-0 cursor-pointer"
-                >
-                  {t('dispatchOrderLinkOnly', 'Link order')}
-                </button>
-              </div>
-            )}
             {isPending && (
               <BidsCard
                 shipmentId={id}

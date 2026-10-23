@@ -37,7 +37,6 @@ function bundle(): FlowBundle {
       settlement: 'direct',
       bulk: { mode: 'single' },
       trackingOrderIds: [],
-    trackingEmails: {},
     },
     gaps: [],
     suggestions: { vehicle: null, partner: null, partnerAlternatives: [] },

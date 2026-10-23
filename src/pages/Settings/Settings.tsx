@@ -14,7 +14,7 @@ import {
   User, Building2, Users, Lock,
   Zap, ClipboardList, Bell, Palette, Sun, Moon, Clock,
   Bot, Globe, FileText, ExternalLink, ShieldCheck,
-  PanelLeft, PanelTop, Truck,
+  PanelLeft, PanelTop,
   type LucideIcon,
 } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
@@ -32,7 +32,6 @@ import PersonalSecuritySection from './sections/PersonalSecuritySection';
 import KycSection from './sections/KycSection';
 import PoliciesSection from './sections/PoliciesSection';
 import AuditLogSection from './sections/AuditLogSection';
-import ShipmentSettingsSection from './sections/ShipmentSettingsSection';
 import IntegrationsSection from './sections/IntegrationsSection';
 import AiSettingsSection from './sections/AiSettingsSection';
 import NotificationsPage from '../Notifications/NotificationsPage';
@@ -67,7 +66,6 @@ const MENU: SettingsMenuGroup[] = [
   { group: 'settings.groupAdmin', items: [
     { id: 'organization', icon: Building2, labelKey: 'settings.organization', rbacNav: 'organization' },
     { id: 'users', icon: Users, labelKey: 'settings.usersRoles', rbacNav: 'users' },
-    { id: 'shipment', icon: Truck, labelKey: 'settings.shipmentSettings', rbacNav: 'shipmentSettings' },
     { id: 'audit', icon: Clock, labelKey: 'settings.auditLog', rbacNav: 'users' },
   ]},
   { group: 'settings.groupTools', items: [
@@ -84,7 +82,7 @@ const MENU: SettingsMenuGroup[] = [
 const BUILT = new Set([
   'appearance', 'aiSettings', 'language', 'legal', 'users', 'personal',
   'organization', 'security', 'compliance', 'audit', 'integrations', 'notifications',
-  'trustCenter', 'shipment',
+  'trustCenter',
 ]);
 
 const SECTION_IDS = new Set(
@@ -445,7 +443,6 @@ export default function Settings() {
         {!sectionDenied && activeSection === 'audit' && <AuditLogSection />}
         {!sectionDenied && activeSection === 'personal' && <PersonalSection />}
         {!sectionDenied && activeSection === 'organization' && <OrganizationSection />}
-        {!sectionDenied && activeSection === 'shipment' && <ShipmentSettingsSection />}
         {!sectionDenied && activeSection === 'security' && <PersonalSecuritySection />}
         {!sectionDenied && activeSection === 'notifications' && <NotificationsPage embedded />}
         {!sectionDenied && activeSection === 'users' && <UserManagementSection />}

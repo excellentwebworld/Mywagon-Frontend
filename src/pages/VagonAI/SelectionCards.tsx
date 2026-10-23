@@ -31,17 +31,13 @@
  * the shipper says they are done. Answering those one card per turn would be the
  * interrogation this whole component exists to remove.
  */
-import { Fragment, useId, useState } from 'react';
+import { Fragment, useState } from 'react';
 import { MapPin, Package, Plus, Check, Search, Truck, Globe, Users, Tag, FileText, Send, ChevronDown } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { CargoCapture, SelectionCapture, SelectionOption, SelectionRequest } from '../../hooks/useChat';
 import type { ThemeTokens } from '../../utils/themes';
-import {
-  FILTER_AFTER, chosenSelectionOptions, filterSelectionOptions, groupSelectionOptions, initialExpandedGroups,
-  isSectionOpen, selectionListCount, showListKey,
-} from './selectionGroups';
-import { toUpperGreek } from '../../utils/greekUppercase';
+import { groupSelectionOptions, initialExpandedGroups, isSectionOpen } from './selectionGroups';
 
 interface Props {
   request: SelectionRequest;
@@ -164,7 +160,7 @@ function CargoForm({
     : fieldStyle);
   const labelStyle = {
     fontSize: 10.5, fontWeight: 700, letterSpacing: '0.05em',
-    color: T.t3, marginBottom: 3,
+    textTransform: 'uppercase', color: T.t3, marginBottom: 3,
   } as const;
 
   return (
@@ -177,7 +173,7 @@ function CargoForm({
     >
       <div className="flex flex-wrap" style={{ gap: 8 }}>
         <div className="flex flex-col" style={{ flex: '1 1 120px', minWidth: 110 }}>
-          <label style={labelStyle} htmlFor="vagonai-cargo-qty">{toUpperGreek(capture.labels.qty)}</label>
+          <label style={labelStyle} htmlFor="vagonai-cargo-qty">{capture.labels.qty}</label>
           <input
             id="vagonai-cargo-qty"
             type="number"
@@ -191,7 +187,7 @@ function CargoForm({
           />
         </div>
         <div className="flex flex-col" style={{ flex: '1 1 130px', minWidth: 120 }}>
-          <label style={labelStyle} htmlFor="vagonai-cargo-unit">{toUpperGreek(capture.labels.unit)}</label>
+          <label style={labelStyle} htmlFor="vagonai-cargo-unit">{capture.labels.unit}</label>
           <select
             id="vagonai-cargo-unit"
             value={unit}
@@ -207,7 +203,7 @@ function CargoForm({
           </select>
         </div>
         <div className="flex flex-col" style={{ flex: '1 1 120px', minWidth: 110 }}>
-          <label style={labelStyle} htmlFor="vagonai-cargo-weight">{toUpperGreek(capture.labels.weight)}</label>
+          <label style={labelStyle} htmlFor="vagonai-cargo-weight">{capture.labels.weight}</label>
           <input
             id="vagonai-cargo-weight"
             type="number"
@@ -221,7 +217,7 @@ function CargoForm({
           />
         </div>
         <div className="flex flex-col" style={{ flex: '1 1 110px', minWidth: 100 }}>
-          <label style={labelStyle} htmlFor="vagonai-cargo-weight-unit">{toUpperGreek(capture.labels.weightUnit)}</label>
+          <label style={labelStyle} htmlFor="vagonai-cargo-weight-unit">{capture.labels.weightUnit}</label>
           <select
             id="vagonai-cargo-weight-unit"
             value={weightUnit}
@@ -311,27 +307,6 @@ export default function SelectionCards({ request, T, onChoose, disabled, chosenI
     () => initialExpandedGroups(request.options),
   );
 
-  /**
-   * The filter box's text, on a list long enough to have one. A whole Address
-   * Book arrives as a single list (see FILTER_AFTER); an answered list shows
-   * everything, so what was picked is never hidden behind a stale filter.
-   */
-  const [filter, setFilter] = useState('');
-  const filterable =
-    !spent && request.options.filter((option) => option.kind === 'record').length > FILTER_AFTER;
-
-  /**
-   * Whether the list itself is drawn (MS3-396). Every list starts collapsed
-   * behind one row that says what is in it, so the message above it can be
-   * read without the chat scrolling through twelve sites first. Opening it
-   * shows the list exactly as before: filter box, sections, confirm button.
-   */
-  const [listOpen, setListOpen] = useState(false);
-  const listId = useId();
-  const listCount = selectionListCount(request.options);
-  // An answered list keeps its record of the answer on screen without opening.
-  const picked = answered ? chosenSelectionOptions(request.options, chosenIds) : [];
-
   const toggleGroup = (groupName: string) => {
     const newExpanded = new Set(expandedGroups);
     if (newExpanded.has(groupName)) {
@@ -366,87 +341,9 @@ export default function SelectionCards({ request, T, onChoose, disabled, chosenI
         <div style={{ fontSize: 12, color: T.t3, marginBottom: 8, lineHeight: 1.45 }}>{request.hint}</div>
       )}
 
-      {picked.length > 0 && !listOpen && (
-        <div className="flex flex-col" style={{ gap: 4, marginBottom: 6 }}>
-          {picked.map((option) => (
-            <div
-              key={option.id}
-              className="flex items-center gap-1.5 rounded-lg"
-              style={{
-                padding: '6px 10px', border: `1px solid ${T.ac}`, background: T.sf,
-                fontSize: 12.5, fontWeight: 600, color: T.t1,
-              }}
-            >
-              <Check size={13} className="flex-shrink-0" style={{ color: T.ac }} aria-hidden="true" />
-              <span className="min-w-0" style={{ wordBreak: 'break-word' }}>{option.title}</span>
-              <span
-                className="flex-shrink-0"
-                style={{
-                  fontSize: 10.5, fontWeight: 700, letterSpacing: '0.04em', color: T.ac,
-                  border: `1px solid ${T.ac}`, borderRadius: 999, padding: '0 5px',
-                }}
-              >
-                {toUpperGreek(t('vagonai.select.chosen'))}
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* One clear row that opens and closes the list. A real button, so it is
-          reachable by keyboard and announces whether the list is open. */}
-      <button
-        type="button"
-        aria-expanded={listOpen}
-        aria-controls={listId}
-        onClick={() => setListOpen((open) => !open)}
-        data-testid="vagonai-selection-toggle"
-        className="flex items-center rounded-lg"
-        style={{
-          gap: 8, width: '100%', padding: '8px 12px', marginBottom: listOpen ? 8 : 0,
-          border: `1px solid ${T.bd}`, background: T.sa, cursor: 'pointer',
-          fontSize: 13, fontWeight: 650, color: T.t1, textAlign: 'left',
-        }}
-      >
-        <ChevronDown
-          size={16}
-          aria-hidden="true"
-          className="flex-shrink-0"
-          style={{
-            transform: listOpen ? 'rotate(0deg)' : 'rotate(-90deg)',
-            transition: 'transform 0.2s',
-            color: T.ac,
-          }}
-        />
-        <span style={{ flex: 1 }}>
-          {listOpen
-            ? t('vagonai.select.hide', 'Hide list')
-            : t(showListKey(request.kind), 'Show {{count}} options', { count: listCount })}
-        </span>
-      </button>
-
-      {listOpen && (
-      <div id={listId}>
-      {filterable && (
-        <label
-          className="flex items-center gap-2 rounded-lg"
-          style={{ border: `1px solid ${T.bd}`, background: T.sf, padding: '6px 10px', marginBottom: 8 }}
-        >
-          <Search size={13} className="flex-shrink-0" style={{ color: T.t3 }} aria-hidden="true" />
-          <input
-            type="search"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder={t('vagonai.select.filter', 'Filter this list…')}
-            aria-label={t('vagonai.select.filter', 'Filter this list…')}
-            style={{ flex: 1, minWidth: 0, background: 'transparent', border: 0, outline: 'none', fontSize: 12.5, color: T.t1 }}
-          />
-        </label>
-      )}
-
       <div className="flex flex-col" style={{ gap: 6 }}>
         {(() => {
-          const options = actionLast(filterable ? filterSelectionOptions(request.options, filter) : request.options);
+          const options = actionLast(request.options);
           // Grouping and the open/closed decision both live in ./selectionGroups,
           // where they can be asserted without rendering React - vitest runs in
           // `environment: 'node'` here, so a bug in this loop is otherwise
@@ -591,13 +488,14 @@ export default function SelectionCards({ request, T, onChoose, disabled, chosenI
                             fontSize: 10.5,
                             fontWeight: 700,
                             letterSpacing: '0.04em',
+                            textTransform: 'uppercase',
                             color: T.ac,
                             border: `1px solid ${T.ac}`,
                             borderRadius: 999,
                             padding: '0 5px',
                           }}
                         >
-                          {toUpperGreek(t('vagonai.select.chosen'))}
+                          {t('vagonai.select.chosen')}
                         </span>
                       )}
                     </div>
@@ -643,8 +541,6 @@ export default function SelectionCards({ request, T, onChoose, disabled, chosenI
           });
         })()}
       </div>
-      </div>
-      )}
 
       {/*
         Nothing is sent on a multi-select list until this is pressed. The count is
@@ -652,7 +548,7 @@ export default function SelectionCards({ request, T, onChoose, disabled, chosenI
         is deciding about: "Continue with 3" answers "have I ticked everything?"
         without them having to recount the list.
       */}
-      {multi && !spent && (listOpen || ticked.length > 0) && (
+      {multi && !spent && (
         <button
           type="button"
           onClick={() => onChoose(ticked)}

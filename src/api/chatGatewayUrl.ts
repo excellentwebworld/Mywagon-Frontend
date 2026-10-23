@@ -1,4 +1,3 @@
-import { chatGatewayConfiguredUrl } from '../config/deploymentEnv';
 import { getBrowserTimezone } from '../utils/timezone';
 
 /**
@@ -12,8 +11,7 @@ import { getBrowserTimezone } from '../utils/timezone';
  */
 export function gatewayUrl(path: string): string {
   if (import.meta.env.DEV) return path;
-  // Production pages drop a baked-in staging gateway (BUG-03 / MS3-352).
-  const configured = chatGatewayConfiguredUrl();
+  const configured = import.meta.env.VITE_CHAT_GATEWAY_URL;
   if (!configured) {
     // Vite inlines this at build time, so an unset var bakes a dead URL into the
     // bundle. Falling back to localhost here would make every deployed call fail
@@ -101,7 +99,7 @@ function authHeaders(token: string, locale?: string): Record<string, string> {
 
 export async function gatewayFetch(
   path: string,
-  { token, locale, download = false, ...init }: RequestInit & { token: string | null; locale?: string; download?: boolean },
+  { token, locale, ...init }: RequestInit & { token: string | null; locale?: string },
 ): Promise<Response> {
   if (!token) {
     // Not signed in at all — no session to clear, so don't fire the event.
@@ -142,15 +140,8 @@ export async function gatewayFetch(
   // The stream case must be allowed through explicitly. Checking for JSON alone
   // rejects a perfectly healthy turn before its body is ever read, and reports it
   // as a proxy fault — sending you to a vite.config.ts that was never wrong.
-  //
-  // A `download` (MS3-375: the Import History's original file) answers in the
-  // file's own type, so only the fallback's HTML is refused there. Not decided by
-  // Content-Disposition: cross-origin, the gateway does not expose that header.
   const contentType = response.headers.get('content-type') ?? '';
-  const answered = download
-    ? !contentType.includes('text/html')
-    : contentType.includes('json') || contentType.includes('event-stream');
-  if (!answered) {
+  if (!contentType.includes('json') && !contentType.includes('event-stream')) {
     throw new GatewayError(
       `The chat gateway did not answer ${path} — it returned ${contentType || 'no content type'}. ` +
         'In dev, check the proxy table in vite.config.ts covers this path, and that the gateway has the feature enabled.',

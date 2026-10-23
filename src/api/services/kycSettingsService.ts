@@ -1,5 +1,6 @@
-import { API_BASE, apiGet, ApiError, AUTH_TOKEN_KEY } from '../client';
+import { apiGet, ApiError, AUTH_TOKEN_KEY } from '../client';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
 export type KycStatus = 'not_started' | 'pending' | 'accepted' | 'rejected' | string;
 

@@ -66,7 +66,7 @@ export function initOrderPreviewRows(orders: AiMappedOrder[]): OrderPreviewRow[]
   return orders.map((o, i) => {
     const cloned = cloneOrder(o);
     return {
-      id: `order-ai-row-${i}-${o.order_reference || 'noref'}`,
+      id: `order-ai-row-${i}-${o.order_reference || i}`,
       order: cloned,
       original: cloneOrder(o),
       status: 'accepted',
@@ -142,8 +142,7 @@ export function toConfirmImportOrders(rows: OrderPreviewRow[]): AiMappedOrder[] 
       companyEntityId != null && Number(companyEntityId) < 0 ? null : companyEntityId;
 
     return {
-      // Blank goes out as '' - Laravel turns it into NULL (no order number).
-      order_reference: order.order_reference?.trim() ?? '',
+      order_reference: order.order_reference,
       erp_reference: order.erp_reference ?? null,
       customer_name: order.customer_name?.trim() || null,
       company_entity_id: normalizedCompanyEntityId,
@@ -158,63 +157,6 @@ export function toConfirmImportOrders(rows: OrderPreviewRow[]): AiMappedOrder[] 
       lines: [],
     };
   });
-}
-
-/**
- * What an accepted row still needs before it can be imported. Shared by the ERP
- * Orders wizard and the Vagon AI import card, so the two can never disagree on
- * whether a row is ready. Mirrors the confirm-import request: Order ID and
- * Delivery Date are required, and the customer must be one of the shipper's own
- * (picked, so company_entity_id is set) because it is never taken from the file.
- */
-export type OrderRowProblem = 'order_reference' | 'customer' | 'delivery_date';
-
-export type OrderRowProblemOptions = {
-  /**
-   * MS3-403: the customer is optional on an imported order. Default true keeps
-   * the Vagon AI import card's current rule; the ERP Orders wizard passes false,
-   * and then only a typed-but-unpicked customer (name without id) is a problem.
-   */
-  customerRequired?: boolean;
-};
-
-export function orderRowProblems(row: OrderPreviewRow, options: OrderRowProblemOptions = {}): OrderRowProblem[] {
-  const customerRequired = options.customerRequired ?? true;
-  const problems: OrderRowProblem[] = [];
-  // MS3-403: the order number is optional - a row without one imports as a new order.
-  const hasCustomerName = Boolean(row.order.customer_name?.trim());
-  const customerPicked = row.order.company_entity_id != null;
-  if (customerRequired ? !customerPicked || !hasCustomerName : hasCustomerName && !customerPicked) {
-    problems.push('customer');
-  }
-  if (!row.order.delivery_date?.trim()) problems.push('delivery_date');
-  return problems;
-}
-
-export function findInvalidAcceptedRow(
-  rows: OrderPreviewRow[],
-  options: OrderRowProblemOptions = {}
-): OrderPreviewRow | undefined {
-  return rows.find((r) => r.status === 'accepted' && orderRowProblems(r, options).length > 0);
-}
-
-/**
- * Applies an edit to one row's order. A field the shipper fills in stops
- * counting as "empty in the source file", which is what the wizard's own
- * editor does, so an edited value is never blanked again on confirm.
- */
-export function applyOrderPatch(row: OrderPreviewRow, patch: Partial<AiMappedOrder>): OrderPreviewRow {
-  const nextOrder = { ...row.order, ...patch };
-  let sourceEmptyFields = row.sourceEmptyFields;
-  if (!patch.lines) {
-    const filledFields = Object.keys(patch).filter((key) => {
-      const val = nextOrder[key as keyof AiMappedOrder];
-      return val != null && String(val).trim() !== '';
-    });
-    sourceEmptyFields = row.sourceEmptyFields.filter((f) => !filledFields.includes(f));
-    nextOrder.source_empty_fields = sourceEmptyFields;
-  }
-  return { ...row, order: nextOrder, sourceEmptyFields };
 }
 
 export function areOrderLinesEdited(row: OrderPreviewRow): boolean {

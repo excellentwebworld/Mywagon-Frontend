@@ -64,13 +64,11 @@ function linesEdited(row: OrderPreviewRow): boolean {
 function isFieldInvalid(row: OrderPreviewRow, field: HeaderField): boolean {
   if (row.status === 'rejected') return false;
 
-  // MS3-403: order number and customer are optional on import; only a typed
-  // customer that was never picked from the list is invalid.
   if (field === 'order_reference') {
-    return false;
+    return !row.order.order_reference?.trim();
   }
   if (field === 'customer_name') {
-    return Boolean(row.order.customer_name?.trim()) && row.order.company_entity_id == null;
+    return row.order.company_entity_id == null;
   }
   if (field === 'delivery_date') {
     return !row.order.delivery_date?.trim();
@@ -315,7 +313,7 @@ export const OrdersAiWizardPreviewPanel: React.FC<Props> = ({
         <input
           {...common}
           type="text"
-          value={row.order.order_reference ?? ''}
+          value={row.order.order_reference}
           onChange={(e) => updateOrder(row.id, { order_reference: e.target.value })}
         />
       );

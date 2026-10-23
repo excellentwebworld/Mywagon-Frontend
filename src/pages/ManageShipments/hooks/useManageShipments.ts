@@ -7,7 +7,6 @@ import { useApp } from '../../../context/AppContext';
 import type { Shipment } from '../../../context/AppContext';
 import { useCreateShipmentPartners } from '../../../hooks/useCreateShipmentPartners';
 import { useShipmentsList } from '../../../hooks/useShipments';
-import { SHIPMENT_PUBLISHED_EVENT } from '../../../utils/shipmentRefresh';
 import { useTranslation } from '../../../hooks/useTranslation';
 import { useRequireSignupComplete } from '../../../hooks/useRequireSignupComplete';
 import type { LoadsDirection } from '../../../components/ManageShipments/LoadsDirectionToggle';
@@ -31,10 +30,6 @@ import {
   type StatusTabKey,
 } from '../utils/listingUtils';
 import { toAiDraftIdSet } from '../aiDrafts';
-import {
-  isOrderRequiredForDispatchError,
-  shipmentNeedsOrderBeforeDispatch,
-} from '../../../components/ShipmentDetail/linkOrderToDispatch';
 
 export const PER_PAGE = 10;
 const SEARCH_DEBOUNCE_MS = 300;
@@ -587,12 +582,6 @@ export function useManageShipments() {
     setRefreshKey((k) => k + 1);
   }, []);
 
-  useEffect(() => {
-    const onPublished = () => refreshList();
-    window.addEventListener(SHIPMENT_PUBLISHED_EVENT, onPublished);
-    return () => window.removeEventListener(SHIPMENT_PUBLISHED_EVENT, onPublished);
-  }, [refreshList]);
-
   const handleCancelled = useCallback(() => {
     const wasDraft = cancelTarget?.status === 'draft';
     showToast(wasDraft ? t('draftDeleted') : t('shipmentCancelled'), 'success');
@@ -640,41 +629,18 @@ export function useManageShipments() {
     [navigate]
   );
 
-  /** MS3-406: dispatch refused until an order is linked — the action to retry afterwards. */
-  const [dispatchGate, setDispatchGate] = useState<
-    | { shipment: Shipment; action: 'accept'; offerId: string }
-    | { shipment: Shipment; action: 'counter'; offerId: string; amount: number; notes?: string }
-    | null
-  >(null);
-
-  /** Accept an offer (dispatch); throws so callers can react to MS3-406 refusals. */
-  const performAcceptOffer = useCallback(
-    async (s: Shipment, offerId: string) => {
-      await shipmentsService.acceptOffer(s.id, offerId);
-      showToast(t('offerAccepted') || 'Offer accepted', 'success');
-      await refreshShipmentDetail(s.id);
-      refreshList();
-    },
-    [refreshList, refreshShipmentDetail, showToast, t]
-  );
-
   const handleAcceptOffer = useCallback(
     async (s: Shipment, offerId: string) => {
-      if (shipmentNeedsOrderBeforeDispatch(s)) {
-        setDispatchGate({ shipment: s, action: 'accept', offerId });
-        return;
-      }
       try {
-        await performAcceptOffer(s, offerId);
+        await shipmentsService.acceptOffer(s.id, offerId);
+        showToast(t('offerAccepted') || 'Offer accepted', 'success');
+        await refreshShipmentDetail(s.id);
+        refreshList();
       } catch (err: unknown) {
-        if (isOrderRequiredForDispatchError(err)) {
-          setDispatchGate({ shipment: s, action: 'accept', offerId });
-          return;
-        }
         showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
       }
     },
-    [performAcceptOffer, showToast, t]
+    [refreshList, refreshShipmentDetail, showToast, t]
   );
 
   const handleRejectOffer = useCallback(
@@ -690,55 +656,21 @@ export function useManageShipments() {
     [refreshShipmentDetail, showToast, t]
   );
 
-  const performCounterOffer = useCallback(
-    async (s: Shipment, offerId: string, amount: number, notes?: string) => {
-      await shipmentsService.counterOffer(s.id, offerId, {
-        amount,
-        ...(notes ? { notes } : {}),
-      });
-      showToast(t('counterSent') || 'Counter-offer sent', 'success');
-      await refreshShipmentDetail(s.id);
-    },
-    [refreshShipmentDetail, showToast, t]
-  );
-
   const handleCounterOffer = useCallback(
     async (s: Shipment, offerId: string, amount: number, notes?: string) => {
-      // MS3-406: a carrier accepting the counter dispatches the load, so it needs an order too.
-      if (shipmentNeedsOrderBeforeDispatch(s)) {
-        setDispatchGate({ shipment: s, action: 'counter', offerId, amount, notes });
-        return;
-      }
       try {
-        await performCounterOffer(s, offerId, amount, notes);
+        await shipmentsService.counterOffer(s.id, offerId, {
+          amount,
+          ...(notes ? { notes } : {}),
+        });
+        showToast(t('counterSent') || 'Counter-offer sent', 'success');
+        await refreshShipmentDetail(s.id);
       } catch (err: unknown) {
-        if (isOrderRequiredForDispatchError(err)) {
-          setDispatchGate({ shipment: s, action: 'counter', offerId, amount, notes });
-          return;
-        }
         showToast(err instanceof ApiError ? err.message : t('somethingWentWrong') || 'Failed', 'error');
       }
     },
-    [performCounterOffer, showToast, t]
+    [refreshShipmentDetail, showToast, t]
   );
-
-  /** MS3-406: after an order is linked, run the refused action again (same screen). */
-  const retryGatedDispatch = useCallback(async () => {
-    const gate = dispatchGate;
-    if (!gate) return;
-    if (gate.action === 'accept') {
-      await performAcceptOffer(gate.shipment, gate.offerId);
-    } else {
-      await performCounterOffer(gate.shipment, gate.offerId, gate.amount, gate.notes);
-    }
-    setDispatchGate(null);
-  }, [dispatchGate, performAcceptOffer, performCounterOffer]);
-
-  const closeDispatchGate = useCallback(() => {
-    const gate = dispatchGate;
-    setDispatchGate(null);
-    if (gate) void refreshShipmentDetail(gate.shipment.id);
-  }, [dispatchGate, refreshShipmentDetail]);
 
   const handleRemindInvitee = useCallback(
     async (s: Shipment, inviteeId: number) => {
@@ -1010,9 +942,6 @@ export function useManageShipments() {
     handleAcceptOffer,
     handleRejectOffer,
     handleCounterOffer,
-    dispatchGate,
-    retryGatedDispatch,
-    closeDispatchGate,
     handleRemindInvitee,
     handleRemoveInvitee,
     handleInviteMore,

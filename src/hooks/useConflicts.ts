@@ -9,7 +9,6 @@ import {
   normalizeQtyUnit,
 } from '../components/CreateShipmentWizard/itinerary/cargoUtils';
 import { findOrderLineForProduct } from './useCreateShipmentOrders';
-import { unmatchedProductName } from '../utils/unmatchedProduct';
 
 export interface Conflict {
   code: string;
@@ -18,8 +17,6 @@ export interface Conflict {
   lineIndex: number;
   message: string;
   resolution: string;
-  /** The product a conflict is about, when the message names one (C12). */
-  product?: string;
 }
 
 export function computeConflicts(stops: any[], options: any = {}) {
@@ -55,10 +52,9 @@ export function computeConflicts(stops: any[], options: any = {}) {
     stopIdx: number,
     lineIdx: number,
     message: string,
-    resolution: string,
-    extra?: Pick<Conflict, 'product'>
+    resolution: string
   ) => {
-    conflicts.push({ code, severity, stopIndex: stopIdx, lineIndex: lineIdx, message, resolution, ...extra });
+    conflicts.push({ code, severity, stopIndex: stopIdx, lineIndex: lineIdx, message, resolution });
   };
 
     if (!stops || stops.length === 0) return empty();
@@ -176,66 +172,26 @@ export function computeConflicts(stops: any[], options: any = {}) {
         }
       }
 
-      // The product an order names for a line that has none in the Product
-      // Master (QA 2026-10-10, Bug 3). Such a line is cargo the shipper already
-      // entered, so it gets C12 - "'X' isn't in your Product Master" - instead of
-      // C1's "add at least one product line" and C2's bare "select a product".
-      type CargoLineRef = {
-        orderId?: string | number | null;
-        orderRef?: string | null;
-        productId?: string | number | null;
-        productName?: string | null;
-        orderLineId?: string | number | null;
-        qty?: string | number | null;
-        weight?: string | number | null;
-      };
-      type OrderRef = {
-        id?: string | number;
-        orderReference?: string;
-        lines?: Array<{ id?: string | number | null; productSkuId?: string | number | null; productName?: string | null }>;
-      };
-      const lineOrder = (ln: CargoLineRef) => {
-        if (!ln?.orderId && !ln?.orderRef) return null;
-        const rawId = String(ln.orderId || '');
-        return (
-          (rawId ? orderDetails[rawId] : undefined) ||
-          (ln.orderRef ? orderDetails[String(ln.orderRef)] : undefined) ||
-          ((orders || []) as OrderRef[]).find(
-            (o) =>
-              (rawId && String(o.id) === rawId) ||
-              (ln.orderRef && String(o.orderReference) === String(ln.orderRef))
-          ) ||
-          null
-        );
-      };
-      const unmatchedName = (ln: CargoLineRef) =>
-        ln?.productId || !(ln?.qty || ln?.weight) ? null : unmatchedProductName(ln, lineOrder(ln));
-
       // C1
-      const pLines = (stop.lines || []).filter((l: { productId?: unknown }) => l.productId);
-      const unmatchedLines = ((stop.lines || []) as CargoLineRef[]).filter((l) => unmatchedName(l));
-      if (pLines.length === 0 && unmatchedLines.length === 0) {
+      const pLines = (stop.lines || []).filter((l: any) => l.productId);
+      if (pLines.length === 0) {
         add('C1', 'blocker', si, -1, `Stop ${si + 1}: No cargo — add at least one product`, 'Add a cargo line');
       }
 
       // Per-line
       (stop.lines || []).forEach((ln: any, li: number) => {
-        // MS3-403: the order is optional on a load. The former O4 blocker
-        // ("Select an order") is gone; a product line without an order only
-        // gets the non-blocking O2 warning below.
-        if (!ln.productId && !ln.qty) return;
-        const notInMaster = unmatchedName(ln);
-        if (notInMaster) {
+        if (!ln.orderId && !ln.orderRef) {
           add(
-            'C12',
+            'O4',
             'blocker',
             si,
             li,
-            `Stop ${si + 1}, line ${li + 1}: “${notInMaster}” from the order isn't in your Product Master — pick a match or create it`,
-            'Pick a matching product or create it in your Product Master',
-            { product: notInMaster }
+            `Stop ${si + 1}, line ${li + 1}: Select an order`,
+            'Select an ERP order for this line'
           );
-        } else if (!ln.productId && (ln.qty || ln.weight)) {
+        }
+        if (!ln.productId && !ln.qty) return;
+        if (!ln.productId && (ln.qty || ln.weight)) {
           add('C2', 'blocker', si, li, `Stop ${si + 1}, line ${li + 1}: Qty set but no product`, 'Select a product');
         }
         if (ln.productId && (!ln.qty || parseFloat(ln.qty) <= 0)) {

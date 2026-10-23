@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { OrderFlowBundle } from '../../hooks/useChat';
 import {
   ORDER_QTY_UNITS, ORDER_WEIGHT_UNITS, emptyOrderDraft, emptyOrderLine, orderIssues,
-  orderWarnings, referenceClashOf, removeOrderLine, serializeOrderDraft, setLineProduct, withOrderLines,
+  orderWarnings, referenceClashOf, serializeOrderDraft, setLineProduct,
   type OrderDraft,
 } from './createOrderDraft';
 
@@ -99,45 +99,6 @@ describe('emptyOrderDraft', () => {
   });
 });
 
-/**
- * MS3-400: a new order always shows one product line. The product is the one
- * field that cannot be skipped, and a form with no line on it hid it.
- */
-describe('order lines are never empty', () => {
-  it('turns no lines into one empty line', () => {
-    for (const none of [[], null, undefined]) {
-      const lines = withOrderLines(none, bundle());
-      expect(lines).toHaveLength(1);
-      expect(lines[0]).toEqual(emptyOrderLine(bundle()));
-    }
-  });
-
-  it('leaves real lines alone, as a copy', () => {
-    const lines = draft().lines;
-    const kept = withOrderLines(lines, bundle());
-    expect(kept).toEqual(lines);
-    expect(kept).not.toBe(lines);
-  });
-
-  it('removing the last line leaves one empty line, not an empty form', () => {
-    const left = removeOrderLine(draft().lines, 0, bundle());
-    expect(left).toHaveLength(1);
-    expect(left[0]!.productName).toBe('');
-    expect(left[0]!.qty).toBeNull();
-  });
-
-  it('removing one of several lines just drops that one', () => {
-    const two = [...draft().lines, { ...emptyOrderLine(bundle()), productName: 'Basmati Rice 5kg' }];
-    const left = removeOrderLine(two, 0, bundle());
-    expect(left.map((line) => line.productName)).toEqual(['Basmati Rice 5kg']);
-  });
-
-  it('an empty line still blocks the save, so the guarantee does not let a productless order through', () => {
-    const blank = { ...draft(), lines: withOrderLines([], bundle()) };
-    expect(orderIssues(blank).map((issue) => issue.field)).toContain('lines[0].productName');
-  });
-});
-
 describe('orderIssues', () => {
   it('accepts a reference, a customer, a delivery date and one complete line', () => {
     expect(orderIssues(draft())).toEqual([]);
@@ -158,15 +119,6 @@ describe('orderIssues', () => {
 
   it('asks for the delivery date, which is the one date MYVAGON requires', () => {
     expect(orderIssues(draft({ deliveryDate: '' }))[0]).toMatchObject({ field: 'deliveryDate' });
-  });
-
-  // MS3-355 — pickup/ship is optional; delivery alone is enough to file.
-  it('accepts delivery date only (pickup/ship optional)', () => {
-    expect(orderIssues(draft({ shipDate: null, deliveryDate: '2026-09-14' }))).toEqual([]);
-  });
-
-  it('treats a blank ship date string as absent, not as an invalid date', () => {
-    expect(orderIssues(draft({ shipDate: '' as unknown as null, deliveryDate: '2026-09-14' }))).toEqual([]);
   });
 
   /*

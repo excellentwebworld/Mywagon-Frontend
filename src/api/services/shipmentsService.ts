@@ -1,4 +1,4 @@
-import { API_BASE, apiGet, apiPost, apiPut, apiDelete, AUTH_TOKEN_KEY, ApiError, getAcceptLanguage } from '../client';
+import { apiGet, apiPost, apiPut, apiDelete, AUTH_TOKEN_KEY, ApiError, getAcceptLanguage } from '../client';
 import { mapApiDetailToShipment, mapApiListItemToShipment } from '../mappers/shipmentsMapper';
 import type {
   ApiCancelReasonsPayload,
@@ -8,7 +8,6 @@ import type {
   ApiShipmentDetail,
   ApiShipmentDocument,
   ApiShipmentListItem,
-  ApiLinkOrderResult,
   ApiShipmentsSummary,
   ApiShipmentsFilterFacets,
   ListShipmentsParams,
@@ -18,6 +17,7 @@ import type {
 import type { Shipment } from '../../context/AppContext';
 import type { ApiListMeta } from '../types/addressBook';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
 function toQuery(params: ListShipmentsParams): Record<string, string | number> {
   const query: Record<string, string | number> = {};
@@ -196,19 +196,6 @@ export const shipmentsService = {
 
   async acceptOffer(shipmentId: string | number, offerId: string): Promise<void> {
     await apiPost(`/shipments/${shipmentId}/offers/${offerId}/accept`);
-  },
-
-  /**
-   * MS3-406: link an order so the load can be dispatched. Send `erp_order_id`
-   * (existing order) or `order_reference` (+ optional `customer_name`) to create
-   * one pre-filled from the load. Refusals carry `data.code` (see linkOrderToDispatch.ts).
-   */
-  async linkOrder(
-    shipmentId: string | number,
-    body: { erp_order_id: number } | { order_reference: string; customer_name?: string }
-  ): Promise<ApiLinkOrderResult> {
-    const res = await apiPost<ApiLinkOrderResult>(`/shipments/${shipmentId}/link-order`, body);
-    return res.data;
   },
 
   async rejectOffer(shipmentId: string | number, offerId: string): Promise<void> {

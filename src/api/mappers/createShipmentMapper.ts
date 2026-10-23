@@ -9,14 +9,6 @@ import { createNewCargoLine, createNewStop } from '../../components/CreateShipme
 import { computeItineraryFingerprint } from '../../components/CreateShipmentWizard/itineraryFingerprint';
 import { normalizeQtyUnit, normalizeWeightUnit } from '../../constants/cargoUnits';
 import { syncDropoffMirrorLinks } from '../../components/CreateShipmentWizard/itinerary/cargoUtils';
-import {
-  dedupeOrderEmailsAgainstStops,
-  normalizeStopTrackingEmails,
-  normalizeStopTrackingEmailsAuto,
-  stopTrackingEmailsPayload,
-  type StopTrackingEmails,
-  type StopTrackingEmailsAuto,
-} from '../../components/CreateShipmentWizard/itinerary/stopTrackingEmails';
 import { getBrowserTimezone } from '../../utils/timezone';
 import { normalizeTime24 } from '../../components/ui/TimePicker';
 
@@ -193,10 +185,6 @@ export interface WizardFormValues {
   targetPrice: string;
   negotiable: boolean;
   trackingEmails: Record<string, string[]>;
-  /** MS3-414: receiver tracking emails per delivery stop id. */
-  stopTrackingEmails?: StopTrackingEmails;
-  /** MS3-414: stop entries that are still the Address Book pre-fill (read-only). */
-  stopTrackingEmailsAuto?: StopTrackingEmailsAuto;
   driverNotes: string;
   notesList?: Array<{
     id: string | number;
@@ -317,23 +305,10 @@ export function draftToFormValues(
       return rawPrice;
     })(),
     negotiable: state.negotiable ?? defaults.negotiable,
-    // MS3-414: an address a stop already sends to is not repeated under its order.
-    trackingEmails: dedupeOrderEmailsAgainstStops(
-      normalizeTrackingEmails(
-        state.trackingEmails ?? defaults.trackingEmails,
-        extractTrackingOrderIds(stops)
-      ),
-      normalizeStopTrackingEmails(state.stopTrackingEmails),
-      stops
+    trackingEmails: normalizeTrackingEmails(
+      state.trackingEmails ?? defaults.trackingEmails,
+      extractTrackingOrderIds(stops)
     ),
-    stopTrackingEmails:
-      state.stopTrackingEmails !== undefined
-        ? normalizeStopTrackingEmails(state.stopTrackingEmails)
-        : defaults.stopTrackingEmails ?? {},
-    stopTrackingEmailsAuto:
-      state.stopTrackingEmailsAuto !== undefined
-        ? normalizeStopTrackingEmailsAuto(state.stopTrackingEmailsAuto)
-        : defaults.stopTrackingEmailsAuto ?? {},
     driverNotes: state.driverNotes ?? defaults.driverNotes,
     notesList: normalizeNotesList(state.notesList ?? defaults.notesList ?? []),
     gpsRequired: state.gpsRequired ?? defaults.gpsRequired,
@@ -407,7 +382,6 @@ export function formValuesToStepThreePayload(
     | 'targetPrice'
     | 'negotiable'
     | 'trackingEmails'
-    | 'stopTrackingEmails'
     | 'driverNotes'
     | 'gpsRequired'
     | 'orderValue'
@@ -437,8 +411,6 @@ export function formValuesToStepThreePayload(
     target_price: Number.isNaN(targetPrice) ? 0 : targetPrice,
     negotiable: Boolean(values.negotiable),
     tracking_emails: trackingEmails,
-    // MS3-414: only stops the form holds an entry for; [] = receiver email removed.
-    stop_tracking_emails: stopTrackingEmailsPayload(values.stops || [], values.stopTrackingEmails),
     driver_notes: values.driverNotes || '',
     gps_required: Boolean(values.gpsRequired),
     bulk_mode: 'single',
@@ -506,8 +478,6 @@ export function formValuesToWizardState(values: WizardFormValues): ApiWizardStat
     targetPrice: values.targetPrice,
     negotiable: values.negotiable,
     trackingEmails: values.trackingEmails,
-    stopTrackingEmails: values.stopTrackingEmails,
-    stopTrackingEmailsAuto: values.stopTrackingEmailsAuto,
     driverNotes: values.driverNotes,
     notesList: values.notesList,
     gpsRequired: values.gpsRequired,

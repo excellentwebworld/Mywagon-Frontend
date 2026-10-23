@@ -39,12 +39,8 @@ export const createShipmentService = {
     return res.data;
   },
 
-  /** MS3-403: `copies` (1..20, default 1) publishes that many identical, independent loads. */
-  async publishDraft(id: number | string, copies = 1): Promise<PublishShipmentResponse> {
-    const res = await apiPost<PublishShipmentResponse>(
-      `/create-shipment/drafts/${id}/publish`,
-      copies > 1 ? { copies } : undefined
-    );
+  async publishDraft(id: number | string): Promise<PublishShipmentResponse> {
+    const res = await apiPost<PublishShipmentResponse>(`/create-shipment/drafts/${id}/publish`);
     return res.data;
   },
 

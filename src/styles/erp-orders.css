@@ -154,10 +154,6 @@
 }
 
 /* ── ERP Page Buttons ── */
-/* MS3-360: Import · Import history, joined as one split button. */
-.pg-head-r .btn-split { display: inline-flex; }
-.pg-head-r .btn-split .btn + .btn { margin-left: -1px; border-top-left-radius: 0; border-bottom-left-radius: 0; }
-.pg-head-r .btn-split .btn:first-child:not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .pg-head-r .btn {
   display: inline-flex;
   align-items: center;

@@ -38,7 +38,6 @@ function emptyGapDraft(): FlowDraftSeed {
     settlement: 'direct',
     bulk: { mode: 'single' },
     trackingOrderIds: [],
-    trackingEmails: {},
   };
 }
 

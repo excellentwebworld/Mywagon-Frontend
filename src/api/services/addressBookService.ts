@@ -1,4 +1,4 @@
-import { API_BASE, apiDelete, apiGet, apiPost, apiPut, AUTH_TOKEN_KEY, ApiError, getAcceptLanguage } from '../client';
+import { apiDelete, apiGet, apiPost, apiPut, AUTH_TOKEN_KEY, ApiError, getAcceptLanguage } from '../client';
 import {
   directoryToListParams,
   listParamsToExportQuery,
@@ -23,6 +23,7 @@ import type {
   ListLocationsParams,
 } from '../types/addressBook';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
 export interface PaginatedLocationsResult {
   items: LocationItem[];

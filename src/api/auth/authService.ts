@@ -1,6 +1,5 @@
 import axios from 'axios';
 import { axiosInstance, AUTH_TOKEN_KEY, getStoredToken, setStoredToken, clearStoredToken } from '../client';
-import { apiBaseUrl, laravelOrigin } from '../../config/deploymentEnv';
 import type {
   LoginPayload,
   LoginResponse,
@@ -198,7 +197,10 @@ export const authService = {
         (err instanceof Error && (err.message.toLowerCase().includes('could not be found') || err.message.includes('404')));
 
       if (isNotFound) {
-        const laravelBase = laravelOrigin() || apiBaseUrl().replace(/\/api\/.*$/, '') || '';
+        const laravelBase =
+          (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '') ||
+          (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/api\/.*$/, '') ||
+          '';
         const fallbackUrl = `${laravelBase}/password/email`;
         try {
           const fbRes = await axios.post(
@@ -265,7 +267,10 @@ export const authService = {
         (err instanceof Error && (err.message.toLowerCase().includes('could not be found') || err.message.includes('404')));
 
       if (isNotFound) {
-        const laravelBase = laravelOrigin() || apiBaseUrl().replace(/\/api\/.*$/, '') || '';
+        const laravelBase =
+          (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '') ||
+          (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/api\/.*$/, '') ||
+          '';
         const fallbackUrl = `${laravelBase}/password/reset`;
         try {
           const fbRes = await axios.post(
@@ -344,9 +349,9 @@ export const authService = {
 
   socialRedirectUrl(provider: 'google' | 'microsoft'): string {
     const configured =
-      apiBaseUrl().replace(/\/$/, "") ||
+      (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ||
       '/api/shipper/v1';
-    const laravel = laravelOrigin();
+    const laravel = (import.meta.env.VITE_LARAVEL_URL as string | undefined)?.replace(/\/$/, '');
     const apiBase = configured.startsWith('http')
       ? configured
       : laravel

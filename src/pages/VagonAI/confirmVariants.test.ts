@@ -14,7 +14,7 @@ const at = (dict: Dict, key: string): unknown => key
     ? (node as Dict)[part]
     : undefined), dict);
 
-const VARIANTS: ConfirmVariant[] = ['shipment', 'publish', 'location', 'product', 'erpOrder', 'bid', 'partner', 'generic'];
+const VARIANTS: ConfirmVariant[] = ['shipment', 'location', 'product', 'erpOrder', 'generic'];
 
 describe('confirmVariant', () => {
   it('gives each write tool its own module card', () => {
@@ -109,48 +109,4 @@ describe('confirmation copy', () => {
 
 it('maps mark_shipment_complete to markComplete', () => {
   expect(confirmVariant('mark_shipment_complete')).toBe('markComplete');
-});
-
-// A closed ORDER must never borrow the shipment card, which tells the shipper a
-// load is being completed.
-it('gives the order completion writes their own cards, in both languages', () => {
-  expect(confirmVariant('mark_order_complete')).toBe('markOrderComplete');
-  expect(confirmVariant('reopen_order')).toBe('reopenOrder');
-  for (const [, dict] of LOCALES) {
-    for (const variant of ['markOrderComplete', 'reopenOrder']) {
-      for (const key of ['title', 'confirm', 'warning', 'customer', 'status', 'result']) {
-        expect(at(dict, `vagonai.confirm.${variant}.${key}`)).toBeTruthy();
-      }
-    }
-    for (const status of ['unplanned', 'partially_planned', 'completed']) {
-      expect(at(dict, `vagonai.confirm.orderStatus.${status}`)).toBeTruthy();
-    }
-  }
-});
-
-// A file import creates orders AND master records - it must never borrow the
-// single-order card, which promises one order and nothing else.
-it('gives run_order_import its own card, with its warning in both languages', () => {
-  expect(confirmVariant('run_order_import')).toBe('orderImport');
-  for (const [, dict] of LOCALES) {
-    for (const key of ['title', 'confirm', 'warning']) {
-      expect(at(dict, `vagonai.confirm.orderImport.${key}`)).toBeTruthy();
-    }
-  }
-});
-
-// PTB-02: an offer to another company's truck gets its own card, never the
-// generic argument list - the carrier sees it the moment it is confirmed.
-it('gives place_truck_bid the bid card, with all its copy in both languages', () => {
-  expect(confirmVariant('place_truck_bid')).toBe('bid');
-  for (const [, dict] of LOCALES) {
-    for (const key of [
-      'title', 'confirm', 'truck', 'carrier', 'truckAvailable', 'load', 'loadPickup',
-      'price', 'askingPrice', 'yourOffer', 'match', 'exactYes', 'exactNo', 'notes', 'warning',
-    ]) {
-      expect(at(dict, `vagonai.confirm.bid.${key}`)).toBeTruthy();
-    }
-    // PUB-02: the publish card says "any subtype" when a type is not narrowed.
-    expect(at(dict, 'vagonai.confirm.publish.anySubtype')).toBeTruthy();
-  }
 });

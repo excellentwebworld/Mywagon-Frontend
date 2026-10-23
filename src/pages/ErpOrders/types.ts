@@ -94,10 +94,7 @@ export const EMPTY_ORDER_FORM: ErpOrderFormState = {
   notes: '',
   highPriority: false,
   orderValue: null,
-  // MS3-400: a new order opens with one empty product line. The product is
-  // required, and a form with no line on it hid the field (the Create Load
-  // wizard's "new order" modal opened from this constant with none).
-  lines: [{ ...EMPTY_ORDER_LINE }],
+  lines: [],
 };
 
 // --- Deferred Create Load types (Views 2–3) ---

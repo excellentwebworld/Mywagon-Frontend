@@ -46,7 +46,6 @@ const draft = {
   settlement: 'direct',
   bulk: { mode: 'single' },
   trackingOrderIds: [],
-    trackingEmails: {},
 } as ShipmentDraft;
 
 /** A form that would arm cleanly, so each case below breaks exactly one thing. */

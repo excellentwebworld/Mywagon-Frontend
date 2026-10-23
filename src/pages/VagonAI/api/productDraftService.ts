@@ -61,19 +61,13 @@ export async function submitProductDraft(input: {
   conversationId: string;
   draft: ProductDraft;
   locale?: string;
-  /** BL-04: the form's run id, reused on every retry of the same form. */
-  runId?: string;
 }): Promise<ProductSubmitResponse> {
   const response = await gatewayFetch('/chat/product-draft', {
     method: 'POST',
     token: getStoredToken(),
     locale: input.locale,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      conversationId: input.conversationId,
-      draft: input.draft,
-      ...(input.runId ? { run_id: input.runId } : {}),
-    }),
+    body: JSON.stringify({ conversationId: input.conversationId, draft: input.draft }),
   });
 
   return (await response.json()) as ProductSubmitResponse;

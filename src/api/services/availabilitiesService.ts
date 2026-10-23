@@ -1,5 +1,6 @@
-import { API_BASE, ApiError, apiGet, apiPost, AUTH_TOKEN_KEY, getAcceptLanguage } from '../client';
+import { ApiError, apiGet, apiPost, AUTH_TOKEN_KEY, getAcceptLanguage } from '../client';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 import { buildListParams, mapListItemToTruck, mapPendingMatch, mapPendingMatchDetail } from '../mappers/availabilitiesMapper';
 import type {
   ApiAvailabilityDetail,

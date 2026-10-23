@@ -40,7 +40,6 @@ import {
   useCreateShipmentOrders,
   findOrderLineForProduct,
   getProductOptionsForCargoLine,
-  getProductMasterOptionsForCargoLine,
   countUnmappedOrderLines,
   countDeactivatedOrderLines,
   resolveOrderDetailForWizard,
@@ -49,8 +48,6 @@ import { ConfirmationModal } from "../ui/ConfirmationModal";
 import { CreateLocationModal } from "../AddressBook/CreateLocationModal";
 import { CreateCompanyModal } from "../AddressBook/CreateCompanyModal";
 import { ProductMasterSkuModal } from "../ProductMaster/ProductMasterSkuModal";
-import { EMPTY_NEW_SKU, type NewSkuForm } from "../../pages/ProductMaster/types";
-import { findProductMasterMatch, productPickPatch, unmatchedProductName } from "../../utils/unmatchedProduct";
 import { CreateEditOrderModal } from "../ErpOrders";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -156,7 +153,6 @@ import {
 import { useSubscriptionPermission } from "../../hooks/useSubscriptionPermission";
 import { useShipperPermission } from "../../hooks/useShipperPermission";
 import { useUpgradeGate } from "../../context/UpgradeGateContext";
-import { orderDisplayRef } from "../../utils/orderDisplayRef";
 
 const makeId = (prefix: string) =>
   `${prefix}-${Math.random().toString(36).substr(2, 9)}`;
@@ -264,8 +260,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
   const [mComp, setMComp] = useState(false);
   const [mOrd, setMOrd] = useState(false);
   const [mSku, setMSku] = useState(false);
-  /** What the product modal opens with: the order's product name, from "+ Create “name”". */
-  const [skuInitial, setSkuInitial] = useState<NewSkuForm>(EMPTY_NEW_SKU);
 
   const [pCtx, setPCtx] = useState<any>({});
   const [balExp, setBalExp] = useState(false);
@@ -972,7 +966,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
       if (!byId.has(value)) {
         byId.set(value, {
           value,
-          label: orderDisplayRef({ id: value, orderReference: detail.orderReference }),
+          label: detail.orderReference || value,
           sublabel: [
             detail.customerName || null,
             detail.erpReference || null,
@@ -1337,28 +1331,11 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
     async (sid: string, lid: string, skuId: string) => {
       const stop = stopsRef.current.find((s: any) => s.id === sid);
       const line = stop?.lines?.find((l: any) => l.id === lid);
-      const sku = pmSkus.find((s) => String(s.id) === String(skuId));
-      const pickPatch = sku
-        ? (() => {
-            const p = productPickPatch(line, sku);
-            return {
-              ...p,
-              unit: normalizeQtyUnit(p.unit) || "EUR Pallets",
-              wtUnit: normalizeWeightUnit(p.wtUnit) || "Kgs",
-            };
-          })()
-        : null;
-      const cachedOrder = line?.orderId
-        ? lookupOrderDetail(orderDetailsById, line.orderId, line.orderRef)
-        : null;
-      // QA retest #2: the first "Use <match>" took over 4 s, all of it waiting
-      // for the order to load. Show the pick at once; the order, when it
-      // arrives, still refines the line below if it names this product.
-      if (pickPatch && line?.orderId && !cachedOrder) setLF(sid, lid, pickPatch);
       const order = line?.orderId
         ? resolveOrderDetailForWizard(
             String(line.orderId),
-            cachedOrder || (await fetchOrderDetail(line.orderId)),
+            lookupOrderDetail(orderDetailsById, line.orderId, line.orderRef) ||
+              (await fetchOrderDetail(line.orderId)),
             stopsRef.current || [],
           )
         : null;
@@ -1419,10 +1396,23 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
         }
 
         setLF(sid, lid, patch);
-      } else if (pickPatch) {
-        // The order's own quantity, unit and weight stay; the product's
-        // default weight, as a number, only fills a line with none (QA retest #2).
-        setLF(sid, lid, pickPatch);
+      } else {
+        const sku = pmSkus.find((s) => String(s.id) === String(skuId));
+        if (sku) {
+          const patch = {
+            productId: skuId,
+            productName: sku.name || sku.sku_name || "Product",
+            orderLineId: "",
+            qty: line?.qty || "",
+            unit: normalizeQtyUnit(sku.unit || line?.unit) || "EUR Pallets",
+            weight:
+              sku.weight != null && sku.weight !== ""
+                ? String(sku.weight)
+                : line?.weight || "",
+            wtUnit: normalizeWeightUnit(line?.wtUnit) || "Kgs",
+          };
+          setLF(sid, lid, patch);
+        }
       }
     },
     [fetchOrderDetail, orderDetailsById, pmSkus, setLF, setStops],
@@ -1527,7 +1517,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           setPCtx((p: any) => ({ ...p, pS: null, pL: null }));
         }
         setMSku(false);
-        setSkuInitial(EMPTY_NEW_SKU);
         showToast(
           t("erpOrdersProductCreated") || "Product created successfully.",
           "success",
@@ -2048,13 +2037,13 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                       />
                     </div>
 
-                    {/* Location, Time and Cargo are shaded apart (MS3-362) */}
+                    {/* Location + Appointment */}
                     <div
-                      className="cs-stop-sec cs-stop-sec--location p-4"
+                      className="p-4"
                       style={{ borderBottom: `1px solid ${T.bd}` }}
                     >
                       {/* Location Select */}
-                      <div>
+                      <div className="mb-3">
                         <label
                           className="block text-[11px] font-semibold mb-1 uppercase tracking-wide"
                           style={{ color: T.t3 }}
@@ -2117,12 +2106,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                           t={t}
                         />
                       </div>
-                    </div>
 
-                    <div
-                      className="cs-stop-sec cs-stop-sec--time px-4 py-3"
-                      style={{ borderBottom: `1px solid ${T.bd}` }}
-                    >
                       {/* Appointment Row — Fixed Time only */}
                       <div
                         className="flex items-end gap-2 flex-wrap"
@@ -2224,10 +2208,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                     </div>
 
                     {/* Cargo Lines Table */}
-                    <div
-                      className="cs-stop-sec cs-stop-sec--cargo p-4 pt-3"
-                      style={{ borderBottom: `1px solid ${T.bd}` }}
-                    >
+                    <div className="p-4 pt-3">
                       <CargoTable
                         stop={stop}
                         T={T}
@@ -2262,9 +2243,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                         }}
                         onSelProd={(lid, sk) => selProdLine(stop.id, lid, sk)}
                         onSelOrd={(lid, oid) => selOrdLine(stop.id, lid, oid)}
-                        onNewProd={(lid, name) => {
+                        onNewProd={(lid) => {
                           setPCtx({ pS: stop.id, pL: lid });
-                          setSkuInitial(name ? { ...EMPTY_NEW_SKU, name } : EMPTY_NEW_SKU);
                           setMSku(true);
                         }}
                         onNewOrd={(lid) => {
@@ -2290,7 +2270,7 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                     </div>
 
                     {/* Footer Checkmark actions */}
-                    <div className="flex justify-end items-center gap-2 px-4 py-3">
+                    <div className="flex justify-end items-center gap-2 px-4 pb-3">
                       {stopLocked && (
                         <span
                           className="text-[10px] font-semibold uppercase px-2 py-1 rounded mr-auto"
@@ -2301,8 +2281,8 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
                       )}
                       <button
                         type="button"
-                        className="cs-stop-done inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-none text-white"
-                        style={{ fontFamily: "inherit" }}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer border-none text-white"
+                        style={{ background: "#1F1F41", fontFamily: "inherit" }}
                         onClick={() => handleStopDone(stop.id)}
                       >
                         <Check size={14} /> {t("done", "Done")}
@@ -2397,19 +2377,6 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {/* QA 2026-10-08: the reason Continue is blocked lived only in the
-              button's hover title, so the button read as disabled with no
-              explanation. Say it beside the button. */}
-          {!canContinue && continueTooltip && (
-            <span
-              role="status"
-              data-testid="continue-blocked-reason"
-              className="text-xs"
-              style={{ color: "var(--danger)", maxWidth: 360, whiteSpace: "pre-line", textAlign: "right" }}
-            >
-              {continueTooltip}
-            </span>
-          )}
           <button
             type="button"
             className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold cursor-pointer text-white border-none transition-colors"
@@ -2532,13 +2499,9 @@ export const Step1Details: React.FC<Step1DetailsProps> = ({
 
       <ProductMasterSkuModal
         isOpen={mSku}
-        onClose={() => {
-          setMSku(false);
-          setSkuInitial(EMPTY_NEW_SKU);
-        }}
+        onClose={() => setMSku(false)}
         onSubmit={handleCreateSku}
         saving={skuSaving}
-        initialValues={skuInitial}
       />
 
       {/* Conflict summary dialog */}
@@ -2699,8 +2662,7 @@ interface CargoTableProps {
   onSelProd: (lid: string, skuId: string) => void;
   onSelOrd: (lid: string, oid: string) => void;
   onClearOrder: (lid: string) => void;
-  /** `name` prefills the new product (a line whose order product is not in the Product Master). */
-  onNewProd: (lid: string, name?: string) => void;
+  onNewProd: (lid: string) => void;
   onNewOrd: (lid: string) => void;
   onQuickFill: (oid: string) => void;
   onQuickFillNew: () => void;
@@ -2853,13 +2815,9 @@ const CargoTable: React.FC<CargoTableProps> = ({
               }
 
               // Only products from the selected order (not the full product master).
-              // MS3-403: a line without an order picks from the Product Master.
-              (ln.orderId
-                ? getProductOptionsForCargoLine(orderDetail, {
-                    includeZeroRemainingProductIds: productsOnThisShipment,
-                  })
-                : getProductMasterOptionsForCargoLine(pmSkus)
-              ).forEach((opt) => {
+              getProductOptionsForCargoLine(orderDetail, {
+                includeZeroRemainingProductIds: productsOnThisShipment,
+              }).forEach((opt) => {
                 if (!seenValues.has(opt.value)) {
                   seenValues.add(opt.value);
                   productOpts.push({
@@ -2884,11 +2842,6 @@ const CargoTable: React.FC<CargoTableProps> = ({
               }
               const unmappedCount = countUnmappedOrderLines(orderDetail);
               const deactivatedCount = countDeactivatedOrderLines(orderDetail);
-              // The product the order names when it is not in the Product
-              // Master, kept rather than dropped to "Select product…" (Bug 3,
-              // QA 2026-10-10), and the one Product Master entry it plainly means.
-              const notInMaster = ln.orderId ? unmatchedProductName(ln, orderDetail) : null;
-              const pmMatch = notInMaster ? findProductMasterMatch(notInMaster, pmSkus) : null;
               return (
                 <tr
                   key={ln.id}
@@ -2949,7 +2902,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       </div>
                     ) : (
                       <span className="text-[10px]" style={{ color: T.t3 }}>
-                        —
+                        {ln.orderId ? "—" : t("createLoadSelectOrderFirst")}
                       </span>
                     )}
                   </td>
@@ -2965,15 +2918,19 @@ const CargoTable: React.FC<CargoTableProps> = ({
                       onChange={(v) => onSelProd(ln.id, v)}
                       options={productOpts}
                       placeholder={
-                        notInMaster
-                          ? t("createLoadProductNotInMasterPlaceholder", { name: notInMaster }) ||
-                            `${notInMaster} — not in Product Master`
-                          : t("selectProduct")
+                        ln.orderId
+                          ? t("selectProduct")
+                          : t("createLoadSelectOrderFirst")
                       }
-                      headerAction={{
-                        label: t('createProductPlus', '+ Create Product'),
-                        onClick: () => onNewProd(ln.id),
-                      }}
+                      disabled={!ln.orderId}
+                      headerAction={
+                        ln.orderId
+                          ? {
+                              label: t('createProductPlus', '+ Create Product'),
+                              onClick: () => onNewProd(ln.id),
+                            }
+                          : undefined
+                      }
                       menuFixed={true}
                       hideSublabelInTrigger={true}
                       minMenuWidth={240}
@@ -2991,39 +2948,7 @@ const CargoTable: React.FC<CargoTableProps> = ({
                         ))}
                       </div>
                     )}
-                    {notInMaster && (
-                      <div
-                        className="text-[10px] mt-1"
-                        style={{ color: "#B45309", lineHeight: 1.35 }}
-                        data-testid="cargo-line-not-in-master"
-                      >
-                        <div>
-                          {t("createLoadProductNotInMaster", { name: notInMaster }) ||
-                            `“${notInMaster}” from the order isn't in your Product Master.`}
-                        </div>
-                        <div className="flex flex-wrap gap-1 mt-0.5">
-                          {pmMatch && (
-                            <button
-                              type="button"
-                              className="text-[10px] font-semibold px-1.5 py-0.5 rounded cursor-pointer"
-                              style={{ border: "1px solid #F59E0B", background: "#FFFBEB", color: "#92400E", fontFamily: "inherit" }}
-                              onClick={() => onSelProd(ln.id, String(pmMatch.id))}
-                            >
-                              {t("createLoadUseProductMatch", { match: pmMatch.name }) || `Use ${pmMatch.name}`}
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            className="text-[10px] font-semibold px-1.5 py-0.5 rounded cursor-pointer"
-                            style={{ border: "1px solid #F59E0B", background: "#FFFBEB", color: "#92400E", fontFamily: "inherit" }}
-                            onClick={() => onNewProd(ln.id, notInMaster)}
-                          >
-                            {t("createLoadCreateProductNamed", { name: notInMaster }) || `+ Create “${notInMaster}”`}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    {!notInMaster && unmappedCount > 0 && productOpts.length === 0 && (
+                    {unmappedCount > 0 && productOpts.length === 0 && (
                       <div
                         className="text-[10px] mt-1"
                         style={{ color: "#D97706" }}
@@ -3059,18 +2984,26 @@ const CargoTable: React.FC<CargoTableProps> = ({
                     >
                       <button
                         type="button"
-                        className={`wiz-line-action__btn wiz-line-action__btn--pickup py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none${ln.action === "pickup" ? " is-on" : ""}`}
-                        aria-pressed={ln.action === "pickup"}
-                        style={{ fontFamily: "inherit" }}
+                        className={`wiz-line-action__btn py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none${ln.action === "pickup" ? " is-on" : ""}`}
+                        style={{
+                          background:
+                            ln.action === "pickup" ? undefined : T.sf,
+                          color: ln.action === "pickup" ? undefined : T.t3,
+                          fontFamily: "inherit",
+                        }}
                         onClick={() => onSetField(ln.id, "action", "pickup")}
                       >
                         {t("createShipment.pick", "Pick")}
                       </button>
                       <button
                         type="button"
-                        className={`wiz-line-action__btn wiz-line-action__btn--dropoff py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none${ln.action === "dropoff" ? " is-on" : ""}`}
-                        aria-pressed={ln.action === "dropoff"}
-                        style={{ fontFamily: "inherit" }}
+                        className={`wiz-line-action__btn py-1 px-2.5 text-[10px] font-semibold cursor-pointer border-none${ln.action === "dropoff" ? " is-on" : ""}`}
+                        style={{
+                          background:
+                            ln.action === "dropoff" ? undefined : T.sf,
+                          color: ln.action === "dropoff" ? undefined : T.t3,
+                          fontFamily: "inherit",
+                        }}
                         onClick={() => onSetField(ln.id, "action", "dropoff")}
                       >
                         {t("createShipment.drop", "Drop")}
@@ -3623,9 +3556,10 @@ const LoadBalanceBar: React.FC<LoadBalanceBarProps> = ({
                   }}
                 >
                   <div
-                    className="wiz-bal-bar--pk transition-all duration-500"
+                    className="transition-all duration-500"
                     style={{
                       width: `${bal.pkBar * 2}%`,
+                      background: "#1F1F41",
                       borderRadius: "4px 0 0 4px",
                     }}
                   />

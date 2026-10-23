@@ -5,7 +5,7 @@ interface KpiStripProps {
   counts: Record<ShipmentKpiKey, number>;
   activeKpi: ShipmentKpiKey | null;
   onKpiClick: (key: ShipmentKpiKey | null) => void;
-  t: (key: string, opts?: Record<string, unknown>) => string;
+  t: (key: string) => string;
 }
 
 const KPI_DOT: Record<string, string> = {
@@ -28,18 +28,9 @@ const KPI_CONFIG: { key: ShipmentKpiKey; labelKey: string }[] = [
 
 export const KpiStrip: React.FC<KpiStripProps> = ({ counts, activeKpi, onKpiClick, t }) => (
   <div className="mgmt-kpi-s a d1">
-    {KPI_CONFIG.map((kpi) => {
-      // Same rule as the row triangle: backend ShipmentStatusFlags::compute (PDS-957).
-      const hint =
-        kpi.key === 'at_risk'
-          ? `${t(kpi.labelKey)}: ${t('atRiskReasonHint', {
-              defaultValue: 'Pending, no transporter assigned, pickup today or tomorrow',
-            })}`
-          : t(kpi.labelKey);
-      return (
+    {KPI_CONFIG.map((kpi) => (
       <div
         key={kpi.key}
-        title={kpi.key === 'at_risk' ? hint : undefined}
         className={`mgmt-kpi ${activeKpi === kpi.key ? 'act' : ''}`}
         onClick={() => onKpiClick(activeKpi === kpi.key ? null : kpi.key)}
         role="button"
@@ -47,7 +38,7 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ counts, activeKpi, onKpiClic
         onKeyDown={(e) => e.key === 'Enter' && onKpiClick(activeKpi === kpi.key ? null : kpi.key)}
       >
         <div className="mgmt-kpi-v">{counts[kpi.key] ?? 0}</div>
-        <div className="mgmt-kpi-l" title={hint}>
+        <div className="mgmt-kpi-l" title={t(kpi.labelKey)}>
           <span
             className="mgmt-kpi-dot"
             style={{ background: KPI_DOT[kpi.key] || 'var(--app-border-strong)' }}
@@ -56,7 +47,6 @@ export const KpiStrip: React.FC<KpiStripProps> = ({ counts, activeKpi, onKpiClic
           {t(kpi.labelKey)}
         </div>
       </div>
-      );
-    })}
+    ))}
   </div>
 );

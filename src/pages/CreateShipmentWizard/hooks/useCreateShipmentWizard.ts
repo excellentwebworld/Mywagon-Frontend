@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useMatch, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { notifyShipmentPublished } from '../../../utils/shipmentRefresh';
 import { createShipmentService, editShipmentService, erpOrdersService, shipmentsService, ApiError, SAT_PREFILL_KEY } from '../../../api';
 import type { ApiProceedResult } from '../../../api/types/availabilities';
 import type { ApiEditPreviewDiff, ApiEditShipment } from '../../../api/types/createShipment';
@@ -13,18 +12,7 @@ import {
 } from '../../../api/mappers/createShipmentMapper';
 import type { WizardFormValues } from '../../../api/mappers/createShipmentMapper';
 import { buildDefaultWizardValues, createNewStop } from '../../../components/CreateShipmentWizard/types';
-import { normalizeLoadCopies } from '../../../components/CreateShipmentWizard/loadCopies';
-import { shipmentSettingsService } from '../../../api/services/shipmentSettingsService';
-import {
-  applyShipmentSettingsToWizard,
-  shipmentSettingsKey,
-  type ShipmentSettings,
-} from '../../../utils/shipmentSettings';
 import { hasVehicleSelection } from '../../../components/CreateShipmentWizard/vehicleTypes';
-import {
-  applyCarriedStep3Values,
-  forgetStep3Values,
-} from '../../../components/CreateShipmentWizard/wizardCarry';
 import {
   isTargetPriceWithinDigitLimit,
   MAX_TARGET_PRICE_DIGITS,
@@ -263,34 +251,7 @@ export function useCreateShipmentWizard(
   const [compareView, setCompareView] = useState<CompareView>('updated');
   const editSessionActiveRef = useRef(false);
 
-  // MS3-415: the company Shipment Settings seed a new load's channel, price type and
-  // live navigation. undefined = loading; null = unavailable → On / Private / Negotiable.
-  // Stored draft / shipment values still win (draftToFormValues reads them first).
-  const [companyShipmentSettings, setCompanyShipmentSettings] = useState<
-    ShipmentSettings | null | undefined
-  >(() => shipmentSettingsService.peekCached() ?? undefined);
-  const shipmentSettingsReady = isEditMode || companyShipmentSettings !== undefined;
-  useEffect(() => {
-    if (shipmentSettingsReady) return;
-    let cancelled = false;
-    const settle = (settings: ShipmentSettings | null) => {
-      if (!cancelled) setCompanyShipmentSettings((prev) => (prev === undefined ? settings : prev));
-    };
-    // Never hold the wizard on a slow settings call.
-    const timer = window.setTimeout(() => settle(null), 4000);
-    void shipmentSettingsService.loadOnce().then(settle);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [shipmentSettingsReady]);
-  const shipmentDefaultsKey = shipmentSettingsKey(companyShipmentSettings);
-  const defaultValues = useMemo(
-    () => applyShipmentSettingsToWizard(buildDefaultWizardValues(), companyShipmentSettings),
-    // Keyed on the setting values so an identical refetch keeps the same object.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [shipmentDefaultsKey]
-  );
+  const defaultValues = useMemo(() => buildDefaultWizardValues(), []);
   const loadedDraftIdRef = useRef<string | null>(null);
   const showToastRef = useRef(showToast);
   const tRef = useRef(t);
@@ -394,7 +355,6 @@ export function useCreateShipmentWizard(
 
   /** Prefill Step 1 from Search Trucks availability proceed payload. */
   useEffect(() => {
-    if (!shipmentSettingsReady) return;
     const availParam = searchParams.get('availability_id');
     if (!availParam || draftUrlId || editUrlId) return;
 
@@ -471,11 +431,10 @@ export function useCreateShipmentWizard(
     }
     // Intentionally only on navigation into create with availability_id — not on every locations tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, draftUrlId, defaultValues, shipmentSettingsReady]);
+  }, [searchParams, draftUrlId, defaultValues]);
 
   /** Prefill Step 1 from ERP Orders Create Load selection. */
   useEffect(() => {
-    if (!shipmentSettingsReady) return;
     const erpParam = searchParams.get('erp_orders');
     if (!erpParam || draftUrlId || editUrlId) return;
 
@@ -578,7 +537,7 @@ export function useCreateShipmentWizard(
     };
     // Intentionally only on navigation into create with erp_orders — not on every locations tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, draftUrlId, defaultValues, shipmentSettingsReady]);
+  }, [searchParams, draftUrlId, defaultValues]);
 
   /** Late AddressBook hydrate: bind locationId once coords matches appear. */
   useEffect(() => {
@@ -630,8 +589,6 @@ export function useCreateShipmentWizard(
   }, [availabilityId, draftUrlId, editUrlId, vehicleTypes]);
 
   useEffect(() => {
-    // MS3-415: map drafts only once the company defaults are known.
-    if (!shipmentSettingsReady) return;
     if (!activeUrlId) {
       const leavingSession = loadedDraftIdRef.current != null;
       loadedDraftIdRef.current = null;
@@ -714,8 +671,7 @@ export function useCreateShipmentWizard(
         } else if (!isEditMode) {
           setAvailabilityId(null);
         }
-        // Step 3 fields left unsaved by Back survive the step remount; Step 3 consumes them.
-        setLoadedValues(applyCarriedStep3Values(activeUrlId, isEditMode, mapped, step === 3));
+        setLoadedValues(mapped);
         setDraftLoaded(true);
       })
       .catch((err: unknown) => {
@@ -746,7 +702,7 @@ export function useCreateShipmentWizard(
     return () => {
       cancelled = true;
     };
-  }, [activeUrlId, availabilityId, defaultValues, isEditMode, navigate, searchParams, step, shipmentSettingsReady]);
+  }, [activeUrlId, availabilityId, defaultValues, isEditMode, navigate, searchParams]);
 
   const ensureDraftId = useCallback(async (): Promise<number> => {
     if (isEditMode) {
@@ -784,11 +740,10 @@ export function useCreateShipmentWizard(
 
   const discardEditAndLeave = useCallback(async () => {
     await cancelEditSession();
-    forgetStep3Values(shipmentId, isEditMode);
     setEditDiff(null);
     setCompareView('updated');
     navigate('/shipments');
-  }, [cancelEditSession, isEditMode, navigate, shipmentId]);
+  }, [cancelEditSession, navigate]);
 
   const refreshEditDiff = useCallback(async () => {
     if (!isEditMode || !shipmentId) {
@@ -1126,27 +1081,16 @@ export function useCreateShipmentWizard(
           void queryClient.invalidateQueries({ queryKey: ['erp-orders'] });
           void queryClient.invalidateQueries({ queryKey: wizardQueryKeys.unlinkedOrders });
           showToast(t('shipmentUpdatedSuccess', 'Shipment updated successfully!'), 'success');
-          forgetStep3Values(id, true);
           return applied;
         }
 
         await createShipmentService.saveStepThree(id, formValuesToStepThreePayload(values, 'complete'));
-        // MS3-403: "Number of copies" on Step 3 (not part of the saved draft).
-        const copies = normalizeLoadCopies((values as WizardFormValues & { copies?: unknown }).copies);
-        const published = await createShipmentService.publishDraft(id, copies);
-        notifyShipmentPublished({ shipmentId: published?.id });
+        const published = await createShipmentService.publishDraft(id);
         // App QueryClient uses refetchOnMount:false + 60s staleTime; without this the Orders
         // page keeps showing partially_planned until a hard refresh.
         void queryClient.invalidateQueries({ queryKey: ['erp-orders'] });
         void queryClient.invalidateQueries({ queryKey: wizardQueryKeys.unlinkedOrders });
-        const createdCount = published?.copies_count ?? 1;
-        showToast(
-          createdCount > 1
-            ? t('shipmentCopiesCreatedSuccess', `${createdCount} shipments created successfully!`, { count: createdCount })
-            : t('shipmentCreatedSuccess', 'Shipment created successfully!'),
-          'success'
-        );
-        forgetStep3Values(id, false);
+        showToast(t('shipmentCreatedSuccess', 'Shipment created successfully!'), 'success');
         return published;
       } catch (err: unknown) {
         if (
@@ -1182,10 +1126,10 @@ export function useCreateShipmentWizard(
     shipmentId,
     availabilityId,
     loadId,
-    isLoading: isLoading || !shipmentSettingsReady,
+    isLoading,
     loadError,
     isSaving,
-    draftLoaded: draftLoaded && shipmentSettingsReady,
+    draftLoaded,
     loadedValues,
     defaultValues,
     isEditMode,

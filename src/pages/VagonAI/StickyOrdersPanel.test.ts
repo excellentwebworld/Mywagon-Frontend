@@ -2,16 +2,10 @@ import { describe, expect, it } from 'vitest';
 import {
   buildDraftPrompt,
   buildStickyCreateForceTool,
-  buildStickyOrderStatusForceTool,
   describeDue,
   sortByUrgency,
-  withoutCompleted,
-  matchesOrderSearch,
-  filterOrdersBySearch,
-  matchesCompletedOrderSearch,
   type StickyOrderRow,
 } from './StickyOrdersPanel';
-import { focusFirst, readPanelOpen } from './stickyPanelState';
 
 const sample = (id: string, ref: string): StickyOrderRow => ({
   id,
@@ -42,28 +36,10 @@ describe('buildDraftPrompt', () => {
     expect(text).toContain('ORD-B');
     expect(text.toLowerCase()).toContain('drafts');
     expect(text.toLowerCase()).toContain('create_homogeneous_batch_drafts');
-    expect(text.toLowerCase()).toContain('one draft per lane');
+    expect(text.toLowerCase()).toMatch(/never merge|exactly one draft/);
   });
 });
 
-
-describe('order status from the toolbar', () => {
-  it('forces the confirmed write for exactly the tapped order', () => {
-    expect(buildStickyOrderStatusForceTool('42', 'complete')).toEqual({
-      forceTool: { name: 'mark_order_complete', arguments: { order_id: '42' } },
-    });
-    expect(buildStickyOrderStatusForceTool('42', 'reopen')).toEqual({
-      forceTool: { name: 'reopen_order', arguments: { order_id: '42' } },
-    });
-  });
-
-  // Laravel still lists a hand-closed order as unplanned; the toolbar must not.
-  it('drops orders the gateway reports as completed', () => {
-    const rows = [sample('1', 'ORD-A'), sample('2', 'ORD-B')];
-    expect(withoutCompleted(rows, [{ order_id: '2' }]).map((r) => r.id)).toEqual(['1']);
-    expect(withoutCompleted(rows, [])).toBe(rows);
-  });
-});
 
 describe('describeDue', () => {
   // The delivery date carries no clock, so the deadline is the END of that day
@@ -164,69 +140,5 @@ describe('buildStickyCreateForceTool (MS3-349)', () => {
       order_ids: ['93', '91'],
       async: true,
     });
-  });
-});
-
-
-describe('mixed-lane selection', () => {
-  it('sends every order in one batch whatever its lane - the gateway groups by lane', () => {
-    const a = { ...sample('1', 'ORD-A'), shipFrom: 'Whitehouse 01', shipTo: 'Dimitris Ioannou' };
-    const b = { ...sample('2', 'ORD-B'), shipFrom: 'Patras W01', shipTo: 'TERRA' };
-    const opts = buildStickyCreateForceTool([a, b]);
-    expect(opts.forceTool.name).toBe('create_homogeneous_batch_drafts');
-    expect(opts.forceTool.arguments.order_ids).toEqual(['1', '2']);
-  });
-});
-
-describe('matchesOrderSearch (MS3-353)', () => {
-  it('matches order #, customer, and destination (case-insensitive)', () => {
-    const row = { ...sample('7', 'ORD-334S'), customerName: 'Acme Hellas', shipFrom: 'Athens', shipTo: 'Thessaloniki' };
-    expect(matchesOrderSearch(row, '334')).toBe(true);
-    expect(matchesOrderSearch(row, 'acme')).toBe(true);
-    expect(matchesOrderSearch(row, 'thessa')).toBe(true);
-    expect(matchesOrderSearch(row, 'athens')).toBe(true);
-    expect(matchesOrderSearch(row, 'nope')).toBe(false);
-  });
-
-  it('empty query keeps every row', () => {
-    const rows = [sample('1', 'ORD-A'), sample('2', 'ORD-B')];
-    expect(filterOrdersBySearch(rows, '  ')).toEqual(rows);
-    expect(filterOrdersBySearch(rows, 'ORD-B').map((r) => r.id)).toEqual(['2']);
-  });
-
-  it('completed search matches reference and customer', () => {
-    const row = { order_id: '9', order_reference: 'ORD-DONE', customer_name: 'Beta Co' };
-    expect(matchesCompletedOrderSearch(row, 'done')).toBe(true);
-    expect(matchesCompletedOrderSearch(row, 'beta')).toBe(true);
-    expect(matchesCompletedOrderSearch(row, 'zzz')).toBe(false);
-  });
-});
-
-describe('orders panel redesign helpers', () => {
-  const now = new Date(2026, 9, 12, 10, 0);
-
-  it('treats only a delivery day that is over as overdue - what the closed bar counts', () => {
-    const tones = ['2026-10-11', '2026-10-12', '2026-10-20', ''].map((d) => describeDue(d, now).tone);
-    expect(tones.filter((tone) => tone === 'overdue')).toHaveLength(1);
-  });
-
-  it('puts the orders an import just created first, so the urgency trim keeps them', () => {
-    const rows = ['a', 'b', 'c', 'd'].map((id) => ({ id }));
-    expect(focusFirst(rows, ['d', 'b']).map((r) => r.id)).toEqual(['b', 'd', 'a', 'c']);
-    expect(focusFirst(rows, [])).toBe(rows);
-  });
-
-  it('starts closed unless the shipper left it open, and survives blocked storage', () => {
-    expect(readPanelOpen(null)).toBe(false);
-    expect(readPanelOpen({ getItem: () => null })).toBe(false);
-    expect(readPanelOpen({ getItem: () => '1' })).toBe(true);
-    expect(readPanelOpen({ getItem: () => '0' })).toBe(false);
-    expect(
-      readPanelOpen({
-        getItem: () => {
-          throw new Error('SecurityError');
-        },
-      }),
-    ).toBe(false);
   });
 });

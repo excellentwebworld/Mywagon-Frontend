@@ -102,23 +102,6 @@ describe('gatewayFetch content-type guard', () => {
     expect(error).toBeInstanceOf(GatewayError);
     expect(error.message).toContain('no content type');
   });
-
-  it('passes a download through in its own type (MS3-375)', async () => {
-    // The Import History's original file: an .xlsx, neither JSON nor a stream.
-    const xlsx = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-    respondWith(xlsx, 'PK');
-    await expect(gatewayFetch('/chat/order-import/i1/file', { token: 't', download: true })).resolves.toMatchObject({ status: 200 });
-    // Without the flag the same answer is still read as a proxy fault.
-    respondWith(xlsx, 'PK');
-    await expect(gatewayFetch('/chat/order-import/i1/file', { token: 't' })).rejects.toBeInstanceOf(GatewayError);
-  });
-
-  it('still rejects the index.html fallback for a download', async () => {
-    respondWith('text/html', '<!doctype html><html></html>');
-    const error = await gatewayFetch('/chat/order-import/i1/file', { token: 't', download: true }).catch((e) => e);
-    expect(error).toBeInstanceOf(GatewayError);
-    expect(error.status).toBe(502);
-  });
 });
 
 describe('gatewayFetch auth', () => {
@@ -176,11 +159,7 @@ describe('gatewayFetch auth', () => {
       }),
     ) as typeof globalThis.fetch;
 
-    // vitest runs in `environment: node`, which has no `window`. Stand one in so the spy watches a real
-    // dispatch target; if gatewayFetch ever dispatched on `window`, it would show up here.
-    const fakeWindow = new EventTarget();
-    vi.stubGlobal('window', fakeWindow);
-    const dispatchSpy = vi.spyOn(fakeWindow, 'dispatchEvent');
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
     await gatewayFetch('/me', { token: '42|abc' }).catch(() => null);
     expect(clearStoredToken).not.toHaveBeenCalled();
     expect(
@@ -189,7 +168,6 @@ describe('gatewayFetch auth', () => {
       ),
     ).toBe(false);
     dispatchSpy.mockRestore();
-    vi.unstubAllGlobals();
   });
 
   it('distinguishes a 503 from a 401 so a blip cannot sign the shipper out', () => {

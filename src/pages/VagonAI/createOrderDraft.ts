@@ -90,7 +90,7 @@ export function emptyOrderDraft(bundle: OrderFlowBundle): OrderDraft {
     notes: null,
     highPriority: bundle.defaults.highPriority ?? false,
     orderValue: null,
-    lines: withOrderLines(null, bundle),
+    lines: [emptyOrderLine(bundle)],
   };
 }
 
@@ -103,24 +103,6 @@ export function emptyOrderLine(bundle: OrderFlowBundle): OrderDraftLine {
     weight: null,
     weightUnit: (bundle.defaults.weightUnit as OrderWeightUnit) ?? 'Kgs',
   };
-}
-
-/**
- * The lines, never none (MS3-400).
- *
- * A product is required on every order, and a form that shows no line at all
- * hides the one field the shipper cannot skip — in QA it was simply missed.
- * So every path that sets the lines goes through here, and an empty list comes
- * back as one empty line to fill in. `orderIssues` still refuses an order whose
- * line is blank; this is about the field being on screen, not about saving.
- */
-export function withOrderLines(lines: readonly OrderDraftLine[] | null | undefined, bundle: OrderFlowBundle): OrderDraftLine[] {
-  return lines && lines.length > 0 ? [...lines] : [emptyOrderLine(bundle)];
-}
-
-/** Drops one line. Removing the last one leaves an empty line, not an empty form. */
-export function removeOrderLine(lines: readonly OrderDraftLine[], index: number, bundle: OrderFlowBundle): OrderDraftLine[] {
-  return withOrderLines(lines.filter((_, i) => i !== index), bundle);
 }
 
 /**
@@ -219,16 +201,14 @@ export function orderIssues(draft: OrderDraft, tr: Tr = englishTr): OrderIssue[]
   if (!draft.deliveryDate) {
     issues.push({ field: 'deliveryDate', message: tr('vagonai.orderForm.issues.deliveryDateRequired', 'Set the delivery date.') });
   }
-  // Pickup/ship is optional. Only compare when both calendar dates are present.
-  // Blamed on the pickup/ship date: delivery is what the customer agreed to.
-  const ship = draft.shipDate?.trim() || null;
-  const delivery = draft.deliveryDate?.trim() || '';
-  if (ship && delivery && ship > delivery) {
+  // Blamed on the ship date, not the delivery date: the delivery date is the one
+  // the customer agreed to, so it is the ship date that has been typed wrong.
+  if (draft.shipDate && draft.deliveryDate && draft.shipDate > draft.deliveryDate) {
     issues.push({
       field: 'shipDate',
       message: tr(
         'vagonai.orderForm.issues.shipAfterDelivery',
-        'The pickup/ship date is after the delivery date. Goods cannot arrive before they leave.',
+        'The ship date is after the delivery date. Goods cannot arrive before they leave.',
       ),
     });
   }

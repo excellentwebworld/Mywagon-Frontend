@@ -1,4 +1,3 @@
-import { notifyShipmentPublished } from '../utils/shipmentRefresh';
 /**
  * useChat — talks to the Vagon AI chat gateway's POST /chat SSE-over-fetch
  * endpoint. Request: { message?, selection?, conversationId } — `message` may
@@ -35,10 +34,6 @@ import { useCallback, useRef, useState } from 'react';
 import { getStoredToken } from '../api/client';
 import { GatewayError, gatewayFetch } from '../api/chatGatewayUrl';
 import { useTranslation } from './useTranslation';
-import { createStreamWatchdog } from './streamWatchdog';
-import { asIntakeEvent } from '../pages/VagonAI/intake/intakeModel'; // WP3a
-import type { IntakeEvent } from '../pages/VagonAI/intake/contract';
-import { errorKindOf, isRetryableError, shipperSafeSummary, stalledMessage, userFacingError, type ChatErrorKind } from '../utils/userFacingError';
 
 export interface ChatUsage {
   promptTokens: number;
@@ -121,12 +116,6 @@ export interface ConfirmOptions {
  */
 export interface ConfirmOutcome {
   finishing: boolean;
-  /**
-   * A product or site was added while a load was being built, so the caller
-   * should send one more turn to carry on building it - the confirm stream has
-   * no tools of its own (QA 2026-10-08: the flow stalled until "continue").
-   */
-  continueBuild?: boolean;
   /**
    * The draft a confirmed `create_shipment` produced.
    *
@@ -280,9 +269,6 @@ export type ResultTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
 export interface ResultField {
   label: string;
   value: string;
-  /** Report totals: the figure without its change, and the change on its own for a badge. */
-  figure?: string;
-  change?: { label: string; trend: 'up' | 'down' | 'flat' };
 }
 
 /** A stop on a shipment whose full itinerary was fetched. */
@@ -330,11 +316,6 @@ export interface ResultCard {
   /** Set only for kinds with a page of their own — shipments, and available trucks. */
   action?: ResultAction;
   /**
-   * A second page for the same record, rendered beside `action` — e.g. a draft's
-   * detail page (`action`) and the wizard that edits it (this).
-   */
-  secondaryAction?: ResultAction;
-  /**
    * A button that continues the conversation instead of leaving it.
    *
    * `action` is an anchor and only an anchor, so a card's one possible next move
@@ -367,7 +348,7 @@ export interface ResultCardSet {
    * of records to open but the dashboard's counters, grouped into three cards of
    * metric tiles. Every other kind is N things with a route.
    */
-  kind: 'shipment' | 'location' | 'product' | 'truck' | 'partner' | 'analytics' | 'report';
+  kind: 'shipment' | 'location' | 'product' | 'truck' | 'partner' | 'analytics';
   /** Heading, e.g. "3 shipments". Pre-localized — render as-is. */
   title: string;
   query: string | null;
@@ -379,32 +360,6 @@ export interface ResultCardSet {
    */
   action?: ResultAction;
   cards: ResultCard[];
-  /**
-   * A table of figures — set only on `kind: 'report'` (build_shipment_report).
-   * Every cell is pre-formatted by the gateway; `chart.points` carry raw numbers
-   * because a chart has to measure them. `cards` still holds the totals as
-   * labelled fields, so a renderer that ignores `table` shows the headline.
-   */
-  table?: ResultTable;
-}
-
-export interface ResultTable {
-  /** The first column is the row label; the rest are metrics. */
-  columns: { key: string; label: string; align: 'start' | 'end' }[];
-  rows: { key: string; cells: string[]; muted?: boolean }[];
-  /** The totals row, label first. Absent when the table is already one totals row. */
-  totals?: string[];
-  chart?: {
-    type: 'bar' | 'line';
-    label: string;
-    unit: 'count' | 'money' | 'money_precise' | 'km' | 'percent';
-    /** `null` is "no data" — drawn as a gap, never as zero. */
-    /** `display` is the value as the table formats it. */
-    points: { label: string; value: number | null; display?: string }[];
-  };
-  /** What was counted: period, date basis, filters. */
-  caption?: string;
-  notes?: string[];
 }
 
 /* ------------------------------------------------------------------ *
@@ -418,13 +373,6 @@ export interface FlowLocation {
   country: string | null;
   /** Which legs this site can serve. A delivery-only site is not offerable on a pickup. */
   role: 'pickup' | 'delivery' | 'both' | null;
-  /**
-   * Address Book directory: shipper's own sites vs customer / 3rd-party sites (MS3-354).
-   * Optional so older gateway payloads without it still render; FE enriches from AppContext.
-   */
-  group?: 'my' | 'customer' | null;
-  /** Company name for grouped collapse/expand in the location picker (MS3-354). */
-  company?: string | null;
   /**
    * The site's coordinates, or null if it was never geocoded.
    *
@@ -575,8 +523,6 @@ export interface FlowDraftSeed {
   settlement: string;
   bulk: { mode: string };
   trackingOrderIds: string[];
-  /** Receiver tracking emails keyed by ERP order id (MS3-354). Older gateways omit it. */
-  trackingEmails?: Record<string, string[]>;
 }
 
 /**
@@ -922,13 +868,11 @@ type SseHandler = (event: string, data: any) => void;
  * Shared by /chat and the confirm endpoint — both use identical framing, so the
  * confirmation round trip reuses this rather than duplicating the parser.
  */
-export async function readFrames(
+async function readFrames(
   response: Response,
   onEvent: SseHandler,
   signal?: AbortSignal,
   emptyBodyMessage = 'The gateway returned an empty response.',
-  /** Called on every chunk received - the stall watchdog's heartbeat. */
-  onChunk?: () => void,
 ): Promise<void> {
   if (!response.body) throw new Error(emptyBodyMessage);
 
@@ -940,7 +884,6 @@ export async function readFrames(
     if (signal?.aborted) break;
     const { value, done } = await reader.read();
     if (done) break;
-    onChunk?.();
 
     buffer += decoder.decode(value, { stream: true });
     const frames = buffer.split('\n\n');
@@ -961,10 +904,6 @@ export function useChat() {
   const [answer, setAnswer] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** The last turn failed in a way a Retry may fix: a lost connection, a stall, a timeout. */
-  const [errorRetryable, setErrorRetryable] = useState(false);
-  /** Which of the chat's own failures `error` is, so the page can word it in the current language. */
-  const [errorKind, setErrorKind] = useState<ChatErrorKind | null>(null);
   const [usage, setUsage] = useState<ChatUsage | null>(null);
   // The gateway always sends `conversation` first — for a brand-new chat
   // (no conversationId passed in) it carries the server-generated id that
@@ -1042,11 +981,6 @@ export function useChat() {
    */
   const [flowFromThisTurn, setFlowFromThisTurn] = useState(false);
   /**
-   * WP3a — Create Shipment intake events (CONTRACT.md §8.1) of the turn in flight: normally one `intake_*` frame, two when an
-   * `intake_error` carries the step to fall back to. Cleared when a turn opens; the page attaches them when the turn settles.
-   */
-  const [intakeEvents, setIntakeEvents] = useState<IntakeEvent[]>([]);
-  /**
    * The draft was saved and the shipper asked to carry on rather than stop.
    *
    * The gateway sets this on `done` when the confirm carried `intent: 'publish'`.
@@ -1055,7 +989,6 @@ export function useChat() {
    * in ordinary control flow rather than in an effect watching a flag change.
    */
   const finishingRef = useRef(false);
-  const continueBuildRef = useRef(false);
   /** The draft a confirm just created, for the same read-it-once reason as above. */
   const createdDraftRef = useRef<DraftCreated | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -1123,17 +1056,6 @@ export function useChat() {
         break;
       }
 
-      case 'intake_step':
-      case 'intake_summary':
-      case 'intake_done':
-      case 'intake_error':
-      case 'intake_discarded': {
-        // WP3a — validated, not cast (see asIntakeEvent): a frame this build cannot read is ignored (CONTRACT §0.3).
-        const intake = asIntakeEvent(data);
-        if (intake) setIntakeEvents(intake.type === 'error' && intake.event ? [intake, intake.event] : [intake]);
-        break;
-      }
-
       case 'tool_call':
         if (data.requiresConfirmation) {
           // A write action. The gateway has executed nothing — it recorded the
@@ -1165,16 +1087,12 @@ export function useChat() {
           // reply explains the failure too, but this is the gateway's own
           // statement of what happened — and where a plan limit arrives, it is
           // the summary that carries the upgrade prompt.
-          //
-          // QA retest #3: a summary written for the model ("(For the assistant:
-          // …)") was drawn as this banner. Only shipper-facing copy is shown.
-          setActionError(shipperSafeSummary(data.summary));
+          setActionError(typeof data.summary === 'string' && data.summary.trim() ? data.summary.trim() : null);
         } else if (data.status === 'success' && data.data?.published === true) {
           // The load is on the market. Distinguished by `published` rather than
           // by tool name because the two payloads are different things: one
           // links to a draft to finish, the other to a live shipment to watch.
           setPublished(data.data as ShipmentPublished);
-          notifyShipmentPublished({ shipmentId: (data.data as ShipmentPublished).shipment_id });
         } else if (data.status === 'success' && data.data?.review_url) {
           // Only the confirm stream carries `data` — that is where review_url
           // lives. Read results on /chat deliberately omit it (large, unused here).
@@ -1196,7 +1114,6 @@ export function useChat() {
         // The draft was saved and the shipper asked to keep going. Only the
         // confirm stream ever sets this.
         if (data.finishing === true) finishingRef.current = true;
-        if (data.continueBuild === true) continueBuildRef.current = true;
         break;
     }
   }, []);
@@ -1212,19 +1129,13 @@ export function useChat() {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    // A gateway that stops answering mid-turn must end in an error with a Retry,
-    // not an endless progress line (QA retest #3). See streamWatchdog.ts.
-    const watchdog = createStreamWatchdog(controller);
 
     setAnswer('');
     setError(null);
-    setErrorRetryable(false);
-    setErrorKind(null);
     setUsage(null);
     setPendingAction(null);
     setSelection(null);
     setRecords(null);
-    setIntakeEvents([]); // WP3a
     setFlowFromThisTurn(false);
     setDraft(null);
     setActionError(null);
@@ -1257,47 +1168,20 @@ export function useChat() {
         body: JSON.stringify(body),
         signal: controller.signal,
       });
-      watchdog.kick();
 
-      let sawDone = false;
-      await readFrames(
-        response,
-        (event, data) => {
-          if (event === 'done') sawDone = true;
-          handleEvent(event, data);
-        },
-        controller.signal,
-        t('vagonai.errors.emptyGatewayResponse', 'The gateway returned an empty response.'),
-        watchdog.kick,
-      );
-      // Every /chat turn ends with `done`. A stream that ends without one was
-      // cut off - the gateway went away mid-turn (QA retest #3) - and must not
-      // settle as an empty or half-written answer.
-      if (!sawDone && !controller.signal.aborted) throw new Error('connection closed');
+      await readFrames(response, handleEvent, controller.signal, t('vagonai.errors.emptyGatewayResponse', 'The gateway returned an empty response.'));
     } catch (err) {
-      if (watchdog.stalled) {
-        setError(stalledMessage(t));
-        setErrorKind('stalled');
-        setErrorRetryable(true);
-      } else if (err instanceof Error && err.name !== 'AbortError') {
-        // Friendly EN/EL for a lost connection or a timeout (QA retest #3:
-        // "Something went wrong: Failed to fetch").
-        setError(userFacingError(err, t, err.message));
-        setErrorKind(errorKindOf(err));
-        setErrorRetryable(isRetryableError(err));
+      if (err instanceof Error && err.name !== 'AbortError') {
+        setError(err.message);
       }
     } finally {
-      watchdog.stop();
       setIsStreaming(false);
       // An aborted or failed stream never delivers `done`, so retire the
       // activity line here too rather than leaving a stale one on screen.
       setToolActivity(null);
       setActivityLabel(null);
     }
-    // `t` too: react-i18next hands out a translator fixed to one language, so
-    // a callback that kept the first render's spoke English after a switch to
-    // Greek (QA retest #4).
-  }, [handleEvent, t]);
+  }, [handleEvent]);
 
   const sendMessage = useCallback((
     message: string,
@@ -1358,23 +1242,18 @@ export function useChat() {
     const { locale, routeSummary, intent } = options;
     const controller = new AbortController();
     abortRef.current = controller;
-    const watchdog = createStreamWatchdog(controller);
 
     setAnswer('');
     setError(null);
-    setErrorRetryable(false);
-    setErrorKind(null);
     setUsage(null);
     setPendingAction(null); // the card is spent either way
     setSelection(null);
     setRecords(null);
-    setIntakeEvents([]); // WP3a
     setFlowFromThisTurn(false);
     setActionError(null);
     setActionExpired(false);
     setPublished(null);
     finishingRef.current = false;
-    continueBuildRef.current = false;
     createdDraftRef.current = null;
     setToolActivity(null);
     setActivityLabel(null);
@@ -1395,23 +1274,9 @@ export function useChat() {
         }),
         signal: controller.signal,
       });
-      watchdog.kick();
 
-      await readFrames(
-        response,
-        handleEvent,
-        controller.signal,
-        t('vagonai.errors.emptyGatewayResponse', 'The gateway returned an empty response.'),
-        watchdog.kick,
-      );
+      await readFrames(response, handleEvent, controller.signal, t('vagonai.errors.emptyGatewayResponse', 'The gateway returned an empty response.'));
     } catch (err) {
-      // No Retry here: the card is spent, and whether the write ran is for the
-      // shipper to check, not for a button to guess (QA retest #3).
-      if (watchdog.stalled) {
-        setError(stalledMessage(t));
-        setErrorKind('stalled');
-        return { finishing: false, draft: null };
-      }
       if (err instanceof GatewayError && err.status === 409) return { finishing: false, draft: null }; // already resolved
       // 404 = the gateway no longer holds this proposal. Nothing ran, so this is
       // not a failure to report as one — the card is simply gone and the
@@ -1420,12 +1285,8 @@ export function useChat() {
         setActionExpired(true);
         return { finishing: false, draft: null };
       }
-      if (err instanceof Error && err.name !== 'AbortError') {
-        setError(userFacingError(err, t, err.message));
-        setErrorKind(errorKindOf(err));
-      }
+      if (err instanceof Error && err.name !== 'AbortError') setError(err.message);
     } finally {
-      watchdog.stop();
       setIsStreaming(false);
       // An aborted or failed stream never delivers `done`, so retire the
       // activity line here too rather than leaving a stale one on screen.
@@ -1433,11 +1294,8 @@ export function useChat() {
       setActivityLabel(null);
     }
 
-    return { finishing: finishingRef.current, continueBuild: continueBuildRef.current, draft: createdDraftRef.current };
-    // `t` too: react-i18next hands out a translator fixed to one language, so
-    // a callback that kept the first render's spoke English after a switch to
-    // Greek (QA retest #4).
-  }, [handleEvent, t]);
+    return { finishing: finishingRef.current, draft: createdDraftRef.current };
+  }, [handleEvent]);
 
   /** Discards a proposed action without executing it. Returns plain JSON, not a stream. */
   const cancelAction = useCallback(async (id: string, locale?: string) => {
@@ -1453,18 +1311,17 @@ export function useChat() {
       // it (restart, or tools switched off). Neither is worth alarming the
       // shipper about — in both cases the action is definitively not running.
       if (err instanceof GatewayError && (err.status === 409 || err.status === 404)) return;
-      if (err instanceof Error) setError(userFacingError(err, t, err.message));
+      if (err instanceof Error) setError(err.message);
     }
-  }, [t]);
+  }, []);
 
   const cancel = useCallback(() => abortRef.current?.abort(), []);
 
   return {
-    answer, isStreaming, error, errorRetryable, errorKind, usage, conversationId,
+    answer, isStreaming, error, usage, conversationId,
     pendingAction, selection, records, toolActivity, activityLabel,
     batchJob, draft, published, flow, flowFromThisTurn,
     actionError, actionExpired,
-    intakeEvents,
     sendMessage, chooseOption, confirmAction, cancelAction, cancel,
   };
 }

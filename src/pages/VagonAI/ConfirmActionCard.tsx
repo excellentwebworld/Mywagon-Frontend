@@ -9,7 +9,7 @@
  *
  * Each write tool lands in a different module, so the card is chosen by
  * `action.tool`: a draft shipment, a published one, an Address Book location, or
- * a Product Master entry. Title, body and button label all follow from that —
+ * a Product Registry entry. Title, body and button label all follow from that —
  * announcing a draft shipment over a proposed address is simply wrong, and the
  * "nothing is sent to carriers" note only means anything for a draft. An
  * unrecognised write tool falls back to a generic variant that lists its
@@ -32,19 +32,12 @@
  */
 import { useState } from 'react';
 import {
-  MapPin, Package, Loader2, ArrowUpFromLine, ArrowDownToLine, ArrowRight, Send, ClipboardList, CalendarClock, Truck,
-  Users,
+  MapPin, Package, Loader2, ArrowUpFromLine, ArrowDownToLine, ArrowRight, Send, ClipboardList, CalendarClock,
 } from 'lucide-react';
 import { useTranslation } from '../../hooks/useTranslation';
 import type { PendingAction } from '../../hooks/useChat';
 import type { ThemeTokens } from '../../utils/themes';
 import { FACILITY_SUBTYPES, confirmVariant } from './confirmVariants';
-import {
-  bidFields, bidTruckLabel, publishTruckValue,
-  type Field, type Lang, type PublishVehicleEntry, type Translate, type TruckBidArgs,
-} from './confirmFields';
-import { partnerAction, partnerFields, partnerHeading, partnerWarning } from './partnerConfirm';
-import { toUpperGreek } from '../../utils/greekUppercase';
 
 interface CargoLine {
   action?: 'pickup' | 'dropoff';
@@ -86,14 +79,6 @@ interface PublishShipmentArgs {
   shipment_reference?: string;
   route_distance_km?: number | null;
   vehicle_type_names?: string[];
-  /** "Semi-trailer · Refrigerated", one per narrowed subtype. Kept for older gateways. */
-  vehicle_subtype_names?: string[];
-  /**
-   * PUB-02: each truck type with the subtypes it was narrowed to, and
-   * `any_subtype` when it was not - so a widened request reads differently
-   * from a narrowed one on the last screen before the load goes out.
-   */
-  vehicle_selection?: PublishVehicleEntry[];
   partner_names?: string[];
   /**
    * The load itself, rebuilt from the draft by the gateway.
@@ -173,6 +158,11 @@ interface Props {
   canCreateNow?: boolean;
 }
 
+interface Field {
+  label: string;
+  value: string;
+}
+
 /** `arguments` is untyped by construction, so only printable scalars get through. */
 function scalar(value: unknown): string | null {
   if (typeof value === 'string') return value.trim() || null;
@@ -208,6 +198,8 @@ function humanize(key: string): string {
   const words = key.replace(/[_-]+/g, ' ').trim();
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
+
+type Translate = (key: string, opts?: Record<string, unknown>) => string;
 
 function locationFields(args: Record<string, unknown>, t: Translate): Field[] {
   const company = pick(args, 'company_name', 'company');
@@ -279,30 +271,9 @@ function markCompleteFields(args: Record<string, unknown>, t: Translate): Field[
   ].filter((f) => Boolean(f.value));
 }
 
-/**
- * An order being closed as delivered outside MYVAGON, or reopened. The status
- * pair is what the shipper is approving, so both ends are named.
- */
-function orderCompletionFields(
-  args: Record<string, unknown>,
-  variant: 'markOrderComplete' | 'reopenOrder',
-  t: Translate,
-): Field[] {
-  const status = (value: unknown) => (typeof value === 'string' && value
-    ? t(`vagonai.confirm.orderStatus.${value}`, { defaultValue: value })
-    : '');
-  return [
-    { label: t(`vagonai.confirm.${variant}.customer`), value: typeof args.customer_name === 'string' ? args.customer_name : '' },
-    { label: t(`vagonai.confirm.${variant}.status`), value: status(args.current_status) },
-    { label: t(`vagonai.confirm.${variant}.result`), value: status(args.result_status) },
-    ...(variant === 'markOrderComplete'
-      ? [{ label: t('vagonai.confirm.markOrderComplete.reason'), value: typeof args.reason === 'string' ? args.reason : '' }]
-      : []),
-  ].filter((f) => Boolean(f.value));
-}
-
-function publishFields(args: PublishShipmentArgs, t: Translate, lang: Lang): Field[] {
+function publishFields(args: PublishShipmentArgs, t: Translate): Field[] {
   const carriers = args.partner_names ?? [];
+  const trucks = args.vehicle_type_names ?? [];
 
   return [
     {
@@ -311,8 +282,7 @@ function publishFields(args: PublishShipmentArgs, t: Translate, lang: Lang): Fie
         ? t('vagonai.confirm.publish.channelPublic')
         : t('vagonai.confirm.publish.channelPrivate'),
     },
-    // With the subtype, or "any subtype" when none narrows it (PUB-02).
-    { label: t('vagonai.confirm.publish.truckTypes'), value: publishTruckValue(args, t, lang) },
+    { label: t('vagonai.confirm.publish.truckTypes'), value: trucks.join(', ') },
     // Only for a private load: a public one goes to the whole marketplace, and an
     // empty "Carriers" row under it reads as nobody rather than everybody.
     {
@@ -425,17 +395,13 @@ function RoleIcon({ role }: { role: StopRole }) {
 export default function ConfirmActionCard({
   action, T, onConfirm, onCancel, onCreateNow, onSchedule, canCreateNow = false,
 }: Props) {
-  const { t, lang } = useTranslation();
+  const { t } = useTranslation();
   const [busy, setBusy] = useState<'confirm' | 'cancel' | 'createNow' | 'schedule' | null>(null);
   const variant = confirmVariant(action.tool);
+  const markCompleteWarning = variant === 'markComplete'
+    ? t('vagonai.confirm.markComplete.warning')
+    : null;
   const args = action.arguments;
-  // One card for the ten partner writes; the action picks its title and rows.
-  const partner = variant === 'partner' ? partnerAction(action.tool, args) : null;
-  const copyKey = partner ? `vagonai.confirm.partner.actions.${partner}` : `vagonai.confirm.${variant}`;
-  const variantWarning = variant === 'markComplete' || variant === 'markOrderComplete' || variant === 'reopenOrder' || variant === 'orderImport'
-    ? t(`vagonai.confirm.${variant}.warning`)
-    : partner ? partnerWarning(partner, args, t)
-      : null;
 
   const shipment = args as CreateShipmentArgs;
   // Both cards describe one load and draw it the same way. The publish card is
@@ -454,20 +420,15 @@ export default function ConfirmActionCard({
   const heading = variant === 'location' ? pick(args, 'location_name', 'name')
     : variant === 'product' ? pick(args, 'sku_name', 'product_name', 'name')
       : variant === 'publish' ? pick(args, 'shipment_reference')
-        : variant === 'bid' ? bidTruckLabel(args as TruckBidArgs, lang)
         : variant === 'markComplete' ? pick(args, 'auto_id', 'shipment_id')
-        : variant === 'erpOrder' || variant === 'markOrderComplete' || variant === 'reopenOrder' ? pick(args, 'order_reference')
-          : partner ? partnerHeading(partner, args)
+        : variant === 'erpOrder' ? pick(args, 'order_reference')
           : null;
 
   const fields = variant === 'location' ? locationFields(args, t)
     : variant === 'product' ? productFields(args, t)
-      : variant === 'publish' ? publishFields(args as PublishShipmentArgs, t, lang)
-        : variant === 'bid' ? bidFields(args as TruckBidArgs, t, lang, { omitTruck: Boolean(heading) })
+      : variant === 'publish' ? publishFields(args as PublishShipmentArgs, t)
         : variant === 'markComplete' ? markCompleteFields(args, t)
           : variant === 'erpOrder' ? orderFields(args as CreateOrderArgs, t)
-          : variant === 'markOrderComplete' || variant === 'reopenOrder' ? orderCompletionFields(args, variant, t)
-            : partner ? partnerFields(partner, args, t)
             : variant === 'generic' ? genericFields(args, t)
               : [];
 
@@ -494,14 +455,10 @@ export default function ConfirmActionCard({
       style={{ border: `1px solid ${T.bd}`, background: T.sa, padding: 14, maxWidth: 560 }}
     >
       <div style={{ fontSize: 14, fontWeight: 700, color: T.t1 }}>
-        {/* "Product Master", the module's name everywhere else; the shared
-            `vagonai.confirm.product.title` string still says "Product Registry". */}
-        {variant === 'product'
-          ? t('vagonai.confirm.product.titleMaster', 'Add this product to your Product Master?')
-          : t(`${copyKey}.title`)}
+        {t(`vagonai.confirm.${variant}.title`)}
       </div>
-      {variantWarning ? (
-        <p className="vai-confirm-warn" style={{ marginTop: 8, fontSize: 12.5, opacity: 0.9, color: T.t2 }}>{variantWarning}</p>
+      {markCompleteWarning ? (
+        <p className="vai-confirm-warn" style={{ marginTop: 8, fontSize: 12.5, opacity: 0.9, color: T.t2 }}>{markCompleteWarning}</p>
       ) : null}
 
       {heading && (
@@ -509,9 +466,7 @@ export default function ConfirmActionCard({
           <span style={{ color: T.t3 }}>
             {variant === 'location' ? <MapPin size={13} />
               : variant === 'publish' ? <Send size={13} />
-                : variant === 'bid' ? <Truck size={13} />
-                : variant === 'erpOrder' || variant === 'markOrderComplete' || variant === 'reopenOrder' ? <ClipboardList size={13} />
-                : variant === 'partner' ? <Users size={13} />
+                : variant === 'erpOrder' ? <ClipboardList size={13} />
                   : <Package size={13} />}
           </span>
           {heading}
@@ -557,10 +512,10 @@ export default function ConfirmActionCard({
                   <div
                     style={{
                       fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em',
-                      color: T.t3, marginBottom: 1,
+                      textTransform: 'uppercase', color: T.t3, marginBottom: 1,
                     }}
                   >
-                    {toUpperGreek(t(ROLE_KEY[stopRole(stop)] as string))}
+                    {t(ROLE_KEY[stopRole(stop)] as string)}
                   </div>
                 )}
                 <div style={{ fontSize: 13, color: T.t1, fontWeight: 600 }}>
@@ -615,10 +570,10 @@ export default function ConfirmActionCard({
           <div
             style={{
               fontSize: 10.5, fontWeight: 700, letterSpacing: '0.06em',
-              color: T.t3, marginBottom: 3,
+              textTransform: 'uppercase', color: T.t3, marginBottom: 3,
             }}
           >
-            {toUpperGreek(t('vagonai.confirm.erpOrder.lines'))}
+            {t('vagonai.confirm.erpOrder.lines')}
           </div>
           {orderLines.map((line, i) => {
             // Reuses the shipment card's own formatter, so a quantity and a
@@ -687,24 +642,6 @@ export default function ConfirmActionCard({
       )}
 
       {/*
-        The bid card's counterpart (PTB-02). An offer is visible to the carrier
-        the moment it is confirmed, and "offer" is easily read as "booked" - so
-        the card says both, in the same amber as the publish warning.
-      */}
-      {variant === 'bid' && (
-        <p
-          className="m-0 mt-3 rounded-lg"
-          data-testid="bid-warning"
-          style={{
-            fontSize: 12, lineHeight: 1.5, color: T.t2, padding: '8px 10px',
-            background: 'rgba(245,158,11,0.12)',
-          }}
-        >
-          {t('vagonai.confirm.bid.warning')}
-        </p>
-      )}
-
-      {/*
         Said before the button rather than after the disappointment: a shipper who
         cannot use "Create shipment now" should know why while they still have the
         draft in front of them, not discover a greyed-out control.
@@ -766,7 +703,7 @@ export default function ConfirmActionCard({
           }}
         >
           {busy === 'confirm' && <Loader2 size={13} className="animate-spin" />}
-          {t(`${copyKey}.confirm`)}
+          {t(`vagonai.confirm.${variant}.confirm`)}
         </button>
         <button
           type="button"

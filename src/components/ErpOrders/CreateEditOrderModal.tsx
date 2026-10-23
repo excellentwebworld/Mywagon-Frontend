@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Formik, Form, useFormikContext } from 'formik';
 import { ScrollToFormError } from '../ui/ScrollToFormError';
 import * as Yup from 'yup';
 import { SearchableSelect } from '../ui/SearchableSelect';
-import { DatePicker } from '../ui/DatePicker';
+import { DatePicker, getTodayDateString } from '../ui/DatePicker';
 import { ToggleField } from '../AddressBook';
 import { OrderProductLinesEditor } from './OrderProductLinesEditor';
 import { FormFieldError } from '../AddressBook/FormFieldError';
@@ -60,6 +60,22 @@ const FormikStateSync: React.FC<{
   return null;
 };
 
+const getNextDay = (dateStr: string): string => {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return '';
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  const d = parseInt(parts[2], 10);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return '';
+  const date = new Date(y, m - 1, d);
+  date.setDate(date.getDate() + 1);
+  const nextY = date.getFullYear();
+  const nextM = String(date.getMonth() + 1).padStart(2, '0');
+  const nextD = String(date.getDate()).padStart(2, '0');
+  return `${nextY}-${nextM}-${nextD}`;
+};
+
 export const CreateEditOrderModal: React.FC<Props> = ({
   t,
   isOpen,
@@ -80,17 +96,8 @@ export const CreateEditOrderModal: React.FC<Props> = ({
   onAddCompany,
   onAddProduct,
 }) => {
-  // MS3-355: past delivery dates are allowed on orders; no today min.
+  const todayStr = useMemo(() => getTodayDateString(), []);
   const loadingLabel = t('loading') || 'Loading…';
-
-  // MS3-403: the order number is optional. Once an order has one it stays fixed
-  // on edit (as before); an order created without one can be given one later.
-  // Captured when the modal opens - the form state follows every keystroke.
-  const [referenceLocked, setReferenceLocked] = useState(false);
-  useEffect(() => {
-    if (isOpen) setReferenceLocked(isEdit && Boolean(String(form.orderReference ?? '').trim()));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, isEdit]);
 
   const companyOptions = useMemo(
     () =>
@@ -118,13 +125,13 @@ export const CreateEditOrderModal: React.FC<Props> = ({
   // Formik Validation Schema
   const validationSchema = useMemo(() => {
     return Yup.object().shape({
-      // MS3-403 / MS3-405: order number and customer are optional.
       orderReference: Yup.string()
         .transform((v) => (typeof v === 'string' ? normalizeOrderId(v) : v))
+        .required(t('erpOrdersOrderIdRequired'))
         .test(
           'order-id-format',
           t('erpOrdersOrderIdFormat'),
-          (v) => isValidOrderId(v ?? '', { required: false })
+          (v) => isValidOrderId(v ?? '', { required: true })
         ),
       erpReference: Yup.string()
         .transform((v) => (typeof v === 'string' ? normalizeOrderId(v) : v))
@@ -133,7 +140,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
           t('erpOrdersErpIdFormat'),
           (v) => isValidOrderId(v ?? '', { required: false })
         ),
-      customerName: Yup.string().trim(),
+      customerName: Yup.string().trim().required(t('erpOrdersCustomerRequired')),
       deliveryDate: Yup.string().trim().required(t('erpOrdersDeliveryDateRequired')),
       shipDate: Yup.string()
         .nullable()
@@ -290,7 +297,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
 
               <div className="modal-body">
                 <div className="field">
-                  <label className="field-l">{t('erpOrdersColOrderId')}</label>
+                  <label className="field-l">{t('erpOrdersColOrderId')} <span className="req">*</span></label>
                   <input
                     className={`inp${showError('orderReference') ? ' has-error' : ''}`}
                     maxLength={ORDER_ID_MAX}
@@ -302,7 +309,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                     onBlur={() =>
                       setFieldValue('orderReference', normalizeOrderId(values.orderReference), true)
                     }
-                    disabled={referenceLocked}
+                    disabled={isEdit}
                   />
                   <FormFieldError message={showError('orderReference') ? errors.orderReference : undefined} />
                 </div>
@@ -325,7 +332,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                 </div>
 
                 <div className="field">
-                  <label className="field-l">{t('erpOrdersColCustomer')}</label>
+                  <label className="field-l">{t('erpOrdersColCustomer')} <span className="req">*</span></label>
                   <SearchableSelect
                     options={companyOptions}
                     value={values.companyEntityId ? String(values.companyEntityId) : ''}
@@ -358,13 +365,16 @@ export const CreateEditOrderModal: React.FC<Props> = ({
 
                 <div className="field-row">
                   <div className="field">
-                    <label className="field-l">
-                      {t('erpOrdersShipDate')}{' '}
-                      <span className="field-optional">({t('erpOrdersShipDateOptional')})</span>
-                    </label>
+                    <label className="field-l">{t('erpOrdersShipDate')}</label>
                     <DatePicker
                       value={values.shipDate}
-                      onChange={(val) => setFieldValue('shipDate', val)}
+                      onChange={(val) => {
+                        setFieldValue('shipDate', val);
+                        if (val) {
+                          setFieldValue('deliveryDate', getNextDay(val));
+                        }
+                      }}
+                      min={todayStr}
                       hasError={showError('shipDate')}
                     />
                     <FormFieldError message={showError('shipDate') ? errors.shipDate : undefined} />
@@ -374,7 +384,7 @@ export const CreateEditOrderModal: React.FC<Props> = ({
                     <DatePicker
                       value={values.deliveryDate}
                       onChange={(val) => setFieldValue('deliveryDate', val)}
-                      min={values.shipDate || undefined}
+                      min={values.shipDate || todayStr}
                       hasError={showError('deliveryDate')}
                     />
                     <FormFieldError message={showError('deliveryDate') ? errors.deliveryDate : undefined} />

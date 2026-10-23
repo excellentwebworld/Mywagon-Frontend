@@ -28,7 +28,7 @@
  * appears when they type a company the book does not know — or knows without a VAT
  * on file, which is a different state and not the same as known.
  */
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { MapPin, Save, CircleCheck, ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react';
 import { GoogleMapAddressField } from '../../components/AddressBook/GoogleMapAddressField';
 import {
@@ -42,7 +42,6 @@ import { useTranslation } from '../../hooks/useTranslation';
 import { Button, Field, Heading, Notes, Shell } from './flowPrimitives';
 import { inputStyle } from './flowHelpers';
 import { useTr } from './i18n';
-import { ensureDraftRunId } from './api/shipmentDraftService';
 import {
   DIRECTORIES, SITE_ROLES, SITE_TYPES,
   directoryLabel, dockTypeLabel, duplicateOf, emptyLocationDraft, knownCompany, locationIssues, locationWarnings,
@@ -85,12 +84,10 @@ export interface SavedAddress {
 interface Props {
   event: Extract<FlowContextEvent, { flow: 'create_location' }>;
   T: ThemeTokens;
-  onSubmit: (draft: Record<string, unknown>, runId?: string) => Promise<AddressSubmitResult>;
+  onSubmit: (draft: Record<string, unknown>) => Promise<AddressSubmitResult>;
   onSaved?: (site: SavedAddress) => void;
   /** Rendered when the form is a sub-step of another flow rather than its own card. */
   onCancel?: () => void;
-  /** MS3-355 — open on the customers directory when creating mid-order. */
-  initialDirectory?: Directory;
   disabled?: boolean;
 }
 
@@ -132,20 +129,15 @@ function Choice<V extends string>({
   );
 }
 
-export default function CreateAddressForm({ event, T, onSubmit, onSaved, onCancel, initialDirectory, disabled }: Props) {
+export default function CreateAddressForm({ event, T, onSubmit, onSaved, onCancel, disabled }: Props) {
   const { t } = useTranslation();
   const tr = useTr();
   const bundle: LocationFlowBundle = event.bundle;
-  const [draft, setDraft] = useState<LocationDraft>(() => {
-    const base = emptyLocationDraft();
-    return initialDirectory ? { ...base, directory: initialDirectory } : base;
-  });
+  const [draft, setDraft] = useState<LocationDraft>(emptyLocationDraft);
   const [more, setMore] = useState(false);
   const [busy, setBusy] = useState(false);
   const [refusal, setRefusal] = useState<{ reason: string; missing: string[] } | null>(null);
   const [saved, setSaved] = useState<AddressSubmitResult['done'] | null>(null);
-  /** BL-04: minted on the first save, reused for every retry of this form. */
-  const runIdRef = useRef<string | null>(null);
   const [tagText, setTagText] = useState('');
 
   const locked = disabled || busy || saved !== null;
@@ -167,7 +159,7 @@ export default function CreateAddressForm({ event, T, onSubmit, onSaved, onCance
     setBusy(true);
     setRefusal(null);
     try {
-      const result = await onSubmit(serializeLocationDraft(draft), ensureDraftRunId(runIdRef));
+      const result = await onSubmit(serializeLocationDraft(draft));
       if (!result.ok) {
         setRefusal({
           reason: result.reason ?? t('vagonai.addressForm.refusalFallback', 'This address could not be saved yet.'),

@@ -1,5 +1,4 @@
 import React from 'react';
-import { localizedText } from '../../utils/localizedText';
 import { Activity } from 'lucide-react';
 import { CollapsibleCard } from './CollapsibleCard';
 
@@ -81,7 +80,7 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
     >
       <div className="min-w-0 w-full">
         <div className="text-[13px] font-semibold text-slate-900 dark:text-white">
-          {localizedText(stop.label)}
+          {stop.label}
         </div>
 
         <div className="mt-2 space-y-1.5">
@@ -113,7 +112,7 @@ export const TripPerformanceReportsCard: React.FC<TripPerformanceReportsCardProp
     >
       <div className="min-w-0 w-full">
         <div className="text-[13px] font-semibold text-slate-900 dark:text-white">
-          {localizedText(stop.label)}
+          {stop.label}
         </div>
 
         <div className="mt-2 space-y-1.5">

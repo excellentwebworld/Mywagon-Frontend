@@ -1,10 +1,5 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import type { SelectionRequest } from '../../hooks/useChat';
-import {
-  SHOW_LIST_KINDS, chosenSelectionOptions, filterSelectionOptions, groupSelectionOptions, initialExpandedGroups,
-  isSectionOpen, selectionListCount, showListKey,
-} from './selectionGroups';
+import { groupSelectionOptions, initialExpandedGroups, isSectionOpen } from './selectionGroups';
 
 /**
  * The sectioning behind every picker in the assistant.
@@ -125,89 +120,5 @@ describe('initialExpandedGroups', () => {
     for (const section of groupSelectionOptions(options)) {
       expect(isSectionOpen(section.name, expanded)).toBe(true);
     }
-  });
-});
-
-describe('filterSelectionOptions — the filter box on a long list', () => {
-  const book = [
-    { kind: 'record' as const, title: 'thiva location', subtitle: 'Beta Company', lines: ['Avlidos 29', 'Thiva'] },
-    { kind: 'record' as const, title: 'Kalivia location', subtitle: 'IR Logistic', lines: ['Kalivia Thorikou'] },
-    { kind: 'record' as const, title: 'Iraklio', lines: ['Makedonias 17', 'Iraklio'] },
-    { kind: 'action' as const, title: 'None of these - add a new location' },
-  ];
-
-  it('returns the list untouched for an empty or blank query', () => {
-    expect(filterSelectionOptions(book, '')).toBe(book);
-    expect(filterSelectionOptions(book, '   ')).toBe(book);
-  });
-
-  it('matches title, subtitle and address lines, ignoring case', () => {
-    expect(filterSelectionOptions(book, 'KALIVIA').map((o) => o.title)).toContain('Kalivia location');
-    expect(filterSelectionOptions(book, 'beta').map((o) => o.title)).toContain('thiva location');
-    expect(filterSelectionOptions(book, 'makedonias').map((o) => o.title)).toContain('Iraklio');
-  });
-
-  it('always keeps the action card, so "add a new location" survives a miss', () => {
-    const left = filterSelectionOptions(book, 'nowhere');
-    expect(left).toHaveLength(1);
-    expect(left[0]!.kind).toBe('action');
-  });
-});
-
-/**
- * MS3-396: every option list starts collapsed behind a "Show 12 sites" row, so
- * the message above it stays readable. What the row says is decided here.
- */
-describe('collapsed list toggle', () => {
-  const record = (id: string) => ({ id, kind: 'record' as const, title: id });
-  const action = (id: string) => ({ id, kind: 'action' as const, title: id });
-
-  it('counts the records, not the "add a new one" card', () => {
-    expect(selectionListCount([record('a'), record('b'), record('c'), action('new')])).toBe(3);
-  });
-
-  it('counts the cards of a list that holds only actions, rather than saying 0', () => {
-    expect(selectionListCount([action('x'), action('y')])).toBe(2);
-  });
-
-  it('names the kind of thing in the list, and falls back to "options"', () => {
-    expect(showListKey('location')).toBe('vagonai.select.show.location');
-    expect(showListKey('erp_order')).toBe('vagonai.select.show.erp_order');
-    expect(showListKey('something_new')).toBe('vagonai.select.show.option');
-    expect(showListKey(undefined)).toBe('vagonai.select.show.option');
-  });
-
-  it('has a wording for every list kind the gateway sends', () => {
-    type Unlabelled = Exclude<SelectionRequest['kind'], (typeof SHOW_LIST_KINDS)[number]>;
-    const everyKindLabelled: [Unlabelled] extends [never] ? true : false = true;
-    expect(everyKindLabelled).toBe(true);
-  });
-
-  it('has the singular and plural of every label, and the hide label, in English and Greek', () => {
-    for (const lang of ['en', 'el'] as const) {
-      const select = JSON.parse(readFileSync(`src/locale/${lang}.json`, 'utf-8')).vagonai.select;
-      for (const kind of [...SHOW_LIST_KINDS, 'option']) {
-        for (const form of ['one', 'other']) {
-          const text: unknown = select.show?.[`${kind}_${form}`];
-          expect(typeof text, `${lang} ${kind}_${form}`).toBe('string');
-          expect(text as string).toContain('{{count}}');
-        }
-      }
-      expect(typeof select.hide).toBe('string');
-    }
-  });
-
-  it('the Greek labels are Greek letters, not double-encoded bytes', () => {
-    const select = JSON.parse(readFileSync('src/locale/el.json', 'utf-8')).vagonai.select;
-    const greek = '[\\u0370-\\u03FF ]+';
-    expect(select.show.location_other).toMatch(new RegExp(`^${greek}\\{\\{count\\}\\}${greek}$`));
-    expect(select.hide).toBe('Απόκρυψη λίστας');
-  });
-
-  it('picks out what an answered list chose, in list order, for the compact summary', () => {
-    const options = [record('a'), record('b'), record('c')];
-    expect(chosenSelectionOptions(options, ['c', 'a']).map((option) => option.id)).toEqual(['a', 'c']);
-    expect(chosenSelectionOptions(options, [])).toEqual([]);
-    expect(chosenSelectionOptions(options, undefined)).toEqual([]);
   });
 });

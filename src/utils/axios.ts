@@ -1,8 +1,7 @@
-import { legacyApiRoot } from '../config/deploymentEnv';
 /** @deprecated Legacy axios client — use `api/client.ts` and `api/auth/authService.ts` instead. */
 import axios from "axios";
 
-const axiosInstance = axios.create({ baseURL: legacyApiRoot() });
+const axiosInstance = axios.create({ baseURL: import.meta.env.VITE_API_URL + import.meta.env.VITE_API_VERSION });
 
 axiosInstance.interceptors.request.use(
   (config) => {
@@ -42,19 +41,10 @@ axiosInstance.interceptors.response.use(
     // Check if originalRequest is a login request to prevent redirect/refresh loop on incorrect credentials
     const isLoginRequest = originalRequest?.url?.includes("/login");
 
-    // Soften: do not wipe every storage key / hard-redirect on an unrelated 401
-    // (legacy client can 401 during chat-adjacent calls). Prefer clearing only
-    // the auth token and raising the same event the modern client uses — Auth
-    // then decides. Force-logout / FCM still has its own path.
     if (error.response?.status === 401 && !originalRequest?._retry && !isLoginRequest) {
-      try {
-        localStorage.removeItem("token");
-        sessionStorage.removeItem("token");
-        localStorage.removeItem("shipper_auth_token");
-      } catch {
-        /* ignore storage errors */
-      }
-      window.dispatchEvent(new CustomEvent("shipper:unauthorized"));
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = "/";
     }
     return Promise.reject(error);
   }

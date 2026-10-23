@@ -63,14 +63,6 @@ export interface ApiWizardState {
   selectedCarriers?: string[] | number[];
   targetPrice?: string | number;
   trackingEmails?: Record<string, string[]>;
-  /**
-   * MS3-414: receiver tracking emails per delivery stop, keyed by stop `id`
-   * (pre-filled by Laravel from the stop's Address Book location). An empty map
-   * may arrive as [].
-   */
-  stopTrackingEmails?: Record<string, string[]> | unknown[];
-  /** MS3-414: entries that are still the location's pre-fill (stop id -> source). */
-  stopTrackingEmailsAuto?: Record<string, { locationId?: string; emails?: string[] }> | unknown[];
   driverNotes?: string;
   notesList?: Array<{
     id: string | number;
@@ -172,11 +164,6 @@ export interface SaveStepThreePayload {
   target_price?: number;
   negotiable?: boolean;
   tracking_emails?: Record<string, string[]>;
-  /**
-   * MS3-414: receiver emails per stop id, merged per key on the server: a list
-   * replaces that stop's emails ([] = removed), null re-fills from the location.
-   */
-  stop_tracking_emails?: Record<string, string[] | null>;
   driver_notes?: string;
   gps_required?: boolean;
   bulk_mode?: 'single';
@@ -185,22 +172,13 @@ export interface SaveStepThreePayload {
   vehicle_selection_confirmed?: boolean;
 }
 
-export interface PublishedShipmentSummary {
+export interface PublishShipmentResponse {
   id: number;
   auto_id: string;
   status: string;
   type: string;
   total: string;
   order_value?: string | null;
-}
-
-/**
- * Top-level fields describe the first (original) load. MS3-403: `copies` lists
- * every load the publish created (first included); `copies_count` is its length.
- */
-export interface PublishShipmentResponse extends PublishedShipmentSummary {
-  copies?: PublishedShipmentSummary[];
-  copies_count?: number;
 }
 
 export interface AiSuggestedPriceResult {
