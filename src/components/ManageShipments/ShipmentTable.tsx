@@ -12,6 +12,7 @@ import {
   shipmentIdSublabel,
 } from '../../pages/ManageShipments/utils/listingUtils';
 import { formatScheduleWindow } from '../../utils/dateDisplay';
+import { isOnTripOverdueDelayed } from '../../utils/onTripDelayed';
 import { formatUtcToDisplayDateTime } from '../../utils/timezone';
 import { ListSkeleton } from '../skeletons/ListSkeleton';
 import { RowExpansionSkeleton } from '../skeletons/ManageShipmentsSkeleton';
@@ -305,6 +306,16 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                               : undefined
                           }
                           label={t(row.status)}
+                          sub={
+                            isOnTripOverdueDelayed({
+                              status: row.status,
+                              windowEnd: row.delDtToIso,
+                              scheduled: row.delDtIso,
+                              subStatus: row.subStatus,
+                            })
+                              ? t('delayed', 'Delayed')
+                              : undefined
+                          }
                         />
                         {row.at_risk ? (
                           <span

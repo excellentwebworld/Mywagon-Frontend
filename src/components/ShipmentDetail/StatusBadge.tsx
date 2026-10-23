@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type ReactNode } from 'react';
 import { useTranslation } from '../../hooks/useTranslation';
 import {
   pendingBadgeVariant,
@@ -27,6 +27,8 @@ interface StatusBadgeProps extends PendingBadgeOpts {
   status: ShipmentStatusType | string;
   className?: string;
   size?: 'sm' | 'md';
+  /** Second line under the status label, e.g. Delayed on an overdue On Trip load. */
+  sub?: ReactNode;
 }
 
 /**
@@ -135,6 +137,7 @@ export function shipmentStatusLabel(
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
   status,
   className = '',
+  sub,
   bidsReceived,
   bidsSent,
   interestedCount,
@@ -170,7 +173,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
   return (
     <span className={className}>
-      <LoadStatus status={loadKey} bids={bids} label={label} />
+      <LoadStatus status={loadKey} bids={bids} label={label} sub={sub} />
     </span>
   );
 };

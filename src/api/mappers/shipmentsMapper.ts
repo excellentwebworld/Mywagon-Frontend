@@ -214,6 +214,8 @@ function mapStop(stop: ApiShipmentStop, index: number, customerName?: string | n
     date: finalDate,
     timeStart: finalDate ? (fromLocal.time || stop.time_start || '') : '',
     timeEnd: finalDate ? (toLocal.time || stop.time_end || '') : '',
+    dateIso: stop.date_iso ?? null,
+    toDateIso: stop.to_date_iso ?? null,
     locationStatus:
       stop.status !== null && stop.status !== undefined && String(stop.status) !== ''
         ? String(stop.status)
@@ -416,6 +418,7 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
                 ? 7
                 : 2,
     at_risk: atRisk,
+    subStatus: item.sub_status ?? null,
     riskReason: item.risk_reason ?? null,
     needsAction: flags?.needs_action ?? item.needs_action,
     awaitingResponse: flags?.awaiting_response ?? item.awaiting_response,

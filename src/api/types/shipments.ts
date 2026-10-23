@@ -110,6 +110,8 @@ export interface ApiShipmentListItem {
   payment_status?: 'paid' | 'payment_pending' | null;
   pod_status?: 'complete' | 'missing' | 'partial' | 'n_a' | string;
   at_risk?: boolean;
+  /** Server substatus under the main status, e.g. `delayed` on an overdue On Trip load. */
+  sub_status?: string | null;
   risk_reason?: string | null;
   needs_action?: boolean;
   awaiting_response?: boolean;

@@ -170,6 +170,10 @@ export interface ShipmentStop {
   date: string;
   timeStart: string;
   timeEnd: string;
+  /** UTC instant for the stop start, when the API sends one. */
+  dateIso?: string | null;
+  /** UTC instant for the stop window end, when the API sends one. */
+  toDateIso?: string | null;
   customers: ShipmentCustomer[];
   /** Driver location status code (0–8). */
   locationStatus?: string;
@@ -258,6 +262,8 @@ export interface Shipment {
   timeline: string[];
   tl_cur: number;
   at_risk?: boolean;
+  /** Server substatus under the main status, e.g. `delayed`. */
+  subStatus?: string | null;
   riskReason?: string | null;
   needsAction?: boolean;
   awaitingResponse?: boolean;

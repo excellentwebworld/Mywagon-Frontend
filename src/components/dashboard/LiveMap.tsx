@@ -7,6 +7,7 @@ import { useRouteLegs } from '../CreateShipmentWizard/itinerary/useRouteLegs';
 import type { EnrichedStop } from '../CreateShipmentWizard/itinerary/types';
 import { loadGoogleMaps } from '../AddressBook/GoogleMapAddressField';
 import { StatusBadge } from '../ShipmentDetail/StatusBadge';
+import { isOnTripOverdueDelayed } from '../../utils/onTripDelayed';
 import { formatDashError, translateDashMessage } from './dashErrorUtils';
 import { DashMapSkeleton } from './DashboardSkeletons';
 
@@ -208,6 +209,16 @@ export const LiveMap: React.FC<LiveMapProps> = ({ selectedShipmentId }) => {
                 bidsReceived={shipment.bidsReceived}
                 bidsSent={shipment.bidsSent}
                 interestedCount={shipment.interestedCount}
+                sub={
+                  isOnTripOverdueDelayed({
+                    status: shipment.status,
+                    windowEnd: shipment.delDtToIso,
+                    scheduled: shipment.delDtIso,
+                    subStatus: shipment.subStatus,
+                  })
+                    ? t('delayed', 'Delayed')
+                    : undefined
+                }
               />
             </div>
             {t('status')}

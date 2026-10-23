@@ -167,6 +167,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({
               bidsReceived={vm.bidsReceived}
               bidsSent={vm.bidsSent}
               interestedCount={vm.interestedCount}
+              sub={vm.isOverdueDelayed ? t('delayed', 'Delayed') : undefined}
             />
 
             <Tag variant="outline">

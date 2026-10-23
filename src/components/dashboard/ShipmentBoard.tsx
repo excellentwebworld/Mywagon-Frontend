@@ -6,6 +6,7 @@ import { useShipmentsList } from '../../hooks/useShipments';
 import { useRequireSignupComplete } from '../../hooks/useRequireSignupComplete';
 import { useTranslation } from '../../hooks/useTranslation';
 import { formatEuro } from '../../pages/ManageShipments/utils/listingUtils';
+import { isOnTripOverdueDelayed } from '../../utils/onTripDelayed';
 import { LoadStatus } from '../ui/mv';
 import { DashUpgradeBlock, translateDashMessage } from './dashErrorUtils';
 import { DashBoardSkeleton } from './DashboardSkeletons';
@@ -235,6 +236,16 @@ export const ShipmentBoard: React.FC<ShipmentBoardProps> = ({
                                 : undefined
                             }
                             label={t(row.status)}
+                            sub={
+                              isOnTripOverdueDelayed({
+                                status: row.status,
+                                windowEnd: row.delDtToIso,
+                                scheduled: row.delDtIso,
+                                subStatus: row.subStatus,
+                              })
+                                ? t('delayed', 'Delayed')
+                                : undefined
+                            }
                           />
                           {row.at_risk ? (
                             <span

@@ -1,4 +1,5 @@
 import type { Shipment, ShipmentStop } from '../../context/AppContext';
+import { isOnTripOverdueDelayed, resolveDropoffAnchors } from '../../utils/onTripDelayed';
 import { isInterestOffer, type PartnerBidItem } from '../../components/ShipmentDetail/BidsCard';
 export type { PartnerBidItem };
 export { isInterestOffer };
@@ -257,6 +258,8 @@ export interface ShipmentDetailViewModel {
   editingRequestDetails?: string | null;
   onTrack: boolean;
   isDelayed: boolean;
+  /** On Trip load past the dropoff grace window. Temporary check window is 2 minutes. */
+  isOverdueDelayed: boolean;
   delayText: string;
   isPickedUp: boolean;
   primaryCustomer: string;
@@ -1169,6 +1172,17 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
   }
 
   const isDelayed = Boolean(shipment.at_risk || isPastDelivery || (shipment as any).isDelayed);
+  const dropoffAnchors = resolveDropoffAnchors({
+    windowEndIso: shipment.delDtToIso,
+    scheduledIso: shipment.delDtIso,
+    stop: lastDropoff,
+  });
+  const isOverdueDelayed = isOnTripOverdueDelayed({
+    status,
+    windowEnd: dropoffAnchors.windowEnd,
+    scheduled: dropoffAnchors.scheduled,
+    subStatus: shipment.subStatus,
+  });
   const delayDuration =
     delayMinutes > 0 ? `+${formatDelayMinutes(delayMinutes)}` : '';
   const delayText = isDelayed
@@ -1236,6 +1250,7 @@ export function buildShipmentDetailViewModel(shipment: Shipment): ShipmentDetail
       null,
     onTrack,
     isDelayed,
+    isOverdueDelayed,
     delayText,
     isPickedUp,
     primaryCustomer,
