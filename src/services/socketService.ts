@@ -196,8 +196,7 @@ class SocketService {
         const timer = window.setTimeout(() => {
           if (settled) return;
           settled = true;
-          // The packet already left. Keep this truthy so the UI does not save it again.
-          resolve({ ok: true });
+          resolve(null);
         }, 8000);
         socket.emit('send_message', fullPayload, (response: any) => {
           if (settled) return;

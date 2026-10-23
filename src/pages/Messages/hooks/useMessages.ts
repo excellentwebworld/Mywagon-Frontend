@@ -96,6 +96,26 @@ function buildShipperSocketChatPayload(params: {
   };
 }
 
+function deliverShipperChatMessage(params: {
+  user: {
+    id?: number | string;
+    parent_shipper_id?: number | string | null;
+    company_name?: string;
+    first_name?: string;
+    last_name?: string;
+    profile_picture?: string | null;
+    account_profile_picture?: string | null;
+  };
+  conversation: Conversation;
+  partnerToken: string;
+  message: string;
+  messagesType?: 'text' | 'voice' | 'media' | 'image' | 'document';
+  duration?: string;
+  shipmentId?: string | number;
+}) {
+  return socketService.sendMessage(buildShipperSocketChatPayload(params));
+}
+
 function dedupeMessages(msgs: ChatMessage[]): ChatMessage[] {
   const seenIds = new Set<string>();
   const seenContent = new Set<string>();
@@ -1179,26 +1199,16 @@ export function useMessages() {
       setMessages((prev) => [...prev, newMsg]);
       setMessageInput('');
 
-      const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
-
       try {
-        const socketPayload = buildShipperSocketChatPayload({
+        const response = await deliverShipperChatMessage({
           user: user || {},
           conversation: activeConversation,
-          partnerToken,
+          partnerToken: partnerDeviceTokenRef.current || activeConversation.device_token || '',
           message: text,
           shipmentId: activeSidDb,
         });
-        const response = await socketService.sendMessage(socketPayload);
-
         if (!response) {
-          await chatService.sendMessage({
-            receiver_id: socketPayload.receiver_id,
-            receiver_type: socketPayload.receiver_type,
-            message: text,
-            messages_type: 'text',
-            shipment_id: activeSidDb ? String(activeSidDb) : undefined,
-          });
+          throw new Error('Socket not connected');
         }
 
         // Only update conversation last message after successful send
@@ -1281,42 +1291,21 @@ export function useMessages() {
 
       setMessages((prev) => [...prev, newMsg]);
 
-      const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
-
       try {
         const uploadRes = await chatService.uploadVoice(audioBlob);
         const uploadedUrl = uploadRes?.url || localAudioUrl;
 
-        const response = await socketService.sendMessage(
-          buildShipperSocketChatPayload({
-            user: user || {},
-            conversation: activeConversation,
-            partnerToken,
-            message: uploadedUrl,
-            messagesType: 'voice',
-            duration: durationMsSend,
-            shipmentId: activeSidDb,
-          })
-        );
-
+        const response = await deliverShipperChatMessage({
+          user: user || {},
+          conversation: activeConversation,
+          partnerToken: partnerDeviceTokenRef.current || activeConversation.device_token || '',
+          message: uploadedUrl,
+          messagesType: 'voice',
+          duration: durationMsSend,
+          shipmentId: activeSidDb,
+        });
         if (!response) {
-          const socketPayload = buildShipperSocketChatPayload({
-            user: user || {},
-            conversation: activeConversation,
-            partnerToken,
-            message: uploadedUrl,
-            messagesType: 'voice',
-            duration: durationMsSend,
-            shipmentId: activeSidDb,
-          });
-          await chatService.sendMessage({
-            receiver_id: socketPayload.receiver_id,
-            receiver_type: socketPayload.receiver_type,
-            message: uploadedUrl,
-            messages_type: 'voice',
-            duration: durationMsSend,
-            shipment_id: activeSidDb ? String(activeSidDb) : undefined,
-          });
+          throw new Error('Socket not connected');
         }
 
         setMessages((prev) =>
@@ -1408,8 +1397,6 @@ export function useMessages() {
 
       setMessages((prev) => [...prev, newMsg]);
 
-      const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
-
       try {
         const uploadRes = await chatService.uploadAttachment(file);
         const uploadedUrl = uploadRes?.url;
@@ -1433,33 +1420,16 @@ export function useMessages() {
           )
         );
 
-        const response = await socketService.sendMessage(
-          buildShipperSocketChatPayload({
-            user: user || {},
-            conversation: activeConversation,
-            partnerToken,
-            message: uploadedUrl,
-            messagesType: msgType,
-            shipmentId: activeSidDb,
-          })
-        );
-
-        if (!response) {
-          const socketPayload = buildShipperSocketChatPayload({
-            user: user || {},
-            conversation: activeConversation,
-            partnerToken,
-            message: uploadedUrl,
-            messagesType: msgType,
-            shipmentId: activeSidDb,
-          });
-          await chatService.sendMessage({
-            receiver_id: socketPayload.receiver_id,
-            receiver_type: socketPayload.receiver_type,
-            message: uploadedUrl,
-            messages_type: msgType,
-            shipment_id: activeSidDb ? String(activeSidDb) : undefined,
-          });
+        const saved = await deliverShipperChatMessage({
+          user: user || {},
+          conversation: activeConversation,
+          partnerToken: partnerDeviceTokenRef.current || activeConversation.device_token || '',
+          message: uploadedUrl,
+          messagesType: msgType,
+          shipmentId: activeSidDb,
+        });
+        if (!saved) {
+          throw new Error('Socket not connected');
         }
 
         setMessages((prev) =>
@@ -1471,7 +1441,7 @@ export function useMessages() {
                   fileUrl: !isImage ? uploadedUrl : undefined,
                   text: uploadedUrl,
                   status: 'delivered',
-                  id: (response as { id?: number | string })?.id || m.id,
+                  id: saved?.id || m.id,
                 }
               : m
           )
@@ -1535,7 +1505,6 @@ export function useMessages() {
         prev.map((m) => (m.id === failedMsgId ? { ...m, isFailed: false } : m))
       );
 
-      const partnerToken = partnerDeviceTokenRef.current || activeConversation.device_token || '';
       const { shipmentDbId: activeSidDb } = resolveActiveShipment();
       const retrySidDb = failedMsg.shipment_id != null
         ? String(failedMsg.shipment_id)
@@ -1584,40 +1553,17 @@ export function useMessages() {
           }
         }
 
-        const response = await socketService.sendMessage(
-          buildShipperSocketChatPayload({
-            user: user || {},
-            conversation: activeConversation,
-            partnerToken,
-            message: retryPayload,
-            ...(isVoice ? { messagesType: 'voice' as const, duration: failedMsg.duration } : {}),
-            ...(failedMsg.messages_type === 'media' ? { messagesType: 'media' as const } : {}),
-            ...(isImage ? { messagesType: 'image' as const } : {}),
-            ...(isDoc ? { messagesType: 'document' as const } : {}),
-            shipmentId: retrySidDb,
-          })
-        );
-
+        const response = await deliverShipperChatMessage({
+          user: user || {},
+          conversation: activeConversation,
+          partnerToken: partnerDeviceTokenRef.current || activeConversation.device_token || '',
+          message: retryPayload,
+          messagesType: isVoice ? 'voice' : isImage ? 'image' : isDoc ? 'document' : failedMsg.messages_type === 'media' ? 'media' : 'text',
+          duration: isVoice ? failedMsg.duration : undefined,
+          shipmentId: retrySidDb,
+        });
         if (!response) {
-          const socketPayload = buildShipperSocketChatPayload({
-            user: user || {},
-            conversation: activeConversation,
-            partnerToken,
-            message: retryPayload,
-            ...(isVoice ? { messagesType: 'voice' as const, duration: failedMsg.duration } : {}),
-            ...(failedMsg.messages_type === 'media' ? { messagesType: 'media' as const } : {}),
-            ...(isImage ? { messagesType: 'image' as const } : {}),
-            ...(isDoc ? { messagesType: 'document' as const } : {}),
-            shipmentId: retrySidDb,
-          });
-          await chatService.sendMessage({
-            receiver_id: socketPayload.receiver_id,
-            receiver_type: socketPayload.receiver_type,
-            message: retryPayload,
-            messages_type: isVoice ? 'voice' : isImage ? 'image' : isDoc ? 'document' : 'text',
-            duration: isVoice ? failedMsg.duration : undefined,
-            shipment_id: retrySidDb ? String(retrySidDb) : undefined,
-          });
+          throw new Error('Socket not connected');
         }
 
         pendingFilesRef.current.delete(failedMsgId);
