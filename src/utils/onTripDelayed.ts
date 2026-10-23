@@ -1,7 +1,7 @@
 import { parseUtcInstant } from './timezone';
 
 /** Temporary manual-check window. Restore to 4 hours after verification. */
-export const ON_TRIP_DELAY_GRACE_MS = 2 * 60 * 1000;
+export const ON_TRIP_DELAY_GRACE_MS = 1 * 60 * 1000;
 
 export type OnTripDelayedInput = {
   status?: string | null;
