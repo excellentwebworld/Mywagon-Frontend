@@ -59,6 +59,48 @@ export function forgetCachedFcmToken(): void {
 }
 
 /**
+ * Leave React for Classic. Invalidate this browser's React push subscription
+ * so Amplify does not keep showing notifications while the shipper is on Laravel.
+ * Does not clear the account token; Classic saves its own token after the handoff.
+ */
+export async function releaseReactPushForUiSwitch(): Promise<void> {
+  clearCachedToken();
+
+  const messaging = getMessagingOrNull();
+  if (messaging) {
+    try {
+      await Promise.race([
+        deleteToken(messaging),
+        new Promise((resolve) => setTimeout(resolve, 2500)),
+      ]);
+    } catch (err) {
+      console.warn('[FCM] deleteToken on UI switch failed:', err);
+    }
+  }
+
+  if (!('serviceWorker' in navigator)) return;
+
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(
+      registrations.map((registration) => {
+        const scriptUrl =
+          registration.active?.scriptURL ||
+          registration.waiting?.scriptURL ||
+          registration.installing?.scriptURL ||
+          '';
+        if (scriptUrl.includes('firebase-messaging-sw')) {
+          return registration.unregister();
+        }
+        return undefined;
+      }),
+    );
+  } catch (err) {
+    console.warn('[FCM] unregister on UI switch failed:', err);
+  }
+}
+
+/**
  * Remove local FCM registration without touching the backend token list.
  */
 export async function cleanupLocalFcmDevice(): Promise<void> {

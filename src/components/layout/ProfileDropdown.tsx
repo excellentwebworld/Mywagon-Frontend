@@ -24,6 +24,7 @@ import { LANGUAGES } from '../../constants/panel';
 import { assetUrl } from '../../utils/assetUrl';
 import { uiSwitchService } from '../../api/services/uiSwitchService';
 import { socketService } from '../../services/socketService';
+import { releaseReactPushForUiSwitch } from '../../hooks/useFcm';
 
 /** Inline icons matching Sidebar footer / Refer button. */
 function SubscriptionIcon({ size = 15, color }: { size?: number; color?: string }) {
@@ -118,6 +119,7 @@ export function ProfileDropdown() {
     try {
       const { redirect_url } = await uiSwitchService.switchTo('classic');
       socketService.disconnect();
+      await releaseReactPushForUiSwitch();
       window.location.assign(redirect_url);
     } catch (err) {
       showToast(

@@ -1,4 +1,5 @@
 import type { ShipperUser } from '../api/auth/types';
+import { releaseReactPushForUiSwitch } from '../hooks/useFcm';
 import { uiSwitchService } from '../api/services/uiSwitchService';
 import { needsCompanyInfoGate, needsKycGate } from '../hooks/useKycGate';
 import { needsInfoFormHardGate } from '../hooks/useInfoFormGate';
@@ -31,6 +32,7 @@ export async function redirectToClassicPanelIfNeeded(
   redirectInFlight = true;
   try {
     const { redirect_url } = await uiSwitchService.switchTo('classic');
+    await releaseReactPushForUiSwitch();
     window.location.assign(redirect_url);
     return true;
   } catch {
