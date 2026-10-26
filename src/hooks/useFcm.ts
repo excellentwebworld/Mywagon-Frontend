@@ -316,18 +316,8 @@ export function useFcm({ enabled = true, onForegroundMessage }: UseFcmOptions = 
           return;
         }
 
-        if ('Notification' in window && Notification.permission === 'granted') {
-          try {
-            const n = new Notification(title, { body, icon: '/favicon.ico' });
-            n.onclick = () => {
-              window.focus();
-              n.close();
-            };
-          } catch {
-            /* in-app toast below still shows */
-          }
-        }
-
+        // Foreground: in-panel toast only. The browser popup is shown by the
+        // service worker when the tab is in the background.
         if (onForegroundMessage) {
           onForegroundMessage(notifData);
         }
