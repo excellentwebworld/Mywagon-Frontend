@@ -62,7 +62,7 @@ function buildShipperSocketChatPayload(params: {
   conversation: Conversation;
   partnerToken: string;
   message: string;
-  messagesType?: 'voice' | 'media' | 'image' | 'document';
+  messagesType?: 'text' | 'voice' | 'media' | 'image' | 'document';
   duration?: string;
   shipmentId?: string | number;
 }): SocketMessagePayload {
@@ -75,6 +75,7 @@ function buildShipperSocketChatPayload(params: {
     'Shipper';
   const senderImg = shipperChatIconUrl(params.user);
   const cleanShipmentId = params.shipmentId != null ? extractShipmentDbId(String(params.shipmentId)) : undefined;
+  const socketMessagesType = params.messagesType && params.messagesType !== 'text' ? params.messagesType : undefined;
 
   return {
     sender_id: String(senderId),
@@ -83,7 +84,7 @@ function buildShipperSocketChatPayload(params: {
     receiver_type: receiverType,
     message: params.message,
     ...(cleanShipmentId ? { shipment_id: cleanShipmentId } : {}),
-    ...(params.messagesType ? { messages_type: params.messagesType } : {}),
+    ...(socketMessagesType ? { messages_type: socketMessagesType } : {}),
     ...(params.duration ? { duration: params.duration } : {}),
     request_data: buildLaravelChatRequestData({
       senderId: String(senderId),
