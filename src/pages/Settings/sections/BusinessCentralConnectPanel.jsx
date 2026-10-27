@@ -49,18 +49,21 @@ export default function BusinessCentralConnectPanel({ T, t, toast, onChanged }) 
   const [connectBanner, setConnectBanner] = useState(null);
 
   const applyConnection = (data, nextCompanies) => {
-    const hasTokens = !!data.settings?.has_client_secret;
-    setForm({
+    const isPostmanStub = data.settings?.auth_mode === 'postman_testing'
+      || data.settings?.tenant_id === 'postman';
+    const hasTokens = !!data.settings?.has_client_secret && !isPostmanStub;
+    setForm(isPostmanStub ? emptyForm : {
       environment: data.settings?.environment || 'Production',
       company_id: data.settings?.company_id || '',
       company_name: data.settings?.company_name || '',
     });
     setOauthConfigured(!!data.settings?.oauth_configured);
     setConnected(hasTokens && data.status !== 'disconnected');
-    setStatus(data.status || 'disconnected');
-    setLastError(data.last_error);
-    setLastRun(data.last_run);
-    if (nextCompanies) setCompanies(nextCompanies);
+    setStatus(isPostmanStub ? 'disconnected' : (data.status || 'disconnected'));
+    setLastError(isPostmanStub ? null : data.last_error);
+    setLastRun(isPostmanStub ? null : data.last_run);
+    if (nextCompanies && !isPostmanStub) setCompanies(nextCompanies);
+    if (isPostmanStub) setCompanies([]);
     if (hasTokens && data.status !== 'disconnected' && !data.last_error) {
       setConnectBanner('success');
     }
