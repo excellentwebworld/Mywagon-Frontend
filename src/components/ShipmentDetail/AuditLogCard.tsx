@@ -179,8 +179,8 @@ export const AuditLogCard: React.FC<AuditLogCardProps> = ({
         return;
       }
 
-      // Hide status change from draft
-      if (act.includes('status changed') && (act.includes('from draft') || act.includes('changed from draft'))) {
+      // Hide generic status-change audit rows already stored on existing shipments.
+      if (act === 'status changed' || act === 'status-changed' || act.includes('status changed')) {
         return;
       }
 

@@ -15,7 +15,7 @@ export { AUTH_TOKEN_KEY, getStoredToken, setStoredToken, clearStoredToken };
 async function authRequest<T>(
   path: string,
   options: {
-    method?: string;
+    method?: string;  
     body?: unknown;
     headers?: Record<string, string>;
   } = {},

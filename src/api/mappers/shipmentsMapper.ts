@@ -648,7 +648,10 @@ export function mapApiDetailToShipment(detail: ApiShipmentDetail): Shipment {
             a.includes('shipment edit saved') ||
             a.includes('saved edit shipment') ||
             a.includes('shipment edit pending') ||
-            a.includes('shipment-edit-pending')
+            a.includes('shipment-edit-pending') ||
+            a === 'status changed' ||
+            a === 'status-changed' ||
+            a.includes('status changed')
           );
         });
       const hasCancelShipment = logs.some((l) => {
