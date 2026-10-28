@@ -76,6 +76,28 @@ function scheduleLabel(iso?: string | null, fallback?: string | null): string | 
   return raw;
 }
 
+function formatCalendarDate(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const [datePart] = String(raw).split(/[T ]/);
+  const [y, m, day] = datePart.split('-');
+  if (y && m && day && y.length === 4) {
+    return `${day.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`;
+  }
+  return String(raw);
+}
+
+export function formatDeliveryDateRange(
+  start: string | null | undefined,
+  end: string | null | undefined,
+): string | null {
+  const startLabel = formatCalendarDate(start);
+  const endLabel = formatCalendarDate(end);
+  if (startLabel && endLabel) {
+    return startLabel === endLabel ? startLabel : `${startLabel} – ${endLabel}`;
+  }
+  return startLabel || endLabel;
+}
+
 function splitDateTime(iso: string | null): { date: string; time: string } {
   if (!iso) return { date: '—', time: '' };
   const parsed = parseUtcInstant(iso);
@@ -174,6 +196,7 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
     startTm: start.time || '00:00',
     endDt: end.date,
     endTm: end.time || '23:59',
+    deliveryDates: formatDeliveryDateRange(item.start_delivery_date, item.end_delivery_date),
     startAt: item.start_date_time,
     pickup,
     pickupAddress,

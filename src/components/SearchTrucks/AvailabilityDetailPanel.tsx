@@ -435,6 +435,11 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
             {detailTruck.startDt} {detailTruck.startTm}
             {detailTruck.endDt ? ` – ${detailTruck.endTm}` : ''}
           </div>
+          {detailTruck.deliveryDates ? (
+            <div className="sat-mp-stop-dt sat-muted">
+              {t('satDeliveryDate')}: {detailTruck.deliveryDates}
+            </div>
+          ) : null}
         </div>
 
         <div className="sat-mp-chips">

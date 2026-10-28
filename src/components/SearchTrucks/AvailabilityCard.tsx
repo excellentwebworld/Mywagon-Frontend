@@ -83,6 +83,11 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
           <span className="sat-muted">
             {truck.startTm} – {truck.endTm}
           </span>
+          {truck.deliveryDates ? (
+            <span className="sat-muted">
+              {t('satDeliveryDate')}: {truck.deliveryDates}
+            </span>
+          ) : null}
           {truck.recurring && <span className="sat-grp-badge">🔁 {truck.recurrenceLabel}</span>}
         </div>
 

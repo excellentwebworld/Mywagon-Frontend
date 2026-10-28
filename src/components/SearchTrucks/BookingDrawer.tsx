@@ -383,6 +383,12 @@ function TruckContextPanel({
               ) : null}
             </dd>
           </div>
+          {truck.deliveryDates ? (
+            <div className="sat-bid-left-fact">
+              <dt>{t('satDeliveryDate') || 'Delivery date'}</dt>
+              <dd>{truck.deliveryDates}</dd>
+            </div>
+          ) : null}
           <div className="sat-bid-left-fact">
             <dt>{t('satCapacity') || 'Capacity'}</dt>
             <dd>{truck.capacity || '—'}</dd>

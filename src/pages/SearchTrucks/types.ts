@@ -84,6 +84,8 @@ export interface AvailableTruck {
   startTm: string;
   endDt: string;
   endTm: string;
+  /** Delivery window from the availability post, already formatted DD/MM/YYYY */
+  deliveryDates?: string | null;
   /** ISO start for server-aligned filtering / display */
   startAt?: string | null;
   /** Full street address when available, else city */
