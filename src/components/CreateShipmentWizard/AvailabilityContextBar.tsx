@@ -326,10 +326,12 @@ export const AvailabilityContextBar: React.FC<AvailabilityContextBarProps> = ({
                 label={t('satPickupDateTime') || 'Available from'}
                 value={formatDateTime(detail.start_date_time)}
               />
-              <DetailCell
-                label={t('satEndDateTime') || 'Available until'}
-                value={formatDateTime(detail.end_date_time)}
-              />
+              {detail.timing_availability_type === 'range' ? (
+                <DetailCell
+                  label={t('satEndDateTime') || 'Available until'}
+                  value={formatDateTime(detail.end_date_time)}
+                />
+              ) : null}
               <DetailCell
                 label={t('satDeliveryDate') || 'Delivery date'}
                 value={formatDeliveryDateRange(detail.start_delivery_date, detail.end_delivery_date)}

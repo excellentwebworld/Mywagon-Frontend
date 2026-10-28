@@ -196,6 +196,7 @@ export function mapListItemToTruck(item: ApiAvailabilityListItem): AvailableTruc
     startTm: start.time || '00:00',
     endDt: end.date,
     endTm: end.time || '23:59',
+    isTimeRange: item.timing_availability_type === 'range',
     deliveryDates: formatDeliveryDateRange(item.start_delivery_date, item.end_delivery_date),
     startAt: item.start_date_time,
     pickup,

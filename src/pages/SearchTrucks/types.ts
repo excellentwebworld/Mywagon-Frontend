@@ -84,6 +84,8 @@ export interface AvailableTruck {
   startTm: string;
   endDt: string;
   endTm: string;
+  /** True only when the carrier/driver posted a time range, not a single time. */
+  isTimeRange?: boolean;
   /** Delivery window from the availability post, already formatted DD/MM/YYYY */
   deliveryDates?: string | null;
   /** ISO start for server-aligned filtering / display */

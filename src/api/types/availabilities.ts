@@ -31,6 +31,8 @@ export interface ApiAvailabilityListItem {
   visibility: 'public' | 'private';
   start_date_time: string | null;
   end_date_time: string | null;
+  /** now | start_time = one posted time. range = driver/carrier set both ends. */
+  timing_availability_type?: 'now' | 'start_time' | 'range' | string | null;
   start_delivery_date?: string | null;
   end_delivery_date?: string | null;
   posted_at: string | null;

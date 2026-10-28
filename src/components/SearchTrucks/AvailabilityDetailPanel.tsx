@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { availabilitiesService } from '../../api';
 import { mapListItemToTruck } from '../../api/mappers/availabilitiesMapper';
+import { availabilityWindowLabel } from '../../pages/SearchTrucks/availabilityTime';
 import type { AvailableTruck, DrawerMode } from '../../pages/SearchTrucks/types';
 import { AvailabilityBidsMeta, AvailabilityPrice } from './AvailabilityPrice';
 import { TransporterNameLink } from '../TransporterProfile/TransporterProfileContext';
@@ -431,10 +432,7 @@ export const AvailabilityDetailPanel: React.FC<AvailabilityDetailPanelProps> = (
                 : detailTruck.destAddress || detailTruck.dest}
             </span>
           </div>
-          <div className="sat-mp-stop-dt">
-            {detailTruck.startDt} {detailTruck.startTm}
-            {detailTruck.endDt ? ` – ${detailTruck.endTm}` : ''}
-          </div>
+          <div className="sat-mp-stop-dt">{availabilityWindowLabel(detailTruck)}</div>
           {detailTruck.deliveryDates ? (
             <div className="sat-mp-stop-dt sat-muted">
               {t('satDeliveryDate')}: {detailTruck.deliveryDates}
