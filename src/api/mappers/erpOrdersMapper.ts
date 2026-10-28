@@ -68,9 +68,11 @@ export function mapApiLineToLine(line: ApiErpOrderDetail['lines'][number]): ErpO
 export function mapApiListItemToOrder(item: ApiErpOrderListItem): ErpOrder {
   return {
     id: String(item.id),
-    orderReference: item.order_reference,
+    // MS3-403: order number / customer are optional - '' means none
+    // (see orderDisplayRef for the label to show).
+    orderReference: item.order_reference ?? '',
     erpReference: item.erp_reference ?? '',
-    customerName: item.customer_name,
+    customerName: item.customer_name ?? '',
     shipFrom: item.ship_from ?? '',
     shipTo: item.ship_to ?? '',
     shipDate: item.ship_date ?? '',
@@ -111,10 +113,10 @@ export function mapApiDetailToOrder(detail: ApiErpOrderDetail): ErpOrder {
 
 export function formToPayload(form: ErpOrderFormPayload): ErpOrderFormPayload {
   return {
-    order_reference: form.order_reference.trim(),
+    order_reference: (form.order_reference ?? '').trim(),
     erp_reference: form.erp_reference?.trim() || null,
     company_entity_id: form.company_entity_id ?? null,
-    customer_name: form.customer_name.trim(),
+    customer_name: (form.customer_name ?? '').trim(),
     origin_location_id: form.origin_location_id ?? null,
     dest_location_id: form.dest_location_id ?? null,
     ship_date: form.ship_date || null,

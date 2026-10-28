@@ -19,12 +19,38 @@ import type {
   ChatUsage, PendingAction, DraftCreated, ShipmentPublished, SelectionRequest, ResultCardSet,
   FlowContextEvent,
 } from '../../hooks/useChat';
+import type { ImportView } from './api/orderImportService';
+import type { OrderImportCardState } from './OrderImportReviewCard';
+import type { IntakeMessageState } from './intake/intakeThread'; // WP3a
+
+/**
+ * An order import, shown as the assistant's message in the thread. `key` is
+ * stable for the life of the import, so the card keeps its state when the
+ * thread around it changes. The direct engine's view is kept current by the
+ * card itself; the legacy engine's state is the review card's own phases.
+ */
+/**
+ * A review card that is history (MS3-365): the shipper pressed Import - the run
+ * and its summary are the next message - or chose another file. It shows the
+ * view as it was then, and nothing in it can be clicked.
+ */
+export interface FrozenImport {
+  reason: 'imported' | 'replaced';
+  /** When, as the thread prints times; empty when only known to be in the past (a reopened chat). */
+  at: string;
+}
+
+export type ThreadImportCard =
+  | { key: string; engine: 'direct'; view: ImportView; frozen?: FrozenImport }
+  | { key: string; engine: 'legacy'; state: OrderImportCardState };
 
 export interface ThreadMessage {
   who: 'user' | 'ai';
   text: string;
   pending?: boolean;
   isError?: boolean;
+  /** The error was a lost connection, a stall or a timeout: the bubble offers Retry (QA retest #3). */
+  retryable?: boolean;
   usage?: ChatUsage | null;
   sentAt?: string;
   /** A write action awaiting the shipper's approval; renders a card instead of text. */
@@ -56,7 +82,39 @@ export interface ThreadMessage {
   flow?: FlowContextEvent;
   /** MS3-349: background batch draft job id. */
   batchJobId?: string;
+  /** On the shipper's turn: the file they sent with it (an order import). Threads from before MS3-366. */
+  attachment?: { name: string; size: number };
+  /** On the shipper's turn: the files they sent with it (MS3-366). */
+  attachments?: { name: string; size: number }[];
+  /**
+   * On the assistant's turn: files sent with a message that did not ask for an
+   * import, and the question whether to (MS3-366). The files themselves stay in
+   * the page's memory under `key` until answered.
+   */
+  importOffer?: { key: string; files: { name: string; size: number }[]; note: string; state: 'open' | 'accepted' | 'declined' };
+  /** On the assistant's turn: the order import that file started. */
+  orderImport?: ThreadImportCard;
+  /** WP3a — On the assistant's turn: a Create Shipment intake event (or a restored history row), drawn by IntakeWidgetHost. */
+  intake?: IntakeMessageState;
 }
+
+/**
+ * Freezes (or, with `frozen` undefined, thaws) the direct import card `key`
+ * (MS3-365). `view` replaces its view - the snapshot the shipper confirmed. A
+ * card already frozen is not re-frozen unless `force`: "Replaced" never
+ * overwrites "Imported".
+ */
+export const freezeImportCard = (
+  th: ThreadMessage[],
+  key: string,
+  frozen: FrozenImport | undefined,
+  opts: { view?: ImportView; force?: boolean } = {},
+): ThreadMessage[] => th.map((m) => {
+  const card = m.orderImport;
+  if (!card || card.key !== key || card.engine !== 'direct') return m;
+  if (frozen && card.frozen && !opts.force) return m;
+  return { ...m, orderImport: { ...card, ...(opts.view ? { view: opts.view } : {}), frozen } };
+});
 
 /** Index of the newest proposal in a transcript — the only one still confirmable. */
 export const newestCardIndex = (th: ThreadMessage[]): number => (

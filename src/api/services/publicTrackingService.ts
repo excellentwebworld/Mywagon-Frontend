@@ -1,8 +1,10 @@
+import { apiBaseUrl } from '../../config/deploymentEnv';
 import axios from 'axios';
 import type { PublicTrackingPayload } from '../../pages/PublicTracking/types';
 
 function publicApiBase(): string {
-  const shipperBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '/api/shipper/v1';
+  const shipperBase = apiBaseUrl();
+  
   // https://host/api/shipper/v1  →  https://host/api/public/v1
   // /api/shipper/v1              →  /api/public/v1
   const replaced = shipperBase.replace(/\/shipper\/v1\/?$/, '/public/v1');

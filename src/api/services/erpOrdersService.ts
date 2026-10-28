@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPost, apiPut, ApiError, AUTH_TOKEN_KEY, getAcceptLanguage } from '../client';
+import { API_BASE, apiDelete, apiGet, apiPost, apiPut, ApiError, AUTH_TOKEN_KEY, getAcceptLanguage } from '../client';
 import {
   buildListParams,
   mapApiDetailToOrder,
@@ -23,7 +23,6 @@ import type { ApiListMeta } from '../types/addressBook';
 
 import { getBrowserTimezone } from '../../utils/timezone';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
 function exportParamsToQuery(params: Omit<ListErpOrdersParams, 'page' | 'per_page'>): URLSearchParams {
   const query = new URLSearchParams();

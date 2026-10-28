@@ -66,13 +66,19 @@ export async function submitOrderDraft(input: {
   conversationId: string;
   draft: Record<string, unknown>;
   locale?: string;
+  /** BL-04: the form's run id, reused on every retry of the same form. */
+  runId?: string;
 }): Promise<OrderSubmitResponse> {
   const response = await gatewayFetch('/chat/order-draft', {
     method: 'POST',
     token: getStoredToken(),
     locale: input.locale,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ conversationId: input.conversationId, draft: input.draft }),
+    body: JSON.stringify({
+      conversationId: input.conversationId,
+      draft: input.draft,
+      ...(input.runId ? { run_id: input.runId } : {}),
+    }),
   });
 
   return (await response.json()) as OrderSubmitResponse;

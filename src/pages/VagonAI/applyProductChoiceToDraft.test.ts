@@ -25,6 +25,7 @@ const emptySeed = (): FlowDraftSeed => ({
   settlement: 'direct',
   bulk: { mode: 'single' },
   trackingOrderIds: [],
+    trackingEmails: {},
 });
 
 describe('parseProductOptionId', () => {

@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, ApiError, AUTH_TOKEN_KEY, getAcceptLanguage } from '../client';
+import { API_BASE, apiGet, apiPost, apiPut, ApiError, AUTH_TOKEN_KEY, getAcceptLanguage } from '../client';
 import {
   facetToListParams,
   mapApiSkuToSku,
@@ -27,7 +27,6 @@ import type {
 
 export type CreatedSku = SKU & { linkedOrderLine?: LinkedOrderLine };
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '/api/shipper/v1';
 
 export interface PaginatedSkusResult {
   items: SKU[];

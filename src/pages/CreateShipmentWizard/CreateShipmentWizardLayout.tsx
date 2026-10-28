@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Form, Formik } from 'formik';
 import * as Yup from 'yup';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -16,6 +16,9 @@ import { Step1DetailsSkeleton } from '../../components/skeletons/Step1DetailsSke
 import { Step2ItinerarySkeleton } from '../../components/skeletons/Step2ItinerarySkeleton';
 import { Step3PricingSkeleton } from '../../components/skeletons/Step3PricingSkeleton';
 import { AvailabilityContextBar } from '../../components/CreateShipmentWizard/AvailabilityContextBar';
+import { rememberStep3Values } from '../../components/CreateShipmentWizard/wizardCarry';
+import { PublishedCopiesModal } from '../../components/CreateShipmentWizard/PublishedCopiesModal';
+import { publishedLoadsFromResponse, type PublishedLoad } from '../../components/CreateShipmentWizard/loadCopies';
 import { useCreateShipmentWizard } from './hooks/useCreateShipmentWizard';
 import { useWizardMasterData } from './hooks/useWizardMasterData';
 import { ContextualTutorialTrigger } from '../../components/Tutorials';
@@ -141,6 +144,7 @@ const CreateShipmentWizardLayoutInner: React.FC = () => {
   const location = useLocation();
   const stepNavBannerRef = useRef<HTMLDivElement>(null);
   const resetItineraryConfirmationRef = useRef<(() => void) | null>(null);
+  const latestValuesRef = useRef<WizardFormValues | null>(null);
 
   const validationSchema = useMemo(
     () =>
@@ -201,6 +205,9 @@ const CreateShipmentWizardLayoutInner: React.FC = () => {
     return { ...base, loadId: loadId || base.loadId };
   }, [defaultValues, loadedValues, loadId]);
 
+  // MS3-403: after publishing several copies, list every created load.
+  const [publishedCopies, setPublishedCopies] = useState<PublishedLoad[] | null>(null);
+
   const handleConfirmWizard = async (
     values: WizardFormValues,
     { setSubmitting }: { setSubmitting: (v: boolean) => void }
@@ -208,6 +215,11 @@ const CreateShipmentWizardLayoutInner: React.FC = () => {
     try {
       const published = await publishShipment(values);
       setSubmitting(false);
+      const loads = isEditMode ? [] : publishedLoadsFromResponse(published as Parameters<typeof publishedLoadsFromResponse>[0]);
+      if (loads.length > 1) {
+        setPublishedCopies(loads);
+        return;
+      }
       navigate(`/shipments/${published.id}`);
     } catch {
       setSubmitting(false);
@@ -217,6 +229,9 @@ const CreateShipmentWizardLayoutInner: React.FC = () => {
   const handleStepClick = (targetStep: number) => {
     if (targetStep === 1) {
       resetItineraryConfirmationRef.current?.();
+    }
+    if (step === 3 && targetStep < 3 && latestValuesRef.current) {
+      rememberStep3Values(shipmentId, isEditMode, latestValuesRef.current);
     }
     const requireId = targetStep >= 2;
     const moved = goToStep(targetStep, requireId ? { requireId: true } : undefined);
@@ -389,7 +404,8 @@ const CreateShipmentWizardLayoutInner: React.FC = () => {
         validationSchema={validationSchema}
         onSubmit={handleConfirmWizard}
       >
-        {({ setFieldValue }) => {
+        {({ setFieldValue, values }) => {
+          latestValuesRef.current = values;
           resetItineraryConfirmationRef.current = () => {
             setFieldValue('itineraryConfirmed', false);
             setFieldValue('itineraryConfirmSnapshot', '');
@@ -407,6 +423,16 @@ const CreateShipmentWizardLayoutInner: React.FC = () => {
           );
         }}
       </Formik>
+      {publishedCopies && (
+        <PublishedCopiesModal
+          loads={publishedCopies}
+          t={t as React.ComponentProps<typeof PublishedCopiesModal>['t']}
+          onClose={() => {
+            setPublishedCopies(null);
+            navigate('/shipments');
+          }}
+        />
+      )}
     </div>
   );
 };

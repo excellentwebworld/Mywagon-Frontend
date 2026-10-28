@@ -31,6 +31,10 @@ import { actionChipStyle, badgeStyle, pinColors } from './itinerary/stopColors';
 import { computeItineraryFingerprint } from './itineraryFingerprint';
 import { hasVehicleSelection } from './vehicleTypes';
 import { scrollToStep2Validation } from './validation';
+import {
+  clearVehicleSelectorFocusRequest,
+  isVehicleSelectorFocusRequested,
+} from './wizardCarry';
 import type { WizardFormValues } from '../../api/mappers/createShipmentMapper';
 import type { ApiEditPreviewDiff, ApiStop } from '../../api/types/createShipment';
 import {
@@ -130,9 +134,37 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
     values.itineraryConfirmed &&
     !isSaving;
 
+  // QA 2026-10-08: the disabled-looking Confirm & Continue gave no reason.
+  const continueBlockedHint = viewingCurrent || isSaving
+    ? ''
+    : missingLocations
+      ? t('step2MissingLocations')
+      : !values.itineraryConfirmed
+        ? t('step2ConfirmRequired', 'Please confirm the itinerary first.')
+        : !vehicleSelected
+          ? t('step2SelectVehicleRequired', 'Please select at least one vehicle type.')
+          : !values.vehicleSelectionConfirmed
+            ? t('step2ConfirmVehicleSelectionHint', 'Confirm the vehicle selection first.')
+            : '';
+
   useEffect(() => {
     if (vehicleSelected) setShowVehicleRequired(false);
   }, [vehicleSelected]);
+
+  // Sent here from Step 3 because no vehicle type is selected: point at the selector.
+  useEffect(() => {
+    if (!isVehicleSelectorFocusRequested()) return;
+    const timer = window.setTimeout(() => {
+      clearVehicleSelectorFocusRequest();
+      setShowVehicleRequired(true);
+      scrollToStep2Validation(
+        values.itineraryConfirmed ? 'step2-vehicle-selector' : 'step2-itinerary-confirm'
+      );
+    }, 150);
+    return () => window.clearTimeout(timer);
+    // Mount-only: the request is a one-shot handed over from Step 3.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     setExpandedStop(null);
@@ -848,9 +880,23 @@ export const Step2Itinerary: React.FC<Step2ItineraryProps> = ({
               ? t('saveChanges', 'Save Changes')
               : t('saveDraft', 'Save Draft')}
           </button>
+          {!canContinue && continueBlockedHint && (
+            <span
+              role="status"
+              id="step2-continue-blocked-reason"
+              data-testid="step2-continue-blocked-reason"
+              className="text-xs"
+              style={{ color: 'var(--text-secondary)', maxWidth: 200, textAlign: 'right' }}
+            >
+              {continueBlockedHint}
+            </span>
+          )}
           <button
             type="button"
             className="inline-flex items-center gap-2 px-6 py-2 rounded-lg text-sm font-semibold cursor-pointer text-white border-none"
+            aria-describedby={
+              !canContinue && continueBlockedHint ? 'step2-continue-blocked-reason' : undefined
+            }
             style={{
               background: canContinue ? 'var(--accent)' : 'var(--border-focus)',
               cursor: isSaving || viewingCurrent ? 'not-allowed' : 'pointer',

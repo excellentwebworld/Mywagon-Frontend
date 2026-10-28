@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { FlowBundle } from '../../hooks/useChat';
 import {
-  blockingIssues, draftFromSeed, schedulableIssues, setBroadcastChannel, setStopAt, toggleCarrier,
+  blockingIssues, draftFromSeed, openingProductPicker, schedulableIssues, setBroadcastChannel, setStopAt, toggleCarrier,
   toggleVehicleCategory, toggleVehicleType, type ShipmentDraft,
 } from './createShipmentDraft';
 
@@ -36,6 +36,7 @@ function bundle(): FlowBundle {
       settlement: 'direct',
       bulk: { mode: 'single' },
       trackingOrderIds: [],
+    trackingEmails: {},
     },
     gaps: [],
     suggestions: { vehicle: null, partner: null, partnerAlternatives: [] },
@@ -239,5 +240,50 @@ describe('toggleCarrier', () => {
     const before = publishable();
     toggleCarrier(before, '4400');
     expect(before.broadcast.carrierPartnerIds).toEqual(['3312']);
+  });
+});
+
+/*
+ * The card that opens after the pickup and delivery were tapped one by one:
+ * sites and dates answered, a blank cargo line. Product is what is left first,
+ * so that picker opens by itself instead of hiding behind a closed row.
+ */
+describe('openingProductPicker', () => {
+  const blankLine = (action: 'pick' | 'drop') => ({
+    productId: '', action, qty: 0, unit: 'UNIT' as const, weight: 0,
+    wUnit: 'KG' as const, orderId: null, orderLineId: null, customerId: null,
+  });
+
+  it('points at the blank pick line once both sites are filled', () => {
+    const draft = publishable();
+    const interviewed = {
+      ...draft,
+      stops: [
+        { ...draft.stops[0]!, lines: [blankLine('pick')] },
+        { ...draft.stops[1]!, lines: [blankLine('drop')] },
+      ],
+    };
+    expect(openingProductPicker(interviewed)).toEqual({ stop: 0, line: 0 });
+  });
+
+  it('stays shut while a site is still missing - the card opens on Route then', () => {
+    const draft = publishable();
+    const noPickup = {
+      ...draft,
+      stops: [
+        { ...draft.stops[0]!, locationId: '', lines: [blankLine('pick')] },
+        { ...draft.stops[1]!, lines: [blankLine('drop')] },
+      ],
+    };
+    expect(openingProductPicker(noPickup)).toBeNull();
+  });
+
+  it('stays shut when the product is chosen and only a quantity is missing', () => {
+    const draft = publishable();
+    const noQty = {
+      ...draft,
+      stops: draft.stops.map((stop) => ({ ...stop, lines: stop.lines.map((l) => ({ ...l, qty: 0 })) })),
+    };
+    expect(openingProductPicker(noQty)).toBeNull();
   });
 });

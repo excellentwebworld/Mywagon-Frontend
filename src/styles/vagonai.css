@@ -256,6 +256,52 @@
   color: var(--vai-danger);
 }
 
+/* MS3-407: the unfinished-shipment offer above the welcome prompts. Wraps on a phone. */
+.vai-resume {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 18px;
+  padding: 12px 14px;
+  text-align: start;
+  background: var(--mv-sf);
+  border: 1px solid var(--mv-ac);
+  border-radius: 16px;
+  box-shadow: var(--vai-shadow-card);
+}
+.vai-resume-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  color: var(--mv-ah);
+  background: var(--mv-al);
+}
+.vai-resume-text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 180px; min-width: 0; }
+.vai-resume-title { font-size: 14px; font-weight: 600; color: var(--mv-t1); }
+.vai-resume-sub { font-size: 13px; color: var(--mv-t2); overflow-wrap: anywhere; }
+.vai-resume-actions { display: flex; gap: 8px; margin-inline-start: auto; }
+.vai-resume-go,
+.vai-resume-later {
+  min-height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 10px;
+}
+.vai-resume-go { color: #fff; background: var(--mv-ac); border: 1px solid transparent; }
+.vai-resume-go:hover,
+.vai-resume-go:focus-visible { background: var(--mv-ah); }
+.vai-resume-later { color: var(--mv-t2); background: transparent; border: 1px solid var(--mv-bd); }
+.vai-resume-later:hover,
+.vai-resume-later:focus-visible { border-color: var(--mv-ac); color: var(--mv-t1); }
+
 /* Section label above each tier of prompts. */
 .vai-tier { width: 100%; margin-top: 16px; text-align: start; }
 
@@ -265,7 +311,6 @@
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--mv-t2);
 }
 
@@ -429,6 +474,19 @@
 .vai-avatar { margin-top: 2px; }
 
 .vai-answer { flex: 1; min-width: 0; }
+
+/* Phone. The history rail, the gutters and the avatar column used to leave
+   an intake card about 210px of a 390px screen: truck names broke one letter
+   per line and the unit select was cut off. The page drops the app shell's
+   padding, the gutters narrow, and an intake turn gives its avatar column to
+   the card — the card's own icon already says who is asking. */
+@media (max-width: 768px) {
+  .page-body:has(.vai) { padding: 0; }
+}
+@media (max-width: 639px) {
+  .vai-body { padding: 16px 12px; }
+  .vai-turn--intake .vai-avatar { display: none; }
+}
 
 /* Running text stops at a readable measure even though the column
    around it is wider; long ids and URLs reflow instead of widening it. */
@@ -811,6 +869,151 @@
    without anything moving. */
 
 
+/* ── MS3-364: the Orders panel as a right-hand drawer ───────────────── */
+.vai-header-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.vai-header-actions .vai-header-action { margin-left: 0; }
+/* More specific than the phone rule that hides a header action's label: the count stays. */
+.vai-header-actions .vai-header-action .vai-header-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--mv-ac);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+.vai-header-actions .vai-header-action .vai-header-badge--late { background: var(--st-danger-fg, #E03B4A); }
+
+/* A cramped header squeezed the icons to nothing (a flex item shrinks unless
+   told not to), so on a phone the buttons read as empty circles. */
+.vai-header-action svg { flex-shrink: 0; }
+
+/* Phone: icon buttons. The title gives way (ellipsis) before the buttons do;
+   the label is hidden visually only, so it stays the button's accessible
+   name (scheduled-post.css hides it with display:none, which drops it). */
+@media (max-width: 640px) {
+  .vai-header { gap: 10px; padding: 0 12px; }
+  .vai-header-title,
+  .vai-status > span:last-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vai-header-actions { flex-shrink: 0; gap: 6px; }
+  .vai-header-actions .vai-header-action {
+    flex-shrink: 0;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+  }
+  .vai-header-actions .vai-header-action:not(:has(.vai-header-badge)) { width: 36px; padding: 0; }
+  .vai-header-actions .vai-header-action svg { width: 16px; height: 16px; }
+  .vai-header-actions .vai-header-action > span:not(.vai-header-badge) {
+    display: inline;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* Beside the chat: it takes its width from the row, and the inner panel keeps
+   its own width while the drawer opens, so nothing reflows mid-slide. */
+.vai-orders-drawer {
+  flex-shrink: 0;
+  width: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--mv-sf);
+  border-left: 0 solid var(--mv-bd);
+  transition: width 0.22s var(--vai-ease, ease);
+}
+.vai-orders-drawer--open { width: min(400px, 38vw); border-left-width: 1px; }
+.vai-orders-drawer-inner {
+  width: min(400px, 38vw);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  transform: translateX(100%);
+  transition: transform 0.22s var(--vai-ease, ease);
+}
+.vai-orders-drawer--open .vai-orders-drawer-inner { transform: none; }
+.vai-orders-scrim { display: none; }
+
+/* Over the chat on a narrow screen, with a backdrop that closes it. */
+@media (max-width: 1024px) {
+  .vai-orders-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    width: min(420px, 100vw);
+    border-left-width: 1px;
+    transform: translateX(100%);
+    transition: transform 0.22s var(--vai-ease, ease);
+    box-shadow: -12px 0 32px rgba(0, 0, 0, 0.18);
+  }
+  .vai-orders-drawer--open { width: min(420px, 100vw); transform: none; }
+  .vai-orders-drawer-inner { width: 100%; transform: none; }
+  .vai-orders-scrim { display: block; position: fixed; inset: 0; z-index: 59; background: rgba(16, 16, 20, 0.35); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vai-orders-drawer, .vai-orders-drawer-inner { transition: none; }
+}
+
+/* The panel inside the drawer: full height, a plain header, narrow gutters. */
+.vai-orders-drawer .vai-sticky-orders {
+  position: static;
+  height: 100%;
+  max-height: none;
+  border-bottom: 0;
+  border-left: 0 !important;
+}
+.vai-orders-drawer .vai-sticky-orders-bar {
+  padding: 10px 16px;
+  min-height: 52px;
+  background: var(--mv-sf);
+  border-bottom: 1px solid var(--mv-bd);
+}
+.vai-orders-drawer .vai-sticky-orders-toolbar,
+.vai-orders-drawer .vai-sticky-orders-bulk,
+.vai-orders-drawer .vai-sticky-orders-list,
+.vai-orders-drawer .vai-sticky-orders-empty { padding-left: 16px; padding-right: 16px; }
+.vai-orders-drawer .vai-sticky-orders-toolbar { flex-wrap: wrap; }
+.vai-orders-drawer .vai-sticky-orders-body { flex: 1; }
+.vai-orders-drawer .vai-sticky-orders-row { flex-wrap: wrap; align-items: flex-start; padding: 8px 10px; row-gap: 6px; }
+/* The fields take the row's width; the row's buttons wrap under them, on the right. */
+.vai-orders-drawer .vai-sticky-orders-row > .vai-sticky-orders-fields { flex: 1 1 calc(100% - 32px); }
+.vai-orders-drawer .vai-sticky-orders-row > button:first-of-type,
+.vai-orders-drawer .vai-sticky-orders-row > .vai-sticky-orders-drafting { margin-left: auto; }
+
+/* Each value says what it is: ERP order no., customer, drop-off, delivery date. */
+.vai-sticky-orders-fields {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 10px;
+  row-gap: 2px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.vai-sticky-orders-fields dt { color: var(--mv-t3); font-size: 11px; white-space: nowrap; }
+.vai-sticky-orders-fields dd {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--mv-t1);
+}
+.vai-sticky-orders-fields dd strong { font-weight: 700; }
+.vai-sticky-orders-fields .vai-sticky-orders-date { display: flex; align-items: center; gap: 8px; overflow: visible; }
+
 /* ── MS3-334 sticky orders panel ─────────────────────────────────────── */
 .vai-sticky-orders {
   position: sticky;
@@ -822,8 +1025,9 @@
   flex-direction: column;
   /* Hard cap: the panel is an accessory to the chat and must never crowd it
      out, however many orders are unplanned. The list scrolls instead. The
-     absolute ceiling stops a tall monitor from turning it into a half-page. */
-  max-height: min(38vh, 340px);
+     absolute ceiling stops a tall monitor from turning it into a half-page;
+     about three rows show, and the rest scroll inside the panel. */
+  max-height: min(32vh, 280px);
   overflow: hidden;
 }
 .vai-sticky-orders-bar {
@@ -917,6 +1121,32 @@
   opacity: 0.4;
   cursor: default;
 }
+.vai-sticky-orders-linkbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: opacity var(--vai-dur-fast) var(--vai-ease);
+}
+.vai-sticky-orders-linkbtn:hover {
+  opacity: 0.8;
+}
+/* The drawer is at most 400px: with the "See all orders" link (MS3-379) the
+   title side gives way first - its count drops under the title rather than
+   pushing Refresh and Close out of the bar (the Greek labels are long). */
+.vai-sticky-orders-bar > .vai-sticky-orders-toggle {
+  min-width: 0;
+  flex-wrap: wrap;
+  row-gap: 0;
+  text-align: left;
+}
 .vai-sticky-orders-cta {
   border: 0;
   border-radius: 8px;
@@ -936,6 +1166,19 @@
 .vai-sticky-orders-cta:disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+.vai-sticky-orders-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: #9a3412;
+  background: #fff7ed;
+  border-bottom: 1px solid #fed7aa;
 }
 .vai-sticky-orders-body {
   padding: 0;
@@ -1106,6 +1349,152 @@
   opacity: 0.4;
   cursor: default;
 }
+/* The secondary row action (Mark complete, Reopen): neutral outline, so the
+   accent Create draft stays the obvious next step on an unplanned row. */
+.vai-sticky-orders-row-cta--quiet {
+  border-color: var(--mv-bd);
+  color: var(--mv-t2);
+}
+.vai-sticky-orders-row-cta--quiet:hover:not(:disabled) {
+  background: var(--mv-al);
+  border-color: var(--mv-t3);
+  color: var(--mv-t1);
+}
+/* MS3-353 — Orders panel search (order # / customer / destination). */
+.vai-sticky-orders-search {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0 10px;
+  min-height: 34px;
+  border: 1px solid var(--mv-bd);
+  border-radius: 8px;
+  background: var(--mv-sa, transparent);
+}
+.vai-sticky-orders-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-size: 12.5px;
+  padding: 8px 0;
+}
+.vai-sticky-orders-search input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+.vai-sticky-orders-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.vai-sticky-orders-search-clear:hover {
+  background: var(--mv-al);
+}
+
+/* Unplanned / Completed switch in the toolbar. */
+.vai-sticky-orders-views {
+  display: inline-flex;
+  border: 1px solid var(--mv-bd);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.vai-sticky-orders-view {
+  border: 0;
+  background: transparent;
+  color: var(--mv-t2);
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 0 10px;
+  min-height: 26px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--vai-dur-fast) var(--vai-ease);
+}
+.vai-sticky-orders-view + .vai-sticky-orders-view {
+  border-left: 1px solid var(--mv-bd);
+}
+.vai-sticky-orders-view[aria-pressed="true"] {
+  background: var(--mv-al);
+  color: var(--mv-ah);
+}
+
+/* Open panel, second row: select-all, search, To plan / Completed. One row
+   instead of three controls crowding the title bar. */
+.vai-sticky-orders-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 32px 8px;
+  flex-shrink: 0;
+}
+.vai-sticky-orders-toolbar .vai-sticky-orders-all {
+  margin: 0;
+  padding: 0 2px 0 10px;
+}
+.vai-sticky-orders-bulk {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  padding: 6px 32px;
+  border-top: 1px solid;
+  border-bottom: 1px solid;
+  background: var(--mv-al);
+  flex-shrink: 0;
+}
+/* A row with no pickup will need one before it can become a load - say so
+   instead of printing a dash. */
+.vai-sticky-orders-missing {
+  color: var(--st-warning-fg, #9A6508);
+  font-style: italic;
+}
+.vai-sticky-orders-row.is-drafting {
+  opacity: 0.7;
+}
+.vai-sticky-orders-drafting {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+/* Mark complete is rare (an order delivered outside MYVAGON), so it waits for
+   the pointer or keyboard instead of doubling every row's buttons. Touch
+   screens have no hover, so there it always shows. */
+@media (hover: hover) {
+  .vai-sticky-orders-row-cta--reveal {
+    opacity: 0;
+    transition: opacity var(--vai-dur-fast) var(--vai-ease);
+  }
+  .vai-sticky-orders-row:hover .vai-sticky-orders-row-cta--reveal,
+  .vai-sticky-orders-row:focus-within .vai-sticky-orders-row-cta--reveal {
+    opacity: 1;
+  }
+}
+
+/* Import progress before the first order is written: moving, not stuck at 0. */
+.vai-progress-indeterminate {
+  animation: vai-progress-slide 1.2s var(--vai-ease, ease-in-out) infinite;
+}
+@keyframes vai-progress-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(340%); }
+}
 
 /* Scrollbar styling for professional appearance */
 .vai-sticky-orders-body::-webkit-scrollbar {
@@ -1130,6 +1519,8 @@
    the same controls have to clear the 44px touch minimum instead. */
 @media (max-width: 720px) {
   .vai-sticky-orders-bar { padding-left: 16px; padding-right: 16px; }
+  .vai-sticky-orders-toolbar { padding-left: 16px; padding-right: 16px; flex-wrap: wrap; }
+  .vai-sticky-orders-bulk { padding-left: 16px; padding-right: 16px; }
   .vai-sticky-orders-list { padding-left: 16px; padding-right: 16px; }
   .vai-sticky-orders-empty { padding-left: 16px; padding-right: 16px; }
   .vai-sticky-orders-row { flex-wrap: wrap; padding: 8px 10px; }
@@ -1138,6 +1529,7 @@
   .vai-sticky-orders-iconbtn { width: 44px; height: 44px; }
   .vai-sticky-orders-cta { min-height: 44px; padding: 0 14px; }
   .vai-sticky-orders-row-cta { min-height: 40px; padding: 0 14px; font-size: 12px; }
+  .vai-sticky-orders-view { min-height: 40px; padding: 0 12px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1169,7 +1561,164 @@
   from the same tokens the rest of the composer uses so it follows the theme.
 */
 .vai-composer--dropping {
-  outline: 2px dashed var(--vai-accent, #2563eb);
+  outline: 2px dashed var(--mv-ac, #9B51E0);
   outline-offset: 2px;
-  background: color-mix(in srgb, var(--vai-accent, #2563eb) 6%, transparent);
+  background: color-mix(in srgb, var(--mv-ac, #9B51E0) 6%, transparent);
 }
+
+/*
+  A past chat opened from history. The banner says why the composer is shut and
+  carries the way out; the composer itself drops its shadow and sinks to the
+  subtle surface so it reads as unavailable at a glance, not merely empty.
+*/
+.vai-readonly {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: var(--mv-al);
+  border: 1px solid var(--mv-bd);
+  border-radius: 14px;
+}
+
+.vai-readonly-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  color: var(--mv-ac);
+  background: var(--mv-sf);
+  border-radius: 9px;
+}
+
+.vai-readonly-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--mv-t2);
+}
+
+.vai-readonly-text strong { font-size: 13px; font-weight: 600; color: var(--mv-t1); }
+
+.vai-readonly-cta {
+  flex-shrink: 0;
+  height: 34px;
+  margin-top: 0;
+  padding: 0 13px;
+  font-size: 12.5px;
+}
+
+@media (max-width: 639px) {
+  .vai-readonly { flex-wrap: wrap; }
+  .vai-readonly-cta { width: 100%; justify-content: center; }
+}
+
+.vai-composer--readonly {
+  background: var(--mv-sa);
+  box-shadow: none;
+}
+
+.vai-composer--readonly .vai-input { cursor: not-allowed; }
+
+/* Retry under a turn that died on the wire (QA retest #3). */
+.vai-retry {
+  margin-top: 8px;
+}
+
+/* A file attached in the composer, waiting for the shipper's note and Enter.
+   It sits inside the composer so it reads as part of the message being written. */
+.vai-staged-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--mv-bd);
+  border-radius: 10px;
+  background: var(--mv-sa);
+  max-width: 100%;
+}
+.vai-staged-file-icon { color: var(--mv-ac); flex-shrink: 0; }
+.vai-staged-file-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.vai-staged-file-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mv-t1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vai-staged-file-hint { font-size: 11.5px; color: var(--mv-t2); }
+.vai-staged-file-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--mv-t2);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.vai-staged-file-remove:hover { background: var(--mv-al); color: var(--mv-t1); }
+
+/* MS3-366: staged files need words - with none typed, the chip is the one way to send them. */
+.vai-staged-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+.vai-staged-chips-hint { font-size: 12px; color: var(--mv-t2); }
+.vai-staged-chips .vai-chip { min-height: 30px; padding: 0 12px; font-size: 12.5px; font-weight: 600; }
+
+/* MS3-365: a frozen import card - its controls are history, and look it. */
+.vai-import-history:disabled button,
+.vai-import-history:disabled select,
+.vai-import-history:disabled input { cursor: default; }
+.vai-import-history:disabled [aria-pressed],
+.vai-import-history:disabled select,
+.vai-import-history:disabled input { opacity: 0.55; }
+
+/* MS3-366: the assistant asking whether to import files sent without an import request. */
+.vai-offer-question { margin: 0; font-size: 14px; color: var(--mv-t1); }
+.vai-offer-note { margin: 4px 0 0; font-size: 12.5px; color: var(--mv-t2); }
+.vai-offer-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+
+/* The shipper's turn that sent a file: the file first, their note under it. */
+.vai-bubble--file {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.vai-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: 100%;
+  padding: 5px 9px;
+  border: 1px solid var(--mv-bd);
+  border-radius: 8px;
+  background: var(--mv-sf);
+  color: var(--mv-ac);
+  white-space: nowrap;
+}
+.vai-file-chip-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--mv-t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.vai-file-chip-size { font-size: 11.5px; color: var(--mv-t2); flex-shrink: 0; }
