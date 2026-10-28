@@ -4684,6 +4684,7 @@ html.dark .sat-veh-card.is-selected .sat-veh-icon,
 .sat-filter-capacity-mode {
   margin-bottom: 12px;
   appearance: auto;
+  cursor: pointer;
 }
 
 .sat-filter-capacity-row {
@@ -4692,6 +4693,11 @@ html.dark .sat-veh-card.is-selected .sat-veh-icon,
   gap: 12px;
   margin-top: 4px;
   align-items: end;
+}
+
+.sat-filter-capacity-row .sat-filter-input,
+.sat-filter-capacity-row .sat-pop-label {
+  cursor: pointer;
 }
 
 .sat-filter-capacity-include {
