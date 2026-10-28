@@ -320,7 +320,7 @@ function TruckContextPanel({
   const showPrice = truck.price != null && !truck.priceBlurred;
   const availableFrom = [truck.startDt, truck.startTm].filter(Boolean).join(' ');
   const availableTo =
-    truck.isTimeRange && truck.endDt && truck.endDt !== '—'
+    truck.endDt && truck.endDt !== '—'
       ? [truck.endDt, truck.endTm].filter(Boolean).join(' ')
       : '';
 

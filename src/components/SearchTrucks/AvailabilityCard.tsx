@@ -1,5 +1,4 @@
 import React from 'react';
-import { availabilityClockLabel } from '../../pages/SearchTrucks/availabilityTime';
 import type { AvailableTruck, DrawerMode } from '../../pages/SearchTrucks/types';
 import { AvailabilityBidsMeta, AvailabilityPrice } from './AvailabilityPrice';
 
@@ -79,11 +78,14 @@ export const AvailabilityCard: React.FC<AvailabilityCardProps> = ({
           </div>
         </div>
 
-        <div className="sat-card-meta">
-          <strong>{truck.startDt}</strong>
-          <span className="sat-muted">{availabilityClockLabel(truck)}</span>
+        <div className="sat-card-meta sat-card-meta--schedule">
+          <strong className="sat-card-availability">
+            {truck.startDt}
+            {truck.startTm ? ` ${truck.startTm}` : ''}
+            {truck.endDt && truck.endDt !== '—' ? ` – ${truck.endDt} ${truck.endTm}` : ''}
+          </strong>
           {truck.deliveryDates ? (
-            <span className="sat-muted">
+            <span className="sat-muted sat-card-delivery">
               {t('satDeliveryDate')}: {truck.deliveryDates}
             </span>
           ) : null}
