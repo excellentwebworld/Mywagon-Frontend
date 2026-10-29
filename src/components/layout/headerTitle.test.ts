@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getHeaderPageTitle } from './Header';
+import { getHeaderPageTitle, shouldSuppressStaleChatBadge } from './Header';
 
 describe('getHeaderPageTitle (BUG-10)', () => {
   const dummyT = (key: string, fallback?: string) => {
@@ -102,5 +102,19 @@ describe('getHeaderPageTitle (BUG-10)', () => {
   it('returns "Weekly Reports" for /analytics and /analytics/weekly-reports', () => {
     expect(getHeaderPageTitle('/analytics', dummyT)).toBe('Weekly Reports');
     expect(getHeaderPageTitle('/analytics/weekly-reports', dummyT)).toBe('Weekly Reports');
+  });
+});
+
+describe('shouldSuppressStaleChatBadge', () => {
+  it('hides the pre-chat count when leaving Messages before the server refresh lands', () => {
+    expect(shouldSuppressStaleChatBadge(true, false, false)).toBe(true);
+  });
+
+  it('keeps a count that was already refreshed while Messages was open', () => {
+    expect(shouldSuppressStaleChatBadge(true, false, true)).toBe(false);
+  });
+
+  it('does not hide the badge while staying off the chat screen', () => {
+    expect(shouldSuppressStaleChatBadge(false, false, false)).toBe(false);
   });
 });

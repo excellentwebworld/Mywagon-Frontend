@@ -60,6 +60,20 @@ function formatRelativeTime(created_at?: string, fallback = ''): string {
   }
 }
 
+/**
+ * The header hides its chat badge on Messages. Reads on that screen change the
+ * server total, but the number stored before opening Messages stays put until
+ * a refresh lands. Showing it again on the next page flashes the old count
+ * (often 1) for as long as the unread request takes.
+ */
+export function shouldSuppressStaleChatBadge(
+  wasOnChatScreen: boolean,
+  onChatScreen: boolean,
+  serverCountConfirmedOnChat: boolean
+): boolean {
+  return wasOnChatScreen && !onChatScreen && !serverCountConfirmedOnChat;
+}
+
 export function getHeaderPageTitle(
   pathname: string,
   t: (key: string, fallback?: string) => string
@@ -119,27 +133,46 @@ export const Header: React.FC<HeaderProps> = ({
   const [searchValue, setSearchValue] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
-  const [unreadMessages, setUnreadMessages] = useState<number>(0);
+  const [unreadMessages, setUnreadMessages] = useState<number | null>(null);
   const [headerNotifs, setHeaderNotifs] = useState<ApiNotification[]>([]);
   const [loadingNotifs, setLoadingNotifs] = useState<boolean>(false);
   const notifRef = useOutsideClick<HTMLDivElement>(() => setNotifOpen(false), notifOpen);
   const onChatScreen = location.pathname.startsWith('/messages') || location.pathname.startsWith('/chat');
   const onChatScreenRef = useRef(onChatScreen);
   onChatScreenRef.current = onChatScreen;
+  const wasOnChatScreenRef = useRef(onChatScreen);
+  const unreadRequestRef = useRef(0);
+  const chatEntryRequestRef = useRef(0);
+  const unreadConfirmedOnChatRef = useRef(false);
+  const requestUnreadCountRef = useRef<() => void>(() => {});
+  const [chatRouteSeen, setChatRouteSeen] = useState(onChatScreen);
+
+  // Clear a stale count before paint. useEffect runs after the first frame,
+  // which is long enough for the old "1" to show while the next page loads.
+  if (chatRouteSeen !== onChatScreen) {
+    setChatRouteSeen(onChatScreen);
+    if (shouldSuppressStaleChatBadge(chatRouteSeen, onChatScreen, unreadConfirmedOnChatRef.current)) {
+      setUnreadMessages(null);
+    }
+  }
+
+  requestUnreadCountRef.current = () => {
+    const requestId = ++unreadRequestRef.current;
+    void chatService.getUnreadCount().then((count) => {
+      if (requestId !== unreadRequestRef.current) return;
+      if (requestId > chatEntryRequestRef.current) {
+        unreadConfirmedOnChatRef.current = true;
+      }
+      setUnreadMessages(count);
+    });
+  };
 
   // Load the badge from the API, then keep it in sync with live messages and reads.
   // Re-runs when the account id appears after a Laravel → React switch.
+  // Refreshes still apply on the chat screen so the stored total matches reads
+  // before the shipper navigates away. The badge itself stays hidden there.
   useEffect(() => {
     if (!chatAccountId) return;
-
-    const loadChatUnread = () => {
-      if (onChatScreenRef.current) return;
-      chatService.getUnreadCount().then((count) => {
-        setUnreadMessages(count);
-      });
-    };
-
-    loadChatUnread();
 
     const onChatReceived = (event: Event) => {
       if (onChatScreenRef.current) return;
@@ -152,34 +185,64 @@ export const Header: React.FC<HeaderProps> = ({
         isMessageFromPartner(detail.senderId, detail.senderType, active.partnerId, active.partnerType);
 
       if (!isViewingThread) {
-        setUnreadMessages((prev) => prev + 1);
+        unreadRequestRef.current += 1;
+        setUnreadMessages((prev) => (prev ?? 0) + 1);
       }
     };
 
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
-        loadChatUnread();
+        requestUnreadCountRef.current();
       }
     };
 
+    const onUnreadRefresh = () => {
+      requestUnreadCountRef.current();
+    };
+
     window.addEventListener(CHAT_MESSAGE_RECEIVED_EVENT, onChatReceived as EventListener);
-    window.addEventListener(CHAT_UNREAD_REFRESH_EVENT, loadChatUnread);
+    window.addEventListener(CHAT_UNREAD_REFRESH_EVENT, onUnreadRefresh);
     document.addEventListener('visibilitychange', onVisible);
 
     return () => {
       window.removeEventListener(CHAT_MESSAGE_RECEIVED_EVENT, onChatReceived as EventListener);
-      window.removeEventListener(CHAT_UNREAD_REFRESH_EVENT, loadChatUnread);
+      window.removeEventListener(CHAT_UNREAD_REFRESH_EVENT, onUnreadRefresh);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [chatAccountId]);
 
-  // Leaving the chat screen restores the badge from the server.
+  // Leaving Messages before a server refresh lands must not paint the count
+  // from before the thread was opened. That count is what flashed as 1 while
+  // the next page was still loading.
   useEffect(() => {
-    if (onChatScreen) return;
-    chatService.getUnreadCount().then((count) => {
+    const wasOnChatScreen = wasOnChatScreenRef.current;
+    wasOnChatScreenRef.current = onChatScreen;
+
+    if (!chatAccountId) return;
+
+    if (onChatScreen) {
+      unreadRequestRef.current += 1;
+      chatEntryRequestRef.current = unreadRequestRef.current;
+      unreadConfirmedOnChatRef.current = false;
+      return;
+    }
+
+    if (shouldSuppressStaleChatBadge(wasOnChatScreen, onChatScreen, unreadConfirmedOnChatRef.current)) {
+      setUnreadMessages(null);
+    }
+
+    const requestId = ++unreadRequestRef.current;
+    let cancelled = false;
+    void chatService.getUnreadCount().then((count) => {
+      if (cancelled || requestId !== unreadRequestRef.current) return;
+      unreadConfirmedOnChatRef.current = true;
       setUnreadMessages(count);
     });
-  }, [onChatScreen]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [onChatScreen, chatAccountId]);
 
   const loadUnreadCount = () => {
     notificationService.unreadCount()
@@ -280,6 +343,7 @@ export const Header: React.FC<HeaderProps> = ({
   const showMessages = canNav('messages');
   const showVagonAi = canNav('vagonAi');
   const pageTitle = getHeaderPageTitle(location.pathname, t);
+  const chatBadgeCount = !onChatScreen && unreadMessages != null ? unreadMessages : 0;
 
   return (
     <header
@@ -745,9 +809,9 @@ export const Header: React.FC<HeaderProps> = ({
         }}
       >
         <MessageSquare size={18} />
-        {!onChatScreen && unreadMessages > 0 && (
-          <span className="mv-topbar-count" aria-label={`${unreadMessages} unread messages`}>
-            {unreadMessages > 99 ? '99+' : unreadMessages}
+        {chatBadgeCount > 0 && (
+          <span className="mv-topbar-count" aria-label={`${chatBadgeCount} unread messages`}>
+            {chatBadgeCount > 99 ? '99+' : chatBadgeCount}
           </span>
         )}
       </button>
