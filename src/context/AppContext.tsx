@@ -277,6 +277,8 @@ export interface Shipment {
   quotedPrice?: number | null;
   agreedPrice?: number | null;
   paymentStatus?: 'paid' | 'payment_pending' | null;
+  /** Dropoff POD: complete, missing, partial, or n_a when the load is not at a POD stage. */
+  podStatus?: 'complete' | 'missing' | 'partial' | 'n_a' | string | null;
   channel?: 'private' | 'public';
   shipmentType?: 'direct' | 'multiple' | string | null;
   intermediateStops?: number;

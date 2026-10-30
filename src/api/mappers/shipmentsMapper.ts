@@ -410,6 +410,7 @@ export function mapApiListItemToShipment(item: ApiShipmentListItem): Shipment {
     agreedPrice: item.agreed_price ?? null,
     price_type: item.negotiable ? 'spot' : 'contract',
     paymentStatus: item.payment_status ?? null,
+    podStatus: item.pod_status ?? null,
     updated: item.updated_at ?? '',
     updatedAt: item.updated_at ?? null,
     timeline: ['booked', 'posted', 'bidding', 'awarded', 'pickup', 'transit', 'delivered'],

@@ -2129,6 +2129,8 @@
   "pickupToday": "Pickup today",
   "awaitingPod": "Awaiting POD",
   "podUploaded": "POD Uploaded",
+  "podNotUploaded": "POD not uploaded",
+  "podPartial": "POD partially uploaded",
   "invoiceIssues": "Invoice Issues",
   "filterCarrierName": "Transporter name",
   "filterCarrierNamePlaceholder": "Select transporter…",

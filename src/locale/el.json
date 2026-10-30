@@ -2131,6 +2131,8 @@
   "pickupToday": "Παραλαβή σήμερα",
   "awaitingPod": "Αναμονή POD",
   "podUploaded": "POD ανέβηκε",
+  "podNotUploaded": "Το POD δεν ανέβηκε",
+  "podPartial": "Το POD ανέβηκε μερικώς",
   "invoiceIssues": "Θέματα Τιμολογίου",
   "filterCarrierName": "Όνομα μεταφορέα",
   "filterCarrierNamePlaceholder": "Επιλέξτε μεταφορέα…",

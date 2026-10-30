@@ -952,6 +952,28 @@ html.dark .stab .cnt.cw,
   display: inline-flex;
 }
 
+.pod-listing-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+.pod-listing-mark svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.pod-listing-mark--ok {
+  color: #16a34a;
+}
+.pod-listing-mark--missing {
+  color: #dc2626;
+}
+
 .agreed-price {
   font-weight: 600;
 }

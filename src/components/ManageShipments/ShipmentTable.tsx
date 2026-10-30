@@ -67,6 +67,57 @@ interface ShipmentTableProps {
   ) => string;
 }
 
+function PodListingMark({
+  podStatus,
+  t,
+}: {
+  podStatus?: string | null;
+  t: (
+    key: string,
+    fallbackOrOptions?: string | Record<string, unknown>,
+    options?: Record<string, unknown>,
+  ) => string;
+}) {
+  if (podStatus !== 'complete' && podStatus !== 'missing' && podStatus !== 'partial') {
+    return null;
+  }
+
+  const uploaded = podStatus === 'complete';
+  const title = uploaded
+    ? t('podUploaded', 'POD Uploaded')
+    : podStatus === 'partial'
+      ? t('podPartial', 'POD partially uploaded')
+      : t('podNotUploaded', 'POD not uploaded');
+
+  return (
+    <span className={`pod-listing-mark${uploaded ? ' pod-listing-mark--ok' : ' pod-listing-mark--missing'}`} title={title}>
+      <span>{t('tl_pod', 'POD')}</span>
+      {uploaded ? (
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path
+            d="M3.5 8.2l3 3.1 6-6.6"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ) : (
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path
+            d="M4 4l8 8M12 4l-8 8"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+      )}
+    </span>
+  );
+}
+
 function LaneCell({
   shipment: s,
   t,
@@ -346,6 +397,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
                           {t('paymentPending')}
                         </span>
                       ) : null}
+                      <PodListingMark podStatus={row.podStatus} t={t} />
                     </div>
                   </td>
                   <td className="col-vis">
