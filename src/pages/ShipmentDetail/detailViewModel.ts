@@ -258,7 +258,7 @@ export interface ShipmentDetailViewModel {
   editingRequestDetails?: string | null;
   onTrack: boolean;
   isDelayed: boolean;
-  /** On Trip load past the dropoff grace window. Temporary test window is 10 minutes. */
+  /** On Trip load more than 4 hours past the dropoff anchor. */
   isOverdueDelayed: boolean;
   delayText: string;
   isPickedUp: boolean;

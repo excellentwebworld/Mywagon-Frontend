@@ -1,7 +1,7 @@
 import { parseUtcInstant } from './timezone';
 
-/** Temporary test window. Restore to 4 hours after verification. */
-export const ON_TRIP_DELAY_GRACE_MS = 10 * 60 * 1000;
+/** An On Trip load is delayed 4 hours after the dropoff anchor. */
+export const ON_TRIP_DELAY_GRACE_MS = 4 * 60 * 60 * 1000;
 
 export type OnTripDelayedInput = {
   status?: string | null;
