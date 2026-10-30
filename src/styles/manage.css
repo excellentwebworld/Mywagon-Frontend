@@ -1383,6 +1383,10 @@ html.dark .stab .cnt.cw,
   white-space: normal;
   vertical-align: middle;
 }
+.mgmt-t td.col-status,
+.mgmt-t th.col-status {
+  text-align: center;
+}
 .mgmt-t .col-vis .vis {
   display: inline-block;
   max-width: 100%;
@@ -1396,9 +1400,11 @@ html.dark .stab .cnt.cw,
 .status-cell {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: 4px;
+  width: fit-content;
   max-width: 148px;
+  margin-inline: auto;
   overflow: visible;
 }
 .status-cell-meta {

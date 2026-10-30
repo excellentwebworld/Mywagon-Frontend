@@ -249,7 +249,7 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
           <th>{t('shipmentIdCol')}</th>
           <th>{t('laneColHeader')}</th>
           <th>{t('customerCol')}</th>
-          <th>{t('status')}</th>
+          <th className="col-status">{t('status')}</th>
           <th>{t('channelCol')}</th>
           {showBidsCol ? <th>{t('bidsCol')}</th> : null}
           <th>{t('transporterCol')}</th>
