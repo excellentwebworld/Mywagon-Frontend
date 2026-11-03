@@ -46,14 +46,18 @@ function FilterDateTimeField({
   value,
   onChange,
   minDate,
+  bound = 'from',
 }: {
   id: string;
   label: string;
   value: string;
   onChange: (next: string) => void;
   minDate?: string;
+  /** "to" defaults to end-of-day so the selected date is inclusive. */
+  bound?: 'from' | 'to';
 }) {
   const { date, time } = splitDateTimeLocal(value);
+  const defaultTime = bound === 'to' ? '23:59' : '00:00';
 
   return (
     <div className="mgmt-pop-field">
@@ -69,7 +73,7 @@ function FilterDateTimeField({
               onChange('');
               return;
             }
-            onChange(joinDateTimeLocal(nextDate, time || '00:00'));
+            onChange(joinDateTimeLocal(nextDate, time || defaultTime));
           }}
           min={minDate}
           direction="auto"
@@ -82,7 +86,7 @@ function FilterDateTimeField({
               onChange('');
               return;
             }
-            onChange(joinDateTimeLocal(date || getTodayDateString(), nextTime || '00:00'));
+            onChange(joinDateTimeLocal(date || getTodayDateString(), nextTime || defaultTime));
           }}
           style={{ width: 96 }}
         />
@@ -507,6 +511,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 value={draft.pickup_to}
                 onChange={(v) => update('pickup_to', v)}
                 minDate={splitDateTimeLocal(draft.pickup_from).date || undefined}
+                bound="to"
               />
               <FilterDateTimeField
                 id="dropoff-from"
@@ -520,6 +525,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 value={draft.dropoff_to}
                 onChange={(v) => update('dropoff_to', v)}
                 minDate={splitDateTimeLocal(draft.dropoff_from).date || undefined}
+                bound="to"
               />
               <FilterDateTimeField
                 id="posted-from"
@@ -533,6 +539,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 value={draft.posted_to}
                 onChange={(v) => update('posted_to', v)}
                 minDate={splitDateTimeLocal(draft.posted_from).date || undefined}
+                bound="to"
               />
               <FilterDateTimeField
                 id="completed-from"
@@ -546,6 +553,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                 value={draft.completed_to}
                 onChange={(v) => update('completed_to', v)}
                 minDate={splitDateTimeLocal(draft.completed_from).date || undefined}
+                bound="to"
               />
             </div>
           </section>

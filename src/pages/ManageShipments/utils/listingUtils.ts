@@ -9,10 +9,18 @@ import {
 } from '../../../utils/timezone';
 
 /** Convert datetime-local filter values to UTC ISO for the API. */
-function toUtcFilterParam(value: string): string | undefined {
+function toUtcFilterParam(value: string, bound: 'from' | 'to' = 'from'): string | undefined {
   const trimmed = (value || '').trim();
   if (!trimmed) return undefined;
-  const iso = localDateTimeLocalToUtcIso(trimmed);
+  // To-date left at 00:00 means include that whole local day.
+  let normalized = trimmed;
+  if (bound === 'to') {
+    const match = trimmed.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/);
+    if (match && match[2] === '00' && match[3] === '00' && (match[4] ?? '00') === '00') {
+      normalized = `${match[1]}T23:59:59`;
+    }
+  }
+  const iso = localDateTimeLocalToUtcIso(normalized);
   return iso || undefined;
 }
 
@@ -329,14 +337,14 @@ export function filtersToApiParams(filters: ShipmentsFilterState): Omit<ListShip
   if (priceMin !== undefined) params.price_min = priceMin;
   if (priceMax !== undefined) params.price_max = priceMax;
 
-  const pickupFrom = toUtcFilterParam(filters.pickup_from);
-  const pickupTo = toUtcFilterParam(filters.pickup_to);
-  const dropoffFrom = toUtcFilterParam(filters.dropoff_from);
-  const dropoffTo = toUtcFilterParam(filters.dropoff_to);
-  const postedFrom = toUtcFilterParam(filters.posted_from);
-  const postedTo = toUtcFilterParam(filters.posted_to);
-  const completedFrom = toUtcFilterParam(filters.completed_from);
-  const completedTo = toUtcFilterParam(filters.completed_to);
+  const pickupFrom = toUtcFilterParam(filters.pickup_from, 'from');
+  const pickupTo = toUtcFilterParam(filters.pickup_to, 'to');
+  const dropoffFrom = toUtcFilterParam(filters.dropoff_from, 'from');
+  const dropoffTo = toUtcFilterParam(filters.dropoff_to, 'to');
+  const postedFrom = toUtcFilterParam(filters.posted_from, 'from');
+  const postedTo = toUtcFilterParam(filters.posted_to, 'to');
+  const completedFrom = toUtcFilterParam(filters.completed_from, 'from');
+  const completedTo = toUtcFilterParam(filters.completed_to, 'to');
   if (pickupFrom) params.pickup_from = pickupFrom;
   if (pickupTo) params.pickup_to = pickupTo;
   if (dropoffFrom) params.dropoff_from = dropoffFrom;
