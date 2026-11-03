@@ -358,7 +358,7 @@ export const chatService = {
   /**
    * Upload Voice Note audio file to S3
    */
-  async uploadVoice(audioBlob: Blob): Promise<{ url: string; filename: string }> {
+  async uploadVoice(audioBlob: Blob): Promise<{ path?: string; url: string; filename: string }> {
     const normalizedBlob = normalizeVoiceBlob(audioBlob);
     const uploadFileName = getVoiceUploadFileName(normalizedBlob);
     const formData = new FormData();
@@ -368,7 +368,8 @@ export const chatService = {
       const res = await axiosInstance.post<{
         status?: boolean;
         success?: boolean;
-        data?: { url: string; filename?: string };
+        data?: { path?: string; url: string; filename?: string };
+        path?: string;
         url?: string;
         filename?: string;
       }>('/chat/upload-voice', formData);
@@ -376,15 +377,19 @@ export const chatService = {
       const d = res.data?.data || res.data;
       if (d && (d.url || (d as any).audio_url)) {
         return {
+          path: d.path,
           url: d.url || (d as any).audio_url,
           filename: d.filename || uploadFileName,
         };
       }
     } catch {
       try {
-        const res2 = await axiosInstance.post<{ success?: boolean; url?: string }>('/shipper/chat/upload-voice', formData);
+        const res2 = await axiosInstance.post<{ success?: boolean; path?: string; url?: string }>(
+          '/shipper/chat/upload-voice',
+          formData
+        );
         if (res2.data?.url) {
-          return { url: res2.data.url, filename: uploadFileName };
+          return { path: res2.data.path, url: res2.data.url, filename: uploadFileName };
         }
       } catch {}
     }
@@ -395,13 +400,15 @@ export const chatService = {
   /**
    * Upload attachment file to S3
    */
-  async uploadAttachment(file: File): Promise<{ url: string; name: string; size: string; type: string }> {
+  async uploadAttachment(
+    file: File
+  ): Promise<{ path?: string; url: string; name: string; size: string; type: string }> {
     const formData = new FormData();
     formData.append('file', file);
 
     const res = await axiosInstance.post<{
       status: boolean;
-      data: { url: string; name: string; size: string; type: string };
+      data: { path?: string; url: string; name: string; size: string; type: string };
     }>('/chat/upload-attachment', formData);
 
     if (res.data && res.data.data) {

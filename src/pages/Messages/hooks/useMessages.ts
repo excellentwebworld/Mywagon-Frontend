@@ -1295,12 +1295,13 @@ export function useMessages() {
       try {
         const uploadRes = await chatService.uploadVoice(audioBlob);
         const uploadedUrl = uploadRes?.url || localAudioUrl;
+        const storedPath = uploadRes?.path || uploadedUrl;
 
         const response = await deliverShipperChatMessage({
           user: user || {},
           conversation: activeConversation,
           partnerToken: partnerDeviceTokenRef.current || activeConversation.device_token || '',
-          message: uploadedUrl,
+          message: storedPath,
           messagesType: 'voice',
           duration: durationMsSend,
           shipmentId: activeSidDb,
@@ -1401,11 +1402,12 @@ export function useMessages() {
       try {
         const uploadRes = await chatService.uploadAttachment(file);
         const uploadedUrl = uploadRes?.url;
-        if (!uploadedUrl) {
+        const storedPath = uploadRes?.path || uploadedUrl;
+        if (!uploadedUrl || !storedPath) {
           throw new Error('Failed to upload attachment');
         }
 
-        // Persist S3 URL on the bubble before socket send so retry can re-send the link
+        // Persist S3 path for storage; use temporary url for immediate display
         setMessages((prev) =>
           prev.map((m) =>
             m.id === msgTempId
@@ -1425,7 +1427,7 @@ export function useMessages() {
           user: user || {},
           conversation: activeConversation,
           partnerToken: partnerDeviceTokenRef.current || activeConversation.device_token || '',
-          message: uploadedUrl,
+          message: storedPath,
           messagesType: msgType,
           shipmentId: activeSidDb,
         });
@@ -1525,8 +1527,9 @@ export function useMessages() {
             }
             const uploadRes = await chatService.uploadVoice(audioBlob);
             const uploadedUrl = uploadRes?.url;
-            if (!uploadedUrl) throw new Error('Failed to upload voice note.');
-            retryPayload = uploadedUrl;
+            const storedPath = uploadRes?.path || uploadedUrl;
+            if (!uploadedUrl || !storedPath) throw new Error('Failed to upload voice note.');
+            retryPayload = storedPath;
             setMessages((prev) =>
               prev.map((m) => (m.id === failedMsgId ? { ...m, voiceUrl: uploadedUrl, text: uploadedUrl } : m))
             );
@@ -1537,8 +1540,9 @@ export function useMessages() {
             }
             const uploadRes = await chatService.uploadAttachment(file);
             const uploadedUrl = uploadRes?.url;
-            if (!uploadedUrl) throw new Error('Failed to upload attachment.');
-            retryPayload = uploadedUrl;
+            const storedPath = uploadRes?.path || uploadedUrl;
+            if (!uploadedUrl || !storedPath) throw new Error('Failed to upload attachment.');
+            retryPayload = storedPath;
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === failedMsgId
