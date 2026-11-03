@@ -9,6 +9,10 @@ export interface SocketMessagePayload {
   receiver_id: number | string;
   receiver_type: string;
   message: string;
+  /** Stable S3 key for DB storage. */
+  path?: string;
+  /** Temporary playable URL for realtime receivers. */
+  presigned_url?: string;
   messages_type?: string;
   duration?: string;
   shipment_id?: string | number;

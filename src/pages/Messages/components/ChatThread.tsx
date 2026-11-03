@@ -292,8 +292,19 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                 <div className="msg-sender">{isSent ? tMsg('Messages.you', 'You') : conversation.name}</div>
                 <div className={`msg-bubble ${isImage ? 'msg-bubble-image' : ''} ${isDocument ? 'msg-bubble-doc' : ''}`}>
                   {isVoice ? (
-                    <VoicePlayer voiceUrl={m.voiceUrl || m.text || ''} duration={m.duration} isSent={isSent} />
+                    <VoicePlayer
+                      voiceUrl={m.voiceUrl || (!m.mediaLoading ? m.text || '' : '')}
+                      duration={m.duration}
+                      isSent={isSent}
+                      isLoading={Boolean(m.mediaLoading)}
+                    />
                   ) : isImage ? (
+                    m.mediaLoading || !imageSrc ? (
+                      <div className="msg-media-loading" aria-busy="true">
+                        <span className="msg-media-spinner" />
+                        <span>{t('chatModule.loadingMedia', 'Loading…')}</span>
+                      </div>
+                    ) : (
                     <button
                       type="button"
                       className="msg-image-btn"
@@ -311,7 +322,14 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                         }}
                       />
                     </button>
+                    )
                   ) : isDocument ? (
+                    m.mediaLoading || !docUrl ? (
+                      <div className="msg-media-loading" aria-busy="true">
+                        <span className="msg-media-spinner" />
+                        <span>{t('chatModule.loadingMedia', 'Loading…')}</span>
+                      </div>
+                    ) : (
                     <a
                       href={docUrl}
                       target="_blank"
@@ -336,6 +354,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                         <Download size={15} />
                       </div>
                     </a>
+                    )
                   ) : (
                     <span>{m.text}</span>
                   )}

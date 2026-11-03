@@ -62,6 +62,8 @@ function buildShipperSocketChatPayload(params: {
   conversation: Conversation;
   partnerToken: string;
   message: string;
+  path?: string;
+  presignedUrl?: string;
   messagesType?: 'text' | 'voice' | 'media' | 'image' | 'document';
   duration?: string;
   shipmentId?: string | number;
@@ -76,13 +78,18 @@ function buildShipperSocketChatPayload(params: {
   const senderImg = shipperChatIconUrl(params.user);
   const cleanShipmentId = params.shipmentId != null ? extractShipmentDbId(String(params.shipmentId)) : undefined;
   const socketMessagesType = params.messagesType && params.messagesType !== 'text' ? params.messagesType : undefined;
+  const path = params.path || params.message;
+  const presignedUrl = params.presignedUrl;
 
   return {
     sender_id: String(senderId),
     sender_type: 'shipper',
     receiver_id: String(receiverId),
     receiver_type: receiverType,
-    message: params.message,
+    // Path for DB; socket server swaps message to presigned_url for receivers.
+    message: path,
+    ...(path ? { path } : {}),
+    ...(presignedUrl ? { presigned_url: presignedUrl } : {}),
     ...(cleanShipmentId ? { shipment_id: cleanShipmentId } : {}),
     ...(socketMessagesType ? { messages_type: socketMessagesType } : {}),
     ...(params.duration ? { duration: params.duration } : {}),
@@ -110,6 +117,8 @@ function deliverShipperChatMessage(params: {
   conversation: Conversation;
   partnerToken: string;
   message: string;
+  path?: string;
+  presignedUrl?: string;
   messagesType?: 'text' | 'voice' | 'media' | 'image' | 'document';
   duration?: string;
   shipmentId?: string | number;
@@ -147,25 +156,37 @@ function dedupeMessages(msgs: ChatMessage[]): ChatMessage[] {
   });
 }
 
+function isAlreadyPresignedUrl(value: string): boolean {
+  return (
+    value.includes('X-Amz-Signature=') ||
+    value.includes('X-Amz-Credential=') ||
+    value.startsWith('blob:') ||
+    value.startsWith('data:')
+  );
+}
+
 function buildReceivedMessageFromSocket(
   incoming: SocketMessagePayload,
   conversation: Conversation | null
 ): ChatMessage | null {
-  const rawText = String(
+  const playableText = String(
+    incoming.presigned_url ||
     incoming.message ||
     (incoming as { notification_body?: string }).notification_body ||
     ''
   ).trim();
+  const pathHint = String(incoming.path || incoming.message || playableText).trim();
 
   const isVoice =
     incoming.messages_type === 'voice' ||
-    (rawText && (rawText.includes('chat-voices') || /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(rawText)));
+    (pathHint && (pathHint.includes('chat-voices') || /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(pathHint))) ||
+    (playableText && (playableText.includes('chat-voices') || /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(playableText)));
 
-  const isImage = !isVoice && isChatImageMessage(incoming.messages_type, rawText);
-  const isDoc = !isVoice && !isImage && isChatDocumentMessage(incoming.messages_type, rawText);
+  const isImage = !isVoice && isChatImageMessage(incoming.messages_type, pathHint || playableText);
+  const isDoc = !isVoice && !isImage && isChatDocumentMessage(incoming.messages_type, pathHint || playableText);
   const isMedia = incoming.messages_type === 'media' && !isImage && !isDoc;
 
-  if (!rawText && !isVoice && !isImage && !isDoc && !isMedia) {
+  if (!playableText && !pathHint && !isVoice && !isImage && !isDoc && !isMedia) {
     return null;
   }
 
@@ -184,6 +205,9 @@ function buildReceivedMessageFromSocket(
         ? 'document'
         : ((incoming.messages_type as ChatMessage['messages_type']) || 'text');
 
+  const alreadySigned = isAlreadyPresignedUrl(playableText);
+  const needsPresign = (isVoice || isImage || isDoc || isMedia) && !alreadySigned;
+
   return {
     id: incoming.id || Date.now(),
     type: 'received',
@@ -191,15 +215,16 @@ function buildReceivedMessageFromSocket(
     initials: conversation?.initials || extractInitials(conversation?.name) || 'P',
     time: formatMessageTime(incoming.created_at || new Date()),
     created_at: createdAt,
-    text: rawText,
+    text: playableText || pathHint,
     messages_type: resolvedType,
-    voiceUrl: isVoice ? rawText : undefined,
-    imageUrl: isImage ? rawText : undefined,
-    fileUrl: isDoc ? rawText : undefined,
-    fileName: isDoc ? getDocumentDisplayName(rawText) : undefined,
+    voiceUrl: isVoice ? (alreadySigned ? playableText : undefined) : undefined,
+    imageUrl: isImage ? (alreadySigned ? playableText : undefined) : undefined,
+    fileUrl: isDoc ? (alreadySigned ? playableText : undefined) : undefined,
+    fileName: isDoc ? getDocumentDisplayName(pathHint || playableText) : undefined,
     duration: incoming.duration,
     shipmentId: incoming.shipment_id ? String(incoming.shipment_id) : undefined,
     shipment_id: incoming.shipment_id,
+    mediaLoading: needsPresign,
   };
 }
 
@@ -208,19 +233,32 @@ async function withPresignedMediaUrls(msg: ChatMessage): Promise<ChatMessage> {
     msg.messages_type === 'voice' ||
     msg.messages_type === 'image' ||
     msg.messages_type === 'document' ||
-    Boolean(msg.voiceUrl || msg.imageUrl || msg.fileUrl);
+    Boolean(msg.voiceUrl || msg.imageUrl || msg.fileUrl || msg.mediaLoading);
 
-  if (!isMedia) return msg;
+  if (!isMedia) return { ...msg, mediaLoading: false };
 
   const source = msg.voiceUrl || msg.imageUrl || msg.fileUrl || msg.text || '';
+  if (!source) return { ...msg, mediaLoading: false };
+  if (isAlreadyPresignedUrl(source)) {
+    return {
+      ...msg,
+      mediaLoading: false,
+      text: source,
+      voiceUrl: msg.messages_type === 'voice' ? source : msg.voiceUrl,
+      imageUrl: msg.messages_type === 'image' ? source : msg.imageUrl,
+      fileUrl: msg.messages_type === 'document' ? source : msg.fileUrl,
+    };
+  }
+
   const signed = await chatService.presign(source);
 
   return {
     ...msg,
+    mediaLoading: false,
     text: signed,
-    voiceUrl: msg.voiceUrl ? signed : undefined,
-    imageUrl: msg.imageUrl ? signed : undefined,
-    fileUrl: msg.fileUrl ? signed : undefined,
+    voiceUrl: msg.messages_type === 'voice' || msg.voiceUrl ? signed : undefined,
+    imageUrl: msg.messages_type === 'image' || msg.imageUrl ? signed : undefined,
+    fileUrl: msg.messages_type === 'document' || msg.fileUrl ? signed : undefined,
   };
 }
 
@@ -724,12 +762,20 @@ export function useMessages() {
         const newMsg = buildReceivedMessageFromSocket(incoming, active);
         if (newMsg) {
           newMsg.liveIncoming = true;
-          void withPresignedMediaUrls(newMsg).then((signedMsg) => {
-            setMessages((prev) => {
-              if (!shouldAppendIncomingMessage(prev, signedMsg)) return prev;
-              return [...prev, signedMsg];
-            });
+
+          // Show bubble immediately (with loading for media), then swap in signed URL.
+          setMessages((prev) => {
+            if (!shouldAppendIncomingMessage(prev, newMsg)) return prev;
+            return [...prev, newMsg];
           });
+
+          if (newMsg.mediaLoading) {
+            void withPresignedMediaUrls(newMsg).then((signedMsg) => {
+              setMessages((prev) =>
+                prev.map((m) => (m.id === newMsg.id ? { ...signedMsg, liveIncoming: true } : m))
+              );
+            });
+          }
 
           void chatService.markAsRead(activePartnerId, activePartnerType).then(() => {
             window.dispatchEvent(new Event(CHAT_UNREAD_REFRESH_EVENT));
@@ -1332,6 +1378,8 @@ export function useMessages() {
           conversation: activeConversation,
           partnerToken: partnerDeviceTokenRef.current || activeConversation.device_token || '',
           message: storedPath,
+          path: storedPath,
+          presignedUrl: uploadedUrl,
           messagesType: 'voice',
           duration: durationMsSend,
           shipmentId: activeSidDb,
@@ -1341,7 +1389,11 @@ export function useMessages() {
         }
 
         setMessages((prev) =>
-          prev.map((m) => (m.id === msgTempId ? { ...m, voiceUrl: uploadedUrl, text: uploadedUrl, status: 'delivered' } : m))
+          prev.map((m) =>
+            m.id === msgTempId
+              ? { ...m, voiceUrl: uploadedUrl, text: uploadedUrl, mediaLoading: false, status: 'delivered' }
+              : m
+          )
         );
 
         // Only update conversation last message preview after successful send
@@ -1458,6 +1510,8 @@ export function useMessages() {
           conversation: activeConversation,
           partnerToken: partnerDeviceTokenRef.current || activeConversation.device_token || '',
           message: storedPath,
+          path: storedPath,
+          presignedUrl: uploadedUrl,
           messagesType: msgType,
           shipmentId: activeSidDb,
         });
@@ -1473,6 +1527,7 @@ export function useMessages() {
                   imageUrl: isImage ? uploadedUrl : undefined,
                   fileUrl: !isImage ? uploadedUrl : undefined,
                   text: uploadedUrl,
+                  mediaLoading: false,
                   status: 'delivered',
                   id: saved?.id || m.id,
                 }
@@ -1548,6 +1603,7 @@ export function useMessages() {
         const isImage = failedMsg.messages_type === 'image';
         const isDoc = failedMsg.messages_type === 'document';
 
+        let retryPresignedUrl: string | undefined;
         // If upload previously failed, the payload is still a local blob: URL. Re-attempt upload!
         if (retryPayload.startsWith('blob:')) {
           if (isVoice) {
@@ -1560,8 +1616,13 @@ export function useMessages() {
             const storedPath = uploadRes?.path || uploadedUrl;
             if (!uploadedUrl || !storedPath) throw new Error('Failed to upload voice note.');
             retryPayload = storedPath;
+            retryPresignedUrl = uploadedUrl;
             setMessages((prev) =>
-              prev.map((m) => (m.id === failedMsgId ? { ...m, voiceUrl: uploadedUrl, text: uploadedUrl } : m))
+              prev.map((m) =>
+                m.id === failedMsgId
+                  ? { ...m, voiceUrl: uploadedUrl, text: uploadedUrl, mediaLoading: false }
+                  : m
+              )
             );
           } else if (isImage || isDoc) {
             let file = pendingFilesRef.current.get(failedMsgId);
@@ -1573,6 +1634,7 @@ export function useMessages() {
             const storedPath = uploadRes?.path || uploadedUrl;
             if (!uploadedUrl || !storedPath) throw new Error('Failed to upload attachment.');
             retryPayload = storedPath;
+            retryPresignedUrl = uploadedUrl;
             setMessages((prev) =>
               prev.map((m) =>
                 m.id === failedMsgId
@@ -1581,11 +1643,14 @@ export function useMessages() {
                       imageUrl: isImage ? uploadedUrl : undefined,
                       fileUrl: isDoc ? uploadedUrl : undefined,
                       text: uploadedUrl,
+                      mediaLoading: false,
                     }
                   : m
               )
             );
           }
+        } else if (isAlreadyPresignedUrl(retryPayload)) {
+          retryPresignedUrl = retryPayload;
         }
 
         const response = await deliverShipperChatMessage({
@@ -1593,6 +1658,8 @@ export function useMessages() {
           conversation: activeConversation,
           partnerToken: partnerDeviceTokenRef.current || activeConversation.device_token || '',
           message: retryPayload,
+          path: retryPayload,
+          ...(retryPresignedUrl ? { presignedUrl: retryPresignedUrl } : {}),
           messagesType: isVoice ? 'voice' : isImage ? 'image' : isDoc ? 'document' : failedMsg.messages_type === 'media' ? 'media' : 'text',
           duration: isVoice ? failedMsg.duration : undefined,
           shipmentId: retrySidDb,
