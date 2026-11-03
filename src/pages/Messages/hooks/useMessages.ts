@@ -203,6 +203,27 @@ function buildReceivedMessageFromSocket(
   };
 }
 
+async function withPresignedMediaUrls(msg: ChatMessage): Promise<ChatMessage> {
+  const isMedia =
+    msg.messages_type === 'voice' ||
+    msg.messages_type === 'image' ||
+    msg.messages_type === 'document' ||
+    Boolean(msg.voiceUrl || msg.imageUrl || msg.fileUrl);
+
+  if (!isMedia) return msg;
+
+  const source = msg.voiceUrl || msg.imageUrl || msg.fileUrl || msg.text || '';
+  const signed = await chatService.presign(source);
+
+  return {
+    ...msg,
+    text: signed,
+    voiceUrl: msg.voiceUrl ? signed : undefined,
+    imageUrl: msg.imageUrl ? signed : undefined,
+    fileUrl: msg.fileUrl ? signed : undefined,
+  };
+}
+
 export function isMatchingShipment(
   msg: ChatMessage,
   targetSid: string,
@@ -619,7 +640,14 @@ export function useMessages() {
           !isImageEcho &&
           (incoming.messages_type === 'document' || isChatDocumentUrl(incoming.message));
 
-        if (incoming.message && incoming.message.startsWith('http')) {
+        // Only replace local blob preview when echo carries a playable signed/http URL.
+        // Stored path (e.g. chat-voices/...) must not overwrite the temporary display URL.
+        const echoUrl = String(incoming.message || '');
+        const echoIsPlayable =
+          echoUrl.startsWith('http') &&
+          (echoUrl.includes('X-Amz-Signature=') || echoUrl.includes('X-Amz-Credential=') || echoUrl.includes('.amazonaws.com'));
+
+        if (echoIsPlayable) {
           setMessages((prev) =>
             prev.map((m) => {
               if (
@@ -629,7 +657,7 @@ export function useMessages() {
                 m.voiceUrl &&
                 m.voiceUrl.startsWith('blob:')
               ) {
-                return { ...m, voiceUrl: incoming.message, text: incoming.message };
+                return { ...m, voiceUrl: echoUrl, text: echoUrl };
               }
               if (
                 isImageEcho &&
@@ -640,8 +668,8 @@ export function useMessages() {
               ) {
                 return {
                   ...m,
-                  imageUrl: incoming.message,
-                  text: incoming.message,
+                  imageUrl: echoUrl,
+                  text: echoUrl,
                   id: incoming.id || m.id,
                 };
               }
@@ -654,8 +682,8 @@ export function useMessages() {
               ) {
                 return {
                   ...m,
-                  fileUrl: incoming.message,
-                  text: incoming.message,
+                  fileUrl: echoUrl,
+                  text: echoUrl,
                   id: incoming.id || m.id,
                 };
               }
@@ -696,9 +724,11 @@ export function useMessages() {
         const newMsg = buildReceivedMessageFromSocket(incoming, active);
         if (newMsg) {
           newMsg.liveIncoming = true;
-          setMessages((prev) => {
-            if (!shouldAppendIncomingMessage(prev, newMsg)) return prev;
-            return [...prev, newMsg];
+          void withPresignedMediaUrls(newMsg).then((signedMsg) => {
+            setMessages((prev) => {
+              if (!shouldAppendIncomingMessage(prev, signedMsg)) return prev;
+              return [...prev, signedMsg];
+            });
           });
 
           void chatService.markAsRead(activePartnerId, activePartnerType).then(() => {
@@ -1294,7 +1324,7 @@ export function useMessages() {
 
       try {
         const uploadRes = await chatService.uploadVoice(audioBlob);
-        const uploadedUrl = uploadRes?.url || localAudioUrl;
+        const uploadedUrl = uploadRes?.presigned_url || localAudioUrl;
         const storedPath = uploadRes?.path || uploadedUrl;
 
         const response = await deliverShipperChatMessage({
@@ -1401,7 +1431,7 @@ export function useMessages() {
 
       try {
         const uploadRes = await chatService.uploadAttachment(file);
-        const uploadedUrl = uploadRes?.url;
+        const uploadedUrl = uploadRes?.presigned_url;
         const storedPath = uploadRes?.path || uploadedUrl;
         if (!uploadedUrl || !storedPath) {
           throw new Error('Failed to upload attachment');
@@ -1526,7 +1556,7 @@ export function useMessages() {
               audioBlob = await resolveBlobFromBlobUrl(retryPayload);
             }
             const uploadRes = await chatService.uploadVoice(audioBlob);
-            const uploadedUrl = uploadRes?.url;
+            const uploadedUrl = uploadRes?.presigned_url;
             const storedPath = uploadRes?.path || uploadedUrl;
             if (!uploadedUrl || !storedPath) throw new Error('Failed to upload voice note.');
             retryPayload = storedPath;
@@ -1539,7 +1569,7 @@ export function useMessages() {
               file = await resolveFileFromBlobUrl(retryPayload, failedMsg.fileName, failedMsg.fileType);
             }
             const uploadRes = await chatService.uploadAttachment(file);
-            const uploadedUrl = uploadRes?.url;
+            const uploadedUrl = uploadRes?.presigned_url;
             const storedPath = uploadRes?.path || uploadedUrl;
             if (!uploadedUrl || !storedPath) throw new Error('Failed to upload attachment.');
             retryPayload = storedPath;

@@ -358,7 +358,7 @@ export const chatService = {
   /**
    * Upload Voice Note audio file to S3
    */
-  async uploadVoice(audioBlob: Blob): Promise<{ path?: string; url: string; filename: string }> {
+  async uploadVoice(audioBlob: Blob): Promise<{ path?: string; presigned_url: string; filename: string }> {
     const normalizedBlob = normalizeVoiceBlob(audioBlob);
     const uploadFileName = getVoiceUploadFileName(normalizedBlob);
     const formData = new FormData();
@@ -368,28 +368,33 @@ export const chatService = {
       const res = await axiosInstance.post<{
         status?: boolean;
         success?: boolean;
-        data?: { path?: string; url: string; filename?: string };
+        data?: { path?: string; presigned_url?: string; filename?: string };
         path?: string;
-        url?: string;
+        presigned_url?: string;
         filename?: string;
       }>('/chat/upload-voice', formData);
 
       const d = res.data?.data || res.data;
-      if (d && (d.url || (d as any).audio_url)) {
+      if (d && d.presigned_url) {
         return {
           path: d.path,
-          url: d.url || (d as any).audio_url,
+          presigned_url: d.presigned_url,
           filename: d.filename || uploadFileName,
         };
       }
     } catch {
       try {
-        const res2 = await axiosInstance.post<{ success?: boolean; path?: string; url?: string }>(
-          '/shipper/chat/upload-voice',
-          formData
-        );
-        if (res2.data?.url) {
-          return { path: res2.data.path, url: res2.data.url, filename: uploadFileName };
+        const res2 = await axiosInstance.post<{
+          success?: boolean;
+          path?: string;
+          presigned_url?: string;
+        }>('/shipper/chat/upload-voice', formData);
+        if (res2.data?.presigned_url) {
+          return {
+            path: res2.data.path,
+            presigned_url: res2.data.presigned_url,
+            filename: uploadFileName,
+          };
         }
       } catch {}
     }
@@ -398,20 +403,49 @@ export const chatService = {
   },
 
   /**
+   * Resolve a stored S3 path / URL into a fresh pre-signed URL.
+   */
+  async presign(pathOrUrl: string): Promise<string> {
+    const value = String(pathOrUrl || '').trim();
+    if (!value) return value;
+
+    // Already a usable temporary URL
+    if (value.includes('X-Amz-Signature=') || value.includes('X-Amz-Credential=')) {
+      return value;
+    }
+
+    // Blob / data URLs do not need signing
+    if (value.startsWith('blob:') || value.startsWith('data:')) {
+      return value;
+    }
+
+    try {
+      const res = await axiosInstance.post<{
+        status?: boolean;
+        data?: { presigned_url?: string };
+      }>('/chat/presign', { path: value });
+
+      return res.data?.data?.presigned_url || value;
+    } catch {
+      return value;
+    }
+  },
+
+  /**
    * Upload attachment file to S3
    */
   async uploadAttachment(
     file: File
-  ): Promise<{ path?: string; url: string; name: string; size: string; type: string }> {
+  ): Promise<{ path?: string; presigned_url: string; name: string; size: string; type: string }> {
     const formData = new FormData();
     formData.append('file', file);
 
     const res = await axiosInstance.post<{
       status: boolean;
-      data: { path?: string; url: string; name: string; size: string; type: string };
+      data: { path?: string; presigned_url: string; name: string; size: string; type: string };
     }>('/chat/upload-attachment', formData);
 
-    if (res.data && res.data.data) {
+    if (res.data && res.data.data?.presigned_url) {
       return res.data.data;
     }
     throw new Error('Failed to upload attachment.');
