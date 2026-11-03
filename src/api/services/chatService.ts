@@ -358,7 +358,12 @@ export const chatService = {
   /**
    * Upload Voice Note audio file to S3
    */
-  async uploadVoice(audioBlob: Blob): Promise<{ path?: string; presigned_url: string; filename: string }> {
+  async uploadVoice(audioBlob: Blob): Promise<{
+    path?: string;
+    actual_url?: string;
+    presigned_url: string;
+    filename: string;
+  }> {
     const normalizedBlob = normalizeVoiceBlob(audioBlob);
     const uploadFileName = getVoiceUploadFileName(normalizedBlob);
     const formData = new FormData();
@@ -368,8 +373,9 @@ export const chatService = {
       const res = await axiosInstance.post<{
         status?: boolean;
         success?: boolean;
-        data?: { path?: string; presigned_url?: string; filename?: string };
+        data?: { path?: string; actual_url?: string; presigned_url?: string; filename?: string };
         path?: string;
+        actual_url?: string;
         presigned_url?: string;
         filename?: string;
       }>('/chat/upload-voice', formData);
@@ -378,6 +384,7 @@ export const chatService = {
       if (d && d.presigned_url) {
         return {
           path: d.path,
+          actual_url: d.actual_url,
           presigned_url: d.presigned_url,
           filename: d.filename || uploadFileName,
         };
@@ -387,11 +394,13 @@ export const chatService = {
         const res2 = await axiosInstance.post<{
           success?: boolean;
           path?: string;
+          actual_url?: string;
           presigned_url?: string;
         }>('/shipper/chat/upload-voice', formData);
         if (res2.data?.presigned_url) {
           return {
             path: res2.data.path,
+            actual_url: res2.data.actual_url,
             presigned_url: res2.data.presigned_url,
             filename: uploadFileName,
           };
@@ -436,13 +445,27 @@ export const chatService = {
    */
   async uploadAttachment(
     file: File
-  ): Promise<{ path?: string; presigned_url: string; name: string; size: string; type: string }> {
+  ): Promise<{
+    path?: string;
+    actual_url?: string;
+    presigned_url: string;
+    name: string;
+    size: string;
+    type: string;
+  }> {
     const formData = new FormData();
     formData.append('file', file);
 
     const res = await axiosInstance.post<{
       status: boolean;
-      data: { path?: string; presigned_url: string; name: string; size: string; type: string };
+      data: {
+        path?: string;
+        actual_url?: string;
+        presigned_url: string;
+        name: string;
+        size: string;
+        type: string;
+      };
     }>('/chat/upload-attachment', formData);
 
     if (res.data && res.data.data?.presigned_url) {

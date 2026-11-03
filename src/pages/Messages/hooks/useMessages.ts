@@ -63,6 +63,7 @@ function buildShipperSocketChatPayload(params: {
   partnerToken: string;
   message: string;
   path?: string;
+  actualUrl?: string;
   presignedUrl?: string;
   messagesType?: 'text' | 'voice' | 'media' | 'image' | 'document';
   duration?: string;
@@ -78,7 +79,8 @@ function buildShipperSocketChatPayload(params: {
   const senderImg = shipperChatIconUrl(params.user);
   const cleanShipmentId = params.shipmentId != null ? extractShipmentDbId(String(params.shipmentId)) : undefined;
   const socketMessagesType = params.messagesType && params.messagesType !== 'text' ? params.messagesType : undefined;
-  const path = params.path || params.message;
+  const path = params.path;
+  const actualUrl = params.actualUrl || params.message;
   const presignedUrl = params.presignedUrl;
 
   return {
@@ -86,9 +88,11 @@ function buildShipperSocketChatPayload(params: {
     sender_type: 'shipper',
     receiver_id: String(receiverId),
     receiver_type: receiverType,
-    // Path for DB; socket server swaps message to presigned_url for receivers.
-    message: path,
+    // message + actual_url = permanent S3 link (stored in DB)
+    // presigned_url = temporary playable link for realtime receivers
+    message: actualUrl,
     ...(path ? { path } : {}),
+    ...(actualUrl ? { actual_url: actualUrl } : {}),
     ...(presignedUrl ? { presigned_url: presignedUrl } : {}),
     ...(cleanShipmentId ? { shipment_id: cleanShipmentId } : {}),
     ...(socketMessagesType ? { messages_type: socketMessagesType } : {}),
@@ -118,6 +122,7 @@ function deliverShipperChatMessage(params: {
   partnerToken: string;
   message: string;
   path?: string;
+  actualUrl?: string;
   presignedUrl?: string;
   messagesType?: 'text' | 'voice' | 'media' | 'image' | 'document';
   duration?: string;
@@ -169,24 +174,25 @@ function buildReceivedMessageFromSocket(
   incoming: SocketMessagePayload,
   conversation: Conversation | null
 ): ChatMessage | null {
-  const playableText = String(
-    incoming.presigned_url ||
-    incoming.message ||
-    (incoming as { notification_body?: string }).notification_body ||
-    ''
+  // Real/permanent link (DB value) — never use for private-bucket playback alone
+  const actualUrl = String(
+    incoming.actual_url || incoming.message || incoming.path || ''
   ).trim();
-  const pathHint = String(incoming.path || incoming.message || playableText).trim();
+  // Temporary playable link for realtime UI
+  const presignedUrl = String(incoming.presigned_url || '').trim();
+  const mediaHint = actualUrl || presignedUrl;
 
   const isVoice =
     incoming.messages_type === 'voice' ||
-    (pathHint && (pathHint.includes('chat-voices') || /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(pathHint))) ||
-    (playableText && (playableText.includes('chat-voices') || /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(playableText)));
+    (mediaHint &&
+      (mediaHint.includes('chat-voices') ||
+        /\.(webm|m4a|mp3|wav|ogg|caf)/i.test(mediaHint)));
 
-  const isImage = !isVoice && isChatImageMessage(incoming.messages_type, pathHint || playableText);
-  const isDoc = !isVoice && !isImage && isChatDocumentMessage(incoming.messages_type, pathHint || playableText);
+  const isImage = !isVoice && isChatImageMessage(incoming.messages_type, mediaHint);
+  const isDoc = !isVoice && !isImage && isChatDocumentMessage(incoming.messages_type, mediaHint);
   const isMedia = incoming.messages_type === 'media' && !isImage && !isDoc;
 
-  if (!playableText && !pathHint && !isVoice && !isImage && !isDoc && !isMedia) {
+  if (!mediaHint && !isVoice && !isImage && !isDoc && !isMedia) {
     return null;
   }
 
@@ -205,8 +211,10 @@ function buildReceivedMessageFromSocket(
         ? 'document'
         : ((incoming.messages_type as ChatMessage['messages_type']) || 'text');
 
-  const alreadySigned = isAlreadyPresignedUrl(playableText);
-  const needsPresign = (isVoice || isImage || isDoc || isMedia) && !alreadySigned;
+  const hasPlayablePresign = isAlreadyPresignedUrl(presignedUrl);
+  const isMediaType = isVoice || isImage || isDoc || isMedia;
+  // Have presigned → play immediately; else loader + /chat/presign(actual_url)
+  const needsPresign = isMediaType && !hasPlayablePresign;
 
   return {
     id: incoming.id || Date.now(),
@@ -215,12 +223,12 @@ function buildReceivedMessageFromSocket(
     initials: conversation?.initials || extractInitials(conversation?.name) || 'P',
     time: formatMessageTime(incoming.created_at || new Date()),
     created_at: createdAt,
-    text: playableText || pathHint,
+    text: hasPlayablePresign ? presignedUrl : actualUrl || mediaHint,
     messages_type: resolvedType,
-    voiceUrl: isVoice ? (alreadySigned ? playableText : undefined) : undefined,
-    imageUrl: isImage ? (alreadySigned ? playableText : undefined) : undefined,
-    fileUrl: isDoc ? (alreadySigned ? playableText : undefined) : undefined,
-    fileName: isDoc ? getDocumentDisplayName(pathHint || playableText) : undefined,
+    voiceUrl: isVoice && hasPlayablePresign ? presignedUrl : undefined,
+    imageUrl: isImage && hasPlayablePresign ? presignedUrl : undefined,
+    fileUrl: isDoc && hasPlayablePresign ? presignedUrl : undefined,
+    fileName: isDoc ? getDocumentDisplayName(actualUrl || mediaHint) : undefined,
     duration: incoming.duration,
     shipmentId: incoming.shipment_id ? String(incoming.shipment_id) : undefined,
     shipment_id: incoming.shipment_id,
@@ -1371,14 +1379,16 @@ export function useMessages() {
       try {
         const uploadRes = await chatService.uploadVoice(audioBlob);
         const uploadedUrl = uploadRes?.presigned_url || localAudioUrl;
-        const storedPath = uploadRes?.path || uploadedUrl;
+        const actualUrl = uploadRes?.actual_url || uploadRes?.path || uploadedUrl;
+        const storedPath = uploadRes?.path;
 
         const response = await deliverShipperChatMessage({
           user: user || {},
           conversation: activeConversation,
           partnerToken: partnerDeviceTokenRef.current || activeConversation.device_token || '',
-          message: storedPath,
+          message: actualUrl,
           path: storedPath,
+          actualUrl,
           presignedUrl: uploadedUrl,
           messagesType: 'voice',
           duration: durationMsSend,
@@ -1484,12 +1494,13 @@ export function useMessages() {
       try {
         const uploadRes = await chatService.uploadAttachment(file);
         const uploadedUrl = uploadRes?.presigned_url;
-        const storedPath = uploadRes?.path || uploadedUrl;
-        if (!uploadedUrl || !storedPath) {
+        const actualUrl = uploadRes?.actual_url || uploadRes?.path || uploadedUrl;
+        const storedPath = uploadRes?.path;
+        if (!uploadedUrl || !actualUrl) {
           throw new Error('Failed to upload attachment');
         }
 
-        // Persist S3 path for storage; use temporary url for immediate display
+        // Persist actual_url in DB via socket; use temporary url for immediate display
         setMessages((prev) =>
           prev.map((m) =>
             m.id === msgTempId
@@ -1509,8 +1520,9 @@ export function useMessages() {
           user: user || {},
           conversation: activeConversation,
           partnerToken: partnerDeviceTokenRef.current || activeConversation.device_token || '',
-          message: storedPath,
+          message: actualUrl,
           path: storedPath,
+          actualUrl,
           presignedUrl: uploadedUrl,
           messagesType: msgType,
           shipmentId: activeSidDb,
@@ -1604,6 +1616,8 @@ export function useMessages() {
         const isDoc = failedMsg.messages_type === 'document';
 
         let retryPresignedUrl: string | undefined;
+        let retryActualUrl: string | undefined;
+        let retryPath: string | undefined;
         // If upload previously failed, the payload is still a local blob: URL. Re-attempt upload!
         if (retryPayload.startsWith('blob:')) {
           if (isVoice) {
@@ -1613,9 +1627,11 @@ export function useMessages() {
             }
             const uploadRes = await chatService.uploadVoice(audioBlob);
             const uploadedUrl = uploadRes?.presigned_url;
-            const storedPath = uploadRes?.path || uploadedUrl;
-            if (!uploadedUrl || !storedPath) throw new Error('Failed to upload voice note.');
-            retryPayload = storedPath;
+            const actualUrl = uploadRes?.actual_url || uploadRes?.path || uploadedUrl;
+            if (!uploadedUrl || !actualUrl) throw new Error('Failed to upload voice note.');
+            retryPayload = actualUrl;
+            retryActualUrl = actualUrl;
+            retryPath = uploadRes?.path;
             retryPresignedUrl = uploadedUrl;
             setMessages((prev) =>
               prev.map((m) =>
@@ -1631,9 +1647,11 @@ export function useMessages() {
             }
             const uploadRes = await chatService.uploadAttachment(file);
             const uploadedUrl = uploadRes?.presigned_url;
-            const storedPath = uploadRes?.path || uploadedUrl;
-            if (!uploadedUrl || !storedPath) throw new Error('Failed to upload attachment.');
-            retryPayload = storedPath;
+            const actualUrl = uploadRes?.actual_url || uploadRes?.path || uploadedUrl;
+            if (!uploadedUrl || !actualUrl) throw new Error('Failed to upload attachment.');
+            retryPayload = actualUrl;
+            retryActualUrl = actualUrl;
+            retryPath = uploadRes?.path;
             retryPresignedUrl = uploadedUrl;
             setMessages((prev) =>
               prev.map((m) =>
@@ -1651,14 +1669,18 @@ export function useMessages() {
           }
         } else if (isAlreadyPresignedUrl(retryPayload)) {
           retryPresignedUrl = retryPayload;
+          retryActualUrl = retryPayload.split('?')[0];
+        } else if (/^https?:\/\//i.test(retryPayload)) {
+          retryActualUrl = retryPayload.split('?')[0];
         }
 
         const response = await deliverShipperChatMessage({
           user: user || {},
           conversation: activeConversation,
           partnerToken: partnerDeviceTokenRef.current || activeConversation.device_token || '',
-          message: retryPayload,
-          path: retryPayload,
+          message: retryActualUrl || retryPayload,
+          path: retryPath,
+          actualUrl: retryActualUrl || retryPayload,
           ...(retryPresignedUrl ? { presignedUrl: retryPresignedUrl } : {}),
           messagesType: isVoice ? 'voice' : isImage ? 'image' : isDoc ? 'document' : failedMsg.messages_type === 'media' ? 'media' : 'text',
           duration: isVoice ? failedMsg.duration : undefined,
